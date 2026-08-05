@@ -2,9 +2,6 @@ import type { Messages } from '../../types/i18n';
 
 export const ja: Messages = {
   appTitle: 'Digital Signage Simulator',
-  sprint0Badge: 'Sprint 0',
-  sprint0Description:
-    'これは Sprint 0 のプレースホルダー画面です。編集機能や書き出し機能はまだ実装されていません。',
   disclaimer:
     '本サービスは個人が企画・運営する独立したデジタルサイネージシミュレーションツールであり、HULL株式会社の公式サービスではありません。',
   languageSelectorLabel: '言語',
@@ -15,4 +12,33 @@ export const ja: Messages = {
   },
   hullCtaLabel: 'HULLに問い合わせる',
   hullCtaExternalNotice: '外部のHULL公式サイトが新しいタブで開きます。',
+
+  editorTemplateLabel: 'テンプレート',
+  editorTemplateWallLed: '壁掛けLED',
+  editorTemplateStandDisplay: 'スタンド型ディスプレイ',
+  editorAddTextButton: 'テキストを追加',
+  editorAddImageButton: '画像を追加',
+  editorDeleteButton: '削除',
+  editorUndoButton: '元に戻す',
+  editorRedoButton: 'やり直す',
+  editorExportButton: 'PNGで書き出す',
+  editorBackgroundColorLabel: '背景色',
+  editorEmptyCanvasHint: 'まだ要素がありません。テキストまたは画像を追加してください。',
+  editorPropertiesTitle: 'プロパティ',
+  editorPropertiesEmptyHint: '要素を選択するとプロパティを編集できます。',
+  editorPositionXLabel: 'X座標',
+  editorPositionYLabel: 'Y座標',
+  editorWidthLabel: '幅',
+  editorHeightLabel: '高さ',
+  editorRotationLabel: '回転',
+  editorTextContentLabel: 'テキスト内容',
+  editorFontSizeLabel: 'フォントサイズ',
+  editorTextColorLabel: '文字色',
+  editorTextAlignLabel: '文字揃え',
+  editorAlignLeft: '左揃え',
+  editorAlignCenter: '中央揃え',
+  editorAlignRight: '右揃え',
+  editorImageUploadErrorUnsupportedType: 'PNG、JPEG、WebP形式の画像のみ利用できます。',
+  editorImageUploadErrorTooLarge: '画像サイズは10MB以下にしてください。',
+  editorExportedAnnouncement: 'PNG画像を書き出しました。',
 };

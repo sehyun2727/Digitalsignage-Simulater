@@ -2,9 +2,6 @@ import type { Messages } from '../../types/i18n';
 
 export const ko: Messages = {
   appTitle: 'Digital Signage Simulator',
-  sprint0Badge: 'Sprint 0',
-  sprint0Description:
-    '이 화면은 Sprint 0 플레이스홀더입니다. 편집 기능과 내보내기 기능은 아직 구현되지 않았습니다.',
   disclaimer:
     '본 서비스는 개인이 기획·운영하는 독립적인 디지털 사이니지 시뮬레이션 도구이며, HULL 주식회사의 공식 서비스가 아닙니다.',
   languageSelectorLabel: '언어',
@@ -15,4 +12,33 @@ export const ko: Messages = {
   },
   hullCtaLabel: 'HULL에 문의하기',
   hullCtaExternalNotice: '외부 HULL 공식 웹사이트가 새 탭에서 열립니다.',
+
+  editorTemplateLabel: '템플릿',
+  editorTemplateWallLed: '벽걸이형 LED',
+  editorTemplateStandDisplay: '스탠드형 디스플레이',
+  editorAddTextButton: '텍스트 추가',
+  editorAddImageButton: '이미지 추가',
+  editorDeleteButton: '삭제',
+  editorUndoButton: '실행 취소',
+  editorRedoButton: '다시 실행',
+  editorExportButton: 'PNG로 내보내기',
+  editorBackgroundColorLabel: '배경색',
+  editorEmptyCanvasHint: '아직 요소가 없습니다. 텍스트 또는 이미지를 추가해 보세요.',
+  editorPropertiesTitle: '속성',
+  editorPropertiesEmptyHint: '요소를 선택하면 속성을 편집할 수 있습니다.',
+  editorPositionXLabel: 'X 좌표',
+  editorPositionYLabel: 'Y 좌표',
+  editorWidthLabel: '너비',
+  editorHeightLabel: '높이',
+  editorRotationLabel: '회전',
+  editorTextContentLabel: '텍스트 내용',
+  editorFontSizeLabel: '글자 크기',
+  editorTextColorLabel: '글자 색상',
+  editorTextAlignLabel: '텍스트 정렬',
+  editorAlignLeft: '왼쪽 정렬',
+  editorAlignCenter: '가운데 정렬',
+  editorAlignRight: '오른쪽 정렬',
+  editorImageUploadErrorUnsupportedType: 'PNG, JPEG, WebP 형식의 이미지만 사용할 수 있습니다.',
+  editorImageUploadErrorTooLarge: '이미지 크기는 10MB 이하여야 합니다.',
+  editorExportedAnnouncement: 'PNG 이미지를 내보냈습니다.',
 };

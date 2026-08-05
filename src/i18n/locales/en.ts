@@ -2,9 +2,6 @@ import type { Messages } from '../../types/i18n';
 
 export const en: Messages = {
   appTitle: 'Digital Signage Simulator',
-  sprint0Badge: 'Sprint 0',
-  sprint0Description:
-    'This is the Sprint 0 placeholder screen. Editing and export functionality has not been implemented yet.',
   disclaimer:
     'This service is an independently operated digital signage simulation tool and is not an official service of HULL Inc.',
   languageSelectorLabel: 'Language',
@@ -15,4 +12,33 @@ export const en: Messages = {
   },
   hullCtaLabel: 'Contact HULL',
   hullCtaExternalNotice: 'Opens the official HULL website in a new tab.',
+
+  editorTemplateLabel: 'Template',
+  editorTemplateWallLed: 'Wall LED',
+  editorTemplateStandDisplay: 'Stand Display',
+  editorAddTextButton: 'Add text',
+  editorAddImageButton: 'Add image',
+  editorDeleteButton: 'Delete',
+  editorUndoButton: 'Undo',
+  editorRedoButton: 'Redo',
+  editorExportButton: 'Export as PNG',
+  editorBackgroundColorLabel: 'Background color',
+  editorEmptyCanvasHint: 'No elements yet. Add text or an image to get started.',
+  editorPropertiesTitle: 'Properties',
+  editorPropertiesEmptyHint: 'Select an element to edit its properties.',
+  editorPositionXLabel: 'X position',
+  editorPositionYLabel: 'Y position',
+  editorWidthLabel: 'Width',
+  editorHeightLabel: 'Height',
+  editorRotationLabel: 'Rotation',
+  editorTextContentLabel: 'Text content',
+  editorFontSizeLabel: 'Font size',
+  editorTextColorLabel: 'Text color',
+  editorTextAlignLabel: 'Text align',
+  editorAlignLeft: 'Left',
+  editorAlignCenter: 'Center',
+  editorAlignRight: 'Right',
+  editorImageUploadErrorUnsupportedType: 'Only PNG, JPEG, and WebP images are supported.',
+  editorImageUploadErrorTooLarge: 'Image size must be 10MB or smaller.',
+  editorExportedAnnouncement: 'Exported the PNG image.',
 };

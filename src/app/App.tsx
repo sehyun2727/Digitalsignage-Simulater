@@ -1,5 +1,6 @@
 import { HullCta } from '../components/HullCta';
 import { LanguageSelector } from '../components/LanguageSelector';
+import { EditorLayout } from '../features/editor/EditorLayout';
 import { useLocale } from '../i18n/localeContext';
 import { LocaleProvider } from '../i18n/LocaleProvider';
 
@@ -14,8 +15,7 @@ function AppShell() {
       </header>
 
       <main className="app-main">
-        <span className="sprint-badge">{messages.sprint0Badge}</span>
-        <p>{messages.sprint0Description}</p>
+        <EditorLayout />
       </main>
 
       <footer className="app-footer">

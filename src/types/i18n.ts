@@ -10,11 +10,38 @@ export function isSupportedLocale(value: string): value is Locale {
 
 export interface Messages {
   appTitle: string;
-  sprint0Badge: string;
-  sprint0Description: string;
   disclaimer: string;
   languageSelectorLabel: string;
   localeName: Record<Locale, string>;
   hullCtaLabel: string;
   hullCtaExternalNotice: string;
+
+  editorTemplateLabel: string;
+  editorTemplateWallLed: string;
+  editorTemplateStandDisplay: string;
+  editorAddTextButton: string;
+  editorAddImageButton: string;
+  editorDeleteButton: string;
+  editorUndoButton: string;
+  editorRedoButton: string;
+  editorExportButton: string;
+  editorBackgroundColorLabel: string;
+  editorEmptyCanvasHint: string;
+  editorPropertiesTitle: string;
+  editorPropertiesEmptyHint: string;
+  editorPositionXLabel: string;
+  editorPositionYLabel: string;
+  editorWidthLabel: string;
+  editorHeightLabel: string;
+  editorRotationLabel: string;
+  editorTextContentLabel: string;
+  editorFontSizeLabel: string;
+  editorTextColorLabel: string;
+  editorTextAlignLabel: string;
+  editorAlignLeft: string;
+  editorAlignCenter: string;
+  editorAlignRight: string;
+  editorImageUploadErrorUnsupportedType: string;
+  editorImageUploadErrorTooLarge: string;
+  editorExportedAnnouncement: string;
 }
