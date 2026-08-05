@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+coverage
+playwright-report
+test-results
+.git
+.github
+docs
+e2e
+tests
+*.log
+.env
+.env.local
+.env.*.local
