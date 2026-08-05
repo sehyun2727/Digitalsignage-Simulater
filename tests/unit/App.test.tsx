@@ -1,8 +1,18 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { forwardRef, useImperativeHandle } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/app/App';
 import { ja } from '../../src/i18n/locales/ja';
+
+vi.mock('../../src/features/editor/EditorCanvas', () => ({
+  EditorCanvas: forwardRef(function MockEditorCanvas(_props, ref) {
+    useImperativeHandle(ref, () => ({
+      exportToDataUrl: () => 'data:image/png;base64,mock',
+    }));
+    return <div data-testid="mock-editor-canvas" />;
+  }),
+}));
 
 function mockBrowserLocale(languages: string[]) {
   vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(languages);
@@ -20,11 +30,11 @@ describe('App', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders the Sprint 0 shell', () => {
+  it('renders the editor shell', () => {
     render(<App />);
 
     expect(screen.getByRole('heading', { name: 'Digital Signage Simulator' })).toBeInTheDocument();
-    expect(screen.getByText('Sprint 0')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: ja.editorAddTextButton })).toBeInTheDocument();
   });
 
   it('defaults to Japanese', () => {
@@ -54,7 +64,7 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.selectOptions(screen.getByRole('combobox'), 'ko');
+    await user.selectOptions(screen.getByRole('combobox', { name: ja.languageSelectorLabel }), 'ko');
 
     expect(document.documentElement.lang).toBe('ko');
     expect(screen.getByRole('heading', { name: 'Digital Signage Simulator' })).toBeInTheDocument();
@@ -64,7 +74,7 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.selectOptions(screen.getByRole('combobox'), 'en');
+    await user.selectOptions(screen.getByRole('combobox', { name: ja.languageSelectorLabel }), 'en');
 
     expect(document.documentElement.lang).toBe('en');
     expect(screen.getByRole('link', { name: 'Contact HULL' })).toBeInTheDocument();
@@ -74,7 +84,7 @@ describe('App', () => {
     const user = userEvent.setup();
     const { unmount } = render(<App />);
 
-    await user.selectOptions(screen.getByRole('combobox'), 'ko');
+    await user.selectOptions(screen.getByRole('combobox', { name: ja.languageSelectorLabel }), 'ko');
     expect(window.localStorage.getItem('signage-canvas.locale')).toBe('ko');
     unmount();
 

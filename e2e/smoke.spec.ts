@@ -8,7 +8,7 @@ test.describe('unsupported browser locale', () => {
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
     await expect(page.getByRole('heading', { name: 'Digital Signage Simulator' })).toBeVisible();
-    await expect(page.getByText('Sprint 0', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'テキストを追加' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'HULLに問い合わせる' })).toHaveAttribute(
       'href',
       'https://hull-inc.jp/contact',
@@ -19,7 +19,7 @@ test.describe('unsupported browser locale', () => {
 test('switches the UI language to English', async ({ page }) => {
   await page.goto('/');
 
-  await page.getByRole('combobox').selectOption('en');
+  await page.locator('#language-select').selectOption('en');
 
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.getByRole('heading', { name: 'Digital Signage Simulator' })).toBeVisible();
