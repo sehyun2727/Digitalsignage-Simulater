@@ -111,4 +111,68 @@ describe('editorStore', () => {
     expect(state.document.objects).toHaveLength(0);
     expect(selectCanUndo(state)).toBe(true);
   });
+
+  it('undo after a template switch restores the previous template and its objects', () => {
+    useEditorStore.getState().addText();
+    const originalObjectId = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().selectTemplate('stand-display');
+
+    useEditorStore.getState().undo();
+
+    const state = useEditorStore.getState();
+    expect(state.document.templateId).toBe('wall-led');
+    expect(state.document.objects).toHaveLength(1);
+    expect(state.document.objects[0]?.id).toBe(originalObjectId);
+  });
+
+  it('commits a resize change to history and undo/redo restore it', () => {
+    useEditorStore.getState().addText();
+    const id = useEditorStore.getState().document.objects[0]!.id;
+
+    useEditorStore.getState().commitObjectChange(id, { width: 500, height: 200 });
+    expect(useEditorStore.getState().document.objects[0]).toMatchObject({ width: 500, height: 200 });
+
+    useEditorStore.getState().undo();
+    expect(useEditorStore.getState().document.objects[0]?.width).not.toBe(500);
+
+    useEditorStore.getState().redo();
+    expect(useEditorStore.getState().document.objects[0]).toMatchObject({ width: 500, height: 200 });
+  });
+
+  it('commits a rotation change to history and undo/redo restore it', () => {
+    useEditorStore.getState().addText();
+    const id = useEditorStore.getState().document.objects[0]!.id;
+
+    useEditorStore.getState().commitObjectChange(id, { rotation: 45 });
+    expect(useEditorStore.getState().document.objects[0]).toMatchObject({ rotation: 45 });
+
+    useEditorStore.getState().undo();
+    expect(useEditorStore.getState().document.objects[0]?.rotation).not.toBe(45);
+
+    useEditorStore.getState().redo();
+    expect(useEditorStore.getState().document.objects[0]).toMatchObject({ rotation: 45 });
+  });
+
+  it('committing a patch with no actual value change does not push a history entry', () => {
+    useEditorStore.getState().addText();
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    const { x, y } = useEditorStore.getState().document.objects[0]!;
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().commitObjectChange(id, { x, y });
+
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
+  });
+
+  it('a new commit after undo clears the redo stack', () => {
+    useEditorStore.getState().addText();
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().commitObjectChange(id, { x: 500, y: 400 });
+
+    useEditorStore.getState().undo();
+    expect(selectCanRedo(useEditorStore.getState())).toBe(true);
+
+    useEditorStore.getState().commitObjectChange(id, { x: 700, y: 300 });
+    expect(selectCanRedo(useEditorStore.getState())).toBe(false);
+  });
 });

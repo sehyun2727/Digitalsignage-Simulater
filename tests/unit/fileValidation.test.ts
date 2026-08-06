@@ -21,6 +21,10 @@ describe('validateImageFile', () => {
     expect(validateImageFile(createFile('application/pdf', 1024))).toBe('unsupported-type');
   });
 
+  it('rejects a file with an empty or missing MIME type', () => {
+    expect(validateImageFile(createFile('', 1024))).toBe('unsupported-type');
+  });
+
   it('rejects files larger than the size limit', () => {
     expect(validateImageFile(createFile('image/png', MAX_IMAGE_BYTES + 1))).toBe('too-large');
   });

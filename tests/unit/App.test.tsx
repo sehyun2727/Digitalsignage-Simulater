@@ -5,10 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/app/App';
 import { ja } from '../../src/i18n/locales/ja';
 
+const canvasMock = vi.hoisted(() => ({
+  exportToDataUrl: (): string | null => 'data:image/png;base64,mock',
+}));
+
 vi.mock('../../src/features/editor/EditorCanvas', () => ({
   EditorCanvas: forwardRef(function MockEditorCanvas(_props, ref) {
     useImperativeHandle(ref, () => ({
-      exportToDataUrl: () => 'data:image/png;base64,mock',
+      exportToDataUrl: () => canvasMock.exportToDataUrl(),
     }));
     return <div data-testid="mock-editor-canvas" />;
   }),
@@ -28,6 +32,8 @@ describe('App', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    canvasMock.exportToDataUrl = () => 'data:image/png;base64,mock';
   });
 
   it('renders the editor shell', () => {
@@ -90,5 +96,38 @@ describe('App', () => {
 
     render(<App />);
     expect(document.documentElement.lang).toBe('ko');
+  });
+
+  it('shows an accessible error and skips the download when PNG export fails', async () => {
+    canvasMock.exportToDataUrl = () => null;
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: ja.editorExportButton }));
+
+    expect(await screen.findByText(ja.editorExportErrorAnnouncement)).toBeInTheDocument();
+  });
+
+  it('shows an accessible error and revokes the object URL when an uploaded image fails to decode', async () => {
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-url');
+
+    class FailingImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_value: string) {
+        queueMicrotask(() => this.onerror?.());
+      }
+    }
+    vi.stubGlobal('Image', FailingImage as unknown as typeof Image);
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    const file = new File([new Uint8Array([1, 2, 3])], 'corrupt.png', { type: 'image/png' });
+    await user.upload(screen.getByLabelText(ja.editorAddImageButton), file);
+
+    expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
+    expect(revokeSpy).toHaveBeenCalledWith('blob:mock-url');
   });
 });
