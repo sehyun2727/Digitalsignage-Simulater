@@ -154,6 +154,10 @@ a {
   border-radius: 0.5rem;
   overflow: hidden;
   background-color: #f4f5f7;
+  /* Let Konva's own pointer/touch handlers drive drag, resize, and rotate
+     gestures on touch devices instead of the browser intercepting them as
+     page scroll/zoom. The rest of the page still scrolls normally. */
+  touch-action: none;
 }
 
 .editor-empty-hint {
