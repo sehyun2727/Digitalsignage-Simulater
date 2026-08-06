@@ -38,6 +38,10 @@ function patchObjects(objects: SignageObject[], id: ElementId, patch: Partial<Si
   return objects.map((object) => (object.id === id ? ({ ...object, ...patch } as SignageObject) : object));
 }
 
+function hasObjectChange(target: SignageObject, patch: Partial<SignageObject>): boolean {
+  return (Object.keys(patch) as (keyof SignageObject)[]).some((key) => target[key] !== patch[key]);
+}
+
 export const useEditorStore = create<EditorState>((set, get) => ({
   document: createEmptyDocument(),
   selectedId: null,
@@ -124,14 +128,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   commitObjectChange: (id, patch) => {
     const { document, past } = get();
-    const previous = document;
+    const target = document.objects.find((object) => object.id === id);
+    if (!target || !hasObjectChange(target, patch)) return;
+
     const nextDocument: EditorDocument = {
       ...document,
       objects: patchObjects(document.objects, id, patch),
     };
     set({
       document: nextDocument,
-      past: pushHistory(past, previous),
+      past: pushHistory(past, document),
       future: [],
     });
   },
