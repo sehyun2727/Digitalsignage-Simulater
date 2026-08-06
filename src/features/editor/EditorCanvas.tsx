@@ -40,8 +40,28 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle>(function EditorCanvas
   useImperativeHandle(ref, () => ({
     exportToDataUrl: () => {
       const stage = stageRef.current;
+      const transformer = transformerRef.current;
       if (!stage || fitScale <= 0) return null;
-      return stage.toDataURL({ mimeType: 'image/png', pixelRatio: 1 / fitScale });
+
+      // Hide the Transformer's border/anchors for the duration of the synchronous
+      // toDataURL() call so selection UI never appears in the exported PNG, then
+      // restore it. This must use the layer's synchronous draw(), not batchDraw():
+      // batchDraw() defers the actual canvas redraw to the next animation frame, so
+      // toDataURL() would read back the stale (still-visible) bitmap if it ran first.
+      const selectedNodes = transformer?.nodes() ?? [];
+      if (transformer && selectedNodes.length > 0) {
+        transformer.nodes([]);
+        transformer.getLayer()?.draw();
+      }
+
+      const dataUrl = stage.toDataURL({ mimeType: 'image/png', pixelRatio: 1 / fitScale });
+
+      if (transformer && selectedNodes.length > 0) {
+        transformer.nodes(selectedNodes);
+        transformer.getLayer()?.draw();
+      }
+
+      return dataUrl;
     },
   }));
 
@@ -91,12 +111,18 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle>(function EditorCanvas
           }}
         >
           <Layer>
-            <Rect x={0} y={0} width={template.width} height={template.height} fill={document.backgroundColor} />
+            <Rect
+              x={0}
+              y={0}
+              width={template.width}
+              height={template.height}
+              fill={document.backgroundColor}
+              listening={false}
+            />
             {document.objects.map((object) => (
               <CanvasObjectView
                 key={object.id}
                 object={object}
-                isSelected={object.id === selectedId}
                 onSelect={selectObject}
                 onRegisterNode={registerNode}
                 onDragEnd={handleDragEnd}

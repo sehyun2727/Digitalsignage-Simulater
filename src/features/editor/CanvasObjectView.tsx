@@ -6,7 +6,6 @@ import type { SignageObject } from '../../types/editor';
 
 interface CanvasObjectViewProps {
   object: SignageObject;
-  isSelected: boolean;
   onSelect: (id: string) => void;
   onRegisterNode: (id: string, node: Konva.Node | null) => void;
   onDragEnd: (id: string, x: number, y: number) => void;
@@ -15,7 +14,6 @@ interface CanvasObjectViewProps {
 
 export function CanvasObjectView({
   object,
-  isSelected,
   onSelect,
   onRegisterNode,
   onDragEnd,
@@ -50,6 +48,8 @@ export function CanvasObjectView({
     });
   };
 
+  // Selection is indicated solely by the shared Transformer (see EditorCanvas) so that
+  // no selection styling is ever baked into the node itself and exported to PNG.
   const commonProps = {
     id: object.id,
     x: object.x,
@@ -58,8 +58,6 @@ export function CanvasObjectView({
     height: object.height,
     rotation: object.rotation,
     draggable: true,
-    stroke: isSelected ? '#1f6feb' : undefined,
-    strokeWidth: isSelected ? 2 : 0,
     onClick: () => onSelect(object.id),
     onTap: () => onSelect(object.id),
     onDragEnd: (event: Konva.KonvaEventObject<DragEvent>) => {
