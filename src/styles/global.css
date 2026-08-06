@@ -175,6 +175,11 @@ a {
 
 .editor-properties-panel {
   flex: 0 0 16rem;
+  /* Without this, a flex item's automatic minimum width defaults to its content's
+     min-content size. A long, unbroken CJK sentence (e.g. the empty-state hint) can
+     then force this panel wider than its fixed 16rem basis, which in turn shifts the
+     canvas container's measured width and its exported pixel-perfect scaling. */
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
