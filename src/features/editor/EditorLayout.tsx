@@ -55,18 +55,29 @@ export function EditorLayout() {
 
   const handleImageError = useCallback(
     (error: ImageValidationError) => {
-      setAnnouncement(
-        error === 'unsupported-type'
-          ? messages.editorImageUploadErrorUnsupportedType
-          : messages.editorImageUploadErrorTooLarge,
-      );
+      if (error === 'unsupported-type') {
+        setAnnouncement(messages.editorImageUploadErrorUnsupportedType);
+      } else if (error === 'too-large') {
+        setAnnouncement(messages.editorImageUploadErrorTooLarge);
+      } else {
+        setAnnouncement(messages.editorImageUploadErrorDecodeFailed);
+      }
     },
     [messages],
   );
 
   const handleExport = useCallback(() => {
-    const dataUrl = canvasRef.current?.exportToDataUrl();
-    if (!dataUrl) return;
+    let dataUrl: string | null = null;
+    try {
+      dataUrl = canvasRef.current?.exportToDataUrl() ?? null;
+    } catch {
+      // Fall through to the accessible error announcement below.
+    }
+
+    if (!dataUrl) {
+      setAnnouncement(messages.editorExportErrorAnnouncement);
+      return;
+    }
 
     const link = document.createElement('a');
     link.href = dataUrl;

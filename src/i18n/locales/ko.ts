@@ -40,5 +40,7 @@ export const ko: Messages = {
   editorAlignRight: '오른쪽 정렬',
   editorImageUploadErrorUnsupportedType: 'PNG, JPEG, WebP 형식의 이미지만 사용할 수 있습니다.',
   editorImageUploadErrorTooLarge: '이미지 크기는 10MB 이하여야 합니다.',
+  editorImageUploadErrorDecodeFailed: '이미지를 불러오지 못했습니다. 파일이 손상되었을 수 있습니다.',
   editorExportedAnnouncement: 'PNG 이미지를 내보냈습니다.',
+  editorExportErrorAnnouncement: 'PNG 이미지 내보내기에 실패했습니다. 다시 시도해 주세요.',
 };

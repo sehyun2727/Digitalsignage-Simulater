@@ -6,7 +6,7 @@ import { TEMPLATES } from '../../types/editor';
 import type { TemplateId } from '../../types/editor';
 
 interface ToolbarProps {
-  onImageError: (error: 'unsupported-type' | 'too-large') => void;
+  onImageError: (error: 'unsupported-type' | 'too-large' | 'decode-error') => void;
   onExport: () => void;
 }
 
@@ -45,6 +45,13 @@ export function Toolbar({ onImageError, onExport }: ToolbarProps) {
     const image = new Image();
     image.onload = () => {
       addImage({ src: objectUrl, naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight });
+    };
+    // A declared image/* MIME type does not guarantee the bytes are a valid,
+    // decodable image (corrupted file, spoofed type, etc.). Fail safely instead
+    // of leaving the user with no feedback and a leaked object URL.
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      onImageError('decode-error');
     };
     image.src = objectUrl;
   };

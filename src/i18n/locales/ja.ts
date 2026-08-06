@@ -40,5 +40,7 @@ export const ja: Messages = {
   editorAlignRight: '右揃え',
   editorImageUploadErrorUnsupportedType: 'PNG、JPEG、WebP形式の画像のみ利用できます。',
   editorImageUploadErrorTooLarge: '画像サイズは10MB以下にしてください。',
+  editorImageUploadErrorDecodeFailed: '画像を読み込めませんでした。ファイルが破損している可能性があります。',
   editorExportedAnnouncement: 'PNG画像を書き出しました。',
+  editorExportErrorAnnouncement: 'PNG画像の書き出しに失敗しました。もう一度お試しください。',
 };

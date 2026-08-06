@@ -43,5 +43,7 @@ export interface Messages {
   editorAlignRight: string;
   editorImageUploadErrorUnsupportedType: string;
   editorImageUploadErrorTooLarge: string;
+  editorImageUploadErrorDecodeFailed: string;
   editorExportedAnnouncement: string;
+  editorExportErrorAnnouncement: string;
 }
