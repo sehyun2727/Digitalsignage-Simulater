@@ -13,12 +13,11 @@
 
 ## 상태
 
-**현재 상태: Sprint 0 완료 (프로젝트 기반 구축) — Sprint 1(에디터 기능) 착수 대기**
+**현재 상태: Sprint 1 완료 (이미지 에디터 MVP) — PR 전 최종 QA 및 결함 수정 반영됨**
 
 Sprint 0에서 구현된 것:
 
 - Vite + React + TypeScript 앱 골격
-- Sprint 0 플레이스홀더 화면 (에디터 없음)
 - 일본어 기본, 한국어·영어 i18n 구조 및 언어 전환
 - 독립 서비스 고지 및 HULL 외부 CTA 링크
 - Vitest + React Testing Library 단위/컴포넌트 테스트
@@ -28,24 +27,30 @@ Sprint 0에서 구현된 것:
 - 프로덕션용 멀티스테이지 Dockerfile (Nginx, SPA fallback)
 - Render Static Site 배포 문서
 
-Sprint 0에서 구현되지 않은 것 (Sprint 1 이후 범위):
+Sprint 1에서 구현된 것:
 
-- 캔버스 에디터, 텍스트/이미지/배경색 편집
-- 이미지 업로드 및 브라우저 로컬 처리
-- PNG 내보내기
+- Konva/react-konva 기반 캔버스 에디터 (`wall-led` 1920×1080, `stand-display` 1080×1920 템플릿)
+- 텍스트 요소 추가/편집(내용, 폰트 크기, 색상, 정렬), 이미지 요소 추가, 배경색 편집
+- 선택, 드래그 이동, Transformer를 통한 크기 조절·회전, 속성 패널을 통한 수치 입력
+- 실행 취소/다시 실행 (값이 실제로 바뀐 커밋만 히스토리에 쌓임 — no-op 커밋은 무시)
+- 키보드 단축키: `Delete`/`Backspace`(선택 삭제), `Ctrl/Cmd+Z`(실행 취소), `Ctrl/Cmd+Shift+Z` 또는 `Ctrl/Cmd+Y`(다시 실행). 입력 필드(input/textarea/select/contenteditable)에 포커스가 있을 때는 이 단축키들이 전역으로 발동하지 않습니다.
+- PNG 내보내기 — 화면 확대/축소와 무관하게 항상 템플릿 원본 해상도(1920×1080 / 1080×1920)로 내보내며, 선택 UI(Transformer 테두리·핸들)는 내보낸 이미지에 절대 포함되지 않습니다.
+- 이미지 업로드 검증: 허용 MIME 타입(`image/png`, `image/jpeg`, `image/webp`) 및 10MB 크기 제한, 디코딩 실패(손상된 파일·MIME 스푸핑) 시 접근성 있는 오류 안내와 Object URL 정리
+- EXIF Orientation은 브라우저(`Image()`)의 기본 디코딩 동작을 그대로 사용 — 별도 라이브러리를 추가하지 않았습니다.
+- 모바일 대응: 캔버스 영역에 `touch-action: none`을 적용해 드래그/리사이즈/회전 제스처가 페이지 스크롤/줌으로 가로채이지 않도록 함
+
+Sprint 1에서 구현되지 않은 것 (범위 밖):
+
 - 비디오 삽입/내보내기 (별도 기술 스파이크 필요)
-- 계정, 서버 업로드, 결제, 분석
-
-## Sprint 1 예정 범위 (요약)
-
-Konva 기반 캔버스, 텍스트/이미지/배경색 요소, 기본 선택·배치·텍스트 편집, 브라우저 로컬 이미지 처리, PNG 내보내기. 자세한 범위는 `CLAUDE.md`를 참고하세요.
+- 계정, 서버 업로드, 결제, 분석, 워터마크
+- 캔버스 밖으로 벗어난 요소 위치를 자동으로 제한(clamp)하는 기능
 
 ## 기술 스택
 
 - React 19 + TypeScript + Vite
-- Konva / react-konva (설치됨, Sprint 1부터 사용)
-- Zustand (설치됨, Sprint 1부터 사용)
-- Vitest + React Testing Library, Playwright
+- Konva / react-konva (캔버스 렌더링, 선택/변형, PNG 내보내기)
+- Zustand (에디터 문서 상태, 실행 취소/다시 실행 히스토리)
+- Vitest + React Testing Library, Playwright(Chromium)
 - ESLint + Prettier
 - GitHub Actions, Docker(Nginx), Render Static Site
 
@@ -77,14 +82,14 @@ npm run format:check     # Prettier 검사만 수행
 npm run typecheck        # TypeScript 검사
 npm run test              # Vitest (watch)
 npm run test:run          # Vitest (단일 실행, CI에서 사용)
-npm run test:e2e          # Playwright 스모크 테스트
+npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드)
 ```
 
 ## Docker 실행
 
 ```bash
-docker build -t digital-signage-simulator:sprint-0 .
-docker run --rm -p 8080:8080 digital-signage-simulator:sprint-0
+docker build -t digital-signage-simulator:local .
+docker run --rm -p 8080:8080 digital-signage-simulator:local
 ```
 
 `http://localhost:8080`에서 확인합니다. Nginx가 정적 빌드 결과를 서빙하며 SPA fallback이 설정되어 있습니다.
@@ -110,9 +115,24 @@ docker run --rm -p 8080:8080 digital-signage-simulator:sprint-0
 
 - MVP는 계정과 로그인을 요구하지 않습니다.
 - `localStorage`에는 언어 선택값만 저장하며, 그 외 사용자 데이터를 저장하지 않습니다.
-- 사용자가 선택한 이미지와 편집 데이터는 가능한 한 브라우저 안에서 처리할 예정입니다 (Sprint 1부터).
+- 사용자가 선택한 이미지와 편집 데이터는 브라우저 안에서만 처리됩니다 — 서버로 업로드되지 않습니다.
 - 사용자의 파일을 서버로 업로드하거나 저장하는 기능은 현재 계획에 포함되어 있지 않습니다.
 - 파일 내용, 로컬 경로, object URL 등의 민감한 정보를 로그로 남기지 않습니다.
+
+## 이미지 업로드 정책
+
+- 허용 형식: `image/png`, `image/jpeg`, `image/webp`. 그 외 형식은 즉시 거부됩니다.
+- 최대 크기: 10MB.
+- MIME 타입이 허용 목록에 있어도 실제 바이트가 유효한 이미지가 아닐 수 있습니다(손상된 파일, 타입 스푸핑). 이 경우 `Image()` 디코딩이 실패하면 접근성 있는 오류 메시지를 보여주고, 생성했던 Object URL을 즉시 해제합니다.
+- EXIF Orientation은 브라우저의 기본 이미지 디코딩 동작을 그대로 따릅니다(최신 Chrome/Firefox/Safari/Edge는 `Image()`/`<img>` 디코딩 시 EXIF Orientation을 자동 적용하며 회전된 이미지의 `naturalWidth`/`naturalHeight`도 교체됩니다). 별도의 EXIF 라이브러리를 추가하지 않았습니다.
+- **알려진 제한 — Object URL 수명 주기:** 디코딩에 성공해 캔버스에 추가된 이미지의 Object URL은 세션 동안 해제하지 않습니다. 삭제/실행 취소 시점에 즉시 해제하면 실행 취소·다시 실행 히스토리가 여전히 참조 중인 이미지 미리보기가 깨질 수 있기 때문입니다(히스토리 스냅샷 전체에 대한 참조 카운팅은 Sprint 1 범위를 벗어나는 것으로 판단해 의도적으로 구현하지 않았습니다). 디코딩 실패로 캔버스에 추가되지 않은 파일의 Object URL만 안전하게 즉시 해제됩니다.
+
+## PNG 내보내기 정책
+
+- 내보내기는 화면 확대/축소(줌) 상태와 무관하게 항상 선택된 템플릿의 원본 픽셀 해상도로 생성됩니다 (`wall-led`: 1920×1080, `stand-display`: 1080×1920).
+- Transformer의 선택 테두리·핸들은 내보내기 직전 동기적으로 숨겼다가 즉시 복원하는 방식으로 처리되어, 내보낸 PNG에는 절대 포함되지 않습니다.
+- 파일명 형식: `signage-canvas_{templateId}_{yyyyMMdd-HHmmss}.png` (예: `signage-canvas_wall-led_20260106-153000.png`). 콜론(`:`) 등 파일 시스템에서 문제가 되는 문자는 포함되지 않습니다.
+- 내보내기에 실패하면(예: 캔버스가 준비되지 않음) 파일 다운로드를 생략하고 접근성 있는 오류 메시지를 보여줍니다.
 
 ## HULL CTA 안내
 
@@ -135,16 +155,19 @@ Sprint 0 기준으로 실제 배포는 아직 수행되지 않았습니다 — �
 ```text
 .
 ├── src/
-│   ├── app/          # 앱 루트 (App.tsx)
-│   ├── components/   # 공통 UI 컴포넌트
-│   ├── i18n/         # 일본어·한국어·영어 리소스, 감지/저장 로직
-│   ├── lib/          # 공통 유틸리티/상수
-│   ├── styles/        # 전역 스타일
-│   ├── test/          # Vitest 환경 설정
-│   └── types/          # 공유 타입
-├── tests/unit/         # Vitest + React Testing Library
-├── e2e/                 # Playwright 스모크 테스트
-├── docker/nginx.conf     # SPA fallback 설정
+│   ├── app/            # 앱 루트 (App.tsx)
+│   ├── components/     # 공통 UI 컴포넌트
+│   ├── features/editor/ # 에디터 UI: Toolbar, EditorCanvas, PropertiesPanel 등
+│   ├── i18n/           # 일본어·한국어·영어 리소스, 감지/저장 로직
+│   ├── lib/            # 공통 유틸리티/상수 (파일 검증, 파일명 생성 등)
+│   ├── store/          # Zustand 에디터 스토어 (문서 상태, 히스토리)
+│   ├── styles/          # 전역 스타일
+│   ├── test/            # Vitest 환경 설정
+│   └── types/            # 공유 타입 (에디터 문서/객체, i18n 메시지)
+├── tests/unit/           # Vitest + React Testing Library
+├── e2e/                   # Playwright e2e 테스트 (실제 Chromium)
+│   └── support/            # PNG/EXIF 등 테스트 전용 바이너리 헬퍼
+├── docker/nginx.conf       # SPA fallback 설정
 ├── Dockerfile
 ├── docs/
 │   ├── architecture/overview.md
@@ -153,11 +176,11 @@ Sprint 0 기준으로 실제 배포는 아직 수행되지 않았습니다 — �
 └── .github/workflows/ci.yml
 ```
 
-`src/features/editor/`, `src/store/`는 `CLAUDE.md`에 예약되어 있으나 Sprint 1부터 생성합니다.
+## Known limitations (Sprint 1)
 
-## Known limitations (Sprint 0)
-
-- 에디터, 캔버스, 이미지 업로드, PNG 내보내기 기능 없음 — 플레이스홀더 화면만 존재합니다.
+- 캔버스 밖으로 요소를 이동해도 위치가 자동으로 제한(clamp)되지 않습니다 — 의도적으로 변경하지 않은 기존 동작입니다.
+- 성공적으로 추가된 이미지의 Object URL은 세션 동안 해제되지 않습니다 (위 "이미지 업로드 정책"의 알려진 제한 참고).
+- 모바일 Safari에서 `<a download>`를 통한 PNG 다운로드는 브라우저/버전에 따라 동작이 다를 수 있으며, 이 환경에서 직접 검증하지 못했습니다.
 - 모바일 레이아웃은 기본 반응형 수준이며 폭넓은 기기 매트릭스에서 검증되지 않았습니다.
 - Render 실배포는 아직 수행되지 않았고 설정만 문서화되어 있습니다.
 - 라이선스 미정.
