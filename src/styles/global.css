@@ -240,6 +240,12 @@ a {
 @media (max-width: 48rem) {
   .editor-workspace {
     flex-direction: column;
+    /* In a column flex container the cross axis is horizontal (width). The base
+       `align-items: flex-start` shrinks each item to its own content width instead
+       of stretching, which collapses `.editor-canvas-wrapper` (and its `width: 100%`
+       canvas container) toward zero because the Konva stage has no intrinsic content
+       width until it is measured. Stretch so the canvas keeps the full row width. */
+    align-items: stretch;
   }
 
   .editor-properties-panel {
