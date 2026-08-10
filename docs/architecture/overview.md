@@ -2,20 +2,24 @@
 
 ## Status
 
-Sprint 0 foundation. No editor, canvas, upload, or export functionality exists yet.
+Sprint 2 complete: Konva-based editor (text/image elements, PNG export), plus placeable
+display objects (Wall LED / Stand Display) with an optional space-background photo,
+clipped screen content, and visual-only material presets.
 
 ## Runtime shape
 
 The app is a single-page, browser-only React application. There is no backend, database,
-or server-side persistence in the MVP. All planned processing (image handling, canvas
-composition, export) is expected to run entirely client-side in later sprints.
+or server-side persistence in the MVP. All processing (image decoding, canvas composition,
+export) runs entirely client-side.
 
 ```
 Browser
  └── React app (Vite build, static assets)
       ├── i18n (ja default, ko, en) — localStorage preference only
-      ├── App shell (Sprint 0 placeholder)
-      └── (Sprint 1+) Zustand store, Konva canvas, editor features
+      ├── App shell + editor layout (Toolbar, EditorCanvas, PropertiesPanel)
+      ├── Zustand store (document state, undo/redo history, asset-sweep subscription)
+      ├── Konva canvas (text/image elements, display objects, PNG export)
+      └── Runtime asset registry (decoded Image + Object URL, keyed by sourceId)
 ```
 
 ## Directory layout
@@ -25,29 +29,40 @@ Flat `src/` layout, per `CLAUDE.md` §4 (chosen over a monorepo `apps/` tree —
 
 - `src/app/` — application root (`App.tsx`).
 - `src/components/` — reusable presentational components (`LanguageSelector`, `HullCta`).
+- `src/features/editor/` — editor UI: `Toolbar`, `EditorLayout`, `EditorCanvas`,
+  `PropertiesPanel`, `CanvasObjectView`, `SignageDisplayView`, `SpaceBackgroundView`.
 - `src/i18n/` — locale resources, detection, persistence, React context.
-- `src/lib/` — framework-agnostic constants/utilities (e.g. the HULL contact URL).
+- `src/lib/` — framework-agnostic constants/utilities: file validation, filename
+  generation, the HULL contact URL, the runtime `assetRegistry`, and the pure-geometry
+  `contentLayout`/`displayFrame`/`materialTexture` modules used by the display objects.
+- `src/store/` — the Zustand editor store (`editorStore.ts`): document state, selection,
+  undo/redo history, and the reachability-based asset-sweep subscription.
 - `src/styles/` — global stylesheet.
-- `src/types/` — shared domain types (currently just the i18n `Locale`/`Messages` types).
+- `src/types/` — shared domain types (i18n `Locale`/`Messages`, editor document/object
+  types including `DisplaySignageObject`, `SignageContent`, `MaterialSettings`).
 - `src/test/` — Vitest environment setup.
 - `tests/unit/` — Vitest + React Testing Library unit/component tests.
-- `e2e/` — Playwright smoke tests.
+- `e2e/` — Playwright tests against a real Chromium build (smoke, editor, image upload,
+  space-background/display content/material).
 - `docs/` — architecture notes, ADRs, runbooks.
-
-`src/features/editor/` and `src/store/` are reserved by `CLAUDE.md` for Sprint 1 and are
-intentionally not created yet — there is nothing to put in them until the editor is approved.
 
 ## State management
 
-No application state exists beyond the current UI locale (React context) in Sprint 0.
-Zustand is installed as an approved dependency for the Sprint 1 editor store but is not
-wired up to anything yet.
+`src/store/editorStore.ts` (Zustand) holds the editor document (template, elements,
+display objects, space background), selection, and a linear undo/redo history (`past`/
+`future`). Only genuinely-changed commits (`hasObjectChange`) are pushed to history, so
+no-op edits don't create empty undo steps. A store subscription recomputes the set of
+asset `sourceId`s reachable from the document plus the full undo/redo history after every
+change and sweeps (revokes + drops) anything no longer reachable — see
+[ADR 0003](../adr/0003-content-and-material-model.md).
 
 ## Canvas rendering
 
-Konva and `react-konva` are installed as approved dependencies for the Sprint 1 canvas but
-no canvas is rendered in Sprint 0. See the video gate in `CLAUDE.md` §3 for the separate
-spike required before any video-related canvas work.
+Konva/`react-konva` render the `<Stage>`: text/image elements, display objects (frame
+decorations + a clipped screen region + material overlay), and an optional space
+background, all composited together for both on-screen editing and PNG export at the
+template's native resolution. See the video gate in `CLAUDE.md` §3 for the separate spike
+required before any video-related canvas work.
 
 ## Deployment shape
 

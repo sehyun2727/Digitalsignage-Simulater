@@ -13,7 +13,7 @@
 
 ## 상태
 
-**현재 상태: Sprint 1 완료 (이미지 에디터 MVP) — PR 전 최종 QA 및 결함 수정 반영됨**
+**현재 상태: Sprint 2 완료 (공간 배경 + 디스플레이 화면 콘텐츠/소재 기반) — PR 전 최종 QA 및 결함 수정 반영됨**
 
 Sprint 0에서 구현된 것:
 
@@ -44,6 +44,31 @@ Sprint 1에서 구현되지 않은 것 (범위 밖):
 - 비디오 삽입/내보내기 (별도 기술 스파이크 필요)
 - 계정, 서버 업로드, 결제, 분석, 워터마크
 - 캔버스 밖으로 벗어난 요소 위치를 자동으로 제한(clamp)하는 기능
+
+Sprint 2에서 구현된 것:
+
+- **공간 배경 사진**: 캔버스 전체를 덮는 배경 사진을 추가/삭제할 수 있습니다(`editorAddSpaceBackgroundButton`/
+  `editorRemoveSpaceBackgroundButton`). 템플릿을 전환하면 공간 배경은 초기화됩니다.
+- **디스플레이 객체 배치**: 벽걸이형 LED(`wall-led`, 기본 소재: 屋外LED)와 스탠드형 디스플레이(`stand-display`,
+  기본 소재: LCD)를 캔버스에 배치할 수 있습니다. 각 디스플레이는 베젤/스탠드 등 단순화된 프레임 장식과, 프레임별로
+  정의된 화면 영역(screen region)을 가집니다.
+- **화면 콘텐츠**: 디스플레이의 화면 영역에 이미지를 업로드해 표시할 수 있습니다. 표시 방식(전체 표시 Contain /
+  화면 채우기 Cover), 위치 오프셋(X/Y), 확대율을 조절할 수 있으며, 언제든 기본값으로 리셋하거나 콘텐츠를
+  교체·삭제할 수 있습니다. 콘텐츠는 화면 영역 밖(베젤 위)으로 절대 넘치지 않도록 캔버스 클리핑으로 강제됩니다.
+- **디스플레이 소재(재질) 프리셋**: 屋外LED/LCD 중 소재를 선택할 수 있고, 질감 강도(intensity)와 밝기
+  (brightness) 슬라이더로 시각적 프리뷰를 조절할 수 있습니다. 이는 순수하게 시각적인 참고 표현이며 실제 제품
+  성능을 보장하지 않는다는 안내 문구가 항상 함께 표시됩니다(자세한 배경은
+  [`docs/adr/0003-content-and-material-model.md`](docs/adr/0003-content-and-material-model.md) 참고).
+- **PNG 내보내기 확장**: 공간 배경, 디스플레이 프레임, 클리핑된 화면 콘텐츠, 소재 프리뷰가 모두 정확한 템플릿
+  해상도로 내보내기에 반영되며, Sprint 1과 동일하게 선택 UI는 내보낸 이미지에 포함되지 않습니다.
+- **에셋 수명 주기**: 업로드된 이미지(공간 배경/화면 콘텐츠)는 런타임 에셋 레지스트리에 등록되고, 문서 상태와
+  실행 취소/다시 실행 히스토리 전체에서 더 이상 참조되지 않을 때 자동으로 정리(Object URL 해제)됩니다.
+
+Sprint 2에서 구현되지 않은 것 (범위 밖):
+
+- 실제 제품과 유사한 프레임/소재 아트 — 현재는 단순화된 사각형 베젤과 시각적 프리뷰 오버레이입니다.
+- 디스플레이당 다중 콘텐츠 슬롯, 플레이리스트, 동영상 콘텐츠.
+- 모바일 뷰포트 전용 e2e 테스트(수동 반응형 확인만 수행).
 
 ## 기술 스택
 
@@ -82,7 +107,7 @@ npm run format:check     # Prettier 검사만 수행
 npm run typecheck        # TypeScript 검사
 npm run test              # Vitest (watch)
 npm run test:run          # Vitest (단일 실행, CI에서 사용)
-npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드)
+npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드, 공간 배경/디스플레이 콘텐츠·소재)
 ```
 
 ## Docker 실행
@@ -157,21 +182,22 @@ Sprint 0 기준으로 실제 배포는 아직 수행되지 않았습니다 — �
 ├── src/
 │   ├── app/            # 앱 루트 (App.tsx)
 │   ├── components/     # 공통 UI 컴포넌트
-│   ├── features/editor/ # 에디터 UI: Toolbar, EditorCanvas, PropertiesPanel 등
+│   ├── features/editor/ # 에디터 UI: Toolbar, EditorCanvas, PropertiesPanel, SignageDisplayView, SpaceBackgroundView 등
 │   ├── i18n/           # 일본어·한국어·영어 리소스, 감지/저장 로직
-│   ├── lib/            # 공통 유틸리티/상수 (파일 검증, 파일명 생성 등)
-│   ├── store/          # Zustand 에디터 스토어 (문서 상태, 히스토리)
+│   ├── lib/            # 공통 유틸리티/상수 (파일 검증, 파일명 생성, 에셋 레지스트리, 콘텐츠 배치/프레임/소재 지오메트리 등)
+│   ├── store/          # Zustand 에디터 스토어 (문서 상태, 히스토리, 에셋 스윕 구독)
 │   ├── styles/          # 전역 스타일
 │   ├── test/            # Vitest 환경 설정
 │   └── types/            # 공유 타입 (에디터 문서/객체, i18n 메시지)
 ├── tests/unit/           # Vitest + React Testing Library
 ├── e2e/                   # Playwright e2e 테스트 (실제 Chromium)
-│   └── support/            # PNG/EXIF 등 테스트 전용 바이너리 헬퍼
+│   └── support/            # PNG/EXIF/픽셀 샘플링 등 테스트 전용 헬퍼
 ├── docker/nginx.conf       # SPA fallback 설정
 ├── Dockerfile
 ├── docs/
 │   ├── architecture/overview.md
 │   ├── adr/0001-frontend-foundation.md
+│   ├── adr/0003-content-and-material-model.md
 │   └── runbooks/
 └── .github/workflows/ci.yml
 ```
@@ -183,6 +209,9 @@ Sprint 0 기준으로 실제 배포는 아직 수행되지 않았습니다 — �
 - 모바일 Safari에서 `<a download>`를 통한 PNG 다운로드는 브라우저/버전에 따라 동작이 다를 수 있으며, 이 환경에서 직접 검증하지 못했습니다.
 - 모바일 레이아웃은 기본 반응형 수준이며 폭넓은 기기 매트릭스에서 검증되지 않았습니다.
 - Render 실배포는 아직 수행되지 않았고 설정만 문서화되어 있습니다.
+- 디스플레이 프레임(베젤/스탠드)과 소재(屋外LED/LCD) 프리뷰는 단순화된 시각적 표현이며, 실제 제품 형상이나
+  성능을 재현하지 않습니다(자세한 내용은 `docs/adr/0003-content-and-material-model.md` 참고).
+- 디스플레이당 화면 콘텐츠는 정지 이미지 1개만 지원합니다 — 다중 콘텐츠 슬롯이나 동영상은 범위 밖입니다.
 - 라이선스 미정.
 
 ## 범위 관리
