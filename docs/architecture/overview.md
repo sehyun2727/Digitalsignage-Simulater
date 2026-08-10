@@ -7,7 +7,9 @@ placeable Wall LED / Stand Display objects, space-background photo, clipped scre
 content, visual-only material presets), plus a user-uploaded custom portable product
 template — a photo the user marks a rectangular screen region on, placed on the canvas
 with Sprint 2's content/material system rendering into that region. See
-[ADR 0004](../adr/0004-custom-portable-template.md).
+[ADR 0004](../adr/0004-custom-portable-template.md). Sprint 3.2 is a P0 hotfix
+restoring reselection of a deselected Wall LED, Stand Display, or portable object by
+click/tap; see [ADR 0005](../adr/0005-canvas-object-reselection-hotfix.md).
 
 ## Runtime shape
 
@@ -78,6 +80,13 @@ photo's own dimensions — be resolved directly against the object's current siz
 separate photo-space/object-space conversion; see
 [ADR 0004](../adr/0004-custom-portable-template.md). See the video gate in `CLAUDE.md`
 §3 for the separate spike required before any video-related canvas work.
+
+Display and portable objects render as a Konva `<Group>` whose descendant shapes are
+all `listening={false}`; each carries its own invisible, full-bounds, `listening` hit-
+area `Rect` as the first child so the object as a whole stays clickable/tappable for
+reselection after being deselected, with hit-testing always against the object's
+rectangular bounds rather than a product photo's alpha channel — see
+[ADR 0005](../adr/0005-canvas-object-reselection-hotfix.md).
 
 ## Deployment shape
 
