@@ -1,8 +1,8 @@
 # Runbook: Render Static Site deployment
 
 Status: documented, not yet deployed. No live Render deployment has been created or
-verified as part of Sprint 0 — this is the configuration to use when deployment is
-approved.
+verified as of Sprint 4 (main now contains Sprint 0-3.2) — this is the configuration to
+use when deployment is approved.
 
 ## Service type
 
@@ -53,5 +53,5 @@ configured; Sprint 0 does not add production auto-deployment beyond what Render'
 - [ ] Default language is Japanese on first load.
 - [ ] HULL CTA link works and opens in a new tab.
 
-No deployment has been performed yet as part of Sprint 0; this document describes the
+No deployment has been performed yet as of Sprint 4; this document describes the
 intended configuration only.
