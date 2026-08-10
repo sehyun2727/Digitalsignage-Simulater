@@ -71,4 +71,40 @@ export const en: Messages = {
   editorMaterialResetButton: 'Reset effects',
   editorMaterialPreviewNotice:
     'Screen texture and brightness are a visual reference only and do not guarantee real product performance.',
+
+  editorTemplateSectionHeading: 'Base templates',
+  portableSectionHeading: 'My portable products',
+  editorAddPortableButton: 'Add portable product',
+  portableTypeLabel: 'Type',
+  portableTypeValue: 'Portable product',
+
+  portableBackgroundNotice:
+    'A PNG or WebP with a transparent background produces a more natural result. JPGs and images with backgrounds will keep their original background.',
+  portableRightsNotice:
+    'Please ensure that you have the necessary rights or permission to use the uploaded product image. Images are processed in your browser and are not stored on a server.',
+  portableSupportedFormatsHint: 'JPG, JPEG, PNG, and WebP images are supported.',
+
+  portableStepSelectPhotoTitle: 'Select product photo',
+  portableStepDefineRegionTitle: 'Define screen region',
+  portableSelectPhotoButton: 'Select product photo',
+  portableChangePhotoButton: 'Change product photo',
+  portableNoPhotoSelectedHint: 'No photo selected yet.',
+
+  portableScreenRegionDragHint: 'Drag on the photo to mark the area that becomes the screen.',
+  portableScreenRegionXLabel: 'Region X',
+  portableScreenRegionYLabel: 'Region Y',
+  portableScreenRegionWidthLabel: 'Region width',
+  portableScreenRegionHeightLabel: 'Region height',
+  portableScreenRegionResetButton: 'Reset region',
+  portableScreenRegionEditButton: 'Edit screen region',
+  portableScreenRegionMinSizeError:
+    'The screen region is too small. Make it at least 5% of the photo in both width and height.',
+
+  portableCancelButton: 'Cancel',
+  portableBackButton: 'Back',
+  portableNextButton: 'Next',
+  portableAddButton: 'Add',
+  portableSaveButton: 'Save',
+  portableReplacePhotoHint:
+    'To replace the photo, delete this product and add it again as a new portable product.',
 };

@@ -73,4 +73,36 @@ export interface Messages {
   editorMaterialBrightnessLabel: string;
   editorMaterialResetButton: string;
   editorMaterialPreviewNotice: string;
+
+  editorTemplateSectionHeading: string;
+  portableSectionHeading: string;
+  editorAddPortableButton: string;
+  portableTypeLabel: string;
+  portableTypeValue: string;
+
+  portableBackgroundNotice: string;
+  portableRightsNotice: string;
+  portableSupportedFormatsHint: string;
+
+  portableStepSelectPhotoTitle: string;
+  portableStepDefineRegionTitle: string;
+  portableSelectPhotoButton: string;
+  portableChangePhotoButton: string;
+  portableNoPhotoSelectedHint: string;
+
+  portableScreenRegionDragHint: string;
+  portableScreenRegionXLabel: string;
+  portableScreenRegionYLabel: string;
+  portableScreenRegionWidthLabel: string;
+  portableScreenRegionHeightLabel: string;
+  portableScreenRegionResetButton: string;
+  portableScreenRegionEditButton: string;
+  portableScreenRegionMinSizeError: string;
+
+  portableCancelButton: string;
+  portableBackButton: string;
+  portableNextButton: string;
+  portableAddButton: string;
+  portableSaveButton: string;
+  portableReplacePhotoHint: string;
 }

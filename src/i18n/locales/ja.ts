@@ -72,4 +72,40 @@ export const ja: Messages = {
   editorMaterialResetButton: '効果をリセット',
   editorMaterialPreviewNotice:
     '画面の質感と明るさは視覚的な参考表現であり、実際の製品性能を保証するものではありません。',
+
+  editorTemplateSectionHeading: '基本テンプレート',
+  portableSectionHeading: 'マイ・ポータブル製品',
+  editorAddPortableButton: 'ポータブル製品を追加',
+  portableTypeLabel: '種類',
+  portableTypeValue: 'ポータブル製品',
+
+  portableBackgroundNotice:
+    '背景が透明なPNGまたはWebPを使用すると、より自然に配置できます。JPGや背景付き画像では、画像の背景もそのまま表示されます。',
+  portableRightsNotice:
+    'アップロードする製品画像について、必要な権利または使用許可を有していることをご確認ください。画像はブラウザ内で処理され、サーバーには保存されません。',
+  portableSupportedFormatsHint: 'JPG、JPEG、PNG、WebP形式の画像を利用できます。',
+
+  portableStepSelectPhotoTitle: '製品写真を選択',
+  portableStepDefineRegionTitle: '画面領域を指定',
+  portableSelectPhotoButton: '製品写真を選択',
+  portableChangePhotoButton: '製品写真を変更',
+  portableNoPhotoSelectedHint: 'まだ写真が選択されていません。',
+
+  portableScreenRegionDragHint: '写真上をドラッグして画面になる範囲を指定してください。',
+  portableScreenRegionXLabel: '領域X',
+  portableScreenRegionYLabel: '領域Y',
+  portableScreenRegionWidthLabel: '領域の幅',
+  portableScreenRegionHeightLabel: '領域の高さ',
+  portableScreenRegionResetButton: '領域をリセット',
+  portableScreenRegionEditButton: '画面領域を編集',
+  portableScreenRegionMinSizeError:
+    '画面領域が小さすぎます。写真の縦横それぞれ5%以上を指定してください。',
+
+  portableCancelButton: 'キャンセル',
+  portableBackButton: '戻る',
+  portableNextButton: '次へ',
+  portableAddButton: '追加',
+  portableSaveButton: '保存',
+  portableReplacePhotoHint:
+    '写真を差し替えるには、この製品を削除してから新しいポータブル製品として追加し直してください。',
 };

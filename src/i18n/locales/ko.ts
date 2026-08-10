@@ -72,4 +72,40 @@ export const ko: Messages = {
   editorMaterialResetButton: '효과 초기화',
   editorMaterialPreviewNotice:
     '화면 질감과 밝기는 시각적 참고용 표현이며 실제 제품 성능을 보장하지 않습니다.',
+
+  editorTemplateSectionHeading: '기본 템플릿',
+  portableSectionHeading: '내 포터블 제품',
+  editorAddPortableButton: '포터블 제품 추가',
+  portableTypeLabel: '종류',
+  portableTypeValue: '포터블 제품',
+
+  portableBackgroundNotice:
+    '배경이 투명한 PNG 또는 WebP를 사용하면 더 자연스럽게 배치할 수 있습니다. JPG나 배경이 포함된 이미지에서는 제품 사진의 배경도 함께 표시됩니다.',
+  portableRightsNotice:
+    '업로드하는 제품 이미지에 필요한 권리 또는 사용 허가가 있는지 확인해 주세요. 이미지는 브라우저에서 처리되며 서버에 저장되지 않습니다.',
+  portableSupportedFormatsHint: 'JPG, JPEG, PNG, WebP 형식의 이미지를 사용할 수 있습니다.',
+
+  portableStepSelectPhotoTitle: '제품 사진 선택',
+  portableStepDefineRegionTitle: '화면 영역 지정',
+  portableSelectPhotoButton: '제품 사진 선택',
+  portableChangePhotoButton: '제품 사진 변경',
+  portableNoPhotoSelectedHint: '아직 선택된 사진이 없습니다.',
+
+  portableScreenRegionDragHint: '사진 위를 드래그하여 화면이 될 영역을 지정해 주세요.',
+  portableScreenRegionXLabel: '영역 X',
+  portableScreenRegionYLabel: '영역 Y',
+  portableScreenRegionWidthLabel: '영역 너비',
+  portableScreenRegionHeightLabel: '영역 높이',
+  portableScreenRegionResetButton: '영역 초기화',
+  portableScreenRegionEditButton: '화면 영역 편집',
+  portableScreenRegionMinSizeError:
+    '화면 영역이 너무 작습니다. 사진 가로·세로 각각 5% 이상으로 지정해 주세요.',
+
+  portableCancelButton: '취소',
+  portableBackButton: '이전',
+  portableNextButton: '다음',
+  portableAddButton: '추가',
+  portableSaveButton: '저장',
+  portableReplacePhotoHint:
+    '사진을 교체하려면 이 제품을 삭제한 후 새 포터블 제품으로 다시 추가해 주세요.',
 };
