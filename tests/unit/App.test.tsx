@@ -1,9 +1,31 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { forwardRef, useImperativeHandle } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/app/App';
 import { ja } from '../../src/i18n/locales/ja';
+
+class SucceedingImage {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  naturalWidth = 800;
+  naturalHeight = 600;
+  set src(_value: string) {
+    queueMicrotask(() => this.onload?.());
+  }
+}
+
+class FailingImage {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  set src(_value: string) {
+    queueMicrotask(() => this.onerror?.());
+  }
+}
+
+function createImageFile(name = 'photo.png'): File {
+  return new File([new Uint8Array([1, 2, 3])], name, { type: 'image/png' });
+}
 
 const canvasMock = vi.hoisted(() => ({
   exportToDataUrl: (): string | null => 'data:image/png;base64,mock',
@@ -129,5 +151,130 @@ describe('App', () => {
 
     expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
     expect(revokeSpy).toHaveBeenCalledWith('blob:mock-url');
+  });
+
+  describe('Sprint 2: space background and display content/material', () => {
+    it('adds a space background photo and can remove it again', async () => {
+      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.upload(screen.getByLabelText(ja.editorAddSpaceBackgroundButton), createImageFile('space.png'));
+
+      const removeButton = await screen.findByRole('button', { name: ja.editorRemoveSpaceBackgroundButton });
+      expect(removeButton).toBeInTheDocument();
+
+      await user.click(removeButton);
+      expect(screen.queryByRole('button', { name: ja.editorRemoveSpaceBackgroundButton })).not.toBeInTheDocument();
+    });
+
+    it('shows an accessible error when the space background photo fails to decode', async () => {
+      vi.stubGlobal('Image', FailingImage as unknown as typeof Image);
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.upload(screen.getByLabelText(ja.editorAddSpaceBackgroundButton), createImageFile('space.png'));
+
+      expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
+    });
+
+    it('adds a Wall LED display and shows its empty-content and material properties', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+
+      expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: ja.editorMaterialLabel })).toHaveValue('outdoor-led');
+      expect(screen.getByText(ja.editorMaterialPreviewNotice)).toBeInTheDocument();
+    });
+
+    it('adds a Stand Display and defaults its material to LCD', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddStandDisplayButton }));
+
+      expect(screen.getByRole('combobox', { name: ja.editorMaterialLabel })).toHaveValue('lcd');
+    });
+
+    it('uploads content into a display, edits fit/offset/scale, and resets placement', async () => {
+      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createImageFile('content.png'));
+
+      expect(await screen.findByRole('button', { name: ja.editorContentReplaceButton })).toBeInTheDocument();
+
+      const fitSelect = screen.getByRole('combobox', { name: ja.editorContentFitLabel });
+      expect(fitSelect).toHaveValue('contain');
+      await user.selectOptions(fitSelect, 'cover');
+      expect(fitSelect).toHaveValue('cover');
+
+      const offsetXInput = screen.getByRole('spinbutton', { name: ja.editorContentOffsetXLabel });
+      await user.clear(offsetXInput);
+      await user.type(offsetXInput, '0.4');
+      await user.tab();
+      expect(offsetXInput).toHaveValue(0.4);
+
+      await user.click(screen.getByRole('button', { name: ja.editorContentResetButton }));
+      expect(offsetXInput).toHaveValue(0);
+    });
+
+    it('removes uploaded content from a display', async () => {
+      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createImageFile('content.png'));
+      await user.click(await screen.findByRole('button', { name: ja.editorContentRemoveButton }));
+
+      expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
+    });
+
+    it('shows an accessible error when uploaded display content fails to decode', async () => {
+      vi.stubGlobal('Image', FailingImage as unknown as typeof Image);
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createImageFile('content.png'));
+
+      expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
+    });
+
+    it('changes the display material and resets material effects to neutral', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+
+      const materialSelect = screen.getByRole('combobox', { name: ja.editorMaterialLabel });
+      await user.selectOptions(materialSelect, 'lcd');
+      expect(materialSelect).toHaveValue('lcd');
+
+      const intensitySlider = screen.getByRole('slider', { name: ja.editorMaterialIntensityLabel });
+      fireEvent.input(intensitySlider, { target: { value: '80' } });
+      fireEvent.pointerUp(intensitySlider);
+      expect(intensitySlider).toHaveValue('80');
+
+      await user.click(screen.getByRole('button', { name: ja.editorMaterialResetButton }));
+      expect(intensitySlider).toHaveValue('50');
+    });
+
+    it('undoing an added display removes it and clears the properties panel', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: ja.editorUndoButton }));
+
+      expect(screen.getByText(ja.editorPropertiesEmptyHint)).toBeInTheDocument();
+    });
   });
 });

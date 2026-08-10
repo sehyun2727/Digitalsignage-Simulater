@@ -1,6 +1,21 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getRegisteredAsset, registerAsset } from '../../src/lib/assetRegistry';
 import { selectCanRedo, selectCanUndo, selectSelectedObject, useEditorStore } from '../../src/store/editorStore';
-import { createEmptyDocument, DEFAULT_TEMPLATE_ID } from '../../src/types/editor';
+import { createEmptyDocument, DEFAULT_MATERIAL_SETTINGS, DEFAULT_TEMPLATE_ID } from '../../src/types/editor';
+
+class SucceedingMockImage {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  naturalWidth = 640;
+  naturalHeight = 480;
+  set src(_value: string) {
+    queueMicrotask(() => this.onload?.());
+  }
+}
+
+function createFile(name = 'photo.png'): File {
+  return new File([new Uint8Array([1, 2, 3])], name, { type: 'image/png' });
+}
 
 function resetStore() {
   useEditorStore.setState({
@@ -174,5 +189,155 @@ describe('editorStore', () => {
 
     useEditorStore.getState().commitObjectChange(id, { x: 700, y: 300 });
     expect(selectCanRedo(useEditorStore.getState())).toBe(false);
+  });
+
+  it('adds a display object with the frame default material and no content', () => {
+    useEditorStore.getState().addDisplay('wall-led');
+    const state = useEditorStore.getState();
+    const display = state.document.objects[0];
+
+    expect(display?.kind).toBe('display');
+    if (display?.kind === 'display') {
+      expect(display.frameId).toBe('wall-led');
+      expect(display.material).toBe('outdoor-led');
+      expect(display.materialSettings).toEqual(DEFAULT_MATERIAL_SETTINGS);
+      expect(display.content).toBeNull();
+    }
+    expect(state.selectedId).toBe(display?.id);
+    expect(selectCanUndo(state)).toBe(true);
+  });
+
+  it('adds a stand-display object defaulting to the LCD material', () => {
+    useEditorStore.getState().addDisplay('stand-display');
+    const display = useEditorStore.getState().document.objects[0];
+
+    expect(display?.kind).toBe('display');
+    if (display?.kind === 'display') {
+      expect(display.material).toBe('lcd');
+    }
+  });
+
+  it('adds and removes a space background, both committing history', () => {
+    useEditorStore.getState().addSpaceBackground({ sourceId: 'src-1', naturalWidth: 1000, naturalHeight: 500 });
+    expect(useEditorStore.getState().document.spaceBackground).toEqual({
+      sourceId: 'src-1',
+      naturalWidth: 1000,
+      naturalHeight: 500,
+    });
+    expect(selectCanUndo(useEditorStore.getState())).toBe(true);
+
+    useEditorStore.getState().removeSpaceBackground();
+    expect(useEditorStore.getState().document.spaceBackground).toBeNull();
+  });
+
+  it('removeSpaceBackground is a no-op when there is no space background', () => {
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().removeSpaceBackground();
+
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
+  });
+
+  it('switching templates also clears the space background', () => {
+    useEditorStore.getState().addSpaceBackground({ sourceId: 'src-1', naturalWidth: 1000, naturalHeight: 500 });
+    useEditorStore.getState().selectTemplate('stand-display');
+
+    expect(useEditorStore.getState().document.spaceBackground).toBeNull();
+  });
+
+  it('commits a content patch on a display object and undo/redo restore it', () => {
+    useEditorStore.getState().addDisplay('wall-led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+
+    useEditorStore.getState().commitObjectChange(id, {
+      content: { kind: 'image', sourceId: 'src-1', fit: 'contain', offsetX: 0, offsetY: 0, scale: 1 },
+    });
+    const display = useEditorStore.getState().document.objects[0];
+    expect(display?.kind === 'display' && display.content?.sourceId).toBe('src-1');
+
+    useEditorStore.getState().undo();
+    const afterUndo = useEditorStore.getState().document.objects[0];
+    expect(afterUndo?.kind === 'display' && afterUndo.content).toBeNull();
+
+    useEditorStore.getState().redo();
+    const afterRedo = useEditorStore.getState().document.objects[0];
+    expect(afterRedo?.kind === 'display' && afterRedo.content?.sourceId).toBe('src-1');
+  });
+
+  it('committing an identical materialSettings patch does not push a history entry', () => {
+    useEditorStore.getState().addDisplay('wall-led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().commitObjectChange(id, { materialSettings: { ...DEFAULT_MATERIAL_SETTINGS } });
+
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
+  });
+});
+
+describe('editorStore asset lifecycle', () => {
+  beforeEach(() => {
+    resetStore();
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(() => `blob:mock-${Math.random()}`);
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    vi.stubGlobal('Image', SucceedingMockImage as unknown as typeof Image);
+  });
+
+  afterEach(() => {
+    resetStore();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps a space background asset registered while it is reachable from the document', async () => {
+    const asset = await registerAsset(createFile());
+    useEditorStore.getState().addSpaceBackground(asset);
+
+    expect(getRegisteredAsset(asset.sourceId)).toBeDefined();
+  });
+
+  it('revokes a space background asset once it is removed and no longer reachable from history', async () => {
+    const asset = await registerAsset(createFile());
+    useEditorStore.getState().addSpaceBackground(asset);
+    useEditorStore.getState().removeSpaceBackground();
+
+    // The removal is still in `past`, so the asset stays reachable until that history is gone.
+    expect(getRegisteredAsset(asset.sourceId)).toBeDefined();
+
+    resetStore();
+    expect(getRegisteredAsset(asset.sourceId)).toBeUndefined();
+  });
+
+  it('keeps an asset reachable through undo history after it is removed from the live document', async () => {
+    const asset = await registerAsset(createFile());
+    useEditorStore.getState().addSpaceBackground(asset);
+    useEditorStore.getState().removeSpaceBackground();
+
+    expect(useEditorStore.getState().document.spaceBackground).toBeNull();
+    expect(getRegisteredAsset(asset.sourceId)).toBeDefined();
+
+    useEditorStore.getState().undo();
+    expect(useEditorStore.getState().document.spaceBackground?.sourceId).toBe(asset.sourceId);
+  });
+
+  it('revokes a display content asset once undo/redo history no longer references it', async () => {
+    useEditorStore.getState().addDisplay('wall-led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    // Register the asset right before attaching it, with no store mutation in between —
+    // matching the real upload flow (registerAsset then immediate commit) — since the sweep
+    // runs after every store change and would otherwise revoke an as-yet-unreferenced asset.
+    const asset = await registerAsset(createFile());
+
+    useEditorStore.getState().commitObjectChange(id, {
+      content: { kind: 'image', sourceId: asset.sourceId, fit: 'contain', offsetX: 0, offsetY: 0, scale: 1 },
+    });
+    expect(getRegisteredAsset(asset.sourceId)).toBeDefined();
+
+    useEditorStore.getState().commitObjectChange(id, { content: null });
+    expect(getRegisteredAsset(asset.sourceId)).toBeDefined();
+
+    useEditorStore.getState().deleteSelected();
+    resetStore();
+    expect(getRegisteredAsset(asset.sourceId)).toBeUndefined();
   });
 });
