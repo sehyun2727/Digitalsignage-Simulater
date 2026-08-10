@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { sweepUnusedAssets } from '../lib/assetRegistry';
 import { createId } from '../lib/id';
+import { computeDefaultPortableSize } from '../lib/portableRegion';
 import type {
   DisplayFrameId,
   DisplaySignageObject,
   EditorDocument,
   ElementId,
   ImageSignageObject,
+  PortableSignageObject,
   SignageObject,
   SpaceBackground,
   TemplateId,
@@ -31,6 +33,13 @@ export interface EditorState {
   addText: () => void;
   addImage: (payload: { src: string; naturalWidth: number; naturalHeight: number }) => void;
   addDisplay: (frameId: DisplayFrameId) => void;
+  addPortable: (payload: {
+    productSourceId: string;
+    productIntrinsicWidth: number;
+    productIntrinsicHeight: number;
+    productHasAlpha: boolean | null;
+    screenRegion: { x: number; y: number; width: number; height: number };
+  }) => void;
   addSpaceBackground: (payload: {
     sourceId: string;
     naturalWidth: number;
@@ -85,6 +94,10 @@ function collectAssetSourceIds(document: EditorDocument, into: Set<string>): voi
   if (document.spaceBackground) into.add(document.spaceBackground.sourceId);
   for (const object of document.objects) {
     if (object.kind === 'display' && object.content) into.add(object.content.sourceId);
+    if (object.kind === 'portable') {
+      into.add(object.productSourceId);
+      if (object.content) into.add(object.content.sourceId);
+    }
   }
 }
 
@@ -187,6 +200,44 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       frameId,
       content: null,
       material: frame.defaultMaterial,
+      materialSettings: { ...DEFAULT_MATERIAL_SETTINGS },
+    };
+    set({
+      document: { ...document, objects: [...document.objects, newObject] },
+      selectedId: newObject.id,
+      past: pushHistory(get().past, document),
+      future: [],
+    });
+  },
+
+  addPortable: ({
+    productSourceId,
+    productIntrinsicWidth,
+    productIntrinsicHeight,
+    productHasAlpha,
+    screenRegion,
+  }) => {
+    const { document } = get();
+    const template = TEMPLATES[document.templateId];
+    const { width, height } = computeDefaultPortableSize(
+      { width: productIntrinsicWidth, height: productIntrinsicHeight },
+      template,
+    );
+    const newObject: PortableSignageObject = {
+      id: createId(),
+      kind: 'portable',
+      x: template.width / 2 - width / 2,
+      y: template.height / 2 - height / 2,
+      width,
+      height,
+      rotation: 0,
+      productSourceId,
+      productIntrinsicWidth,
+      productIntrinsicHeight,
+      productHasAlpha,
+      screenRegion,
+      content: null,
+      material: 'lcd',
       materialSettings: { ...DEFAULT_MATERIAL_SETTINGS },
     };
     set({

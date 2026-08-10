@@ -127,7 +127,35 @@ export interface DisplaySignageObject extends BaseSignageObject {
   materialSettings: MaterialSettings;
 }
 
-export type SignageObject = TextSignageObject | ImageSignageObject | DisplaySignageObject;
+/**
+ * A user's own portable product photo (e.g. a photo of a kiosk, tablet stand, or vehicle they
+ * own) with a rectangular screen region marked on it, so Sprint 2's content/material system can
+ * render simulated signage content inside that region. `screenRegion` is fraction-based
+ * (0-1, relative to the *photo's own* pixel dimensions) rather than relative to the object's
+ * bounding box like `DisplayFrameTemplate.screenRegion` — the two coincide in practice because
+ * the object is always kept at the photo's own aspect ratio (see the transform aspect-lock in
+ * CanvasObjectView.tsx), so `resolveScreenRegionRect` can consume this value unchanged.
+ *
+ * Deliberately flat (no nested `product: {...}` object) so every field stays exactly one level
+ * deep, matching the shallow no-op comparison `hasObjectChange` in editorStore.ts performs
+ * before committing a change — a nested screenRegion-only edit would otherwise always be
+ * reported as "changed" even when no value actually differs.
+ */
+export interface PortableSignageObject extends BaseSignageObject {
+  kind: 'portable';
+  productSourceId: string;
+  productIntrinsicWidth: number;
+  productIntrinsicHeight: number;
+  /** Whether the source photo has transparency; null when detection could not run. */
+  productHasAlpha: boolean | null;
+  screenRegion: { x: number; y: number; width: number; height: number };
+  content: SignageContent | null;
+  material: DisplayMaterial;
+  materialSettings: MaterialSettings;
+}
+
+export type SignageObject =
+  TextSignageObject | ImageSignageObject | DisplaySignageObject | PortableSignageObject;
 
 export type TemplateId = 'wall-led' | 'stand-display';
 

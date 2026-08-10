@@ -52,6 +52,46 @@ export function getRegisteredAsset(sourceId: string): RegisteredAsset | undefine
 }
 
 /**
+ * Immediately revokes and drops one registered asset, regardless of reachability. Intended for
+ * assets that were registered as part of an in-progress, not-yet-committed flow (e.g. a photo
+ * uploaded inside the portable builder dialog that the user then cancels) — such an asset is
+ * never referenced by any document/history snapshot, so the reachability-based
+ * `sweepUnusedAssets` would never revoke it on its own.
+ */
+export function releaseAsset(sourceId: string): void {
+  const asset = registry.get(sourceId);
+  if (!asset) return;
+  URL.revokeObjectURL(asset.objectUrl);
+  registry.delete(sourceId);
+}
+
+/**
+ * Best-effort check for transparency in a decoded image, used only to decide whether to
+ * surface the portable-builder background hint more prominently. Samples a small downscaled
+ * copy (not the full-resolution image) since only a coarse yes/no is needed. Returns null
+ * (rather than throwing) if canvas readback is unavailable, so callers can treat "unknown"
+ * the same as "no transparency detected" without crashing the upload flow.
+ */
+export function detectHasAlpha(image: HTMLImageElement): boolean | null {
+  try {
+    const sampleSize = 32;
+    const canvas = document.createElement('canvas');
+    canvas.width = sampleSize;
+    canvas.height = sampleSize;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(image, 0, 0, sampleSize, sampleSize);
+    const { data } = ctx.getImageData(0, 0, sampleSize, sampleSize);
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i]! < 255) return true;
+    }
+    return false;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Revokes and drops any registered asset whose sourceId is not in `usedSourceIds`. Intended
  * to be called after every store mutation with the set of sourceIds still reachable from the
  * current document plus the full undo/redo history, so an asset survives exactly as long as
