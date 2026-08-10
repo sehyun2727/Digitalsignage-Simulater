@@ -309,4 +309,168 @@ describe('App', () => {
       expect(screen.getByText(ja.editorPropertiesEmptyHint)).toBeInTheDocument();
     });
   });
+
+  describe('Sprint 3: custom portable product template', () => {
+    // In Japanese, the photo-step dialog title and the "select photo" button/input share the
+    // exact same phrase, so a plain getByLabelText(ja.portableSelectPhotoButton) matches both
+    // the dialog (labelled via aria-labelledby) and the hidden file input. Disambiguate by
+    // picking the actual <input> out of the label matches.
+    function getPortablePhotoInput(): HTMLElement {
+      return screen
+        .getAllByLabelText(ja.portableSelectPhotoButton)
+        .find((element) => element.tagName === 'INPUT')!;
+    }
+
+    it('opens the portable builder as an accessible dialog on the photo step', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
+
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toHaveAttribute('aria-modal', 'true');
+      const heading = screen.getByRole('heading', { name: ja.portableStepSelectPhotoTitle });
+      expect(dialog).toHaveAttribute('aria-labelledby', heading.id);
+      expect(screen.getByText(ja.portableBackgroundNotice)).toBeInTheDocument();
+      expect(screen.getByText(ja.portableRightsNotice)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: ja.portableNextButton })).toBeDisabled();
+    });
+
+    it('closes the portable builder without adding an object when cancelled', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
+      await user.click(screen.getByRole('button', { name: ja.portableCancelButton }));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByText(ja.editorPropertiesEmptyHint)).toBeInTheDocument();
+    });
+
+    it('shows an accessible error when an unsupported portable photo type is uploaded', async () => {
+      // applyAccept: false — a mismatched file's MIME type must be rejected by our own
+      // validateImageFile check, not silently filtered out by user-event's accept-attribute
+      // emulation before it ever reaches the component.
+      const user = userEvent.setup({ applyAccept: false });
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
+      const badFile = new File(['not an image'], 'notes.txt', { type: 'text/plain' });
+      await user.upload(getPortablePhotoInput(), badFile);
+
+      expect(await screen.findByText(ja.editorImageUploadErrorUnsupportedType)).toBeInTheDocument();
+    });
+
+    it('shows an accessible error when the portable photo fails to decode', async () => {
+      vi.stubGlobal('Image', FailingImage as unknown as typeof Image);
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
+      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
+
+      expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
+    });
+
+    it('walks photo then region steps, adds a portable object, and re-enters the region editor', async () => {
+      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
+      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
+
+      const nextButton = await screen.findByRole('button', { name: ja.portableNextButton });
+      expect(nextButton).toBeEnabled();
+      await user.click(nextButton);
+
+      expect(
+        screen.getByRole('heading', { name: ja.portableStepDefineRegionTitle }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(ja.portableScreenRegionDragHint)).toBeInTheDocument();
+      expect(screen.getByRole('spinbutton', { name: ja.portableScreenRegionXLabel })).toHaveValue(
+        0.2,
+      );
+
+      await user.click(screen.getByRole('button', { name: ja.portableAddButton }));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByText(ja.portableTypeValue)).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: ja.portableScreenRegionEditButton }));
+
+      const editDialog = screen.getByRole('dialog');
+      expect(
+        screen.getByRole('heading', { name: ja.portableStepDefineRegionTitle }),
+      ).toBeInTheDocument();
+      // Re-entering edits an existing object's region directly; there is no photo step to redo.
+      expect(screen.queryByRole('button', { name: ja.portableBackButton })).not.toBeInTheDocument();
+
+      const widthInput = screen.getByRole('spinbutton', {
+        name: ja.portableScreenRegionWidthLabel,
+      });
+      await user.clear(widthInput);
+      await user.type(widthInput, '0.4');
+      await user.click(screen.getByRole('button', { name: ja.portableSaveButton }));
+
+      expect(editDialog).not.toBeInTheDocument();
+    });
+
+    it('rejects a screen region smaller than the minimum size with an accessible error', async () => {
+      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
+      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
+      await user.click(await screen.findByRole('button', { name: ja.portableNextButton }));
+
+      const widthInput = screen.getByRole('spinbutton', {
+        name: ja.portableScreenRegionWidthLabel,
+      });
+      await user.clear(widthInput);
+      await user.type(widthInput, '0.01');
+      await user.click(screen.getByRole('button', { name: ja.portableAddButton }));
+
+      expect(await screen.findByText(ja.portableScreenRegionMinSizeError)).toBeInTheDocument();
+      // The dialog stays open so the user can correct the region instead of losing their upload.
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('resets the screen region back to its default', async () => {
+      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
+      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
+      await user.click(await screen.findByRole('button', { name: ja.portableNextButton }));
+
+      const widthInput = screen.getByRole('spinbutton', {
+        name: ja.portableScreenRegionWidthLabel,
+      });
+      await user.clear(widthInput);
+      await user.type(widthInput, '0.9');
+      expect(widthInput).toHaveValue(0.9);
+
+      await user.click(screen.getByRole('button', { name: ja.portableScreenRegionResetButton }));
+      expect(widthInput).toHaveValue(0.6);
+    });
+
+    it('shows the portable section and CTA translated in Korean and English', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.selectOptions(
+        screen.getByRole('combobox', { name: ja.languageSelectorLabel }),
+        'ko',
+      );
+      expect(screen.getByRole('button', { name: '포터블 제품 추가' })).toBeInTheDocument();
+
+      await user.selectOptions(screen.getByRole('combobox', { name: '언어' }), 'en');
+      expect(
+        screen.getByRole('button', { name: /add (a )?portable product/i }),
+      ).toBeInTheDocument();
+    });
+  });
 });

@@ -173,3 +173,50 @@ test('mobile smoke: Stand Display content and export at 390x844', async ({ page 
 
   await expectNoHorizontalOverflow(page);
 });
+
+test('mobile: adds a custom portable product with a screen region and exports it at 390x844', async ({
+  page,
+}) => {
+  await page.goto('/');
+
+  // 1. Open the portable builder and confirm it renders as an accessible dialog at this
+  // viewport (no horizontal overflow introduced by the modal itself).
+  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  // 2. Upload a product photo (touch-viewport file input still accepts setInputFiles).
+  const productPhoto = await solidColorPng(page, '#1155ff');
+  await dialog
+    .locator('input[type="file"]')
+    .setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: productPhoto });
+  const nextButton = dialog.getByRole('button', { name: '次へ' });
+  await expect(nextButton).toBeEnabled();
+  await nextButton.click();
+
+  // 3. Keep the default screen region and add the object.
+  await expect(dialog.getByRole('heading', { name: '画面領域を指定' })).toBeVisible();
+  await dialog.getByRole('button', { name: '追加', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText('ポータブル製品', { exact: true })).toBeVisible();
+
+  // 4. Upload screen content onto the new portable object.
+  const content = await solidColorPng(page, '#ff8800');
+  await page
+    .getByLabel('コンテンツを追加')
+    .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
+  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+
+  // 5. Export and confirm the resolution still matches the active template exactly.
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  const download = await downloadPromise;
+
+  const path = await download.path();
+  const buffer = await fs.readFile(path!);
+  expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
+
+  // 6. No horizontal overflow was introduced by the portable toolbar section or properties.
+  await expectNoHorizontalOverflow(page);
+});

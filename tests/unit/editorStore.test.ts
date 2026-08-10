@@ -303,6 +303,104 @@ describe('editorStore', () => {
 
     expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
   });
+
+  it('adds a portable object centered in the template, defaulting to LCD and no content', () => {
+    useEditorStore.getState().addPortable({
+      productSourceId: 'product-src-1',
+      productIntrinsicWidth: 400,
+      productIntrinsicHeight: 800,
+      productHasAlpha: true,
+      screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+    });
+    const state = useEditorStore.getState();
+    const portable = state.document.objects[0];
+
+    expect(portable?.kind).toBe('portable');
+    if (portable?.kind === 'portable') {
+      expect(portable.productSourceId).toBe('product-src-1');
+      expect(portable.productHasAlpha).toBe(true);
+      expect(portable.screenRegion).toEqual({ x: 0.2, y: 0.2, width: 0.6, height: 0.6 });
+      expect(portable.material).toBe('lcd');
+      expect(portable.materialSettings).toEqual(DEFAULT_MATERIAL_SETTINGS);
+      expect(portable.content).toBeNull();
+      expect(portable.width / portable.height).toBeCloseTo(400 / 800);
+    }
+    expect(state.selectedId).toBe(portable?.id);
+    expect(selectCanUndo(state)).toBe(true);
+  });
+
+  it('undo/redo restores a deleted portable object', () => {
+    useEditorStore.getState().addPortable({
+      productSourceId: 'product-src-1',
+      productIntrinsicWidth: 400,
+      productIntrinsicHeight: 800,
+      productHasAlpha: null,
+      screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+    });
+    useEditorStore.getState().deleteSelected();
+    expect(useEditorStore.getState().document.objects).toHaveLength(0);
+
+    useEditorStore.getState().undo();
+    expect(useEditorStore.getState().document.objects[0]?.kind).toBe('portable');
+  });
+
+  it('committing an identical screenRegion patch does not push a history entry', () => {
+    useEditorStore.getState().addPortable({
+      productSourceId: 'product-src-1',
+      productIntrinsicWidth: 400,
+      productIntrinsicHeight: 800,
+      productHasAlpha: null,
+      screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+    });
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore
+      .getState()
+      .commitObjectChange(id, { screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 } });
+
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
+  });
+
+  it('committing a changed screenRegion patch pushes history and undo/redo restore it', () => {
+    useEditorStore.getState().addPortable({
+      productSourceId: 'product-src-1',
+      productIntrinsicWidth: 400,
+      productIntrinsicHeight: 800,
+      productHasAlpha: null,
+      screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+    });
+    const id = useEditorStore.getState().document.objects[0]!.id;
+
+    useEditorStore
+      .getState()
+      .commitObjectChange(id, { screenRegion: { x: 0.1, y: 0.1, width: 0.4, height: 0.4 } });
+    const portable = useEditorStore.getState().document.objects[0];
+    expect(portable?.kind === 'portable' && portable.screenRegion).toEqual({
+      x: 0.1,
+      y: 0.1,
+      width: 0.4,
+      height: 0.4,
+    });
+
+    useEditorStore.getState().undo();
+    const afterUndo = useEditorStore.getState().document.objects[0];
+    expect(afterUndo?.kind === 'portable' && afterUndo.screenRegion).toEqual({
+      x: 0.2,
+      y: 0.2,
+      width: 0.6,
+      height: 0.6,
+    });
+
+    useEditorStore.getState().redo();
+    const afterRedo = useEditorStore.getState().document.objects[0];
+    expect(afterRedo?.kind === 'portable' && afterRedo.screenRegion).toEqual({
+      x: 0.1,
+      y: 0.1,
+      width: 0.4,
+      height: 0.4,
+    });
+  });
 });
 
 describe('editorStore asset lifecycle', () => {
@@ -376,5 +474,77 @@ describe('editorStore asset lifecycle', () => {
     useEditorStore.getState().deleteSelected();
     resetStore();
     expect(getRegisteredAsset(asset.sourceId)).toBeUndefined();
+  });
+
+  it("keeps a portable object's product asset registered while it is reachable from the document", async () => {
+    const productAsset = await registerAsset(createFile('product.png'));
+
+    useEditorStore.getState().addPortable({
+      productSourceId: productAsset.sourceId,
+      productIntrinsicWidth: productAsset.naturalWidth,
+      productIntrinsicHeight: productAsset.naturalHeight,
+      productHasAlpha: null,
+      screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+    });
+
+    expect(getRegisteredAsset(productAsset.sourceId)).toBeDefined();
+  });
+
+  it("keeps a portable object's content asset registered alongside its product asset", async () => {
+    const productAsset = await registerAsset(createFile('product.png'));
+    useEditorStore.getState().addPortable({
+      productSourceId: productAsset.sourceId,
+      productIntrinsicWidth: productAsset.naturalWidth,
+      productIntrinsicHeight: productAsset.naturalHeight,
+      productHasAlpha: null,
+      screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+    });
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    const contentAsset = await registerAsset(createFile('content.png'));
+
+    useEditorStore.getState().commitObjectChange(id, {
+      content: {
+        kind: 'image',
+        sourceId: contentAsset.sourceId,
+        fit: 'contain',
+        offsetX: 0,
+        offsetY: 0,
+        scale: 1,
+      },
+    });
+
+    expect(getRegisteredAsset(productAsset.sourceId)).toBeDefined();
+    expect(getRegisteredAsset(contentAsset.sourceId)).toBeDefined();
+  });
+
+  it("revokes a portable object's product and content assets once undo/redo history no longer references them", async () => {
+    const productAsset = await registerAsset(createFile('product.png'));
+    useEditorStore.getState().addPortable({
+      productSourceId: productAsset.sourceId,
+      productIntrinsicWidth: productAsset.naturalWidth,
+      productIntrinsicHeight: productAsset.naturalHeight,
+      productHasAlpha: null,
+      screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+    });
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    const contentAsset = await registerAsset(createFile('content.png'));
+    useEditorStore.getState().commitObjectChange(id, {
+      content: {
+        kind: 'image',
+        sourceId: contentAsset.sourceId,
+        fit: 'contain',
+        offsetX: 0,
+        offsetY: 0,
+        scale: 1,
+      },
+    });
+
+    useEditorStore.getState().deleteSelected();
+    expect(getRegisteredAsset(productAsset.sourceId)).toBeDefined();
+    expect(getRegisteredAsset(contentAsset.sourceId)).toBeDefined();
+
+    resetStore();
+    expect(getRegisteredAsset(productAsset.sourceId)).toBeUndefined();
+    expect(getRegisteredAsset(contentAsset.sourceId)).toBeUndefined();
   });
 });
