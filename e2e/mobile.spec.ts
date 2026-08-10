@@ -220,3 +220,62 @@ test('mobile: adds a custom portable product with a screen region and exports it
   // 6. No horizontal overflow was introduced by the portable toolbar section or properties.
   await expectNoHorizontalOverflow(page);
 });
+
+test('mobile: dragging the portable screen region moves and resizes it at 390x844', async ({
+  page,
+}) => {
+  // Playwright's touch-viewport emulation (hasTouch/isMobile from the iPhone 13 descriptor set
+  // above) still drives page.mouse as pointer input, exercising the same onPointerDown/Move/Up
+  // handlers a real touch drag would use - see the file header note on what "mobile" verifies
+  // here. Pixel-precision behavior (letterbox mapping, min-size clamp, exact history counts) is
+  // already covered by the desktop real-pointer-drag suite in portable.spec.ts; this is a
+  // usability smoke check that the same interaction isn't broken by the narrow viewport/dialog.
+  await page.goto('/');
+  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  const dialog = page.getByRole('dialog');
+  const productPhoto = await solidColorPng(page, '#1155ff');
+  await dialog
+    .locator('input[type="file"]')
+    .setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: productPhoto });
+  await dialog.getByRole('button', { name: '次へ' }).click();
+  await dialog.getByRole('button', { name: '追加', exact: true }).click();
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole('button', { name: '画面領域を編集' }).click();
+  const editDialog = page.getByRole('dialog');
+  await expect(editDialog.getByRole('heading', { name: '画面領域を指定' })).toBeVisible();
+
+  const box = editDialog.locator('.portable-region-box');
+  const before = (await box.boundingBox())!;
+
+  // Move: drag inside the region box.
+  const center = { x: before.x + before.width / 2, y: before.y + before.height / 2 };
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.down();
+  await page.mouse.move(center.x + 20, center.y + 15, { steps: 5 });
+  await page.mouse.up();
+
+  const moved = (await box.boundingBox())!;
+  expect(moved.x).toBeCloseTo(before.x + 20, 0);
+  expect(moved.y).toBeCloseTo(before.y + 15, 0);
+  await expect(editDialog.getByRole('alert')).toHaveCount(0);
+
+  // Resize: drag the se handle outward.
+  const seHandle = editDialog.locator('.portable-region-handle--se');
+  const seBefore = (await seHandle.boundingBox())!;
+  const seCenter = { x: seBefore.x + seBefore.width / 2, y: seBefore.y + seBefore.height / 2 };
+  await page.mouse.move(seCenter.x, seCenter.y);
+  await page.mouse.down();
+  await page.mouse.move(seCenter.x + 15, seCenter.y + 15, { steps: 5 });
+  await page.mouse.up();
+
+  const resized = (await box.boundingBox())!;
+  expect(resized.width).toBeGreaterThan(moved.width);
+  expect(resized.height).toBeGreaterThan(moved.height);
+  await expect(editDialog.getByRole('alert')).toHaveCount(0);
+
+  await editDialog.getByRole('button', { name: '保存' }).click();
+  await expect(editDialog).toBeHidden();
+
+  await expectNoHorizontalOverflow(page);
+});

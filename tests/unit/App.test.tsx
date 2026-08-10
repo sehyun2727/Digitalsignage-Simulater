@@ -347,6 +347,76 @@ describe('App', () => {
       expect(screen.getByText(ja.editorPropertiesEmptyHint)).toBeInTheDocument();
     });
 
+    it('revokes the uploaded photo object URL when the builder is cancelled on the photo step', async () => {
+      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
+      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
+      await screen.findByRole('button', { name: ja.portableNextButton });
+
+      await user.click(screen.getByRole('button', { name: ja.portableCancelButton }));
+
+      // The photo was uploaded (and decoded/registered) but never committed to the document, so
+      // cancelling must release it immediately rather than leaving it decoded indefinitely.
+      expect(revokeSpy).toHaveBeenCalledWith('blob:mock-portable-photo');
+    });
+
+    it('revokes the uploaded photo object URL when the builder is cancelled on the region step', async () => {
+      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
+      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
+      await user.click(await screen.findByRole('button', { name: ja.portableNextButton }));
+
+      await user.click(screen.getByRole('button', { name: ja.portableCancelButton }));
+
+      expect(revokeSpy).toHaveBeenCalledWith('blob:mock-portable-photo');
+    });
+
+    it('revokes the previous photo object URL when a replacement photo is uploaded before adding', async () => {
+      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+      const createSpy = vi
+        .spyOn(URL, 'createObjectURL')
+        .mockReturnValueOnce('blob:mock-first')
+        .mockReturnValueOnce('blob:mock-second');
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
+      await user.upload(getPortablePhotoInput(), createImageFile('first.png'));
+      await screen.findByRole('button', { name: ja.portableNextButton });
+
+      await user.upload(getPortablePhotoInput(), createImageFile('second.png'));
+
+      expect(createSpy).toHaveBeenCalledTimes(2);
+      expect(revokeSpy).toHaveBeenCalledWith('blob:mock-first');
+      expect(revokeSpy).not.toHaveBeenCalledWith('blob:mock-second');
+    });
+
+    it('does not revoke the photo object URL once the product has been added to the document', async () => {
+      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
+      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
+      await user.click(await screen.findByRole('button', { name: ja.portableNextButton }));
+      await user.click(screen.getByRole('button', { name: ja.portableAddButton }));
+
+      expect(revokeSpy).not.toHaveBeenCalledWith('blob:mock-portable-photo');
+    });
+
     it('shows an accessible error when an unsupported portable photo type is uploaded', async () => {
       // applyAccept: false — a mismatched file's MIME type must be rejected by our own
       // validateImageFile check, not silently filtered out by user-event's accept-attribute
