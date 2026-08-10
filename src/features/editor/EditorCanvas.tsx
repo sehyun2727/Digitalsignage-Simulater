@@ -5,6 +5,7 @@ import { useEditorStore } from '../../store/editorStore';
 import { TEMPLATES } from '../../types/editor';
 import type { SignageObject } from '../../types/editor';
 import { CanvasObjectView } from './CanvasObjectView';
+import { SpaceBackgroundView } from './SpaceBackgroundView';
 
 export interface EditorCanvasHandle {
   exportToDataUrl: () => string | null;
@@ -119,6 +120,13 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle>(function EditorCanvas
               fill={document.backgroundColor}
               listening={false}
             />
+            {document.spaceBackground && (
+              <SpaceBackgroundView
+                spaceBackground={document.spaceBackground}
+                width={template.width}
+                height={template.height}
+              />
+            )}
             {document.objects.map((object) => (
               <CanvasObjectView
                 key={object.id}

@@ -1,14 +1,18 @@
 import { create } from 'zustand';
+import { sweepUnusedAssets } from '../lib/assetRegistry';
 import { createId } from '../lib/id';
 import type {
+  DisplayFrameId,
+  DisplaySignageObject,
   EditorDocument,
   ElementId,
   ImageSignageObject,
   SignageObject,
+  SpaceBackground,
   TemplateId,
   TextSignageObject,
 } from '../types/editor';
-import { createEmptyDocument, TEMPLATES } from '../types/editor';
+import { createEmptyDocument, DEFAULT_MATERIAL_SETTINGS, DISPLAY_FRAME_TEMPLATES, TEMPLATES } from '../types/editor';
 
 const HISTORY_LIMIT = 50;
 
@@ -21,6 +25,9 @@ export interface EditorState {
   setBackgroundColor: (color: string) => void;
   addText: () => void;
   addImage: (payload: { src: string; naturalWidth: number; naturalHeight: number }) => void;
+  addDisplay: (frameId: DisplayFrameId) => void;
+  addSpaceBackground: (payload: { sourceId: string; naturalWidth: number; naturalHeight: number }) => void;
+  removeSpaceBackground: () => void;
   selectObject: (id: ElementId | null) => void;
   updateObjectTransient: (id: ElementId, patch: Partial<SignageObject>) => void;
   commitObjectChange: (id: ElementId, patch: Partial<SignageObject>) => void;
@@ -38,8 +45,32 @@ function patchObjects(objects: SignageObject[], id: ElementId, patch: Partial<Si
   return objects.map((object) => (object.id === id ? ({ ...object, ...patch } as SignageObject) : object));
 }
 
+function shallowValueEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return false;
+  const aRecord = a as Record<string, unknown>;
+  const bRecord = b as Record<string, unknown>;
+  const aKeys = Object.keys(aRecord);
+  const bKeys = Object.keys(bRecord);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((key) => aRecord[key] === bRecord[key]);
+}
+
+// A one-level-deep comparison is enough here: patch values are either primitives (x, y,
+// text, material...) or flat objects of primitives (content, materialSettings), never
+// deeply nested structures.
 function hasObjectChange(target: SignageObject, patch: Partial<SignageObject>): boolean {
-  return (Object.keys(patch) as (keyof SignageObject)[]).some((key) => target[key] !== patch[key]);
+  return (Object.keys(patch) as (keyof SignageObject)[]).some(
+    (key) => !shallowValueEqual(target[key], patch[key]),
+  );
+}
+
+/** Every asset sourceId reachable from a document (space background + display content). */
+function collectAssetSourceIds(document: EditorDocument, into: Set<string>): void {
+  if (document.spaceBackground) into.add(document.spaceBackground.sourceId);
+  for (const object of document.objects) {
+    if (object.kind === 'display' && object.content) into.add(object.content.sourceId);
+  }
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -52,7 +83,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { document } = get();
     if (document.templateId === templateId) return;
     set({
-      document: { templateId, backgroundColor: document.backgroundColor, objects: [] },
+      document: { templateId, backgroundColor: document.backgroundColor, spaceBackground: null, objects: [] },
       selectedId: null,
       past: pushHistory(get().past, document),
       future: [],
@@ -119,6 +150,53 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  addDisplay: (frameId) => {
+    const { document } = get();
+    const template = TEMPLATES[document.templateId];
+    const frame = DISPLAY_FRAME_TEMPLATES[frameId];
+    const width = Math.min(frame.defaultWidth, template.width * 0.9);
+    const height = Math.min(frame.defaultHeight, template.height * 0.9);
+    const newObject: DisplaySignageObject = {
+      id: createId(),
+      kind: 'display',
+      x: template.width / 2 - width / 2,
+      y: template.height / 2 - height / 2,
+      width,
+      height,
+      rotation: 0,
+      frameId,
+      content: null,
+      material: frame.defaultMaterial,
+      materialSettings: { ...DEFAULT_MATERIAL_SETTINGS },
+    };
+    set({
+      document: { ...document, objects: [...document.objects, newObject] },
+      selectedId: newObject.id,
+      past: pushHistory(get().past, document),
+      future: [],
+    });
+  },
+
+  addSpaceBackground: ({ sourceId, naturalWidth, naturalHeight }) => {
+    const { document } = get();
+    const spaceBackground: SpaceBackground = { sourceId, naturalWidth, naturalHeight };
+    set({
+      document: { ...document, spaceBackground },
+      past: pushHistory(get().past, document),
+      future: [],
+    });
+  },
+
+  removeSpaceBackground: () => {
+    const { document } = get();
+    if (!document.spaceBackground) return;
+    set({
+      document: { ...document, spaceBackground: null },
+      past: pushHistory(get().past, document),
+      future: [],
+    });
+  },
+
   selectObject: (id) => set({ selectedId: id }),
 
   updateObjectTransient: (id, patch) => {
@@ -177,6 +255,26 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 }));
+
+// An asset (space background photo or display content image) must stay decoded for as long
+// as it's reachable from the current document *or* from undo/redo history, otherwise Undo
+// could restore a document pointing at a revoked Object URL. Recomputing the reachable set
+// from scratch on every change (instead of manual retain/release calls scattered through the
+// actions above) sidesteps refcount bugs entirely at the cost of a cheap re-scan.
+useEditorStore.subscribe((state, previousState) => {
+  if (
+    state.document === previousState.document &&
+    state.past === previousState.past &&
+    state.future === previousState.future
+  ) {
+    return;
+  }
+  const used = new Set<string>();
+  collectAssetSourceIds(state.document, used);
+  for (const snapshot of state.past) collectAssetSourceIds(snapshot, used);
+  for (const snapshot of state.future) collectAssetSourceIds(snapshot, used);
+  sweepUnusedAssets(used);
+});
 
 export function selectCanUndo(state: EditorState): boolean {
   return state.past.length > 0;

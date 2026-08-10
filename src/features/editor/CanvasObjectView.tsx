@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Image as KonvaImage, Text as KonvaText } from 'react-konva';
 import { useHtmlImage } from '../../lib/useHtmlImage';
 import type { SignageObject } from '../../types/editor';
+import { SignageDisplayView } from './SignageDisplayView';
 
 interface CanvasObjectViewProps {
   object: SignageObject;
@@ -78,6 +79,10 @@ export function CanvasObjectView({
         verticalAlign="middle"
       />
     );
+  }
+
+  if (object.kind === 'display') {
+    return <SignageDisplayView object={object} groupProps={commonProps} />;
   }
 
   if (!image) return null;
