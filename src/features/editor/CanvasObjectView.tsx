@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Image as KonvaImage, Text as KonvaText } from 'react-konva';
 import { useHtmlImage } from '../../lib/useHtmlImage';
 import type { SignageObject } from '../../types/editor';
+import { PortableProductView } from './PortableProductView';
 import { SignageDisplayView } from './SignageDisplayView';
 
 interface CanvasObjectViewProps {
@@ -37,7 +38,11 @@ export function CanvasObjectView({
     const node = nodeRef.current;
     if (!node) return;
     const scaleX = node.scaleX();
-    const scaleY = node.scaleY();
+    // The Transformer is configured with keepRatio for portable objects (see EditorCanvas.tsx),
+    // but that only constrains the interactive drag; forcing scaleY = scaleX here too keeps
+    // the portable object's aspect ratio (and thus its screen-region mapping) correct even if
+    // a resize is ever triggered by some other path.
+    const scaleY = object.kind === 'portable' ? scaleX : node.scaleY();
     node.scaleX(1);
     node.scaleY(1);
     onTransformEnd(object.id, {
@@ -83,6 +88,10 @@ export function CanvasObjectView({
 
   if (object.kind === 'display') {
     return <SignageDisplayView object={object} groupProps={commonProps} />;
+  }
+
+  if (object.kind === 'portable') {
+    return <PortableProductView object={object} groupProps={commonProps} />;
   }
 
   if (!image) return null;

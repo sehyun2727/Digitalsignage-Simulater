@@ -15,11 +15,13 @@ import {
   MIN_CONTENT_SCALE,
   MIN_MATERIAL_SETTING,
 } from '../../types/editor';
+import { PortableBuilderModal } from './PortableBuilderModal';
 import type { ImageValidationError } from '../../lib/fileValidation';
 import type {
   ContentFit,
   DisplayMaterial,
   DisplaySignageObject,
+  PortableSignageObject,
   SignageObject,
 } from '../../types/editor';
 
@@ -197,7 +199,7 @@ function ObjectPropertiesForm({
         </>
       )}
 
-      {selected.kind === 'display' && (
+      {(selected.kind === 'display' || selected.kind === 'portable') && (
         <DisplayPropertiesFields object={selected} onImageError={onImageError} />
       )}
     </div>
@@ -206,14 +208,17 @@ function ObjectPropertiesForm({
 
 /**
  * Split out from ObjectPropertiesForm (rather than inlined behind `selected.kind === 'display'`)
- * so `object` is typed as DisplaySignageObject at the prop boundary — TS narrowing of a union
- * parameter does not reliably survive into nested event-handler closures.
+ * so `object` is typed as DisplaySignageObject | PortableSignageObject at the prop boundary — TS
+ * narrowing of a union parameter does not reliably survive into nested event-handler closures.
+ * A portable object shares the same content/material/materialSettings shape as a display, so
+ * this same form covers both; only the extra portable-only block below (type label, screen
+ * region re-entry) branches on `object.kind`.
  */
 function DisplayPropertiesFields({
   object,
   onImageError,
 }: {
-  object: DisplaySignageObject;
+  object: DisplaySignageObject | PortableSignageObject;
   onImageError: (error: ImageValidationError) => void;
 }) {
   const { messages } = useLocale();
@@ -224,6 +229,7 @@ function DisplayPropertiesFields({
   const [brightnessDraft, setBrightnessDraft] = useState(object.materialSettings.brightness);
   const [offsetXDraft, setOffsetXDraft] = useState(object.content?.offsetX ?? 0);
   const [offsetYDraft, setOffsetYDraft] = useState(object.content?.offsetY ?? 0);
+  const [regionEditorOpen, setRegionEditorOpen] = useState(false);
   const [scaleDraft, setScaleDraft] = useState(object.content?.scale ?? 1);
 
   const commit = (patch: Partial<SignageObject>) => commitObjectChange(object.id, patch);
@@ -450,6 +456,28 @@ function DisplayPropertiesFields({
 
         <p className="editor-properties-notice">{messages.editorMaterialPreviewNotice}</p>
       </section>
+
+      {object.kind === 'portable' && (
+        <section className="editor-properties-section">
+          <h3>{messages.portableTypeLabel}</h3>
+          <p>{messages.portableTypeValue}</p>
+          <div className="editor-properties-actions">
+            <button type="button" onClick={() => setRegionEditorOpen(true)}>
+              {messages.portableScreenRegionEditButton}
+            </button>
+          </div>
+          <p className="editor-properties-notice">{messages.portableReplacePhotoHint}</p>
+
+          {regionEditorOpen && (
+            <PortableBuilderModal
+              mode="edit-region"
+              editingObject={object}
+              onClose={() => setRegionEditorOpen(false)}
+              onImageError={onImageError}
+            />
+          )}
+        </section>
+      )}
     </>
   );
 }

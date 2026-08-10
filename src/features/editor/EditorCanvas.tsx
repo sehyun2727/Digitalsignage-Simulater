@@ -75,6 +75,27 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle>(function EditorCanvas
       return;
     }
     const node = nodesRef.current.get(selectedId);
+    const selectedObject = document.objects.find((object) => object.id === selectedId);
+    // A portable object's screen region is authored against its photo's own aspect ratio, so
+    // any free (non-uniform) resize would distort the photo and desync the region from what
+    // the user marked. Restrict resizing to corner handles with keepRatio so every resize
+    // scales width/height together; other object kinds keep full free-resize behavior.
+    const isPortable = selectedObject?.kind === 'portable';
+    transformer.keepRatio(isPortable);
+    transformer.enabledAnchors(
+      isPortable
+        ? ['top-left', 'top-right', 'bottom-left', 'bottom-right']
+        : [
+            'top-left',
+            'top-center',
+            'top-right',
+            'middle-right',
+            'middle-left',
+            'bottom-left',
+            'bottom-center',
+            'bottom-right',
+          ],
+    );
     transformer.nodes(node ? [node] : []);
     transformer.getLayer()?.batchDraw();
   }, [selectedId, document.objects]);
