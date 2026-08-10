@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted — Sprint 3.
+Accepted — Sprint 3. Amended — Sprint 3.1 (direct pointer-driven move/resize; see the
+region-definition and minimum-size clamp decisions below).
 
 ## Context
 
@@ -51,19 +52,33 @@ modal, and the properties panel together.
   aspect ratio have no defined relationship to the old one). The properties panel instead
   shows `portableReplacePhotoHint`, telling the user to delete the object and add a new
   portable product if they want a different photo.
-- **Region definition supports both drag-to-draw (`normalizedRectFromPoints`, pointer
-  down/move/up on a `.portable-region-preview` div) and direct numeric x/y/width/height
-  entry**, sharing one clamped `NormalizedRect` state value. `resizeNormalizedRect` (corner-
-  handle resize, keeping the opposite corner fixed) and `moveNormalizedRect` are
-  implemented and unit-tested in `portableRegion.ts` as pure geometry functions but are not
-  wired into the modal's UI in this sprint — the drag-to-draw + numeric-field combination
-  was sufficient to meet the acceptance criteria, and adding handle-based resize/move to
-  the preview UI is straightforward future work against already-tested functions rather
-  than a gap requiring new geometry logic.
-- **A region below `MIN_SCREEN_REGION_FRACTION` (5% of the photo on either axis) is
-  rejected with an accessible `role="alert"` error**, not silently clamped up to the
-  minimum. Silently resizing a user's explicit drag or numeric entry to a different value
-  than what they specified would be more surprising than asking them to try again.
+- **Region definition supports drag-to-draw on empty preview space
+  (`normalizedRectFromPoints`), dragging inside the existing region box to move it
+  (`moveNormalizedRect`), dragging one of its four corner handles to resize it
+  (`resizeNormalizedRectClamped`, opposite corner fixed), and direct numeric
+  x/y/width/height entry**, all sharing one `NormalizedRect` state value and all driven
+  through the W3C Pointer Events API (`onPointerDown`/`onPointerMove`/`onPointerUp` plus
+  `setPointerCapture`) so the same handlers serve mouse, touch, and pen input without
+  device-specific branches (Sprint 3.1). Pointer coordinates are mapped through
+  `computeContainRect` before being normalized, because `.portable-region-preview` renders
+  the photo with `background-size: contain`: a photo whose aspect ratio doesn't match the
+  4:3 preview box is letterboxed/pillarboxed, and drawing/moving/resizing against the raw
+  container instead of the photo's own rendered sub-rect would misplace the region on any
+  non-4:3 photo.
+- **Resizing past the opposite corner clamps at `MIN_SCREEN_REGION_FRACTION` (5%) live,
+  during the drag, instead of letting the box shrink further and only rejecting it on
+  release** (`resizeNormalizedRectClamped`, Sprint 3.1). The dragged corner's distance from
+  the fixed opposite corner is clamped to the minimum on each axis independently, so the
+  box tracks the pointer smoothly right up to the boundary and can never invert even if the
+  pointer crosses over the fixed corner. This was chosen over "stop at the last valid
+  position," which would require remembering and reverting to a stale rect mid-drag.
+  Direct numeric entry keeps the separate, non-clamping behavior below.
+- **A region below `MIN_SCREEN_REGION_FRACTION` (5% of the photo on either axis) entered
+  through the numeric fields — or left in that state after a pointer interaction, which
+  `resizeNormalizedRectClamped`'s live clamp otherwise prevents — is rejected with an
+  accessible `role="alert"` error on Save/Add**, not silently clamped up to the minimum.
+  Silently resizing a user's explicit numeric entry to a different value than what they
+  specified would be more surprising than asking them to try again.
 - **A freshly uploaded photo gets `defaultScreenRegion()` — a centered 60%×60% region —
   as its starting region**, rather than an empty/zero-size region. This gives the user a
   large, immediately valid region to adjust from instead of an error state on first open.
@@ -98,9 +113,11 @@ modal, and the properties panel together.
   each axis, unlike text/image elements. This is intentional (it keeps the screen-region
   mapping correct) but is a real interaction difference future contributors should not
   "fix" without revisiting this ADR.
-- `resizeNormalizedRect`/`moveNormalizedRect` exist as tested, unused-by-the-UI library
-  functions. A future sprint wiring corner-handle resize into the region preview should
-  reuse them rather than re-deriving the same geometry.
+- Move and resize (like drag-to-draw and the numeric fields before them) mutate only the
+  modal's local draft state; no undo/redo history entry is created until Save/Add commits
+  the draft via `commitObjectChange`/`addPortable`, and `hasObjectChange`'s shallow
+  comparison means committing an unchanged region creates no entry either. Cancelling at
+  any point, including mid-drag, discards the draft entirely.
 - No photo-replacement path exists yet; a future request to support it will need to define
   what happens to an existing screen region, content, and material settings when the
   underlying photo's dimensions/aspect ratio change.
