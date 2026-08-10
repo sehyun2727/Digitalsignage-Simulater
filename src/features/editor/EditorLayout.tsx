@@ -97,7 +97,7 @@ export function EditorLayout() {
           {objectCount === 0 && <p className="editor-empty-hint">{messages.editorEmptyCanvasHint}</p>}
           <EditorCanvas ref={canvasRef} />
         </div>
-        <PropertiesPanel />
+        <PropertiesPanel onImageError={handleImageError} />
       </div>
 
       <p role="status" aria-live="polite" className="visually-hidden">

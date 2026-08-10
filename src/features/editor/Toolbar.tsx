@@ -1,29 +1,36 @@
 import { useRef } from 'react';
 import { useLocale } from '../../i18n/localeContext';
+import { registerAsset } from '../../lib/assetRegistry';
 import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
 import { selectCanRedo, selectCanUndo, useEditorStore } from '../../store/editorStore';
 import { TEMPLATES } from '../../types/editor';
+import type { ImageValidationError } from '../../lib/fileValidation';
 import type { TemplateId } from '../../types/editor';
 
 interface ToolbarProps {
-  onImageError: (error: 'unsupported-type' | 'too-large' | 'decode-error') => void;
+  onImageError: (error: ImageValidationError) => void;
   onExport: () => void;
 }
 
 export function Toolbar({ onImageError, onExport }: ToolbarProps) {
   const { messages } = useLocale();
   const templateId = useEditorStore((state) => state.document.templateId);
+  const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
   const selectedId = useEditorStore((state) => state.selectedId);
   const canUndo = useEditorStore(selectCanUndo);
   const canRedo = useEditorStore(selectCanRedo);
   const selectTemplate = useEditorStore((state) => state.selectTemplate);
   const addText = useEditorStore((state) => state.addText);
   const addImage = useEditorStore((state) => state.addImage);
+  const addDisplay = useEditorStore((state) => state.addDisplay);
+  const addSpaceBackground = useEditorStore((state) => state.addSpaceBackground);
+  const removeSpaceBackground = useEditorStore((state) => state.removeSpaceBackground);
   const deleteSelected = useEditorStore((state) => state.deleteSelected);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const spaceBackgroundInputRef = useRef<HTMLInputElement | null>(null);
 
   const templateLabel: Record<TemplateId, string> = {
     'wall-led': messages.editorTemplateWallLed,
@@ -54,6 +61,25 @@ export function Toolbar({ onImageError, onExport }: ToolbarProps) {
       onImageError('decode-error');
     };
     image.src = objectUrl;
+  };
+
+  const handleSpaceBackgroundChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const error = validateImageFile(file);
+    if (error) {
+      onImageError(error);
+      return;
+    }
+
+    try {
+      const asset = await registerAsset(file);
+      addSpaceBackground(asset);
+    } catch {
+      onImageError('decode-error');
+    }
   };
 
   return (
@@ -87,6 +113,31 @@ export function Toolbar({ onImageError, onExport }: ToolbarProps) {
         className="visually-hidden"
         aria-label={messages.editorAddImageButton}
       />
+
+      <button type="button" onClick={() => spaceBackgroundInputRef.current?.click()}>
+        {messages.editorAddSpaceBackgroundButton}
+      </button>
+      <input
+        ref={spaceBackgroundInputRef}
+        type="file"
+        accept={ACCEPTED_IMAGE_TYPES.join(',')}
+        onChange={handleSpaceBackgroundChange}
+        className="visually-hidden"
+        aria-label={messages.editorAddSpaceBackgroundButton}
+      />
+      {spaceBackground && (
+        <button type="button" onClick={removeSpaceBackground}>
+          {messages.editorRemoveSpaceBackgroundButton}
+        </button>
+      )}
+
+      <button type="button" onClick={() => addDisplay('wall-led')}>
+        {messages.editorAddWallLedButton}
+      </button>
+
+      <button type="button" onClick={() => addDisplay('stand-display')}>
+        {messages.editorAddStandDisplayButton}
+      </button>
 
       <button type="button" onClick={deleteSelected} disabled={!selectedId}>
         {messages.editorDeleteButton}

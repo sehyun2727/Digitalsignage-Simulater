@@ -1,7 +1,26 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLocale } from '../../i18n/localeContext';
+import { registerAsset } from '../../lib/assetRegistry';
+import {
+  clampContentOffset,
+  clampContentScale,
+  clampMaterialSetting,
+} from '../../lib/contentLayout';
+import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
 import { selectSelectedObject, useEditorStore } from '../../store/editorStore';
-import type { SignageObject } from '../../types/editor';
+import {
+  DEFAULT_MATERIAL_SETTINGS,
+  MAX_CONTENT_SCALE,
+  MAX_MATERIAL_SETTING,
+  MIN_CONTENT_SCALE,
+  MIN_MATERIAL_SETTING,
+} from '../../types/editor';
+import type { ImageValidationError } from '../../lib/fileValidation';
+import type { ContentFit, DisplayMaterial, DisplaySignageObject, SignageObject } from '../../types/editor';
+
+interface PropertiesPanelProps {
+  onImageError: (error: ImageValidationError) => void;
+}
 
 type Draft = Pick<SignageObject, 'x' | 'y' | 'width' | 'height' | 'rotation'> & {
   text?: string;
@@ -33,7 +52,7 @@ function toDraft(object: SignageObject): Draft {
   };
 }
 
-export function PropertiesPanel() {
+export function PropertiesPanel({ onImageError }: PropertiesPanelProps) {
   const { messages } = useLocale();
   const selected = useEditorStore(selectSelectedObject);
 
@@ -46,10 +65,16 @@ export function PropertiesPanel() {
     );
   }
 
-  return <ObjectPropertiesForm key={selected.id} object={selected} />;
+  return <ObjectPropertiesForm key={selected.id} object={selected} onImageError={onImageError} />;
 }
 
-function ObjectPropertiesForm({ object: selected }: { object: SignageObject }) {
+function ObjectPropertiesForm({
+  object: selected,
+  onImageError,
+}: {
+  object: SignageObject;
+  onImageError: (error: ImageValidationError) => void;
+}) {
   const { messages } = useLocale();
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const [draft, setDraft] = useState<Draft>(() => toDraft(selected));
@@ -166,6 +191,244 @@ function ObjectPropertiesForm({ object: selected }: { object: SignageObject }) {
           </label>
         </>
       )}
+
+      {selected.kind === 'display' && <DisplayPropertiesFields object={selected} onImageError={onImageError} />}
     </div>
+  );
+}
+
+/**
+ * Split out from ObjectPropertiesForm (rather than inlined behind `selected.kind === 'display'`)
+ * so `object` is typed as DisplaySignageObject at the prop boundary — TS narrowing of a union
+ * parameter does not reliably survive into nested event-handler closures.
+ */
+function DisplayPropertiesFields({
+  object,
+  onImageError,
+}: {
+  object: DisplaySignageObject;
+  onImageError: (error: ImageValidationError) => void;
+}) {
+  const { messages } = useLocale();
+  const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
+  const updateObjectTransient = useEditorStore((state) => state.updateObjectTransient);
+  const contentInputRef = useRef<HTMLInputElement | null>(null);
+  const [intensityDraft, setIntensityDraft] = useState(object.materialSettings.intensity);
+  const [brightnessDraft, setBrightnessDraft] = useState(object.materialSettings.brightness);
+  const [offsetXDraft, setOffsetXDraft] = useState(object.content?.offsetX ?? 0);
+  const [offsetYDraft, setOffsetYDraft] = useState(object.content?.offsetY ?? 0);
+  const [scaleDraft, setScaleDraft] = useState(object.content?.scale ?? 1);
+
+  const commit = (patch: Partial<SignageObject>) => commitObjectChange(object.id, patch);
+
+  const handleContentFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const error = validateImageFile(file);
+    if (error) {
+      onImageError(error);
+      return;
+    }
+
+    try {
+      const asset = await registerAsset(file);
+      commit({
+        content: {
+          kind: 'image',
+          sourceId: asset.sourceId,
+          fit: object.content?.fit ?? 'contain',
+          offsetX: 0,
+          offsetY: 0,
+          scale: 1,
+        },
+      });
+      setOffsetXDraft(0);
+      setOffsetYDraft(0);
+      setScaleDraft(1);
+    } catch {
+      onImageError('decode-error');
+    }
+  };
+
+  const commitMaterialSettings = (patch: Partial<{ intensity: number; brightness: number }>) => {
+    commit({ materialSettings: { ...object.materialSettings, ...patch } });
+  };
+
+  const previewMaterialSettings = (patch: Partial<{ intensity: number; brightness: number }>) => {
+    updateObjectTransient(object.id, { materialSettings: { ...object.materialSettings, ...patch } });
+  };
+
+  return (
+    <>
+      <section className="editor-properties-section">
+        <h3>{messages.editorContentLabel}</h3>
+
+        {object.content ? (
+          <>
+            <div className="editor-properties-actions">
+              <button type="button" onClick={() => contentInputRef.current?.click()}>
+                {messages.editorContentReplaceButton}
+              </button>
+              <button type="button" onClick={() => commit({ content: null })}>
+                {messages.editorContentRemoveButton}
+              </button>
+            </div>
+
+            <label>
+              <span>{messages.editorContentFitLabel}</span>
+              <select
+                value={object.content.fit}
+                onChange={(event) => {
+                  if (!object.content) return;
+                  commit({ content: { ...object.content, fit: event.target.value as ContentFit } });
+                }}
+              >
+                <option value="contain">{messages.editorContentFitContain}</option>
+                <option value="cover">{messages.editorContentFitCover}</option>
+              </select>
+            </label>
+
+            <label>
+              <span>{messages.editorContentOffsetXLabel}</span>
+              <input
+                type="number"
+                step={0.05}
+                min={-1}
+                max={1}
+                value={offsetXDraft}
+                onChange={(event) => setOffsetXDraft(Number(event.target.value))}
+                onBlur={() => {
+                  if (!object.content) return;
+                  commit({ content: { ...object.content, offsetX: clampContentOffset(offsetXDraft) } });
+                }}
+              />
+            </label>
+
+            <label>
+              <span>{messages.editorContentOffsetYLabel}</span>
+              <input
+                type="number"
+                step={0.05}
+                min={-1}
+                max={1}
+                value={offsetYDraft}
+                onChange={(event) => setOffsetYDraft(Number(event.target.value))}
+                onBlur={() => {
+                  if (!object.content) return;
+                  commit({ content: { ...object.content, offsetY: clampContentOffset(offsetYDraft) } });
+                }}
+              />
+            </label>
+
+            <label>
+              <span>{messages.editorContentScaleLabel}</span>
+              <input
+                type="number"
+                step={0.1}
+                min={MIN_CONTENT_SCALE}
+                max={MAX_CONTENT_SCALE}
+                value={scaleDraft}
+                onChange={(event) => setScaleDraft(Number(event.target.value))}
+                onBlur={() => {
+                  if (!object.content) return;
+                  commit({ content: { ...object.content, scale: clampContentScale(scaleDraft) } });
+                }}
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!object.content) return;
+                commit({ content: { ...object.content, offsetX: 0, offsetY: 0, scale: 1 } });
+                setOffsetXDraft(0);
+                setOffsetYDraft(0);
+                setScaleDraft(1);
+              }}
+            >
+              {messages.editorContentResetButton}
+            </button>
+          </>
+        ) : (
+          <>
+            <p>{messages.editorContentNoneHint}</p>
+            <button type="button" onClick={() => contentInputRef.current?.click()}>
+              {messages.editorContentUploadButton}
+            </button>
+          </>
+        )}
+
+        <input
+          ref={contentInputRef}
+          type="file"
+          accept={ACCEPTED_IMAGE_TYPES.join(',')}
+          onChange={handleContentFileChange}
+          className="visually-hidden"
+          aria-label={messages.editorContentUploadButton}
+        />
+      </section>
+
+      <section className="editor-properties-section">
+        <h3>{messages.editorMaterialLabel}</h3>
+
+        <select
+          aria-label={messages.editorMaterialLabel}
+          value={object.material}
+          onChange={(event) => commit({ material: event.target.value as DisplayMaterial })}
+        >
+          <option value="outdoor-led">{messages.editorMaterialOutdoorLed}</option>
+          <option value="lcd">{messages.editorMaterialLcd}</option>
+        </select>
+
+        <label>
+          <span>{messages.editorMaterialIntensityLabel}</span>
+          <input
+            type="range"
+            min={MIN_MATERIAL_SETTING}
+            max={MAX_MATERIAL_SETTING}
+            value={intensityDraft}
+            onInput={(event) => {
+              const intensity = Number((event.target as HTMLInputElement).value);
+              setIntensityDraft(intensity);
+              previewMaterialSettings({ intensity });
+            }}
+            onPointerUp={() => commitMaterialSettings({ intensity: clampMaterialSetting(intensityDraft) })}
+            onBlur={() => commitMaterialSettings({ intensity: clampMaterialSetting(intensityDraft) })}
+          />
+        </label>
+
+        <label>
+          <span>{messages.editorMaterialBrightnessLabel}</span>
+          <input
+            type="range"
+            min={MIN_MATERIAL_SETTING}
+            max={MAX_MATERIAL_SETTING}
+            value={brightnessDraft}
+            onInput={(event) => {
+              const brightness = Number((event.target as HTMLInputElement).value);
+              setBrightnessDraft(brightness);
+              previewMaterialSettings({ brightness });
+            }}
+            onPointerUp={() => commitMaterialSettings({ brightness: clampMaterialSetting(brightnessDraft) })}
+            onBlur={() => commitMaterialSettings({ brightness: clampMaterialSetting(brightnessDraft) })}
+          />
+        </label>
+
+        <button
+          type="button"
+          onClick={() => {
+            commit({ materialSettings: { ...DEFAULT_MATERIAL_SETTINGS } });
+            setIntensityDraft(DEFAULT_MATERIAL_SETTINGS.intensity);
+            setBrightnessDraft(DEFAULT_MATERIAL_SETTINGS.brightness);
+          }}
+        >
+          {messages.editorMaterialResetButton}
+        </button>
+
+        <p className="editor-properties-notice">{messages.editorMaterialPreviewNotice}</p>
+      </section>
+    </>
   );
 }

@@ -46,4 +46,31 @@ export interface Messages {
   editorImageUploadErrorDecodeFailed: string;
   editorExportedAnnouncement: string;
   editorExportErrorAnnouncement: string;
+
+  editorSpaceBackgroundLabel: string;
+  editorAddSpaceBackgroundButton: string;
+  editorRemoveSpaceBackgroundButton: string;
+  editorAddWallLedButton: string;
+  editorAddStandDisplayButton: string;
+
+  editorContentLabel: string;
+  editorContentUploadButton: string;
+  editorContentReplaceButton: string;
+  editorContentRemoveButton: string;
+  editorContentNoneHint: string;
+  editorContentFitLabel: string;
+  editorContentFitContain: string;
+  editorContentFitCover: string;
+  editorContentOffsetXLabel: string;
+  editorContentOffsetYLabel: string;
+  editorContentScaleLabel: string;
+  editorContentResetButton: string;
+
+  editorMaterialLabel: string;
+  editorMaterialOutdoorLed: string;
+  editorMaterialLcd: string;
+  editorMaterialIntensityLabel: string;
+  editorMaterialBrightnessLabel: string;
+  editorMaterialResetButton: string;
+  editorMaterialPreviewNotice: string;
 }
