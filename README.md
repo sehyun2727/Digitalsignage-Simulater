@@ -13,7 +13,7 @@
 
 ## 상태
 
-**현재 상태: Sprint 2 완료 (공간 배경 + 디스플레이 화면 콘텐츠/소재 기반) — PR 전 최종 QA 및 결함 수정 반영됨**
+**현재 상태: Sprint 3 완료 (사용자 지정 포터블 제품 템플릿) — PR 전 최종 QA 및 결함 수정 반영됨**
 
 Sprint 0에서 구현된 것:
 
@@ -70,6 +70,39 @@ Sprint 2에서 구현되지 않은 것 (범위 밖):
 - 디스플레이당 다중 콘텐츠 슬롯, 플레이리스트, 동영상 콘텐츠.
 - 모바일 뷰포트 전용 e2e 테스트(수동 반응형 확인만 수행).
 
+Sprint 3에서 구현된 것:
+
+- **사용자 지정 포터블 제품**: 키오스크, 태블릿 스탠드, 차량 등 사용자가 보유한 제품 사진을 업로드해 캔버스에
+  배치할 수 있습니다(`ポータブル製品を追加` 버튼 → `PortableBuilderModal`). 사진 업로드 → 화면 영역 지정 →
+  추가의 3단계 마법사이며, 첫 단계는 앱 최초의 모달/다이얼로그로 포커스 트랩·Esc 닫기·닫은 후 포커스
+  복원·배경 스크롤 잠금을 자체 구현했습니다.
+- **화면 영역 지정**: 제품 사진 위에서 드래그로 직사각형을 그리거나 x/y/폭/높이를 숫자로 직접 입력해 화면
+  영역(0-1로 정규화된 사각형)을 지정합니다. 사진 가로/세로 각각의 5% 미만인 영역은 접근성 있는 오류로
+  거부되며(자동으로 최소 크기로 보정하지 않음), 사진을 처음 업로드하면 가운데 60%×60%의 기본 영역이 미리
+  채워집니다.
+- **화면 영역 재편집**: 배치된 포터블 객체는 속성 패널의 `画面領域を編集` 버튼으로 화면 영역만 다시 편집할 수
+  있습니다(사진 교체는 범위 밖 — 자세한 배경은
+  [`docs/adr/0004-custom-portable-template.md`](docs/adr/0004-custom-portable-template.md) 참고).
+- **가로세로 비율 고정**: 포터블 객체는 제품 사진의 원본 가로세로 비율로 항상 고정된 채로 이동·크기 조절(모서리
+  핸들만)·회전할 수 있습니다. 이 덕분에 화면 영역(사진 비율의 일부)을 객체의 현재 크기에 별도의 좌표 변환 없이
+  직접 매핑할 수 있습니다.
+- **콘텐츠/소재 재사용**: Sprint 2의 화면 콘텐츠(Contain/Cover, 오프셋, 확대율)와 소재(屋外LED/LCD, 질감 강도,
+  밝기) 시스템을 포터블 제품의 화면 영역에 그대로 적용합니다. 새 포터블 객체는 기본적으로 LCD 소재이며
+  콘텐츠는 비어 있습니다.
+- **투명 배경 안내**: 업로드한 사진에서 투명도(alpha)를 감지해 배경이 있는 사진보다 투명 PNG/WebP가 더
+  자연스럽게 합성된다는 안내 문구를 표시합니다 — 실제 배경 제거/마스킹은 수행하지 않는 순수 안내용입니다.
+- **PNG 내보내기 확장**: 포터블 제품의 사진과 화면 영역에 클리핑된 콘텐츠/소재가 정확한 템플릿 해상도로
+  내보내기에 반영됩니다.
+
+Sprint 3에서 구현되지 않은 것 (범위 밖):
+
+- 원근/4점/다각형 화면 영역 — 화면 영역은 항상 축에 정렬된 직사각형입니다.
+- 여러 각도의 제품 사진 생성, 배경 제거(자동/수동), 다중 화면 영역.
+- 포터블 객체 생성 후 사진 교체(제품 사진 크롭/재편집 에디터) — 다른 사진을 쓰려면 객체를 삭제하고 새로
+  추가해야 합니다.
+- 화면 영역 미리보기에서 모서리 핸들 드래그를 통한 크기 조절/이동 UI — 관련 지오메트리 함수
+  (`resizeNormalizedRect`/`moveNormalizedRect`)는 단위 테스트로 검증되어 있지만 UI에는 연결되어 있지 않습니다.
+
 ## 기술 스택
 
 - React 19 + TypeScript + Vite
@@ -107,7 +140,7 @@ npm run format:check     # Prettier 검사만 수행
 npm run typecheck        # TypeScript 검사
 npm run test              # Vitest (watch)
 npm run test:run          # Vitest (단일 실행, CI에서 사용)
-npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드, 공간 배경/디스플레이 콘텐츠·소재)
+npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드, 공간 배경/디스플레이 콘텐츠·소재, 포터블 제품, 모바일 뷰포트)
 ```
 
 ## Docker 실행
@@ -182,15 +215,17 @@ Sprint 0 기준으로 실제 배포는 아직 수행되지 않았습니다 — �
 ├── src/
 │   ├── app/            # 앱 루트 (App.tsx)
 │   ├── components/     # 공통 UI 컴포넌트
-│   ├── features/editor/ # 에디터 UI: Toolbar, EditorCanvas, PropertiesPanel, SignageDisplayView, SpaceBackgroundView 등
+│   ├── features/editor/ # 에디터 UI: Toolbar, EditorCanvas, PropertiesPanel, SignageDisplayView, SpaceBackgroundView,
+│   │                     # PortableBuilderModal(포터블 제품 마법사), PortableProductView 등
 │   ├── i18n/           # 일본어·한국어·영어 리소스, 감지/저장 로직
-│   ├── lib/            # 공통 유틸리티/상수 (파일 검증, 파일명 생성, 에셋 레지스트리, 콘텐츠 배치/프레임/소재 지오메트리 등)
+│   ├── lib/            # 공통 유틸리티/상수 (파일 검증, 파일명 생성, 에셋 레지스트리, 콘텐츠 배치/프레임/소재 지오메트리,
+│   │                     # portableRegion.ts — 화면 영역 정규화 사각형 지오메트리 등)
 │   ├── store/          # Zustand 에디터 스토어 (문서 상태, 히스토리, 에셋 스윕 구독)
 │   ├── styles/          # 전역 스타일
 │   ├── test/            # Vitest 환경 설정
-│   └── types/            # 공유 타입 (에디터 문서/객체, i18n 메시지)
-├── tests/unit/           # Vitest + React Testing Library
-├── e2e/                   # Playwright e2e 테스트 (실제 Chromium)
+│   └── types/            # 공유 타입 (에디터 문서/객체 — PortableSignageObject 포함, i18n 메시지)
+├── tests/unit/           # Vitest + React Testing Library (portableRegion.test.ts 포함)
+├── e2e/                   # Playwright e2e 테스트 (실제 Chromium — portable.spec.ts, mobile.spec.ts 포함)
 │   └── support/            # PNG/EXIF/픽셀 샘플링 등 테스트 전용 헬퍼
 ├── docker/nginx.conf       # SPA fallback 설정
 ├── Dockerfile
@@ -198,11 +233,12 @@ Sprint 0 기준으로 실제 배포는 아직 수행되지 않았습니다 — �
 │   ├── architecture/overview.md
 │   ├── adr/0001-frontend-foundation.md
 │   ├── adr/0003-content-and-material-model.md
+│   ├── adr/0004-custom-portable-template.md
 │   └── runbooks/
 └── .github/workflows/ci.yml
 ```
 
-## Known limitations (Sprint 1)
+## Known limitations
 
 - 캔버스 밖으로 요소를 이동해도 위치가 자동으로 제한(clamp)되지 않습니다 — 의도적으로 변경하지 않은 기존 동작입니다.
 - 성공적으로 추가된 이미지의 Object URL은 세션 동안 해제되지 않습니다 (위 "이미지 업로드 정책"의 알려진 제한 참고).
@@ -212,6 +248,10 @@ Sprint 0 기준으로 실제 배포는 아직 수행되지 않았습니다 — �
 - 디스플레이 프레임(베젤/스탠드)과 소재(屋外LED/LCD) 프리뷰는 단순화된 시각적 표현이며, 실제 제품 형상이나
   성능을 재현하지 않습니다(자세한 내용은 `docs/adr/0003-content-and-material-model.md` 참고).
 - 디스플레이당 화면 콘텐츠는 정지 이미지 1개만 지원합니다 — 다중 콘텐츠 슬롯이나 동영상은 범위 밖입니다.
+- 포터블 제품의 화면 영역은 사진 자체의 좌표계에 고정된 축 정렬 직사각형 하나뿐입니다 — 원근/4점/다각형
+  영역이나 제품당 여러 화면 영역은 지원하지 않습니다.
+- 포터블 객체는 생성 후 사진을 교체할 수 없습니다 — 다른 사진을 쓰려면 객체를 삭제하고 새로 추가해야 합니다
+  (자세한 배경은 `docs/adr/0004-custom-portable-template.md` 참고).
 - 라이선스 미정.
 
 ## 범위 관리

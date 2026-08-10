@@ -4,7 +4,12 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [chore/sprint-0-project-foundation, feature/sprint-1-image-editor-mvp]
+    branches:
+      [
+        chore/sprint-0-project-foundation,
+        feature/sprint-1-image-editor-mvp,
+        feature/sprint-3-custom-portable,
+      ]
 
 permissions:
   contents: read
