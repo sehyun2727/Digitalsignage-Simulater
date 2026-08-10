@@ -9,15 +9,25 @@ import {
 import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
 import {
   clampNormalizedRect,
+  computeContainRect,
   defaultScreenRegion,
   isNormalizedRectLargeEnough,
+  moveNormalizedRect,
   normalizedRectFromPoints,
   previewPointToNormalized,
+  resizeNormalizedRectClamped,
 } from '../../lib/portableRegion';
 import { useEditorStore } from '../../store/editorStore';
 import type { ImageValidationError } from '../../lib/fileValidation';
-import type { NormalizedRect } from '../../lib/portableRegion';
+import type { NormalizedRect, ResizeHandle } from '../../lib/portableRegion';
 import type { PortableSignageObject } from '../../types/editor';
+
+const RESIZE_HANDLES: ResizeHandle[] = ['nw', 'ne', 'sw', 'se'];
+
+type RegionInteraction =
+  | { mode: 'draw'; start: { x: number; y: number } }
+  | { mode: 'move'; regionAtStart: NormalizedRect; pointerStart: { x: number; y: number } }
+  | { mode: 'resize'; handle: ResizeHandle };
 
 interface PortableBuilderModalProps {
   /** 'create' walks photo-select then region steps; 'edit-region' re-enters on an existing object. */
@@ -54,7 +64,8 @@ export function PortableBuilderModal({
     editingObject?.screenRegion ?? defaultScreenRegion(),
   );
   const [regionError, setRegionError] = useState(false);
-  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const [previewBox, setPreviewBox] = useState({ width: 0, height: 0 });
+  const interactionRef = useRef<RegionInteraction | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const pendingPhotoRef = useRef<PendingPhoto | null>(null);
   useEffect(() => {
@@ -65,6 +76,7 @@ export function PortableBuilderModal({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previouslyFocusedRef = useRef<Element | null>(null);
   const titleId = useId();
+  const moveResizeHintId = useId();
 
   const wasCommittedRef = useRef(false);
 
@@ -153,42 +165,110 @@ export function PortableBuilderModal({
     setStep('region');
   };
 
-  const previewSize = () => {
+  // The photo's own intrinsic size (not the preview container's) — needed to resolve the
+  // background-size:contain letterboxing below, since it's independent of `mode`.
+  const photoNaturalSize =
+    mode === 'edit-region' && editingObject
+      ? { width: editingObject.productIntrinsicWidth, height: editingObject.productIntrinsicHeight }
+      : pendingPhoto
+        ? { width: pendingPhoto.naturalWidth, height: pendingPhoto.naturalHeight }
+        : null;
+
+  // Re-measure whenever the region step becomes visible and on viewport resize, so the
+  // region box/handles stay aligned with the photo after the builder or window is resized —
+  // normalized region values themselves never depend on this and are never recomputed here.
+  useEffect(() => {
+    if (step !== 'region') return;
+    const measure = () => {
+      const box = previewRef.current?.getBoundingClientRect();
+      if (box) setPreviewBox({ width: box.width, height: box.height });
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [step]);
+
+  // Where the photo actually renders inside the (possibly letterboxed) preview box — pointer
+  // coordinates and the region box/handles are both positioned against this, not the raw
+  // container, so a non-4:3 photo's screen region tracks the photo's own pixels correctly.
+  const containRect = photoNaturalSize
+    ? computeContainRect(previewBox, photoNaturalSize)
+    : { x: 0, y: 0, width: previewBox.width, height: previewBox.height };
+
+  const pointFromEvent = (event: React.PointerEvent<HTMLDivElement>): { x: number; y: number } => {
     const element = previewRef.current;
-    if (!element) return { width: 0, height: 0 };
+    if (!element) return { x: 0, y: 0 };
     const box = element.getBoundingClientRect();
-    return { width: box.width, height: box.height };
+    return previewPointToNormalized(
+      {
+        x: event.clientX - box.left - containRect.x,
+        y: event.clientY - box.top - containRect.y,
+      },
+      { width: containRect.width, height: containRect.height },
+    );
   };
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    const element = previewRef.current;
-    if (!element) return;
-    const box = element.getBoundingClientRect();
-    const point = previewPointToNormalized(
-      { x: event.clientX - box.left, y: event.clientY - box.top },
-      previewSize(),
-    );
-    dragStartRef.current = point;
+  const finishInteraction = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!interactionRef.current) return;
+    interactionRef.current = null;
+    if (previewRef.current?.hasPointerCapture(event.pointerId)) {
+      previewRef.current.releasePointerCapture(event.pointerId);
+    }
+    setRegion((current) => {
+      setRegionError(!isNormalizedRectLargeEnough(current));
+      return current;
+    });
+  };
+
+  // Drawing a brand-new region from scratch (pointer down on empty preview space, i.e. not on
+  // the existing region box or one of its resize handles).
+  const handlePreviewPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    const point = pointFromEvent(event);
+    interactionRef.current = { mode: 'draw', start: point };
     setRegion(normalizedRectFromPoints(point, point));
     setRegionError(false);
-    element.setPointerCapture(event.pointerId);
+    previewRef.current?.setPointerCapture(event.pointerId);
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragStartRef.current) return;
-    const element = previewRef.current;
-    if (!element) return;
-    const box = element.getBoundingClientRect();
-    const point = previewPointToNormalized(
-      { x: event.clientX - box.left, y: event.clientY - box.top },
-      previewSize(),
-    );
-    setRegion(normalizedRectFromPoints(dragStartRef.current, point));
+  // Moving the existing region: pointer down inside its box. The pointer's offset from the
+  // region's top-left is preserved via a delta (not by re-deriving position from the raw
+  // pointer point), so the box doesn't jump to re-center under the cursor.
+  const handleBoxPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    interactionRef.current = {
+      mode: 'move',
+      regionAtStart: region,
+      pointerStart: pointFromEvent(event),
+    };
+    setRegionError(false);
+    previewRef.current?.setPointerCapture(event.pointerId);
   };
 
-  const handlePointerUp = () => {
-    dragStartRef.current = null;
-    setRegionError(!isNormalizedRectLargeEnough(region));
+  // Resizing via one of the four corner handles, opposite corner fixed.
+  const handleHandlePointerDown =
+    (handle: ResizeHandle) => (event: React.PointerEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      interactionRef.current = { mode: 'resize', handle };
+      setRegionError(false);
+      previewRef.current?.setPointerCapture(event.pointerId);
+    };
+
+  const handlePreviewPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const interaction = interactionRef.current;
+    if (!interaction) return;
+    const point = pointFromEvent(event);
+    if (interaction.mode === 'draw') {
+      setRegion(normalizedRectFromPoints(interaction.start, point));
+    } else if (interaction.mode === 'move') {
+      const delta = {
+        dx: point.x - interaction.pointerStart.x,
+        dy: point.y - interaction.pointerStart.y,
+      };
+      setRegion(moveNormalizedRect(interaction.regionAtStart, delta));
+    } else {
+      const handle = interaction.handle;
+      setRegion((current) => resizeNormalizedRectClamped(current, handle, point));
+    }
   };
 
   const handleNumericFieldChange = (key: keyof NormalizedRect, value: number) => {
@@ -289,24 +369,38 @@ export function PortableBuilderModal({
           <>
             <h2 id={titleId}>{messages.portableStepDefineRegionTitle}</h2>
             <p className="editor-properties-notice">{messages.portableScreenRegionDragHint}</p>
+            <p id={moveResizeHintId} className="editor-properties-notice">
+              {messages.portableScreenRegionMoveResizeHint}
+            </p>
 
             <div
               ref={previewRef}
               className="portable-region-preview"
               style={photoPreviewUrl ? { backgroundImage: `url(${photoPreviewUrl})` } : undefined}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
+              onPointerDown={handlePreviewPointerDown}
+              onPointerMove={handlePreviewPointerMove}
+              onPointerUp={finishInteraction}
+              onPointerCancel={finishInteraction}
             >
               <div
                 className="portable-region-box"
+                aria-hidden="true"
                 style={{
-                  left: `${region.x * 100}%`,
-                  top: `${region.y * 100}%`,
-                  width: `${region.width * 100}%`,
-                  height: `${region.height * 100}%`,
+                  left: `${containRect.x + region.x * containRect.width}px`,
+                  top: `${containRect.y + region.y * containRect.height}px`,
+                  width: `${region.width * containRect.width}px`,
+                  height: `${region.height * containRect.height}px`,
                 }}
-              />
+                onPointerDown={handleBoxPointerDown}
+              >
+                {RESIZE_HANDLES.map((handle) => (
+                  <div
+                    key={handle}
+                    className={`portable-region-handle portable-region-handle--${handle}`}
+                    onPointerDown={handleHandlePointerDown(handle)}
+                  />
+                ))}
+              </div>
             </div>
 
             <label>
@@ -318,6 +412,7 @@ export function PortableBuilderModal({
                 max={1}
                 value={Number(region.x.toFixed(2))}
                 onChange={(event) => handleNumericFieldChange('x', Number(event.target.value))}
+                aria-describedby={moveResizeHintId}
               />
             </label>
             <label>
@@ -329,6 +424,7 @@ export function PortableBuilderModal({
                 max={1}
                 value={Number(region.y.toFixed(2))}
                 onChange={(event) => handleNumericFieldChange('y', Number(event.target.value))}
+                aria-describedby={moveResizeHintId}
               />
             </label>
             <label>
@@ -340,6 +436,7 @@ export function PortableBuilderModal({
                 max={1}
                 value={Number(region.width.toFixed(2))}
                 onChange={(event) => handleNumericFieldChange('width', Number(event.target.value))}
+                aria-describedby={moveResizeHintId}
               />
             </label>
             <label>
@@ -351,6 +448,7 @@ export function PortableBuilderModal({
                 max={1}
                 value={Number(region.height.toFixed(2))}
                 onChange={(event) => handleNumericFieldChange('height', Number(event.target.value))}
+                aria-describedby={moveResizeHintId}
               />
             </label>
 

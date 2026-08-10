@@ -28,9 +28,19 @@ export function clampNormalizedRect(rect: NormalizedRect): NormalizedRect {
   return { x, y, width, height };
 }
 
+// Rects built by subtracting two derived 0-1 coordinates (as resizeNormalizedRectClamped does
+// when clamping a dragged corner to exactly `fixed + minFraction`) can land a hair below the
+// minimum due to floating-point rounding even though the intended size is exactly the minimum.
+// A tolerance well under any meaningful screen-region difference absorbs that without allowing
+// genuinely undersized rects through.
+const SIZE_EPSILON = 1e-9;
+
 /** True when both axes meet the minimum usable screen-region size. */
 export function isNormalizedRectLargeEnough(rect: NormalizedRect): boolean {
-  return rect.width >= MIN_SCREEN_REGION_FRACTION && rect.height >= MIN_SCREEN_REGION_FRACTION;
+  return (
+    rect.width >= MIN_SCREEN_REGION_FRACTION - SIZE_EPSILON &&
+    rect.height >= MIN_SCREEN_REGION_FRACTION - SIZE_EPSILON
+  );
 }
 
 /** A centered, generously-sized starting region for a freshly uploaded photo. */
@@ -88,6 +98,73 @@ export function resizeNormalizedRect(
     y: handle === 'sw' || handle === 'se' ? rect.y : rect.y + rect.height,
   };
   return normalizedRectFromPoints(fixed, { x: clamp01(point.x), y: clamp01(point.y) });
+}
+
+/**
+ * Same corner-handle resize as `resizeNormalizedRect`, but also enforces `minFraction` on both
+ * axes live, during the drag itself, by clamping the dragged corner's distance from the fixed
+ * opposite corner instead of letting the rect shrink past the minimum and only rejecting it on
+ * release. Chosen over "stop at the last valid position" (which would require remembering and
+ * reverting to a stale rect) because clamping keeps the box tracking the pointer smoothly right
+ * up to the boundary. Because the dragged corner is always pushed to the correct side of the
+ * fixed corner, the rect can never invert even if the pointer crosses over it.
+ */
+export function resizeNormalizedRectClamped(
+  rect: NormalizedRect,
+  handle: ResizeHandle,
+  point: { x: number; y: number },
+  minFraction: number = MIN_SCREEN_REGION_FRACTION,
+): NormalizedRect {
+  const fixed = {
+    x: handle === 'ne' || handle === 'se' ? rect.x : rect.x + rect.width,
+    y: handle === 'sw' || handle === 'se' ? rect.y : rect.y + rect.height,
+  };
+  const growsRight = handle === 'ne' || handle === 'se';
+  const growsDown = handle === 'sw' || handle === 'se';
+
+  const rawX = clamp01(point.x);
+  const x = growsRight
+    ? Math.min(1, Math.max(rawX, fixed.x + minFraction))
+    : Math.max(0, Math.min(rawX, fixed.x - minFraction));
+
+  const rawY = clamp01(point.y);
+  const y = growsDown
+    ? Math.min(1, Math.max(rawY, fixed.y + minFraction))
+    : Math.max(0, Math.min(rawY, fixed.y - minFraction));
+
+  return normalizedRectFromPoints(fixed, { x, y });
+}
+
+/**
+ * Where a photo renders inside a `background-size: contain` preview box (as
+ * `.portable-region-preview` uses): centered, scaled to the largest size that fits both axes,
+ * leaving letterbox bands on the other axis when the photo's aspect ratio doesn't match the
+ * container's. Pointer coordinates must be mapped against this rect — not the raw container —
+ * or a region drawn/moved/resized on a non-4:3 photo lands in the wrong place relative to the
+ * photo's own pixels.
+ */
+export function computeContainRect(
+  container: { width: number; height: number },
+  image: { width: number; height: number },
+): { x: number; y: number; width: number; height: number } {
+  if (container.width <= 0 || container.height <= 0 || image.width <= 0 || image.height <= 0) {
+    return { x: 0, y: 0, width: container.width, height: container.height };
+  }
+  const containerAspect = container.width / container.height;
+  const imageAspect = image.width / image.height;
+  let width = container.width;
+  let height = container.height;
+  if (imageAspect > containerAspect) {
+    height = container.width / imageAspect;
+  } else {
+    width = container.height * imageAspect;
+  }
+  return {
+    x: (container.width - width) / 2,
+    y: (container.height - height) / 2,
+    width,
+    height,
+  };
 }
 
 /**

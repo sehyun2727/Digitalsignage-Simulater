@@ -92,6 +92,8 @@ export const ko: Messages = {
   portableNoPhotoSelectedHint: '아직 선택된 사진이 없습니다.',
 
   portableScreenRegionDragHint: '사진 위를 드래그하여 화면이 될 영역을 지정해 주세요.',
+  portableScreenRegionMoveResizeHint:
+    '이미 지정된 영역 안쪽을 드래그하면 이동, 네 모서리의 핸들을 드래그하면 크기 조절이 가능합니다. 키보드에서는 아래 X·Y·너비·높이 숫자 입력란으로 동일하게 조작할 수 있습니다.',
   portableScreenRegionXLabel: '영역 X',
   portableScreenRegionYLabel: '영역 Y',
   portableScreenRegionWidthLabel: '영역 너비',

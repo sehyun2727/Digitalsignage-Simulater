@@ -91,6 +91,8 @@ export const en: Messages = {
   portableNoPhotoSelectedHint: 'No photo selected yet.',
 
   portableScreenRegionDragHint: 'Drag on the photo to mark the area that becomes the screen.',
+  portableScreenRegionMoveResizeHint:
+    'Drag inside the existing region to move it, or drag a corner handle to resize it. The X/Y/width/height number fields below offer the same control from the keyboard.',
   portableScreenRegionXLabel: 'Region X',
   portableScreenRegionYLabel: 'Region Y',
   portableScreenRegionWidthLabel: 'Region width',

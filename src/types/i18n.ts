@@ -91,6 +91,7 @@ export interface Messages {
   portableNoPhotoSelectedHint: string;
 
   portableScreenRegionDragHint: string;
+  portableScreenRegionMoveResizeHint: string;
   portableScreenRegionXLabel: string;
   portableScreenRegionYLabel: string;
   portableScreenRegionWidthLabel: string;

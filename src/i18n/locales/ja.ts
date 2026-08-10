@@ -92,6 +92,8 @@ export const ja: Messages = {
   portableNoPhotoSelectedHint: 'まだ写真が選択されていません。',
 
   portableScreenRegionDragHint: '写真上をドラッグして画面になる範囲を指定してください。',
+  portableScreenRegionMoveResizeHint:
+    '既に指定した範囲の内側をドラッグすると移動、四隅のハンドルをドラッグすると大きさを変更できます。キーボードでは下のX・Y・幅・高さの数値欄から同じ操作ができます。',
   portableScreenRegionXLabel: '領域X',
   portableScreenRegionYLabel: '領域Y',
   portableScreenRegionWidthLabel: '領域の幅',
