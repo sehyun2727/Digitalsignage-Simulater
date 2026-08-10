@@ -1,0 +1,22 @@
+# Normalize all text files to LF line endings in the repository and on checkout,
+# regardless of platform or local core.autocrlf settings. This keeps Prettier's
+# (endOfLine: "lf") output stable across Windows/macOS/Linux and CI.
+* text=auto eol=lf
+
+# Explicitly mark common binary types so git never attempts EOL/diff conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.mp4 binary
+*.mov binary
+*.webm binary
+*.zip binary
+*.pdf binary

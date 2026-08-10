@@ -12,7 +12,11 @@ export interface Pixel {
  * writing a Node-side pixel decoder, so this reuses the browser's own PNG decoder — the
  * same one that will render the export for a real user.
  */
-export async function samplePngPixels(page: Page, buffer: Buffer, points: Array<[number, number]>): Promise<Pixel[]> {
+export async function samplePngPixels(
+  page: Page,
+  buffer: Buffer,
+  points: Array<[number, number]>,
+): Promise<Pixel[]> {
   const base64 = buffer.toString('base64');
   return page.evaluate(
     async ({ base64, points }) => {

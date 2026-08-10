@@ -92,7 +92,10 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.selectOptions(screen.getByRole('combobox', { name: ja.languageSelectorLabel }), 'ko');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: ja.languageSelectorLabel }),
+      'ko',
+    );
 
     expect(document.documentElement.lang).toBe('ko');
     expect(screen.getByRole('heading', { name: 'Digital Signage Simulator' })).toBeInTheDocument();
@@ -102,7 +105,10 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.selectOptions(screen.getByRole('combobox', { name: ja.languageSelectorLabel }), 'en');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: ja.languageSelectorLabel }),
+      'en',
+    );
 
     expect(document.documentElement.lang).toBe('en');
     expect(screen.getByRole('link', { name: 'Contact HULL' })).toBeInTheDocument();
@@ -112,7 +118,10 @@ describe('App', () => {
     const user = userEvent.setup();
     const { unmount } = render(<App />);
 
-    await user.selectOptions(screen.getByRole('combobox', { name: ja.languageSelectorLabel }), 'ko');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: ja.languageSelectorLabel }),
+      'ko',
+    );
     expect(window.localStorage.getItem('signage-canvas.locale')).toBe('ko');
     unmount();
 
@@ -159,13 +168,20 @@ describe('App', () => {
       const user = userEvent.setup();
       render(<App />);
 
-      await user.upload(screen.getByLabelText(ja.editorAddSpaceBackgroundButton), createImageFile('space.png'));
+      await user.upload(
+        screen.getByLabelText(ja.editorAddSpaceBackgroundButton),
+        createImageFile('space.png'),
+      );
 
-      const removeButton = await screen.findByRole('button', { name: ja.editorRemoveSpaceBackgroundButton });
+      const removeButton = await screen.findByRole('button', {
+        name: ja.editorRemoveSpaceBackgroundButton,
+      });
       expect(removeButton).toBeInTheDocument();
 
       await user.click(removeButton);
-      expect(screen.queryByRole('button', { name: ja.editorRemoveSpaceBackgroundButton })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: ja.editorRemoveSpaceBackgroundButton }),
+      ).not.toBeInTheDocument();
     });
 
     it('shows an accessible error when the space background photo fails to decode', async () => {
@@ -173,7 +189,10 @@ describe('App', () => {
       const user = userEvent.setup();
       render(<App />);
 
-      await user.upload(screen.getByLabelText(ja.editorAddSpaceBackgroundButton), createImageFile('space.png'));
+      await user.upload(
+        screen.getByLabelText(ja.editorAddSpaceBackgroundButton),
+        createImageFile('space.png'),
+      );
 
       expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
     });
@@ -185,7 +204,9 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
 
       expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
-      expect(screen.getByRole('combobox', { name: ja.editorMaterialLabel })).toHaveValue('outdoor-led');
+      expect(screen.getByRole('combobox', { name: ja.editorMaterialLabel })).toHaveValue(
+        'outdoor-led',
+      );
       expect(screen.getByText(ja.editorMaterialPreviewNotice)).toBeInTheDocument();
     });
 
@@ -204,9 +225,14 @@ describe('App', () => {
       render(<App />);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
-      await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createImageFile('content.png'));
+      await user.upload(
+        screen.getByLabelText(ja.editorContentUploadButton),
+        createImageFile('content.png'),
+      );
 
-      expect(await screen.findByRole('button', { name: ja.editorContentReplaceButton })).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', { name: ja.editorContentReplaceButton }),
+      ).toBeInTheDocument();
 
       const fitSelect = screen.getByRole('combobox', { name: ja.editorContentFitLabel });
       expect(fitSelect).toHaveValue('contain');
@@ -229,7 +255,10 @@ describe('App', () => {
       render(<App />);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
-      await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createImageFile('content.png'));
+      await user.upload(
+        screen.getByLabelText(ja.editorContentUploadButton),
+        createImageFile('content.png'),
+      );
       await user.click(await screen.findByRole('button', { name: ja.editorContentRemoveButton }));
 
       expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
@@ -241,7 +270,10 @@ describe('App', () => {
       render(<App />);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
-      await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createImageFile('content.png'));
+      await user.upload(
+        screen.getByLabelText(ja.editorContentUploadButton),
+        createImageFile('content.png'),
+      );
 
       expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
     });

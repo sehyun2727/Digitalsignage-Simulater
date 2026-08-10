@@ -30,7 +30,9 @@ test('applies EXIF orientation the same way the browser natively decodes it', as
   await expect(page.getByLabel('高さ')).toHaveValue('100');
 });
 
-test('shows an accessible error and does not add an element when an image fails to decode', async ({ page }) => {
+test('shows an accessible error and does not add an element when an image fails to decode', async ({
+  page,
+}) => {
   await page.goto('/');
 
   const fileInput = page.getByLabel('画像を追加');

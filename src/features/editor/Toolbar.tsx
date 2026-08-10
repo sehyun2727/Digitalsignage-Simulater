@@ -51,7 +51,11 @@ export function Toolbar({ onImageError, onExport }: ToolbarProps) {
     const objectUrl = URL.createObjectURL(file);
     const image = new Image();
     image.onload = () => {
-      addImage({ src: objectUrl, naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight });
+      addImage({
+        src: objectUrl,
+        naturalWidth: image.naturalWidth,
+        naturalHeight: image.naturalHeight,
+      });
     };
     // A declared image/* MIME type does not guarantee the bytes are a valid,
     // decodable image (corrupted file, spoofed type, etc.). Fail safely instead

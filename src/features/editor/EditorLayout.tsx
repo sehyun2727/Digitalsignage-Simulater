@@ -28,7 +28,11 @@ export function EditorLayout() {
     function handleKeyDown(event: KeyboardEvent) {
       if (isEditableTarget(event.target)) return;
 
-      if ((event.key === 'Delete' || event.key === 'Backspace') && !event.metaKey && !event.ctrlKey) {
+      if (
+        (event.key === 'Delete' || event.key === 'Backspace') &&
+        !event.metaKey &&
+        !event.ctrlKey
+      ) {
         event.preventDefault();
         deleteSelected();
         return;
@@ -94,7 +98,9 @@ export function EditorLayout() {
 
       <div className="editor-workspace">
         <div className="editor-canvas-wrapper">
-          {objectCount === 0 && <p className="editor-empty-hint">{messages.editorEmptyCanvasHint}</p>}
+          {objectCount === 0 && (
+            <p className="editor-empty-hint">{messages.editorEmptyCanvasHint}</p>
+          )}
           <EditorCanvas ref={canvasRef} />
         </div>
         <PropertiesPanel onImageError={handleImageError} />

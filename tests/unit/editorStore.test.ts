@@ -1,7 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getRegisteredAsset, registerAsset } from '../../src/lib/assetRegistry';
-import { selectCanRedo, selectCanUndo, selectSelectedObject, useEditorStore } from '../../src/store/editorStore';
-import { createEmptyDocument, DEFAULT_MATERIAL_SETTINGS, DEFAULT_TEMPLATE_ID } from '../../src/types/editor';
+import {
+  selectCanRedo,
+  selectCanUndo,
+  selectSelectedObject,
+  useEditorStore,
+} from '../../src/store/editorStore';
+import {
+  createEmptyDocument,
+  DEFAULT_MATERIAL_SETTINGS,
+  DEFAULT_TEMPLATE_ID,
+} from '../../src/types/editor';
 
 class SucceedingMockImage {
   onload: (() => void) | null = null;
@@ -51,7 +60,9 @@ describe('editorStore', () => {
   });
 
   it('adds an image object scaled to fit within the template', () => {
-    useEditorStore.getState().addImage({ src: 'blob:mock', naturalWidth: 4000, naturalHeight: 2000 });
+    useEditorStore
+      .getState()
+      .addImage({ src: 'blob:mock', naturalWidth: 4000, naturalHeight: 2000 });
     const state = useEditorStore.getState();
     const image = state.document.objects[0];
 
@@ -145,13 +156,19 @@ describe('editorStore', () => {
     const id = useEditorStore.getState().document.objects[0]!.id;
 
     useEditorStore.getState().commitObjectChange(id, { width: 500, height: 200 });
-    expect(useEditorStore.getState().document.objects[0]).toMatchObject({ width: 500, height: 200 });
+    expect(useEditorStore.getState().document.objects[0]).toMatchObject({
+      width: 500,
+      height: 200,
+    });
 
     useEditorStore.getState().undo();
     expect(useEditorStore.getState().document.objects[0]?.width).not.toBe(500);
 
     useEditorStore.getState().redo();
-    expect(useEditorStore.getState().document.objects[0]).toMatchObject({ width: 500, height: 200 });
+    expect(useEditorStore.getState().document.objects[0]).toMatchObject({
+      width: 500,
+      height: 200,
+    });
   });
 
   it('commits a rotation change to history and undo/redo restore it', () => {
@@ -218,7 +235,9 @@ describe('editorStore', () => {
   });
 
   it('adds and removes a space background, both committing history', () => {
-    useEditorStore.getState().addSpaceBackground({ sourceId: 'src-1', naturalWidth: 1000, naturalHeight: 500 });
+    useEditorStore
+      .getState()
+      .addSpaceBackground({ sourceId: 'src-1', naturalWidth: 1000, naturalHeight: 500 });
     expect(useEditorStore.getState().document.spaceBackground).toEqual({
       sourceId: 'src-1',
       naturalWidth: 1000,
@@ -239,7 +258,9 @@ describe('editorStore', () => {
   });
 
   it('switching templates also clears the space background', () => {
-    useEditorStore.getState().addSpaceBackground({ sourceId: 'src-1', naturalWidth: 1000, naturalHeight: 500 });
+    useEditorStore
+      .getState()
+      .addSpaceBackground({ sourceId: 'src-1', naturalWidth: 1000, naturalHeight: 500 });
     useEditorStore.getState().selectTemplate('stand-display');
 
     expect(useEditorStore.getState().document.spaceBackground).toBeNull();
@@ -250,7 +271,14 @@ describe('editorStore', () => {
     const id = useEditorStore.getState().document.objects[0]!.id;
 
     useEditorStore.getState().commitObjectChange(id, {
-      content: { kind: 'image', sourceId: 'src-1', fit: 'contain', offsetX: 0, offsetY: 0, scale: 1 },
+      content: {
+        kind: 'image',
+        sourceId: 'src-1',
+        fit: 'contain',
+        offsetX: 0,
+        offsetY: 0,
+        scale: 1,
+      },
     });
     const display = useEditorStore.getState().document.objects[0];
     expect(display?.kind === 'display' && display.content?.sourceId).toBe('src-1');
@@ -269,7 +297,9 @@ describe('editorStore', () => {
     const id = useEditorStore.getState().document.objects[0]!.id;
     const pastLengthBefore = useEditorStore.getState().past.length;
 
-    useEditorStore.getState().commitObjectChange(id, { materialSettings: { ...DEFAULT_MATERIAL_SETTINGS } });
+    useEditorStore
+      .getState()
+      .commitObjectChange(id, { materialSettings: { ...DEFAULT_MATERIAL_SETTINGS } });
 
     expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
   });
@@ -329,7 +359,14 @@ describe('editorStore asset lifecycle', () => {
     const asset = await registerAsset(createFile());
 
     useEditorStore.getState().commitObjectChange(id, {
-      content: { kind: 'image', sourceId: asset.sourceId, fit: 'contain', offsetX: 0, offsetY: 0, scale: 1 },
+      content: {
+        kind: 'image',
+        sourceId: asset.sourceId,
+        fit: 'contain',
+        offsetX: 0,
+        offsetY: 0,
+        scale: 1,
+      },
     });
     expect(getRegisteredAsset(asset.sourceId)).toBeDefined();
 

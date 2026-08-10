@@ -24,15 +24,32 @@ export function SignageDisplayView({ object, groupProps }: SignageDisplayViewPro
   const patternOpacity = materialPatternOpacity(object.material, object.materialSettings.intensity);
   const brightnessOverlay = getBrightnessOverlay(object.materialSettings.brightness);
   const contentLayout =
-    asset && object.content ? computeContentLayout(screen, asset.naturalWidth, asset.naturalHeight, object.content) : null;
+    asset && object.content
+      ? computeContentLayout(screen, asset.naturalWidth, asset.naturalHeight, object.content)
+      : null;
 
   return (
     <Group {...groupProps}>
       {decorations.map((rect, index) => (
-        <Rect key={index} x={rect.x} y={rect.y} width={rect.width} height={rect.height} fill={rect.fill} listening={false} />
+        <Rect
+          key={index}
+          x={rect.x}
+          y={rect.y}
+          width={rect.width}
+          height={rect.height}
+          fill={rect.fill}
+          listening={false}
+        />
       ))}
       <Group clipFunc={(ctx) => ctx.rect(screen.x, screen.y, screen.width, screen.height)}>
-        <Rect x={screen.x} y={screen.y} width={screen.width} height={screen.height} fill="#05070a" listening={false} />
+        <Rect
+          x={screen.x}
+          y={screen.y}
+          width={screen.width}
+          height={screen.height}
+          fill="#05070a"
+          listening={false}
+        />
         {asset && contentLayout && (
           <KonvaImage
             image={asset.image}

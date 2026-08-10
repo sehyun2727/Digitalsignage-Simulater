@@ -5,7 +5,11 @@ import { samplePngPixels } from './support/pixels.js';
 
 test.use({ locale: 'ja-JP' });
 
-async function solidColorPng(page: import('@playwright/test').Page, color: string, size = 100): Promise<Buffer> {
+async function solidColorPng(
+  page: import('@playwright/test').Page,
+  color: string,
+  size = 100,
+): Promise<Buffer> {
   const dataUrl = await page.evaluate(
     ({ color, size }) => {
       const canvas = document.createElement('canvas');
@@ -25,7 +29,9 @@ test('adds a space background photo and can remove it again', async ({ page }) =
   await page.goto('/');
 
   const spaceBackground = await solidColorPng(page, '#1155ff');
-  await page.getByLabel('空間写真を追加').setInputFiles({ name: 'space.png', mimeType: 'image/png', buffer: spaceBackground });
+  await page
+    .getByLabel('空間写真を追加')
+    .setInputFiles({ name: 'space.png', mimeType: 'image/png', buffer: spaceBackground });
 
   const removeButton = page.getByRole('button', { name: '空間写真を削除' });
   await expect(removeButton).toBeVisible();
@@ -39,7 +45,9 @@ test('adds a Wall LED display defaulting to outdoor-LED material', async ({ page
 
   await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
 
-  await expect(page.getByText('まだコンテンツがありません。画像を追加してください。')).toBeVisible();
+  await expect(
+    page.getByText('まだコンテンツがありません。画像を追加してください。'),
+  ).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('outdoor-led');
 });
 
@@ -51,12 +59,16 @@ test('adds a Stand Display defaulting to LCD material', async ({ page }) => {
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
 });
 
-test('uploads content into a display, edits fit/offset/scale, and resets placement', async ({ page }) => {
+test('uploads content into a display, edits fit/offset/scale, and resets placement', async ({
+  page,
+}) => {
   await page.goto('/');
   await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
 
   const content = await solidColorPng(page, '#00ff00');
-  await page.getByLabel('コンテンツを追加').setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
+  await page
+    .getByLabel('コンテンツを追加')
+    .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
 
   await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
 
@@ -79,12 +91,16 @@ test('removes uploaded content from a display', async ({ page }) => {
   await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
 
   const content = await solidColorPng(page, '#00ff00');
-  await page.getByLabel('コンテンツを追加').setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
+  await page
+    .getByLabel('コンテンツを追加')
+    .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await expect(page.getByRole('button', { name: 'コンテンツを削除' })).toBeVisible();
 
   await page.getByRole('button', { name: 'コンテンツを削除' }).click();
 
-  await expect(page.getByText('まだコンテンツがありません。画像を追加してください。')).toBeVisible();
+  await expect(
+    page.getByText('まだコンテンツがありません。画像を追加してください。'),
+  ).toBeVisible();
 });
 
 test('exported PNG stays at the exact template resolution with a space background and a display present', async ({
@@ -93,7 +109,9 @@ test('exported PNG stays at the exact template resolution with a space backgroun
   await page.goto('/');
 
   const spaceBackground = await solidColorPng(page, '#1155ff');
-  await page.getByLabel('空間写真を追加').setInputFiles({ name: 'space.png', mimeType: 'image/png', buffer: spaceBackground });
+  await page
+    .getByLabel('空間写真を追加')
+    .setInputFiles({ name: 'space.png', mimeType: 'image/png', buffer: spaceBackground });
   await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
 
   const downloadPromise = page.waitForEvent('download');
@@ -105,7 +123,9 @@ test('exported PNG stays at the exact template resolution with a space backgroun
   expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
 });
 
-test('cover-fit display content is clipped to the screen region and never spills onto the bezel', async ({ page }) => {
+test('cover-fit display content is clipped to the screen region and never spills onto the bezel', async ({
+  page,
+}) => {
   await page.goto('/');
 
   await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
@@ -114,7 +134,9 @@ test('cover-fit display content is clipped to the screen region and never spills
   // aspect ratio, so any point strictly inside the screen rect must sample as red and
   // any point strictly inside the bezel must not.
   const content = await solidColorPng(page, '#ff0000');
-  await page.getByLabel('コンテンツを追加').setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
+  await page
+    .getByLabel('コンテンツを追加')
+    .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
 
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');

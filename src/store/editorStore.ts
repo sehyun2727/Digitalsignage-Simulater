@@ -12,7 +12,12 @@ import type {
   TemplateId,
   TextSignageObject,
 } from '../types/editor';
-import { createEmptyDocument, DEFAULT_MATERIAL_SETTINGS, DISPLAY_FRAME_TEMPLATES, TEMPLATES } from '../types/editor';
+import {
+  createEmptyDocument,
+  DEFAULT_MATERIAL_SETTINGS,
+  DISPLAY_FRAME_TEMPLATES,
+  TEMPLATES,
+} from '../types/editor';
 
 const HISTORY_LIMIT = 50;
 
@@ -26,7 +31,11 @@ export interface EditorState {
   addText: () => void;
   addImage: (payload: { src: string; naturalWidth: number; naturalHeight: number }) => void;
   addDisplay: (frameId: DisplayFrameId) => void;
-  addSpaceBackground: (payload: { sourceId: string; naturalWidth: number; naturalHeight: number }) => void;
+  addSpaceBackground: (payload: {
+    sourceId: string;
+    naturalWidth: number;
+    naturalHeight: number;
+  }) => void;
   removeSpaceBackground: () => void;
   selectObject: (id: ElementId | null) => void;
   updateObjectTransient: (id: ElementId, patch: Partial<SignageObject>) => void;
@@ -41,8 +50,14 @@ function pushHistory(past: EditorDocument[], current: EditorDocument): EditorDoc
   return next.length > HISTORY_LIMIT ? next.slice(next.length - HISTORY_LIMIT) : next;
 }
 
-function patchObjects(objects: SignageObject[], id: ElementId, patch: Partial<SignageObject>): SignageObject[] {
-  return objects.map((object) => (object.id === id ? ({ ...object, ...patch } as SignageObject) : object));
+function patchObjects(
+  objects: SignageObject[],
+  id: ElementId,
+  patch: Partial<SignageObject>,
+): SignageObject[] {
+  return objects.map((object) =>
+    object.id === id ? ({ ...object, ...patch } as SignageObject) : object,
+  );
 }
 
 function shallowValueEqual(a: unknown, b: unknown): boolean {
@@ -83,7 +98,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { document } = get();
     if (document.templateId === templateId) return;
     set({
-      document: { templateId, backgroundColor: document.backgroundColor, spaceBackground: null, objects: [] },
+      document: {
+        templateId,
+        backgroundColor: document.backgroundColor,
+        spaceBackground: null,
+        objects: [],
+      },
       selectedId: null,
       past: pushHistory(get().past, document),
       future: [],
@@ -224,7 +244,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { document, selectedId, past } = get();
     if (!selectedId) return;
     set({
-      document: { ...document, objects: document.objects.filter((object) => object.id !== selectedId) },
+      document: {
+        ...document,
+        objects: document.objects.filter((object) => object.id !== selectedId),
+      },
       selectedId: null,
       past: pushHistory(past, document),
       future: [],

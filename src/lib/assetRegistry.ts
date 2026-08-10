@@ -27,7 +27,9 @@ function loadImage(objectUrl: string): Promise<HTMLImageElement> {
   });
 }
 
-export async function registerAsset(file: File): Promise<{ sourceId: string; naturalWidth: number; naturalHeight: number }> {
+export async function registerAsset(
+  file: File,
+): Promise<{ sourceId: string; naturalWidth: number; naturalHeight: number }> {
   const objectUrl = URL.createObjectURL(file);
   try {
     const image = await loadImage(objectUrl);

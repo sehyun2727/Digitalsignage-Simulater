@@ -16,7 +16,12 @@ import {
   MIN_MATERIAL_SETTING,
 } from '../../types/editor';
 import type { ImageValidationError } from '../../lib/fileValidation';
-import type { ContentFit, DisplayMaterial, DisplaySignageObject, SignageObject } from '../../types/editor';
+import type {
+  ContentFit,
+  DisplayMaterial,
+  DisplaySignageObject,
+  SignageObject,
+} from '../../types/editor';
 
 interface PropertiesPanelProps {
   onImageError: (error: ImageValidationError) => void;
@@ -192,7 +197,9 @@ function ObjectPropertiesForm({
         </>
       )}
 
-      {selected.kind === 'display' && <DisplayPropertiesFields object={selected} onImageError={onImageError} />}
+      {selected.kind === 'display' && (
+        <DisplayPropertiesFields object={selected} onImageError={onImageError} />
+      )}
     </div>
   );
 }
@@ -257,7 +264,9 @@ function DisplayPropertiesFields({
   };
 
   const previewMaterialSettings = (patch: Partial<{ intensity: number; brightness: number }>) => {
-    updateObjectTransient(object.id, { materialSettings: { ...object.materialSettings, ...patch } });
+    updateObjectTransient(object.id, {
+      materialSettings: { ...object.materialSettings, ...patch },
+    });
   };
 
   return (
@@ -301,7 +310,9 @@ function DisplayPropertiesFields({
                 onChange={(event) => setOffsetXDraft(Number(event.target.value))}
                 onBlur={() => {
                   if (!object.content) return;
-                  commit({ content: { ...object.content, offsetX: clampContentOffset(offsetXDraft) } });
+                  commit({
+                    content: { ...object.content, offsetX: clampContentOffset(offsetXDraft) },
+                  });
                 }}
               />
             </label>
@@ -317,7 +328,9 @@ function DisplayPropertiesFields({
                 onChange={(event) => setOffsetYDraft(Number(event.target.value))}
                 onBlur={() => {
                   if (!object.content) return;
-                  commit({ content: { ...object.content, offsetY: clampContentOffset(offsetYDraft) } });
+                  commit({
+                    content: { ...object.content, offsetY: clampContentOffset(offsetYDraft) },
+                  });
                 }}
               />
             </label>
@@ -394,8 +407,12 @@ function DisplayPropertiesFields({
               setIntensityDraft(intensity);
               previewMaterialSettings({ intensity });
             }}
-            onPointerUp={() => commitMaterialSettings({ intensity: clampMaterialSetting(intensityDraft) })}
-            onBlur={() => commitMaterialSettings({ intensity: clampMaterialSetting(intensityDraft) })}
+            onPointerUp={() =>
+              commitMaterialSettings({ intensity: clampMaterialSetting(intensityDraft) })
+            }
+            onBlur={() =>
+              commitMaterialSettings({ intensity: clampMaterialSetting(intensityDraft) })
+            }
           />
         </label>
 
@@ -411,8 +428,12 @@ function DisplayPropertiesFields({
               setBrightnessDraft(brightness);
               previewMaterialSettings({ brightness });
             }}
-            onPointerUp={() => commitMaterialSettings({ brightness: clampMaterialSetting(brightnessDraft) })}
-            onBlur={() => commitMaterialSettings({ brightness: clampMaterialSetting(brightnessDraft) })}
+            onPointerUp={() =>
+              commitMaterialSettings({ brightness: clampMaterialSetting(brightnessDraft) })
+            }
+            onBlur={() =>
+              commitMaterialSettings({ brightness: clampMaterialSetting(brightnessDraft) })
+            }
           />
         </label>
 

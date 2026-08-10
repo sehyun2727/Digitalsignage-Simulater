@@ -15,7 +15,10 @@ export interface Rect {
 }
 
 /** Resolves a fraction-based ScreenRegion into pixel coordinates local to its object. */
-export function resolveScreenRegionRect(objectSize: { width: number; height: number }, region: ScreenRegion): Rect {
+export function resolveScreenRegionRect(
+  objectSize: { width: number; height: number },
+  region: ScreenRegion,
+): Rect {
   if (region.shape !== 'rect') {
     // Sprint 2 only ships rect screens; polygon screens fall back to the full bounding box
     // rather than throwing, so a future template without a rect region degrades safely.

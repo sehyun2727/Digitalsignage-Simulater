@@ -22,13 +22,26 @@ export function getBrightnessOverlay(brightness: number): BrightnessOverlay | nu
   const clamped = Math.min(100, Math.max(0, brightness));
   if (clamped === NEUTRAL_BRIGHTNESS) return null;
   if (clamped > NEUTRAL_BRIGHTNESS) {
-    return { fill: 'white', opacity: ((clamped - NEUTRAL_BRIGHTNESS) / NEUTRAL_BRIGHTNESS) * BRIGHTNESS_MAX_WHITE_OPACITY };
+    return {
+      fill: 'white',
+      opacity: ((clamped - NEUTRAL_BRIGHTNESS) / NEUTRAL_BRIGHTNESS) * BRIGHTNESS_MAX_WHITE_OPACITY,
+    };
   }
-  return { fill: 'black', opacity: ((NEUTRAL_BRIGHTNESS - clamped) / NEUTRAL_BRIGHTNESS) * BRIGHTNESS_MAX_BLACK_OPACITY };
+  return {
+    fill: 'black',
+    opacity: ((NEUTRAL_BRIGHTNESS - clamped) / NEUTRAL_BRIGHTNESS) * BRIGHTNESS_MAX_BLACK_OPACITY,
+  };
 }
 
 /** Diagonal highlight gradient stops for the LCD material; scaled by materialPatternOpacity. */
-export const LCD_HIGHLIGHT_COLOR_STOPS = [0, 'rgba(255,255,255,1)', 0.4, 'rgba(255,255,255,0)', 1, 'rgba(255,255,255,0)'];
+export const LCD_HIGHLIGHT_COLOR_STOPS = [
+  0,
+  'rgba(255,255,255,1)',
+  0.4,
+  'rgba(255,255,255,0)',
+  1,
+  'rgba(255,255,255,0)',
+];
 
 let ledPatternCanvas: HTMLCanvasElement | null = null;
 

@@ -5,11 +5,10 @@ function pad(value: number): string {
 }
 
 export function buildExportFilename(templateId: TemplateId, date: Date = new Date()): string {
-  const stamp = [
-    date.getFullYear(),
-    pad(date.getMonth() + 1),
-    pad(date.getDate()),
-  ].join('') + '-' + [pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds())].join('');
+  const stamp =
+    [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join('') +
+    '-' +
+    [pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds())].join('');
 
   return `signage-canvas_${templateId}_${stamp}.png`;
 }

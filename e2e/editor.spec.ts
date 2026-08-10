@@ -47,7 +47,9 @@ test('rejects an unsupported image file type', async ({ page }) => {
   await expect(page.getByRole('status')).toHaveText('PNG、JPEG、WebP形式の画像のみ利用できます。');
 });
 
-test('exports the wall-led template at its exact native resolution (1920x1080)', async ({ page }) => {
+test('exports the wall-led template at its exact native resolution (1920x1080)', async ({
+  page,
+}) => {
   await page.goto('/');
 
   await page.getByRole('button', { name: 'テキストを追加' }).click();
@@ -62,7 +64,9 @@ test('exports the wall-led template at its exact native resolution (1920x1080)',
   expect(dimensions).toEqual({ width: 1920, height: 1080 });
 });
 
-test('exports the stand-display template at its exact native resolution (1080x1920)', async ({ page }) => {
+test('exports the stand-display template at its exact native resolution (1080x1920)', async ({
+  page,
+}) => {
   await page.goto('/');
 
   await page.getByLabel('テンプレート').selectOption('stand-display');
@@ -104,7 +108,9 @@ test('exported PNG is byte-identical whether the element is selected or not (no 
   expect(firstBuffer.equals(secondBuffer)).toBe(true);
 });
 
-test('typing in the text-content field does not trigger the delete or undo keyboard shortcuts', async ({ page }) => {
+test('typing in the text-content field does not trigger the delete or undo keyboard shortcuts', async ({
+  page,
+}) => {
   await page.goto('/');
 
   await page.getByRole('button', { name: 'テキストを追加' }).click();

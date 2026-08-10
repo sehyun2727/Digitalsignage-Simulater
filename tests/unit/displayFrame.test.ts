@@ -7,7 +7,9 @@ describe('getFrameDecorations', () => {
   it('draws the wall-led frame as a single full-bleed bezel behind the screen', () => {
     const decorations = getFrameDecorations('wall-led', 480, 270);
 
-    expect(decorations).toEqual([{ x: 0, y: 0, width: 480, height: 270, fill: expect.any(String) }]);
+    expect(decorations).toEqual([
+      { x: 0, y: 0, width: 480, height: 270, fill: expect.any(String) },
+    ]);
   });
 
   it('draws the stand-display frame as a bezel plus a neck and a foot below it', () => {
@@ -28,7 +30,10 @@ describe('getScreenRect', () => {
     for (const frameId of ['wall-led', 'stand-display'] as const) {
       const width = 300;
       const height = 400;
-      const expected = resolveScreenRegionRect({ width, height }, DISPLAY_FRAME_TEMPLATES[frameId].screenRegion);
+      const expected = resolveScreenRegionRect(
+        { width, height },
+        DISPLAY_FRAME_TEMPLATES[frameId].screenRegion,
+      );
 
       expect(getScreenRect(frameId, width, height)).toEqual(expected);
     }

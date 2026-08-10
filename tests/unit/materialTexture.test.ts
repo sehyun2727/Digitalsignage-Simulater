@@ -12,12 +12,16 @@ describe('materialPatternOpacity', () => {
   });
 
   it('increases monotonically with intensity', () => {
-    expect(materialPatternOpacity('outdoor-led', 100)).toBeGreaterThan(materialPatternOpacity('outdoor-led', 50));
+    expect(materialPatternOpacity('outdoor-led', 100)).toBeGreaterThan(
+      materialPatternOpacity('outdoor-led', 50),
+    );
     expect(materialPatternOpacity('lcd', 100)).toBeGreaterThan(materialPatternOpacity('lcd', 50));
   });
 
   it('caps out-of-range intensity at the same opacity as 100', () => {
-    expect(materialPatternOpacity('outdoor-led', 150)).toBe(materialPatternOpacity('outdoor-led', 100));
+    expect(materialPatternOpacity('outdoor-led', 150)).toBe(
+      materialPatternOpacity('outdoor-led', 100),
+    );
     expect(materialPatternOpacity('lcd', -20)).toBe(materialPatternOpacity('lcd', 0));
   });
 });

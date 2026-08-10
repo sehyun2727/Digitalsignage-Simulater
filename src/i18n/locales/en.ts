@@ -69,5 +69,6 @@ export const en: Messages = {
   editorMaterialIntensityLabel: 'Material intensity',
   editorMaterialBrightnessLabel: 'Brightness',
   editorMaterialResetButton: 'Reset effects',
-  editorMaterialPreviewNotice: 'Screen texture and brightness are a visual reference only and do not guarantee real product performance.',
+  editorMaterialPreviewNotice:
+    'Screen texture and brightness are a visual reference only and do not guarantee real product performance.',
 };

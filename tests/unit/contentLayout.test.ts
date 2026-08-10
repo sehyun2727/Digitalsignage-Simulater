@@ -8,7 +8,9 @@ import {
 } from '../../src/lib/contentLayout';
 import type { ScreenRegion, SignageContent } from '../../src/types/editor';
 
-function baseContent(overrides: Partial<Pick<SignageContent, 'fit' | 'offsetX' | 'offsetY' | 'scale'>> = {}) {
+function baseContent(
+  overrides: Partial<Pick<SignageContent, 'fit' | 'offsetX' | 'offsetY' | 'scale'>> = {},
+) {
   return { fit: 'contain' as const, offsetX: 0, offsetY: 0, scale: 1, ...overrides };
 }
 
@@ -75,7 +77,12 @@ describe('computeContentLayout', () => {
     const naturalHeight = 100;
     const scale = Math.max(screen.width / naturalWidth, screen.height / naturalHeight);
 
-    const layout = computeContentLayout(screen, naturalWidth, naturalHeight, baseContent({ fit: 'cover' }));
+    const layout = computeContentLayout(
+      screen,
+      naturalWidth,
+      naturalHeight,
+      baseContent({ fit: 'cover' }),
+    );
 
     expect(layout.width).toBeCloseTo(naturalWidth * scale);
     expect(layout.height).toBeCloseTo(naturalHeight * scale);
@@ -96,10 +103,19 @@ describe('computeContentLayout', () => {
   });
 
   it('shifts the content center by offsetX/offsetY as a fraction of the screen size', () => {
-    const layout = computeContentLayout(screen, 200, 100, baseContent({ offsetX: 0.5, offsetY: -0.5 }));
+    const layout = computeContentLayout(
+      screen,
+      200,
+      100,
+      baseContent({ offsetX: 0.5, offsetY: -0.5 }),
+    );
 
-    expect(layout.x + layout.width / 2).toBeCloseTo(screen.x + screen.width / 2 + 0.5 * screen.width);
-    expect(layout.y + layout.height / 2).toBeCloseTo(screen.y + screen.height / 2 - 0.5 * screen.height);
+    expect(layout.x + layout.width / 2).toBeCloseTo(
+      screen.x + screen.width / 2 + 0.5 * screen.width,
+    );
+    expect(layout.y + layout.height / 2).toBeCloseTo(
+      screen.y + screen.height / 2 - 0.5 * screen.height,
+    );
   });
 
   it('scales the base fit size by the scale multiplier', () => {
