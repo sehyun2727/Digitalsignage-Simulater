@@ -15,6 +15,24 @@ npm ci
 `npm ci` uses `package-lock.json` for a deterministic install. Use `npm install` only
 when intentionally adding/updating a dependency.
 
+## Line endings
+
+The repository enforces LF line endings for all tracked text files via `.gitattributes`
+(`* text=auto eol=lf`) and `.editorconfig` (`end_of_line = lf`), regardless of the
+platform or a contributor's local `core.autocrlf` setting. This keeps Prettier's output
+(`endOfLine: "lf"`, the default) stable across Windows, macOS, Linux, and CI, and avoids
+`format:check` failures caused only by CRLF/LF drift.
+
+If `npm run format:check` reports unexpected diffs after a fresh checkout on Windows, run:
+
+```bash
+git add --renormalize .
+```
+
+then discard and re-checkout any files it flags, so the working tree matches the
+LF-normalized index. Image/font/media file types are explicitly marked `binary` in
+`.gitattributes` and are never subject to line-ending conversion.
+
 ## Run the dev server
 
 ```bash
@@ -39,6 +57,10 @@ Playwright browsers must be installed once before the first `test:e2e` run:
 ```bash
 npx playwright install --with-deps chromium
 ```
+
+`e2e/mobile.spec.ts` covers a 390x844 mobile viewport by emulating Chromium's mobile
+profile (touch, device scale factor, mobile user agent) — it still runs against
+Chromium, not a real device. Real iOS Safari behavior is not verified by this suite.
 
 ## Production build
 
