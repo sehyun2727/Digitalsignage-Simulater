@@ -30,6 +30,26 @@ export function SignageDisplayView({ object, groupProps }: SignageDisplayViewPro
 
   return (
     <Group {...groupProps}>
+      {/* Every other descendant below is listening={false} (decoration, clip contents,
+          material overlays); Konva only bubbles click/tap/drag hits up to this Group from a
+          listening descendant, so without this rect nothing inside a display is reselectable
+          after being deselected. `fill="transparent"` (not an omitted fill) is required:
+          Konva's default hit function skips painting the hit canvas entirely for a shape with
+          no fill, so an undefined fill is invisible AND unclickable, whereas a defined
+          zero-alpha fill is invisible but still hit-tested as this rect's full bounding box —
+          the rectangular, non-alpha-aware hit-area policy this sprint uses for opaque and
+          transparent product photos alike. It paints nothing, so it never appears in
+          exported PNGs. */}
+      <Rect
+        x={0}
+        y={0}
+        width={object.width}
+        height={object.height}
+        fill="transparent"
+        listening
+        perfectDrawEnabled={false}
+        name="display-hit-area"
+      />
       {decorations.map((rect, index) => (
         <Rect
           key={index}

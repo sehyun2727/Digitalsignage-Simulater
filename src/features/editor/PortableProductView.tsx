@@ -45,6 +45,27 @@ export function PortableProductView({ object, groupProps }: PortableProductViewP
 
   return (
     <Group {...groupProps}>
+      {/* Every other descendant below is listening={false} (product photo, clip contents,
+          material overlays); Konva only bubbles click/tap/drag hits up to this Group from a
+          listening descendant, so without this rect a portable object isn't reselectable
+          after being deselected. `fill="transparent"` (not an omitted fill) is required:
+          Konva's default hit function skips painting the hit canvas entirely for a shape with
+          no fill, so an undefined fill is invisible AND unclickable, whereas a defined
+          zero-alpha fill is invisible but still hit-tested as this rect's full bounding box.
+          This is also this sprint's documented transparent-photo hit policy: the hit target is
+          always the object's full rectangular bounds, never the product photo's actual alpha
+          channel — per CLAUDE.md/ADR 0004, alpha-aware hit testing is out of scope. It paints
+          nothing, so it never appears in exported PNGs. */}
+      <Rect
+        x={0}
+        y={0}
+        width={object.width}
+        height={object.height}
+        fill="transparent"
+        listening
+        perfectDrawEnabled={false}
+        name="portable-hit-area"
+      />
       {productAsset && (
         <KonvaImage
           image={productAsset.image}

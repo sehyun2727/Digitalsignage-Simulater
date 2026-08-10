@@ -66,7 +66,16 @@ export function CanvasObjectView({
     draggable: true,
     onClick: () => onSelect(object.id),
     onTap: () => onSelect(object.id),
+    // Konva suppresses the click/tap event for an interaction that turned into a drag, so
+    // dragging an unselected object would move it without selecting it unless drag end also
+    // selects — this keeps "click selects" and "drag selects and moves" consistent in one
+    // gesture, for every object kind, using the same commonProps object. Selecting on drag
+    // *start* instead would change `selectedId` mid-gesture, re-rendering this component with
+    // the store's still-stale `object.x`/`object.y` and having react-konva re-apply them as
+    // controlled props onto the node Konva is actively dragging — snapping it back to its
+    // pre-drag position. Selecting at drag *end*, after the position commit, avoids that.
     onDragEnd: (event: Konva.KonvaEventObject<DragEvent>) => {
+      onSelect(object.id);
       onDragEnd(object.id, event.target.x(), event.target.y());
     },
     onTransformEnd: handleTransformEnd,
