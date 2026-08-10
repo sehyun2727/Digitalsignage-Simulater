@@ -279,3 +279,28 @@ test('mobile: dragging the portable screen region moves and resizes it at 390x84
 
   await expectNoHorizontalOverflow(page);
 });
+
+const deleteButton = (page: import('@playwright/test').Page) =>
+  page.getByRole('button', { name: '削除' });
+
+test('mobile: a Wall LED display is reselectable by tap after being deselected at 390x844', async ({
+  page,
+}) => {
+  // Companion to e2e/reselection.spec.ts's desktop coverage of the same fix (the hit-area
+  // Rect added to SignageDisplayView/PortableProductView so Group-wrapped objects stay
+  // clickable after deselection): this confirms the same interaction also works through
+  // Playwright's touch-viewport emulation, not just real mouse input.
+  await page.goto('/');
+  await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+  await expect(deleteButton(page)).toBeEnabled();
+
+  const box = (await page.locator('.editor-canvas-container').boundingBox())!;
+  await page.mouse.click(box.x + 5, box.y + 5);
+  await expect(deleteButton(page)).toBeDisabled();
+
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(deleteButton(page)).toBeEnabled();
+  await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toBeVisible();
+
+  await expectNoHorizontalOverflow(page);
+});

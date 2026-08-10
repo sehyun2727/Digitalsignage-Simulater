@@ -272,10 +272,10 @@ test.describe('direct region move/resize (real pointer drags)', () => {
     await editDialog.getByRole('button', { name: '保存' }).click();
     await expect(editDialog).toBeHidden();
 
-    // Canvas objects can only be reselected by clicking their rendered Konva shape, and that
-    // path is unrelated to (and unexercised by) this region-editor sprint, so this proves the
-    // "exactly one history entry" claim the same way the pre-existing undo/redo test does: via
-    // the empty-canvas hint, not by reopening the region editor after undo. Exactly two entries
+    // Reselecting a canvas object by clicking its rendered Konva shape is covered separately by
+    // e2e/reselection.spec.ts; this test isn't about that path, so it proves the "exactly one
+    // history entry" claim the same way the pre-existing undo/redo test does: via the
+    // empty-canvas hint, not by reopening the region editor after undo. Exactly two entries
     // must exist (creation, then the move) - one undo should revert the move but leave the
     // object in place, and only the second undo should remove it.
     await page.getByRole('button', { name: '元に戻す' }).click();

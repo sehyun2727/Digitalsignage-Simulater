@@ -85,6 +85,49 @@ describe('editorStore', () => {
     expect(selectSelectedObject(useEditorStore.getState())?.id).toBe(id);
   });
 
+  it('selects a different object without needing to deselect first, and never pushes history', () => {
+    useEditorStore.getState().addText();
+    const firstId = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().addDisplay('wall-led');
+    const secondId = useEditorStore.getState().document.objects[1]!.id;
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().selectObject(firstId);
+    expect(useEditorStore.getState().selectedId).toBe(firstId);
+
+    // Reselecting the second object directly (as a click on its rendered shape would, without
+    // an intermediate blank-canvas deselect) must update selectedId in one step.
+    useEditorStore.getState().selectObject(secondId);
+    expect(useEditorStore.getState().selectedId).toBe(secondId);
+
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
+  });
+
+  it('clears the selection on undo and redo, so a subsequent click is a fresh reselection', () => {
+    useEditorStore.getState().addText();
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().commitObjectChange(id, { x: 500, y: 400 });
+    useEditorStore.getState().selectObject(id);
+    expect(useEditorStore.getState().selectedId).toBe(id);
+
+    useEditorStore.getState().undo();
+    expect(useEditorStore.getState().selectedId).toBeNull();
+
+    useEditorStore.getState().selectObject(id);
+    useEditorStore.getState().redo();
+    expect(useEditorStore.getState().selectedId).toBeNull();
+  });
+
+  it('a drag-style position commit pushes exactly one history entry', () => {
+    useEditorStore.getState().addText();
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().commitObjectChange(id, { x: 123, y: 456 });
+
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore + 1);
+  });
+
   it('commits object changes to history and undo restores the previous state', () => {
     useEditorStore.getState().addText();
     const id = useEditorStore.getState().document.objects[0]!.id;
