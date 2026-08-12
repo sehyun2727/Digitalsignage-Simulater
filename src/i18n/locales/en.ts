@@ -109,4 +109,40 @@ export const en: Messages = {
   portableSaveButton: 'Save',
   portableReplacePhotoHint:
     'To replace the photo, delete this product and add it again as a new portable product.',
+
+  toolbarAriaLabel: 'Common actions',
+  toolbarSpaceSectionHeading: 'Space',
+  toolbarAddSignageSectionHeading: 'Add signage',
+  toolbarSelectedSignageSectionHeading: 'Selected signage',
+  toolbarAppearanceSectionHeading: 'Appearance',
+  toolbarExportSectionHeading: 'Export',
+  toolbarContentEmptyHint: 'Select a display or portable product to add content to it.',
+  toolbarAppearanceEmptyHint: 'Select a display or portable product to edit its appearance.',
+  toolbarAppearanceUnsupportedHint: 'This element has no appearance settings.',
+  toolbarSelectedSignageTypeLabel: 'Type',
+  signageTypeText: 'Text',
+  signageTypeImage: 'Image',
+  signageTypeWallLed: 'Wall LED',
+  signageTypeStandDisplay: 'Stand Display',
+  signageTypePortable: 'Portable product',
+  exportResolutionLabel: 'Export size',
+
+  headerCompareToOriginalButton: 'Compare with original',
+  headerCompareToResultButton: 'Back to result',
+
+  comparisonToggleGroupLabel: 'View toggle',
+  comparisonResultLabel: 'Result',
+  comparisonOriginalLabel: 'Original',
+  comparisonOriginalNoSpaceHint: 'No space photo has been added yet.',
+
+  statusBarHintNoSpace: 'Start by adding a space photo in the Space section.',
+  statusBarHintNoSignage: 'Place a Wall LED, Stand Display, or portable product from Add signage.',
+  statusBarHintNoContent: 'Add an image to the selected signage from the Content section.',
+  statusBarHintReady: 'When ready, export a PNG from the Export section.',
+
+  onboardingTitle: 'Welcome',
+  onboardingDescription:
+    'The toolbar on the right always shows Space, Add signage, Selected signage, Content, Appearance, and Export. Work through them top to bottom to build a preview of your signage installation.',
+  onboardingStartButton: 'Get started',
+  onboardingDismissButton: 'Dismiss',
 };

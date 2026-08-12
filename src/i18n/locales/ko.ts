@@ -110,4 +110,40 @@ export const ko: Messages = {
   portableSaveButton: '저장',
   portableReplacePhotoHint:
     '사진을 교체하려면 이 제품을 삭제한 후 새 포터블 제품으로 다시 추가해 주세요.',
+
+  toolbarAriaLabel: '공통 작업',
+  toolbarSpaceSectionHeading: '공간',
+  toolbarAddSignageSectionHeading: '사이니지 추가',
+  toolbarSelectedSignageSectionHeading: '선택한 사이니지',
+  toolbarAppearanceSectionHeading: '외관',
+  toolbarExportSectionHeading: '내보내기',
+  toolbarContentEmptyHint: '디스플레이 또는 포터블 제품을 선택하면 콘텐츠를 추가할 수 있습니다.',
+  toolbarAppearanceEmptyHint: '디스플레이 또는 포터블 제품을 선택하면 외관을 편집할 수 있습니다.',
+  toolbarAppearanceUnsupportedHint: '이 요소에는 외관 설정이 없습니다.',
+  toolbarSelectedSignageTypeLabel: '종류',
+  signageTypeText: '텍스트',
+  signageTypeImage: '이미지',
+  signageTypeWallLed: '벽걸이형 LED',
+  signageTypeStandDisplay: '스탠드형 디스플레이',
+  signageTypePortable: '포터블 제품',
+  exportResolutionLabel: '내보내기 크기',
+
+  headerCompareToOriginalButton: '원본과 비교',
+  headerCompareToResultButton: '결과 화면으로 돌아가기',
+
+  comparisonToggleGroupLabel: '보기 전환',
+  comparisonResultLabel: '결과',
+  comparisonOriginalLabel: '원본',
+  comparisonOriginalNoSpaceHint: '아직 추가된 공간 사진이 없습니다.',
+
+  statusBarHintNoSpace: '먼저 "공간" 섹션에서 공간 사진을 추가해 보세요.',
+  statusBarHintNoSignage: '"사이니지 추가" 섹션에서 LED·LCD·포터블 제품을 배치해 보세요.',
+  statusBarHintNoContent: '선택한 사이니지에 "콘텐츠" 섹션에서 이미지를 추가할 수 있습니다.',
+  statusBarHintReady: '준비가 되면 "내보내기" 섹션에서 PNG로 내보내 보세요.',
+
+  onboardingTitle: '환영합니다',
+  onboardingDescription:
+    '오른쪽 툴바에는 "공간", "사이니지 추가", "선택한 사이니지", "콘텐츠", "외관", "내보내기"가 항상 표시됩니다. 위에서부터 순서대로 진행하면 사이니지 설치 이미지를 쉽게 만들 수 있습니다.',
+  onboardingStartButton: '시작하기',
+  onboardingDismissButton: '닫기',
 };

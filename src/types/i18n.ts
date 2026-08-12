@@ -106,4 +106,39 @@ export interface Messages {
   portableAddButton: string;
   portableSaveButton: string;
   portableReplacePhotoHint: string;
+
+  toolbarAriaLabel: string;
+  toolbarSpaceSectionHeading: string;
+  toolbarAddSignageSectionHeading: string;
+  toolbarSelectedSignageSectionHeading: string;
+  toolbarAppearanceSectionHeading: string;
+  toolbarExportSectionHeading: string;
+  toolbarContentEmptyHint: string;
+  toolbarAppearanceEmptyHint: string;
+  toolbarAppearanceUnsupportedHint: string;
+  toolbarSelectedSignageTypeLabel: string;
+  signageTypeText: string;
+  signageTypeImage: string;
+  signageTypeWallLed: string;
+  signageTypeStandDisplay: string;
+  signageTypePortable: string;
+  exportResolutionLabel: string;
+
+  headerCompareToOriginalButton: string;
+  headerCompareToResultButton: string;
+
+  comparisonToggleGroupLabel: string;
+  comparisonResultLabel: string;
+  comparisonOriginalLabel: string;
+  comparisonOriginalNoSpaceHint: string;
+
+  statusBarHintNoSpace: string;
+  statusBarHintNoSignage: string;
+  statusBarHintNoContent: string;
+  statusBarHintReady: string;
+
+  onboardingTitle: string;
+  onboardingDescription: string;
+  onboardingStartButton: string;
+  onboardingDismissButton: string;
 }

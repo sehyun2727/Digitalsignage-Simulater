@@ -110,4 +110,42 @@ export const ja: Messages = {
   portableSaveButton: '保存',
   portableReplacePhotoHint:
     '写真を差し替えるには、この製品を削除してから新しいポータブル製品として追加し直してください。',
+
+  toolbarAriaLabel: '共通操作',
+  toolbarSpaceSectionHeading: '空間',
+  toolbarAddSignageSectionHeading: 'サイネージを追加',
+  toolbarSelectedSignageSectionHeading: '選択中のサイネージ',
+  toolbarAppearanceSectionHeading: '外観',
+  toolbarExportSectionHeading: '書き出し',
+  toolbarContentEmptyHint:
+    'ディスプレイまたはポータブル製品を選択すると、コンテンツを追加できます。',
+  toolbarAppearanceEmptyHint: 'ディスプレイまたはポータブル製品を選択すると、外観を編集できます。',
+  toolbarAppearanceUnsupportedHint: 'この要素には外観設定はありません。',
+  toolbarSelectedSignageTypeLabel: '種類',
+  signageTypeText: 'テキスト',
+  signageTypeImage: '画像',
+  signageTypeWallLed: '壁掛けLED',
+  signageTypeStandDisplay: 'スタンド型ディスプレイ',
+  signageTypePortable: 'ポータブル製品',
+  exportResolutionLabel: '書き出しサイズ',
+
+  headerCompareToOriginalButton: 'オリジナルと比較',
+  headerCompareToResultButton: '結果表示に戻る',
+
+  comparisonToggleGroupLabel: '表示切り替え',
+  comparisonResultLabel: '結果',
+  comparisonOriginalLabel: 'オリジナル',
+  comparisonOriginalNoSpaceHint: '空間写真がまだ追加されていません。',
+
+  statusBarHintNoSpace: 'まずは「空間」セクションから空間写真を追加しましょう。',
+  statusBarHintNoSignage:
+    '「サイネージを追加」セクションからLED・LCD・ポータブル製品を配置しましょう。',
+  statusBarHintNoContent: '選択中のサイネージに「コンテンツ」セクションから画像を追加できます。',
+  statusBarHintReady: '準備ができたら「書き出し」セクションからPNGを書き出しましょう。',
+
+  onboardingTitle: 'ようこそ',
+  onboardingDescription:
+    '右側のツールバーには「空間」「サイネージを追加」「選択中のサイネージ」「コンテンツ」「外観」「書き出し」が常時表示されています。上から順に操作すると、サイネージの設置イメージを簡単に作成できます。',
+  onboardingStartButton: 'はじめる',
+  onboardingDismissButton: '閉じる',
 };
