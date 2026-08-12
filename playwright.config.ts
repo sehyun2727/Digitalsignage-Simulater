@@ -9,6 +9,18 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4173',
     trace: 'on-first-retry',
+    // The onboarding overlay (see OnboardingOverlay.tsx) only appears on a visitor's first
+    // visit and would otherwise block every other spec's interactions. Specs that specifically
+    // exercise the overlay (e2e/onboarding.spec.ts) opt back into a fresh, empty storage state.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: 'http://localhost:4173',
+          localStorage: [{ name: 'signage-canvas.onboarding-dismissed', value: '1' }],
+        },
+      ],
+    },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {

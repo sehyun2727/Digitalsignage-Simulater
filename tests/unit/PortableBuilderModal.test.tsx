@@ -6,6 +6,7 @@ import { App } from '../../src/app/App';
 import { ja } from '../../src/i18n/locales/ja';
 import { MIN_SCREEN_REGION_FRACTION } from '../../src/lib/portableRegion';
 import { useEditorStore } from '../../src/store/editorStore';
+import { useUiStore } from '../../src/store/uiStore';
 import { createEmptyDocument } from '../../src/types/editor';
 import type { PortableSignageObject } from '../../src/types/editor';
 
@@ -69,6 +70,7 @@ function resetStore() {
     past: [],
     future: [],
   });
+  useUiStore.setState({ comparisonMode: false, onboardingDismissed: true });
 }
 
 function getPortablePhotoInput(): HTMLElement {

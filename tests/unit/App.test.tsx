@@ -4,6 +4,7 @@ import { forwardRef, useImperativeHandle } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/app/App';
 import { ja } from '../../src/i18n/locales/ja';
+import { useUiStore } from '../../src/store/uiStore';
 
 class SucceedingImage {
   onload: (() => void) | null = null;
@@ -50,6 +51,10 @@ describe('App', () => {
     window.localStorage.clear();
     // Force a deterministic Japanese default regardless of the test runner's locale.
     mockBrowserLocale(['fr-FR']);
+    // useUiStore is a module-level singleton; reset it so state never leaks between tests.
+    // onboardingDismissed is forced true here since these tests exercise the toolbar itself,
+    // not the onboarding card (see OnboardingOverlay.test.tsx).
+    useUiStore.setState({ comparisonMode: false, onboardingDismissed: true });
   });
 
   afterEach(() => {
@@ -204,6 +209,7 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
 
       expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
+
       expect(screen.getByRole('combobox', { name: ja.editorMaterialLabel })).toHaveValue(
         'outdoor-led',
       );
@@ -225,6 +231,7 @@ describe('App', () => {
       render(<App />);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+
       await user.upload(
         screen.getByLabelText(ja.editorContentUploadButton),
         createImageFile('content.png'),
@@ -255,6 +262,7 @@ describe('App', () => {
       render(<App />);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+
       await user.upload(
         screen.getByLabelText(ja.editorContentUploadButton),
         createImageFile('content.png'),
@@ -270,6 +278,7 @@ describe('App', () => {
       render(<App />);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+
       await user.upload(
         screen.getByLabelText(ja.editorContentUploadButton),
         createImageFile('content.png'),
@@ -302,11 +311,40 @@ describe('App', () => {
       render(<App />);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+
       expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: ja.editorUndoButton }));
 
       expect(screen.getByText(ja.editorPropertiesEmptyHint)).toBeInTheDocument();
+    });
+  });
+
+  describe('Sprint 4.1: original/result comparison toggle', () => {
+    it('switching to the original view clears selection and shows the no-space hint; switching back restores both', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      expect(screen.getByRole('button', { name: ja.editorDeleteButton })).toBeEnabled();
+
+      const resultButton = screen.getByRole('button', { name: ja.comparisonResultLabel });
+      const originalButton = screen.getByRole('button', { name: ja.comparisonOriginalLabel });
+      expect(resultButton).toHaveAttribute('aria-pressed', 'true');
+      expect(originalButton).toHaveAttribute('aria-pressed', 'false');
+
+      await user.click(originalButton);
+
+      expect(originalButton).toHaveAttribute('aria-pressed', 'true');
+      expect(resultButton).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByRole('button', { name: ja.editorDeleteButton })).toBeDisabled();
+      expect(screen.getByText(ja.comparisonOriginalNoSpaceHint)).toBeInTheDocument();
+
+      await user.click(resultButton);
+
+      expect(resultButton).toHaveAttribute('aria-pressed', 'true');
+      expect(originalButton).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.queryByText(ja.comparisonOriginalNoSpaceHint)).not.toBeInTheDocument();
     });
   });
 
@@ -465,6 +503,7 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: ja.portableAddButton }));
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
       expect(screen.getByText(ja.portableTypeValue)).toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: ja.portableScreenRegionEditButton }));
