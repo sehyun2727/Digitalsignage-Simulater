@@ -13,7 +13,7 @@
 
 ## 상태
 
-**현재 상태: Sprint 4 완료 — Sprint 0~3.2가 `main`에 통합되어 배포 가능한 상태입니다 (Sprint 3.2: 캔버스 객체 재선택 결함 수정 포함)**
+**현재 상태: Sprint 4.1 완료 — Sprint 0~4.1이 통합되어 배포 가능한 상태입니다 (Sprint 3.2: 캔버스 객체 재선택 결함 수정, Sprint 4.1: 통합 툴바 에디터 UI 포함)**
 
 Sprint 0에서 구현된 것:
 
@@ -139,6 +139,34 @@ Sprint 3.2에서 구현된 것 (캔버스 객체 재선택 결함 수정 — P0 
   (재선택·겹친 객체·드래그 선택·실행 취소/다시 실행 시나리오, 실제 Chromium), `e2e/mobile.spec.ts`(모바일
   탭 재선택 시나리오)를 추가했습니다.
 
+Sprint 4.1에서 구현된 것 (통합 툴바 에디터 UI):
+
+- **단일 통합 툴바**: 기존에 시도했던 5단계 가이드 플로우(공간 → 신호기 → 콘텐츠 → 효과 → 내보내기, 단계별
+  마운트/언마운트 패널)는 병합 전에 반려되어 완전히 제거되었습니다. 대신 화면 우측에 항상 표시되는 하나의
+  툴바가 고정된 순서의 6개 섹션 — 공간, 신호기 추가, 선택된 신호기, 콘텐츠, 외관, 내보내기 — 을 동시에
+  보여줍니다. 모든 컨트롤이 항상 접근 가능하며, "지금 어떤 단계에 있는지"라는 개념 자체가 없습니다. 자세한
+  배경(반려된 대안 포함)은
+  [`docs/adr/0006-guided-editor-sprint-4-1.md`](docs/adr/0006-guided-editor-sprint-4-1.md) 참고.
+- **헤더 / 워크스페이스 / 상태 바 레이아웃**: 상단 헤더(제품명, 실행 취소, 다시 실행, 간이 비교 토글, 언어
+  선택, 내보내기), 캔버스와 툴바가 나란히 놓인 워크스페이스, 하단의 간결한 상태 바로 구성됩니다. 접근성
+  이름 중복을 피하기 위해 실행 취소/다시 실행/내보내기는 헤더에만, 삭제는 툴바의 "선택된 신호기" 섹션에만,
+  결과/오리지널 비교 토글(고정 라벨)은 툴바의 "내보내기" 섹션에만 존재하도록 엄격히 분리했습니다. 헤더의
+  간이 비교 버튼은 같은 상태를 제어하지만 라벨이 서로 다른 별도의 컨트롤입니다.
+- **원본/결과 비교 토글**: 편집 결과 대신 업로드한 공간 사진만 보여주는 토글을 추가했습니다. 별도의
+  내보내기나 두 번째 캔버스 없이, 기존 캔버스에서 신호기 객체·Transformer·드래그 앤 드롭 렌더링만
+  일시적으로 억제하는 방식으로 구현했습니다. 내보내기는 화면에 오리지널 뷰가 표시된 상태여도 항상 합성된
+  결과물을 내보냅니다.
+- **비차단(non-blocking) 첫 방문 온보딩 카드**: 통합 툴바를 처음 한 번만 소개하는 작은 카드를 추가했습니다.
+  모달이 아닌 `role="note"` 카드로, 배경 잠금·포커스 트랩·Escape 닫기가 없어 카드가 떠 있는 동안에도 모든
+  툴바·캔버스 컨트롤을 그대로 사용할 수 있습니다. 닫힘 여부는 `localStorage`에 저장되어 이후 방문에서는
+  다시 표시되지 않습니다.
+- **HULL CTA 위치 변경**: 문서 하단 각주에 있던 HULL 문의 링크를 화면 우측 하단에 고정된 녹색 버튼으로
+  옮겼습니다. 링크의 URL·`target`·`rel`·접근성 이름은 변경하지 않았습니다.
+- **모바일 뷰포트 대응 개선**: `100dvh`(동적 뷰포트 높이) 지원 브라우저에서 모바일 주소창 표시/숨김에 따른
+  레이아웃 잘림을 방지하도록 `100vh` 대체값과 함께 적용했습니다. 이번 스프린트에서 추가로, 헤더 액션 영역과
+  신호기 추가 버튼 그리드가 좁은 화면(390px)에서 가로 스크롤을 유발하던 두 가지 결함과, 세로로 긴 템플릿
+  선택 시 캔버스가 헤더 영역까지 겹쳐 보이던 결함을 수정했습니다.
+
 ## 기술 스택
 
 - React 19 + TypeScript + Vite
@@ -176,7 +204,7 @@ npm run format:check     # Prettier 검사만 수행
 npm run typecheck        # TypeScript 검사
 npm run test              # Vitest (watch)
 npm run test:run          # Vitest (단일 실행, CI에서 사용)
-npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드, 공간 배경/디스플레이 콘텐츠·소재, 포터블 제품, 모바일 뷰포트)
+npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드, 공간 배경/디스플레이 콘텐츠·소재, 포터블 제품, 모바일 뷰포트, 온보딩/비교 토글, 재선택)
 ```
 
 ## Docker 실행
@@ -240,7 +268,7 @@ HULL의 상표, 로고, 서비스 설명을 공식 제휴처럼 사용하지 않
 
 초기 배포 대상은 Render **Static Site**입니다. 상세 설정은
 [`docs/runbooks/render-static-site.md`](docs/runbooks/render-static-site.md)를 참고하세요.
-Sprint 4 기준으로 `main`은 Sprint 0~3.2를 모두 포함하며 위 설정으로 배포 가능하지만, 실제 Render 배포는
+Sprint 4.1 기준으로 `main`은 Sprint 0~4.1을 모두 포함하며 위 설정으로 배포 가능하지만, 실제 Render 배포는
 아직 수행되지 않았습니다 — Render 계정/서비스 생성 권한이 이 작업 환경에 없어 설정만 확인·문서화되어
 있습니다.
 
@@ -253,8 +281,9 @@ Sprint 4 기준으로 `main`은 Sprint 0~3.2를 모두 포함하며 위 설정�
 ├── src/
 │   ├── app/            # 앱 루트 (App.tsx)
 │   ├── components/     # 공통 UI 컴포넌트
-│   ├── features/editor/ # 에디터 UI: Toolbar, EditorCanvas, PropertiesPanel, SignageDisplayView, SpaceBackgroundView,
-│   │                     # PortableBuilderModal(포터블 제품 마법사), PortableProductView 등
+│   ├── features/editor/ # 에디터 UI: EditorLayout(헤더+워크스페이스+상태 바), Toolbar(6섹션 통합 툴바),
+│   │                     # EditorCanvas, SignageDisplayView, SpaceBackgroundView, PortableBuilderModal
+│   │                     # (포터블 제품 마법사), PortableProductView, OnboardingOverlay 등
 │   ├── i18n/           # 일본어·한국어·영어 리소스, 감지/저장 로직
 │   ├── lib/            # 공통 유틸리티/상수 (파일 검증, 파일명 생성, 에셋 레지스트리, 콘텐츠 배치/프레임/소재 지오메트리,
 │   │                     # portableRegion.ts — 화면 영역 정규화 사각형 지오메트리 등)
@@ -272,6 +301,8 @@ Sprint 4 기준으로 `main`은 Sprint 0~3.2를 모두 포함하며 위 설정�
 │   ├── adr/0001-frontend-foundation.md
 │   ├── adr/0003-content-and-material-model.md
 │   ├── adr/0004-custom-portable-template.md
+│   ├── adr/0005-canvas-object-reselection-hotfix.md
+│   ├── adr/0006-guided-editor-sprint-4-1.md
 │   └── runbooks/
 └── .github/workflows/ci.yml
 ```
@@ -282,6 +313,9 @@ Sprint 4 기준으로 `main`은 Sprint 0~3.2를 모두 포함하며 위 설정�
 - 성공적으로 추가된 이미지의 Object URL은 세션 동안 해제되지 않습니다 (위 "이미지 업로드 정책"의 알려진 제한 참고).
 - 모바일 Safari에서 `<a download>`를 통한 PNG 다운로드는 브라우저/버전에 따라 동작이 다를 수 있으며, 이 환경에서 직접 검증하지 못했습니다.
 - 모바일 레이아웃은 기본 반응형 수준이며 폭넓은 기기 매트릭스에서 검증되지 않았습니다.
+- HULL CTA는 화면 우측 하단에 고정 위치로 표시됩니다 — 매우 좁은 모바일 화면에서 툴바 컨트롤과 겹칠 수
+  있는 실기기 충돌 검증은 아직 수행하지 않았습니다(자세한 내용은
+  `docs/adr/0006-guided-editor-sprint-4-1.md`의 Consequences 참고).
 - Render 실배포는 아직 수행되지 않았고 설정만 문서화되어 있습니다.
 - 디스플레이 프레임(베젤/스탠드)과 소재(屋外LED/LCD) 프리뷰는 단순화된 시각적 표현이며, 실제 제품 형상이나
   성능을 재현하지 않습니다(자세한 내용은 `docs/adr/0003-content-and-material-model.md` 참고).
