@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LanguageSelector } from '../../components/LanguageSelector';
 import { useLocale } from '../../i18n/localeContext';
 import { buildExportFilename } from '../../lib/exportFilename';
 import type { ImageValidationError } from '../../lib/fileValidation';
-import { useEditorStore } from '../../store/editorStore';
+import { selectCanRedo, selectCanUndo, useEditorStore } from '../../store/editorStore';
+import { useUiStore } from '../../store/uiStore';
 import type { EditorCanvasHandle } from './EditorCanvas';
 import { EditorCanvas } from './EditorCanvas';
-import { PropertiesPanel } from './PropertiesPanel';
+import { OnboardingOverlay } from './OnboardingOverlay';
 import { Toolbar } from './Toolbar';
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -17,12 +19,21 @@ function isEditableTarget(target: EventTarget | null): boolean {
 export function EditorLayout() {
   const { messages } = useLocale();
   const objectCount = useEditorStore((state) => state.document.objects.length);
+  const objects = useEditorStore((state) => state.document.objects);
   const templateId = useEditorStore((state) => state.document.templateId);
+  const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
   const deleteSelected = useEditorStore((state) => state.deleteSelected);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
+  const canUndo = useEditorStore(selectCanUndo);
+  const canRedo = useEditorStore(selectCanRedo);
+  const selectObject = useEditorStore((state) => state.selectObject);
+  const comparisonMode = useUiStore((state) => state.comparisonMode);
+  const setComparisonMode = useUiStore((state) => state.setComparisonMode);
+  const onboardingDismissed = useUiStore((state) => state.onboardingDismissed);
   const canvasRef = useRef<EditorCanvasHandle>(null);
   const [announcement, setAnnouncement] = useState('');
+  const [onboardingOpen, setOnboardingOpen] = useState(!onboardingDismissed);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -71,6 +82,8 @@ export function EditorLayout() {
   );
 
   const handleExport = useCallback(() => {
+    // EditorCanvas.exportToDataUrl() always captures the composed result, never the
+    // comparison-mode space-photo-only view, regardless of what is currently on screen.
     let dataUrl: string | null = null;
     try {
       dataUrl = canvasRef.current?.exportToDataUrl() ?? null;
@@ -92,23 +105,70 @@ export function EditorLayout() {
     setAnnouncement(messages.editorExportedAnnouncement);
   }, [templateId, messages]);
 
+  const handleQuickCompareToggle = useCallback(() => {
+    const next = !comparisonMode;
+    setComparisonMode(next);
+    if (next) selectObject(null);
+  }, [comparisonMode, setComparisonMode, selectObject]);
+
+  const statusHint = useMemo(() => {
+    if (!spaceBackground) return messages.statusBarHintNoSpace;
+    const hasSignage = objects.some(
+      (object) => object.kind === 'display' || object.kind === 'portable',
+    );
+    if (!hasSignage) return messages.statusBarHintNoSignage;
+    const hasContent = objects.some(
+      (object) =>
+        (object.kind === 'display' || object.kind === 'portable') && object.content !== null,
+    );
+    if (!hasContent) return messages.statusBarHintNoContent;
+    return messages.statusBarHintReady;
+  }, [spaceBackground, objects, messages]);
+
   return (
     <div className="editor-layout">
-      <Toolbar onImageError={handleImageError} onExport={handleExport} />
+      <header className="editor-header">
+        <h1 className="editor-header-title">{messages.appTitle}</h1>
+        <div className="editor-header-actions">
+          <button type="button" onClick={undo} disabled={!canUndo}>
+            {messages.editorUndoButton}
+          </button>
+          <button type="button" onClick={redo} disabled={!canRedo}>
+            {messages.editorRedoButton}
+          </button>
+          <button type="button" onClick={handleQuickCompareToggle}>
+            {comparisonMode
+              ? messages.headerCompareToResultButton
+              : messages.headerCompareToOriginalButton}
+          </button>
+          <LanguageSelector />
+          <button type="button" onClick={handleExport}>
+            {messages.editorExportButton}
+          </button>
+        </div>
+      </header>
 
       <div className="editor-workspace">
         <div className="editor-canvas-wrapper">
-          {objectCount === 0 && (
+          {objectCount === 0 && !comparisonMode && (
             <p className="editor-empty-hint">{messages.editorEmptyCanvasHint}</p>
           )}
-          <EditorCanvas ref={canvasRef} />
+          <EditorCanvas
+            ref={canvasRef}
+            comparisonMode={comparisonMode}
+            onImageError={handleImageError}
+          />
         </div>
-        <PropertiesPanel onImageError={handleImageError} />
+        <Toolbar onImageError={handleImageError} />
       </div>
+
+      <p className="editor-status-bar">{statusHint}</p>
 
       <p role="status" aria-live="polite" className="visually-hidden">
         {announcement}
       </p>
+
+      {onboardingOpen && <OnboardingOverlay onDismiss={() => setOnboardingOpen(false)} />}
     </div>
   );
 }

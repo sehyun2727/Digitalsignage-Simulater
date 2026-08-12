@@ -16,6 +16,11 @@ html,
 body,
 #root {
   height: 100%;
+  /* dvh tracks the mobile browser's actual visible viewport as address/toolbar
+     bars show and hide, avoiding the classic 100vh overflow-behind-toolbar bug.
+     Browsers without dvh support keep the 100% fallback above (invalid unit
+     values are ignored, not applied as 0). */
+  height: 100dvh;
 }
 
 body {
@@ -47,11 +52,14 @@ a {
 .app-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
   padding: 1rem;
-  gap: 1.5rem;
-  max-width: 75rem;
+  gap: 0.75rem;
+  max-width: 120rem;
+  width: 100%;
   margin: 0 auto;
+  overflow: hidden;
 }
 
 .visually-hidden {
@@ -64,21 +72,6 @@ a {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-.app-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 1rem;
-}
-
-.app-header h1 {
-  font-size: 1.25rem;
-  margin: 0;
 }
 
 .language-selector {
@@ -95,74 +88,96 @@ a {
 }
 
 .app-main {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.75rem;
 }
 
 .editor-layout {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.75rem;
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 1rem;
+  flex-wrap: nowrap;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.75rem;
 }
 
-.editor-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-}
-
-.editor-toolbar-field {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.editor-toolbar-section {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-  padding-right: 0.75rem;
-  border-right: 1px solid var(--color-border);
-}
-
-.editor-toolbar-section-heading {
+.editor-header-title {
   margin: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-muted);
+  flex-shrink: 0;
+  font-size: 1.1rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.editor-toolbar button {
-  padding: 0.45rem 0.75rem;
+.editor-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+}
+
+.editor-header-actions button {
+  padding: 0.4rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: 0.25rem;
   background-color: var(--color-bg);
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.editor-toolbar button:disabled {
+.editor-header-actions button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
+.comparison-toggle-group {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.comparison-toggle-group button.is-active {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
 .editor-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   gap: 1rem;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .editor-canvas-wrapper {
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  /* Plain `center` centers overflowing content in *both* directions, so a portrait
+     template (e.g. Stand Display) taller than the available space pokes its top
+     edge up past the wrapper's own box and under the header above it, letting a
+     click meant for blank canvas land on the header instead. `safe center` centers
+     when the content fits and falls back to start-alignment when it doesn't, so
+     any overflow only ever extends downward into the wrapper's own scroll area. */
+  align-items: safe center;
+  justify-content: safe center;
+  overflow: auto;
 }
 
 .editor-canvas-container {
@@ -190,41 +205,140 @@ a {
   color: var(--color-muted);
 }
 
-.editor-properties-panel {
-  flex: 0 0 16rem;
-  /* Without this, a flex item's automatic minimum width defaults to its content's
-     min-content size. A long, unbroken CJK sentence (e.g. the empty-state hint) can
-     then force this panel wider than its fixed 16rem basis, which in turn shifts the
-     canvas container's measured width and its exported pixel-perfect scaling. */
+.editor-status-bar {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.toolbar {
+  flex: 0 0 22rem;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-right: 0.25rem;
+}
+
+.toolbar-section {
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
 }
 
-.editor-properties-panel h2 {
-  font-size: 1rem;
+.toolbar-section-heading {
   margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
-.editor-properties-panel label {
+.toolbar-section label {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.85rem;
 }
 
-.editor-properties-panel input,
-.editor-properties-panel select,
-.editor-properties-panel textarea {
+.toolbar-section input,
+.toolbar-section select,
+.toolbar-section textarea {
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--color-border);
   border-radius: 0.25rem;
   font-size: 0.95rem;
   font-family: inherit;
+}
+
+.toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.toolbar-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.toolbar-actions button,
+.toolbar-section > button {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background-color: var(--color-bg);
+  cursor: pointer;
+}
+
+.toolbar-actions button:disabled,
+.toolbar-section > button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-notice {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.space-background-thumb {
+  max-width: 100%;
+  max-height: 8rem;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+}
+
+.onboarding-card {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 22rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background-color: var(--color-bg);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.2);
+}
+
+.onboarding-card h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.onboarding-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.onboarding-card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.onboarding-card-actions button {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background-color: var(--color-bg);
+  cursor: pointer;
 }
 
 .app-footer {
@@ -243,18 +357,81 @@ a {
 }
 
 .hull-cta {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  align-items: flex-end;
+  gap: 0.25rem;
   margin: 0;
 }
 
+.hull-cta-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.65rem 1.25rem;
+  border-radius: 999px;
+  background-color: #1a7f37;
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.hull-cta-button:hover,
+.hull-cta-button:focus-visible {
+  background-color: #146c2e;
+}
+
 .hull-cta-notice {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--color-muted);
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
 }
 
 @media (max-width: 48rem) {
+  /* Below this width the desktop's fixed-height, no-page-scroll shell gives way to a normal
+     stacked, scrollable mobile page: canvas above toolbar, both sized by content instead of by
+     the remaining flex space, so nothing gets clipped on short mobile viewports. */
+  html,
+  body,
+  #root {
+    height: auto;
+    min-height: 100%;
+  }
+
+  .app-shell {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+  }
+
+  .editor-layout {
+    min-height: 0;
+  }
+
+  .editor-header {
+    flex-wrap: wrap;
+  }
+
+  .editor-header-actions {
+    /* Undo/Redo/Compare/Language/Export together are wider than a 390px viewport, so
+       let them wrap onto their own rows instead of overflowing horizontally. The
+       desktop rule's flex-shrink: 0 must also be relaxed here: a flex item's
+       *preferred* width is computed as if unwrapped regardless of its own
+       flex-wrap, so flex-shrink: 0 was forcing this row (and the whole page) to stay
+       as wide as its single-line content even though the wrap above allows its
+       children to break onto multiple lines. */
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    min-width: 0;
+    row-gap: 0.5rem;
+  }
+
   .editor-workspace {
     flex-direction: column;
     /* In a column flex container the cross axis is horizontal (width). The base
@@ -263,10 +440,35 @@ a {
        canvas container) toward zero because the Konva stage has no intrinsic content
        width until it is measured. Stretch so the canvas keeps the full row width. */
     align-items: stretch;
+    overflow: visible;
   }
 
-  .editor-properties-panel {
+  .editor-canvas-wrapper {
+    overflow: visible;
+  }
+
+  .toolbar {
     flex: 1 1 auto;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .toolbar-actions-grid {
+    /* The desktop 2-column grid gives the longer signage-type labels (e.g. "スタンド型
+       ディスプレイを追加") too little width to fit on one line. The body's
+       word-break: keep-all (kept deliberately so CJK phrases don't break at
+       arbitrary characters) then keeps each label unbroken, so the grid cell's
+       min-content forces the whole row wider than the 390px viewport. A single
+       column gives each label the full toolbar width instead. */
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-card {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    max-width: none;
+    width: auto;
   }
 }
 
@@ -294,6 +496,7 @@ a {
   width: 100%;
   max-width: 28rem;
   max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
   overflow-y: auto;
   padding: 1rem;
   border-radius: 0.5rem;

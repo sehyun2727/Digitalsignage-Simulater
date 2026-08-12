@@ -5,11 +5,16 @@ export function HullCta() {
   const { messages } = useLocale();
 
   return (
-    <p className="hull-cta">
-      <a href={HULL_CONTACT_URL} target="_blank" rel="noopener noreferrer">
+    <div className="hull-cta">
+      <a
+        className="hull-cta-button"
+        href={HULL_CONTACT_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         {messages.hullCtaLabel}
       </a>
       <span className="hull-cta-notice">{messages.hullCtaExternalNotice}</span>
-    </p>
+    </div>
   );
 }
