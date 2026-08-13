@@ -16,17 +16,14 @@ export interface Messages {
   hullCtaLabel: string;
   hullCtaExternalNotice: string;
 
-  editorTemplateLabel: string;
-  editorTemplateWallLed: string;
-  editorTemplateStandDisplay: string;
   editorAddTextButton: string;
   editorAddImageButton: string;
   editorDeleteButton: string;
   editorUndoButton: string;
   editorRedoButton: string;
   editorExportButton: string;
-  editorBackgroundColorLabel: string;
-  editorEmptyCanvasHint: string;
+  editorCanvasEmptyHint: string;
+  editorCanvasNoSignageHint: string;
   editorPropertiesTitle: string;
   editorPropertiesEmptyHint: string;
   editorPositionXLabel: string;
@@ -49,9 +46,17 @@ export interface Messages {
 
   editorSpaceBackgroundLabel: string;
   editorAddSpaceBackgroundButton: string;
+  editorReplaceSpaceBackgroundButton: string;
   editorRemoveSpaceBackgroundButton: string;
-  editorAddWallLedButton: string;
-  editorAddStandDisplayButton: string;
+  toolbarSpaceEmptyHint: string;
+  editorSpaceBackgroundDimensionsLabel: string;
+  editorSpaceBackgroundDownscaledNotice: string;
+  editorSpaceBackgroundPrivacyNotice: string;
+
+  editorAddLedButton: string;
+  editorAddLcdButton: string;
+  editorAddTransparentLedButton: string;
+  toolbarAddSignageDisabledHint: string;
 
   editorContentLabel: string;
   editorContentUploadButton: string;
@@ -67,14 +72,28 @@ export interface Messages {
   editorContentResetButton: string;
 
   editorMaterialLabel: string;
-  editorMaterialOutdoorLed: string;
+  editorMaterialLed: string;
   editorMaterialLcd: string;
+  editorMaterialTransparentLed: string;
   editorMaterialIntensityLabel: string;
   editorMaterialBrightnessLabel: string;
+  editorMaterialTransparencyLabel: string;
+  editorMaterialGridDensityLabel: string;
+  editorMaterialGlowLabel: string;
+  editorMaterialContrastLabel: string;
+  editorMaterialAdvancedToggleLabel: string;
   editorMaterialResetButton: string;
   editorMaterialPreviewNotice: string;
+  editorTransparentLedDisclaimer: string;
 
-  editorTemplateSectionHeading: string;
+  editorCurvatureModeLabel: string;
+  editorCurvatureFlat: string;
+  editorCurvatureConcave: string;
+  editorCurvatureConvex: string;
+  editorCurvatureAmountLabel: string;
+  editorCurvatureResetButton: string;
+  editorCurvatureUnsupportedHint: string;
+
   portableSectionHeading: string;
   editorAddPortableButton: string;
   portableTypeLabel: string;
@@ -117,10 +136,12 @@ export interface Messages {
   toolbarAppearanceEmptyHint: string;
   toolbarAppearanceUnsupportedHint: string;
   toolbarSelectedSignageTypeLabel: string;
+  toolbarExportDisabledReason: string;
   signageTypeText: string;
   signageTypeImage: string;
-  signageTypeWallLed: string;
-  signageTypeStandDisplay: string;
+  signageTypeLed: string;
+  signageTypeLcd: string;
+  signageTypeTransparentLed: string;
   signageTypePortable: string;
   exportResolutionLabel: string;
 

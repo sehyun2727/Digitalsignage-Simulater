@@ -10,20 +10,18 @@ export const en: Messages = {
     ko: '한국어',
     en: 'English',
   },
-  hullCtaLabel: 'Contact HULL',
+  hullCtaLabel: 'Install signage with HULL',
   hullCtaExternalNotice: 'Opens the official HULL website in a new tab.',
 
-  editorTemplateLabel: 'Template',
-  editorTemplateWallLed: 'Wall LED',
-  editorTemplateStandDisplay: 'Stand Display',
   editorAddTextButton: 'Add text',
   editorAddImageButton: 'Add image',
   editorDeleteButton: 'Delete',
   editorUndoButton: 'Undo',
   editorRedoButton: 'Redo',
   editorExportButton: 'Export as PNG',
-  editorBackgroundColorLabel: 'Background color',
-  editorEmptyCanvasHint: 'No elements yet. Add text or an image to get started.',
+  editorCanvasEmptyHint:
+    'Start by uploading a space photo. Its aspect ratio becomes the export size exactly.',
+  editorCanvasNoSignageHint: 'Place an LED, LCD, Transparent LED, or portable product from Add signage.',
   editorPropertiesTitle: 'Properties',
   editorPropertiesEmptyHint: 'Select an element to edit its properties.',
   editorPositionXLabel: 'X position',
@@ -46,9 +44,19 @@ export const en: Messages = {
 
   editorSpaceBackgroundLabel: 'Space photo',
   editorAddSpaceBackgroundButton: 'Add space photo',
+  editorReplaceSpaceBackgroundButton: 'Replace space photo',
   editorRemoveSpaceBackgroundButton: 'Remove space photo',
-  editorAddWallLedButton: 'Add Wall LED',
-  editorAddStandDisplayButton: 'Add Stand Display',
+  toolbarSpaceEmptyHint:
+    "Uploading a space photo makes that photo's resolution and aspect ratio the canvas and export size. You cannot add signage until a space photo exists.",
+  editorSpaceBackgroundDimensionsLabel: 'Export size',
+  editorSpaceBackgroundDownscaledNotice:
+    'The image was too large and was automatically downscaled to a safe size.',
+  editorSpaceBackgroundPrivacyNotice: 'The photo is processed only in your browser and is never sent to a server.',
+
+  editorAddLedButton: 'Add LED display',
+  editorAddLcdButton: 'Add LCD display',
+  editorAddTransparentLedButton: 'Add Transparent LED display',
+  toolbarAddSignageDisabledHint: 'Upload a space photo first to add signage.',
 
   editorContentLabel: 'Screen content',
   editorContentUploadButton: 'Add content',
@@ -64,15 +72,30 @@ export const en: Messages = {
   editorContentResetButton: 'Reset content placement',
 
   editorMaterialLabel: 'Display material',
-  editorMaterialOutdoorLed: 'Outdoor LED',
+  editorMaterialLed: 'LED',
   editorMaterialLcd: 'LCD',
+  editorMaterialTransparentLed: 'Transparent LED',
   editorMaterialIntensityLabel: 'Material intensity',
   editorMaterialBrightnessLabel: 'Brightness',
+  editorMaterialTransparencyLabel: 'Transparency (background visibility)',
+  editorMaterialGridDensityLabel: 'Grid density (advanced)',
+  editorMaterialGlowLabel: 'Glow strength (advanced)',
+  editorMaterialContrastLabel: 'Contrast (advanced)',
+  editorMaterialAdvancedToggleLabel: 'Show advanced settings',
   editorMaterialResetButton: 'Reset effects',
   editorMaterialPreviewNotice:
-    'Screen texture and brightness are a visual reference only and do not guarantee real product performance.',
+    'Screen texture, brightness, glow, and contrast are a visual reference only and do not guarantee real product performance.',
+  editorTransparentLedDisclaimer:
+    'The Transparent LED preview is a simplified visual simulation. It does not reproduce real transparency, brightness, or other physical properties and must not be used as the basis for product selection.',
 
-  editorTemplateSectionHeading: 'Base templates',
+  editorCurvatureModeLabel: 'Curvature type',
+  editorCurvatureFlat: 'Flat',
+  editorCurvatureConcave: 'Concave (curves inward)',
+  editorCurvatureConvex: 'Convex (curves outward)',
+  editorCurvatureAmountLabel: 'Curvature amount',
+  editorCurvatureResetButton: 'Reset curvature',
+  editorCurvatureUnsupportedHint: 'This material does not support curvature (flat only).',
+
   portableSectionHeading: 'My portable products',
   editorAddPortableButton: 'Add portable product',
   portableTypeLabel: 'Type',
@@ -120,10 +143,12 @@ export const en: Messages = {
   toolbarAppearanceEmptyHint: 'Select a display or portable product to edit its appearance.',
   toolbarAppearanceUnsupportedHint: 'This element has no appearance settings.',
   toolbarSelectedSignageTypeLabel: 'Type',
+  toolbarExportDisabledReason: 'Add a space photo to enable export.',
   signageTypeText: 'Text',
   signageTypeImage: 'Image',
-  signageTypeWallLed: 'Wall LED',
-  signageTypeStandDisplay: 'Stand Display',
+  signageTypeLed: 'LED display',
+  signageTypeLcd: 'LCD display',
+  signageTypeTransparentLed: 'Transparent LED display',
   signageTypePortable: 'Portable product',
   exportResolutionLabel: 'Export size',
 
@@ -136,13 +161,14 @@ export const en: Messages = {
   comparisonOriginalNoSpaceHint: 'No space photo has been added yet.',
 
   statusBarHintNoSpace: 'Start by adding a space photo in the Space section.',
-  statusBarHintNoSignage: 'Place a Wall LED, Stand Display, or portable product from Add signage.',
+  statusBarHintNoSignage:
+    'Place an LED, LCD, Transparent LED, or portable product from Add signage.',
   statusBarHintNoContent: 'Add an image to the selected signage from the Content section.',
   statusBarHintReady: 'When ready, export a PNG from the Export section.',
 
   onboardingTitle: 'Welcome',
   onboardingDescription:
-    'The toolbar on the right always shows Space, Add signage, Selected signage, Content, Appearance, and Export. Work through them top to bottom to build a preview of your signage installation.',
+    'The toolbar on the right always shows Space, Add signage, Selected signage, Content, Appearance, and Export. Start by uploading a space photo — it becomes the canvas and export size exactly. Work through the sections top to bottom to build a preview of your signage installation.',
   onboardingStartButton: 'Get started',
   onboardingDismissButton: 'Dismiss',
 };

@@ -10,20 +10,17 @@ export const ja: Messages = {
     ko: '한국어',
     en: 'English',
   },
-  hullCtaLabel: 'HULLに問い合わせる',
+  hullCtaLabel: 'サイネージ設置はこちら',
   hullCtaExternalNotice: '外部のHULL公式サイトが新しいタブで開きます。',
 
-  editorTemplateLabel: 'テンプレート',
-  editorTemplateWallLed: '壁掛けLED',
-  editorTemplateStandDisplay: 'スタンド型ディスプレイ',
   editorAddTextButton: 'テキストを追加',
   editorAddImageButton: '画像を追加',
   editorDeleteButton: '削除',
   editorUndoButton: '元に戻す',
   editorRedoButton: 'やり直す',
   editorExportButton: 'PNGで書き出す',
-  editorBackgroundColorLabel: '背景色',
-  editorEmptyCanvasHint: 'まだ要素がありません。テキストまたは画像を追加してください。',
+  editorCanvasEmptyHint: 'まずは空間写真をアップロードしてください。写真の縦横比がそのまま書き出しサイズになります。',
+  editorCanvasNoSignageHint: '「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。',
   editorPropertiesTitle: 'プロパティ',
   editorPropertiesEmptyHint: '要素を選択するとプロパティを編集できます。',
   editorPositionXLabel: 'X座標',
@@ -47,9 +44,19 @@ export const ja: Messages = {
 
   editorSpaceBackgroundLabel: '空間写真',
   editorAddSpaceBackgroundButton: '空間写真を追加',
+  editorReplaceSpaceBackgroundButton: '空間写真を差し替える',
   editorRemoveSpaceBackgroundButton: '空間写真を削除',
-  editorAddWallLedButton: '壁掛けLEDを追加',
-  editorAddStandDisplayButton: 'スタンド型ディスプレイを追加',
+  toolbarSpaceEmptyHint:
+    '空間写真をアップロードすると、その写真の解像度・縦横比がそのままキャンバスと書き出しサイズになります。まだ写真がなければ、サイネージを追加できません。',
+  editorSpaceBackgroundDimensionsLabel: '書き出しサイズ',
+  editorSpaceBackgroundDownscaledNotice:
+    '画像が大きすぎるため、安全な範囲まで自動的に縮小しました。',
+  editorSpaceBackgroundPrivacyNotice: '写真はブラウザ内でのみ処理され、サーバーには送信されません。',
+
+  editorAddLedButton: 'LEDディスプレイを追加',
+  editorAddLcdButton: 'LCDディスプレイを追加',
+  editorAddTransparentLedButton: '透過LEDディスプレイを追加',
+  toolbarAddSignageDisabledHint: 'サイネージを追加するには、先に空間写真をアップロードしてください。',
 
   editorContentLabel: '画面コンテンツ',
   editorContentUploadButton: 'コンテンツを追加',
@@ -65,15 +72,30 @@ export const ja: Messages = {
   editorContentResetButton: 'コンテンツ配置をリセット',
 
   editorMaterialLabel: 'ディスプレイ素材',
-  editorMaterialOutdoorLed: '屋外LED',
+  editorMaterialLed: 'LED',
   editorMaterialLcd: 'LCD',
+  editorMaterialTransparentLed: '透過LED',
   editorMaterialIntensityLabel: '質感の強さ',
   editorMaterialBrightnessLabel: '明るさ',
+  editorMaterialTransparencyLabel: '透過度（背景の見え方）',
+  editorMaterialGridDensityLabel: 'グリッド密度（詳細設定）',
+  editorMaterialGlowLabel: '発光の強さ（詳細設定）',
+  editorMaterialContrastLabel: 'コントラスト（詳細設定）',
+  editorMaterialAdvancedToggleLabel: '詳細設定を表示',
   editorMaterialResetButton: '効果をリセット',
   editorMaterialPreviewNotice:
-    '画面の質感と明るさは視覚的な参考表現であり、実際の製品性能を保証するものではありません。',
+    '画面の質感・明るさ・発光・コントラストは視覚的な参考表現であり、実際の製品性能を保証するものではありません。',
+  editorTransparentLedDisclaimer:
+    '透過LEDの表現は簡易的な視覚シミュレーションです。実際の透過率・輝度・物理特性を再現するものではなく、製品選定の判断材料にはなりません。',
 
-  editorTemplateSectionHeading: '基本テンプレート',
+  editorCurvatureModeLabel: '曲面タイプ',
+  editorCurvatureFlat: 'フラット',
+  editorCurvatureConcave: '凹面（内側に反る）',
+  editorCurvatureConvex: '凸面（外側に反る）',
+  editorCurvatureAmountLabel: '曲面の強さ',
+  editorCurvatureResetButton: '曲面をリセット',
+  editorCurvatureUnsupportedHint: 'この素材では曲面表現を利用できません（フラットのみ）。',
+
   portableSectionHeading: 'マイ・ポータブル製品',
   editorAddPortableButton: 'ポータブル製品を追加',
   portableTypeLabel: '種類',
@@ -122,10 +144,12 @@ export const ja: Messages = {
   toolbarAppearanceEmptyHint: 'ディスプレイまたはポータブル製品を選択すると、外観を編集できます。',
   toolbarAppearanceUnsupportedHint: 'この要素には外観設定はありません。',
   toolbarSelectedSignageTypeLabel: '種類',
+  toolbarExportDisabledReason: '空間写真を追加すると書き出しできるようになります。',
   signageTypeText: 'テキスト',
   signageTypeImage: '画像',
-  signageTypeWallLed: '壁掛けLED',
-  signageTypeStandDisplay: 'スタンド型ディスプレイ',
+  signageTypeLed: 'LEDディスプレイ',
+  signageTypeLcd: 'LCDディスプレイ',
+  signageTypeTransparentLed: '透過LEDディスプレイ',
   signageTypePortable: 'ポータブル製品',
   exportResolutionLabel: '書き出しサイズ',
 
@@ -139,13 +163,13 @@ export const ja: Messages = {
 
   statusBarHintNoSpace: 'まずは「空間」セクションから空間写真を追加しましょう。',
   statusBarHintNoSignage:
-    '「サイネージを追加」セクションからLED・LCD・ポータブル製品を配置しましょう。',
+    '「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。',
   statusBarHintNoContent: '選択中のサイネージに「コンテンツ」セクションから画像を追加できます。',
   statusBarHintReady: '準備ができたら「書き出し」セクションからPNGを書き出しましょう。',
 
   onboardingTitle: 'ようこそ',
   onboardingDescription:
-    '右側のツールバーには「空間」「サイネージを追加」「選択中のサイネージ」「コンテンツ」「外観」「書き出し」が常時表示されています。上から順に操作すると、サイネージの設置イメージを簡単に作成できます。',
+    '右側のツールバーには「空間」「サイネージを追加」「選択中のサイネージ」「コンテンツ」「外観」「書き出し」が常時表示されています。まず空間写真をアップロードすると、その写真がそのままキャンバスと書き出しサイズになります。上から順に操作すると、サイネージの設置イメージを簡単に作成できます。',
   onboardingStartButton: 'はじめる',
   onboardingDismissButton: '閉じる',
 };
