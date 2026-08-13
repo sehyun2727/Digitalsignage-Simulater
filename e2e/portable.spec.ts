@@ -2,33 +2,22 @@ import fs from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { readPngDimensions } from './support/png.js';
 import { samplePngPixels } from './support/pixels.js';
+import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
 
 test.use({ locale: 'ja-JP' });
 
-async function solidColorPng(
-  page: import('@playwright/test').Page,
-  color: string,
-  size = 100,
-): Promise<Buffer> {
-  const dataUrl = await page.evaluate(
-    ({ color, size }) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d')!;
-      ctx.fillStyle = color;
-      ctx.fillRect(0, 0, size, size);
-      return canvas.toDataURL('image/png');
-    },
-    { color, size },
-  );
-  return Buffer.from(dataUrl.split(',')[1]!, 'base64');
+const NO_SIGNAGE_HINT =
+  '「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。';
+
+async function setup(page: import('@playwright/test').Page) {
+  await page.goto('/');
+  await addSpaceBackground(page, { width: 1920, height: 1080 });
 }
 
 /**
- * A square (1:1) product photo keeps computeDefaultPortableSize's placement math simple: on the
- * default wall-led template (1920x1080) it places a 540x540 object centered at (960, 540), i.e.
- * spanning x:[690,1230] y:[270,810] - the coordinates the pixel-verification tests below rely on.
+ * A square (1:1) product photo keeps computeDefaultPortableSize's placement math simple: on a
+ * 1920x1080 space photo it places a 540x540 object centered at (960, 540), i.e. spanning
+ * x:[690,1230] y:[270,810] - the coordinates the pixel-verification tests below rely on.
  */
 async function uploadPortableProductPhoto(
   dialog: import('@playwright/test').Locator,
@@ -76,7 +65,7 @@ async function uploadTransparentPortableProductPhoto(
 test('walks the photo and drag-to-draw region steps to add a portable product, then re-edits its region', async ({
   page,
 }) => {
-  await page.goto('/');
+  await setup(page);
 
   await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
   const dialog = page.getByRole('dialog');
@@ -125,7 +114,7 @@ test('walks the photo and drag-to-draw region steps to add a portable product, t
 test('rejects a screen region smaller than the minimum size and keeps the dialog open', async ({
   page,
 }) => {
-  await page.goto('/');
+  await setup(page);
 
   await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
   const dialog = page.getByRole('dialog');
@@ -143,7 +132,7 @@ test('rejects a screen region smaller than the minimum size and keeps the dialog
 });
 
 test('cancelling the builder does not add a portable object', async ({ page }) => {
-  await page.goto('/');
+  await setup(page);
 
   await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
   const dialog = page.getByRole('dialog');
@@ -154,29 +143,29 @@ test('cancelling the builder does not add a portable object', async ({ page }) =
 });
 
 test('undo removes an added portable product and redo restores it', async ({ page }) => {
-  await page.goto('/');
+  await setup(page);
 
   await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
   const dialog = page.getByRole('dialog');
   await uploadPortableProductPhoto(dialog, '#1155ff');
   await dialog.getByRole('button', { name: '次へ' }).click();
   await dialog.getByRole('button', { name: '追加', exact: true }).click();
-  await expect(page.getByText('まだ要素がありません')).toBeHidden();
+  await expect(page.getByText(NO_SIGNAGE_HINT).first()).toBeHidden();
 
   // undo/redo clear selection along with restoring/removing the object (see editorStore.ts),
-  // so the empty-canvas hint - not the properties panel - is what actually reflects whether
+  // so the no-signage hint - not the properties panel - is what actually reflects whether
   // the portable object is present.
   await page.getByRole('button', { name: '元に戻す' }).click();
-  await expect(page.getByText('まだ要素がありません')).toBeVisible();
+  await expect(page.getByText(NO_SIGNAGE_HINT).first()).toBeVisible();
 
   await page.getByRole('button', { name: 'やり直す' }).click();
-  await expect(page.getByText('まだ要素がありません')).toBeHidden();
+  await expect(page.getByText(NO_SIGNAGE_HINT).first()).toBeHidden();
 });
 
 test('applies content and material to a portable product; export is clipped to its screen region and defaults to LCD', async ({
   page,
 }) => {
-  await page.goto('/');
+  await setup(page);
 
   await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
   const dialog = page.getByRole('dialog');
@@ -211,10 +200,10 @@ test('applies content and material to a portable product; export is clipped to i
   const buffer = await fs.readFile(path!);
   expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
 
-  // A square 100x100 product photo on the wall-led (1920x1080) template places a centered
-  // 540x540 object at x:[690,1230] y:[270,810]; the default 0.2/0.2/0.6/0.6 screen region is
-  // centered within it, so its center (960, 540) coincides with the object's own center.
-  // (700, 280) sits inside the product photo but well outside that centered screen region.
+  // A square 100x100 product photo on a 1920x1080 space photo places a centered 540x540 object
+  // at x:[690,1230] y:[270,810]; the default 0.2/0.2/0.6/0.6 screen region is centered within
+  // it, so its center (960, 540) coincides with the object's own center. (700, 280) sits inside
+  // the product photo but well outside that centered screen region.
   const [productPixel, screenCenterPixel] = await samplePngPixels(page, buffer, [
     [700, 280],
     [960, 540],
@@ -235,7 +224,7 @@ test.describe('direct region move/resize (real pointer drags)', () => {
   async function addPortableProductAndOpenRegionEditor(
     page: import('@playwright/test').Page,
   ): Promise<import('@playwright/test').Locator> {
-    await page.goto('/');
+    await setup(page);
     await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
     const dialog = page.getByRole('dialog');
     await uploadPortableProductPhoto(dialog, '#1155ff');
@@ -275,14 +264,14 @@ test.describe('direct region move/resize (real pointer drags)', () => {
     // Reselecting a canvas object by clicking its rendered Konva shape is covered separately by
     // e2e/reselection.spec.ts; this test isn't about that path, so it proves the "exactly one
     // history entry" claim the same way the pre-existing undo/redo test does: via the
-    // empty-canvas hint, not by reopening the region editor after undo. Exactly two entries
+    // no-signage hint, not by reopening the region editor after undo. Exactly two entries
     // must exist (creation, then the move) - one undo should revert the move but leave the
     // object in place, and only the second undo should remove it.
     await page.getByRole('button', { name: '元に戻す' }).click();
-    await expect(page.getByText('まだ要素がありません')).toBeHidden();
+    await expect(page.getByText(NO_SIGNAGE_HINT).first()).toBeHidden();
 
     await page.getByRole('button', { name: '元に戻す' }).click();
-    await expect(page.getByText('まだ要素がありません')).toBeVisible();
+    await expect(page.getByText(NO_SIGNAGE_HINT).first()).toBeVisible();
   });
 
   test('dragging the se corner handle resizes while keeping the nw corner fixed', async ({
@@ -363,7 +352,7 @@ test.describe('direct region move/resize (real pointer drags)', () => {
 
     // Only the creation step should be undoable - the discarded drag must not add an entry.
     await page.getByRole('button', { name: '元に戻す' }).click();
-    await expect(page.getByText('まだ要素がありません')).toBeVisible();
+    await expect(page.getByText(NO_SIGNAGE_HINT).first()).toBeVisible();
   });
 
   test('saving an unchanged region creates no history entry', async ({ page }) => {
@@ -372,7 +361,7 @@ test.describe('direct region move/resize (real pointer drags)', () => {
     await expect(editDialog).toBeHidden();
 
     await page.getByRole('button', { name: '元に戻す' }).click();
-    await expect(page.getByText('まだ要素がありません')).toBeVisible();
+    await expect(page.getByText(NO_SIGNAGE_HINT).first()).toBeVisible();
   });
 });
 
@@ -384,10 +373,7 @@ test.describe('export composition (pixel verification)', () => {
 
     // Space background fills the whole canvas, so it's what should show through the product
     // photo's transparent border once composited.
-    const spaceBackground = await solidColorPng(page, '#00cc44');
-    await page
-      .getByLabel('空間写真を追加')
-      .setInputFiles({ name: 'space.png', mimeType: 'image/png', buffer: spaceBackground });
+    await addSpaceBackground(page, { width: 1920, height: 1080, color: '#00cc44' });
 
     await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
     const dialog = page.getByRole('dialog');
@@ -446,7 +432,7 @@ test.describe('export composition (pixel verification)', () => {
   test('the default LCD material renders a visible highlight overlay on the screen region', async ({
     page,
   }) => {
-    await page.goto('/');
+    await setup(page);
 
     await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
     const dialog = page.getByRole('dialog');
@@ -482,12 +468,14 @@ test.describe('export composition (pixel verification)', () => {
     expect(brightness(withHighlight)).toBeGreaterThan(brightness(withoutHighlight));
   });
 
-  test('exports a portable product on the stand-display template at its native 1080x1920 resolution', async ({
+  test('exports a portable product on a portrait space photo at its native 1080x1920 resolution', async ({
     page,
   }) => {
     await page.goto('/');
+    // No separate "template" concept exists any more - a portrait-oriented space photo alone
+    // drives a portrait export.
+    await addSpaceBackground(page, { width: 1080, height: 1920 });
 
-    await page.getByLabel('テンプレート').selectOption('stand-display');
     await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
     const dialog = page.getByRole('dialog');
     await uploadPortableProductPhoto(dialog, '#1155ff');

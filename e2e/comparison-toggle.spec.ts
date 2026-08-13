@@ -1,28 +1,14 @@
 import { expect, test } from '@playwright/test';
+import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
 
 test.use({ locale: 'ja-JP' });
-
-async function solidColorPng(
-  page: import('@playwright/test').Page,
-  color: string,
-): Promise<Buffer> {
-  const dataUrl = await page.evaluate((color) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 100;
-    canvas.height = 100;
-    const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = color;
-    ctx.fillRect(0, 0, 100, 100);
-    return canvas.toDataURL('image/png');
-  }, color);
-  return Buffer.from(dataUrl.split(',')[1]!, 'base64');
-}
 
 test('switching to the original view hides signage objects and clears selection', async ({
   page,
 }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+  await addSpaceBackground(page);
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
   await expect(page.getByRole('button', { name: '削除', exact: true })).toBeEnabled();
 
   await page.getByRole('button', { name: 'オリジナル', exact: true }).click();
@@ -62,7 +48,8 @@ test('original view with a space photo hides the empty-space hint', async ({ pag
 
 test('dropping a file onto the canvas while in the original view is a no-op', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+  await addSpaceBackground(page);
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
 
   await page.getByRole('button', { name: 'オリジナル', exact: true }).click();
 

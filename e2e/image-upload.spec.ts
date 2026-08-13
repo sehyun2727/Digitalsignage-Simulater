@@ -1,10 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { spliceExifIntoJpeg } from './support/exif.js';
+import { addSpaceBackground } from './support/spaceBackground.js';
 
 test.use({ locale: 'ja-JP' });
 
 test('applies EXIF orientation the same way the browser natively decodes it', async ({ page }) => {
   await page.goto('/');
+  await addSpaceBackground(page);
 
   // Encode a real 100x50 JPEG using the browser's own canvas encoder, then splice a
   // hand-built Exif "Rotate 90 CW" (orientation 6) segment onto it. Evergreen browsers
@@ -25,7 +27,7 @@ test('applies EXIF orientation the same way the browser natively decodes it', as
   const fileInput = page.getByLabel('画像を追加');
   await fileInput.setInputFiles({ name: 'photo.jpg', mimeType: 'image/jpeg', buffer: rotatedJpeg });
 
-  await expect(page.getByRole('button', { name: '削除' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '削除', exact: true })).toBeEnabled();
   await expect(page.getByLabel('幅')).toHaveValue('50');
   await expect(page.getByLabel('高さ')).toHaveValue('100');
 });
@@ -34,6 +36,7 @@ test('shows an accessible error and does not add an element when an image fails 
   page,
 }) => {
   await page.goto('/');
+  await addSpaceBackground(page);
 
   const fileInput = page.getByLabel('画像を追加');
   await fileInput.setInputFiles({
@@ -45,6 +48,8 @@ test('shows an accessible error and does not add an element when an image fails 
   await expect(page.getByRole('status')).toHaveText(
     '画像を読み込めませんでした。ファイルが破損している可能性があります。',
   );
-  await expect(page.getByText('まだ要素がありません')).toBeVisible();
-  await expect(page.getByRole('button', { name: '削除' })).toBeDisabled();
+  await expect(
+    page.getByText('「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。').first(),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: '削除', exact: true })).toBeDisabled();
 });

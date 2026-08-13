@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { addSpaceBackground } from './support/spaceBackground.js';
 
 test.use({ locale: 'ja-JP' });
 
@@ -77,32 +78,37 @@ async function dropImageOntoCanvas(
   );
 }
 
-// Default Wall LED placement centers a 480x270 object on the 1920x1080 canvas, so its screen
-// region (2% inset on every side) shares the object's own center point: (960, 540).
-const WALL_LED_SCREEN_CENTER = { x: 960, y: 540 };
+async function setup(page: import('@playwright/test').Page) {
+  await page.goto('/');
+  await addSpaceBackground(page, { width: 1920, height: 1080 });
+}
 
-test('dropping an image file onto a Wall LED screen region assigns it as content', async ({
+// Default display placement centers a 480x270 object on the 1920x1080 canvas, so its screen
+// region (2% inset on every side) shares the object's own center point: (960, 540).
+const DISPLAY_SCREEN_CENTER = { x: 960, y: 540 };
+
+test('dropping an image file onto an LED screen region assigns it as content', async ({
   page,
 }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+  await setup(page);
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
 
   const png = await solidColorPng(page, '#ff8800');
-  await dropImageOntoCanvas(page, png, WALL_LED_SCREEN_CENTER);
+  await dropImageOntoCanvas(page, png, DISPLAY_SCREEN_CENTER);
 
   await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
 });
 
 test('dropping onto a rotated display screen region still hits it correctly', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+  await setup(page);
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
 
   const rotationInput = page.getByRole('spinbutton', { name: '回転' });
   await rotationInput.fill('40');
   await rotationInput.blur();
 
   // The screen region's local center coincides with the object's own center (see
-  // WALL_LED_SCREEN_CENTER above), and Konva rotates around the object's x/y (top-left), not
+  // DISPLAY_SCREEN_CENTER above), and Konva rotates around the object's x/y (top-left), not
   // its center — so the rotated document-space point is object.xy + R(40deg) * localCenter,
   // where localCenter = (240, 135) (half of the 480x270 object) and object.xy = (720, 405)
   // (the default centered placement: 1920/2 - 480/2, 1080/2 - 270/2).
@@ -123,46 +129,47 @@ test('dropping onto a rotated display screen region still hits it correctly', as
 test('dropping onto the topmost of two overlapping displays assigns content only to that one', async ({
   page,
 }) => {
-  await page.goto('/');
-  // Both default to the same centered position; the Stand Display is added second, so it
-  // renders on top of the Wall LED in Konva's stacking order (same z-order convention as
-  // reselection.spec.ts's overlapping-objects test).
-  await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
-  await page.getByRole('button', { name: 'スタンド型ディスプレイを追加' }).click();
+  await setup(page);
+  // Both displays default to the same centered 480x270 position; the LCD display is added
+  // second, so it renders on top of the LED display in Konva's stacking order (same z-order
+  // convention as reselection.spec.ts's overlapping-objects test). Since both objects share the
+  // same size, the material combobox (not width) identifies which one received the drop.
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
 
   const png = await solidColorPng(page, '#00cc44');
-  await dropImageOntoCanvas(page, png, WALL_LED_SCREEN_CENTER);
+  await dropImageOntoCanvas(page, png, DISPLAY_SCREEN_CENTER);
 
-  // A successful drop also selects its target, so the width field identifies which object
-  // received the content without any extra canvas click.
-  await expect(page.getByRole('spinbutton', { name: '幅' })).toHaveValue('220');
+  // A successful drop also selects its target, so the material combobox identifies which
+  // object received the content without any extra canvas click.
+  await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
   await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
 
-  // Delete the Stand Display (topmost, now confirmed to hold the dropped content) to expose
-  // the Wall LED beneath it, then confirm the Wall LED was left untouched by the drop.
+  // Delete the LCD display (topmost, now confirmed to hold the dropped content) to expose
+  // the LED display beneath it, then confirm the LED display was left untouched by the drop.
   await page.getByRole('button', { name: '削除', exact: true }).click();
   const center = (await page.locator('.editor-canvas-container').boundingBox())!;
   await page.mouse.click(center.x + center.width / 2, center.y + center.height / 2);
 
-  await expect(page.getByRole('spinbutton', { name: '幅' })).toHaveValue('480');
+  await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('led');
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
   ).toBeVisible();
 });
 
 test('dropping outside any screen region does nothing', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
-  await expect(page.getByRole('button', { name: '削除' })).toBeEnabled();
+  await setup(page);
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await expect(page.getByRole('button', { name: '削除', exact: true })).toBeEnabled();
 
   const png = await solidColorPng(page, '#ff0000');
-  // Document-space (10, 10) is far outside the default Wall LED's bounds (x:[720,1200],
+  // Document-space (10, 10) is far outside the default display's bounds (x:[720,1200],
   // y:[405,675]), so no object's screen region contains it.
   await dropImageOntoCanvas(page, png, { x: 10, y: 10 });
 
   // The drop was a no-op: the pre-drop selection (the just-added display) is left untouched,
   // and it still has no content assigned.
-  await expect(page.getByRole('button', { name: '削除' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '削除', exact: true })).toBeEnabled();
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
   ).toBeVisible();
@@ -171,11 +178,11 @@ test('dropping outside any screen region does nothing', async ({ page }) => {
 test('dropping an unsupported file type onto a screen region shows an accessible error and does not assign content', async ({
   page,
 }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+  await setup(page);
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
 
   const notAnImage = Buffer.from('this is not a real image').toString('base64');
-  await dropImageOntoCanvas(page, notAnImage, WALL_LED_SCREEN_CENTER, {
+  await dropImageOntoCanvas(page, notAnImage, DISPLAY_SCREEN_CENTER, {
     mimeType: 'text/plain',
     fileName: 'notes.txt',
   });

@@ -1,19 +1,15 @@
 import fs from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
 
-// The Stand Display template renders a tall portrait canvas container (well over 1500px once
-// fit to a 1280px-wide viewport at its native aspect ratio); a viewport limited to the default
-// 720px height would put the container's own vertical center below the fold, where raw
-// page.mouse.click() coordinates can't land. A taller viewport keeps every test's canvas-center
-// math (see canvasCenter() below) valid across every template this suite exercises.
 test.use({ locale: 'ja-JP', viewport: { width: 1280, height: 1700 } });
 
 /**
- * Every object kind is placed centered on the canvas by default (`x = template.width/2 -
- * width/2`, `y = template.height/2 - height/2` in editorStore.ts's add* actions), so the
+ * Every object kind is placed centered on the canvas by default (`x = size.width/2 -
+ * width/2`, `y = size.height/2 - height/2` in editorStore.ts's add* actions), so the
  * `.editor-canvas-container` element's own bounding-box center always coincides with a
- * freshly added object's bounding-box center regardless of kind, template, or size. This lets
- * every test below click a single, reusable point instead of computing per-kind canvas math.
+ * freshly added object's bounding-box center regardless of kind or size. This lets every
+ * test below click a single, reusable point instead of computing per-kind canvas math.
  */
 async function canvasCenter(
   page: import('@playwright/test').Page,
@@ -29,28 +25,13 @@ async function canvasCorner(
   return { x: box.x + 5, y: box.y + 5 };
 }
 
-async function solidColorPng(
-  page: import('@playwright/test').Page,
-  color: string,
-  size = 100,
-): Promise<Buffer> {
-  const dataUrl = await page.evaluate(
-    ({ color, size }) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d')!;
-      ctx.fillStyle = color;
-      ctx.fillRect(0, 0, size, size);
-      return canvas.toDataURL('image/png');
-    },
-    { color, size },
-  );
-  return Buffer.from(dataUrl.split(',')[1]!, 'base64');
+async function setup(page: import('@playwright/test').Page) {
+  await page.goto('/');
+  await addSpaceBackground(page, { width: 1920, height: 1080 });
 }
 
 const deleteButton = (page: import('@playwright/test').Page) =>
-  page.getByRole('button', { name: '削除' });
+  page.getByRole('button', { name: '削除', exact: true });
 
 async function deselectViaBlankCanvas(page: import('@playwright/test').Page) {
   const corner = await canvasCorner(page);
@@ -65,9 +46,9 @@ async function reselectViaCanvasClick(page: import('@playwright/test').Page) {
 }
 
 test.describe('canvas object reselection', () => {
-  test('a Wall LED display is reselectable after being deselected', async ({ page }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+  test('an LED display is reselectable after being deselected', async ({ page }) => {
+    await setup(page);
+    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
     await expect(deleteButton(page)).toBeEnabled();
 
     await deselectViaBlankCanvas(page);
@@ -79,22 +60,22 @@ test.describe('canvas object reselection', () => {
     await expect(page.getByRole('spinbutton', { name: '高さ' })).toHaveValue('270');
   });
 
-  test('a Stand Display is reselectable after being deselected', async ({ page }) => {
-    await page.goto('/');
-    await page.getByLabel('テンプレート').selectOption('stand-display');
-    await page.getByRole('button', { name: 'スタンド型ディスプレイを追加' }).click();
+  test('an LCD display is reselectable after being deselected', async ({ page }) => {
+    await setup(page);
+    await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
     await expect(deleteButton(page)).toBeEnabled();
 
     await deselectViaBlankCanvas(page);
     await reselectViaCanvasClick(page);
 
     await expect(deleteButton(page)).toBeEnabled();
-    await expect(page.getByRole('spinbutton', { name: '幅' })).toHaveValue('220');
-    await expect(page.getByRole('spinbutton', { name: '高さ' })).toHaveValue('420');
+    await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
+    await expect(page.getByRole('spinbutton', { name: '幅' })).toHaveValue('480');
+    await expect(page.getByRole('spinbutton', { name: '高さ' })).toHaveValue('270');
   });
 
   test('a custom portable product is reselectable after being deselected', async ({ page }) => {
-    await page.goto('/');
+    await setup(page);
     await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
     const dialog = page.getByRole('dialog');
     const photo = await solidColorPng(page, '#1155ff');
@@ -114,7 +95,7 @@ test.describe('canvas object reselection', () => {
   });
 
   test('a text object is reselectable after being deselected', async ({ page }) => {
-    await page.goto('/');
+    await setup(page);
     await page.getByRole('button', { name: 'テキストを追加' }).click();
     await expect(deleteButton(page)).toBeEnabled();
 
@@ -126,7 +107,7 @@ test.describe('canvas object reselection', () => {
   });
 
   test('an uploaded image object is reselectable after being deselected', async ({ page }) => {
-    await page.goto('/');
+    await setup(page);
     const photo = await solidColorPng(page, '#22aa66');
     await page
       .getByLabel('画像を追加')
@@ -146,8 +127,8 @@ test.describe('canvas object reselection', () => {
   test('dragging an unselected display selects it and moves it in a single gesture', async ({
     page,
   }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+    await setup(page);
+    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
     await deselectViaBlankCanvas(page);
 
     const center = await canvasCenter(page);
@@ -158,7 +139,7 @@ test.describe('canvas object reselection', () => {
 
     await expect(deleteButton(page)).toBeEnabled();
     const xValue = Number(await page.getByRole('spinbutton', { name: 'X座標' }).inputValue());
-    // Started at template.width/2 - width/2 = 960 - 240 = 720; a +60px drag must move it, not
+    // Started at size.width/2 - width/2 = 960 - 240 = 720; a +60px drag must move it, not
     // leave it in place (which would mean the drag started a fresh, unselected pan instead of
     // grabbing the display).
     expect(xValue).toBeGreaterThan(720);
@@ -167,8 +148,8 @@ test.describe('canvas object reselection', () => {
   test('selection is cleared by Undo and Redo, and a subsequent click reselects the object', async ({
     page,
   }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+    await setup(page);
+    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
 
     // A second history entry (beyond the add itself) so Undo reverts the move, not the add.
     const center = await canvasCenter(page);
@@ -192,8 +173,8 @@ test.describe('canvas object reselection', () => {
   test('reselecting an object repeatedly does not create extra history entries', async ({
     page,
   }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+    await setup(page);
+    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
 
     await deselectViaBlankCanvas(page);
     await reselectViaCanvasClick(page);
@@ -203,16 +184,18 @@ test.describe('canvas object reselection', () => {
     // If selection-only interactions had pushed history entries, a single Undo would not be
     // enough to fully remove the object (it would instead revert the last no-op selection).
     await page.getByRole('button', { name: '元に戻す' }).click();
-    await expect(page.getByText('まだ要素がありません')).toBeVisible();
+    await expect(
+      page.getByText('「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。').first(),
+    ).toBeVisible();
   });
 
   test('clicking the topmost of two overlapping objects selects it, not the one beneath', async ({
     page,
   }) => {
-    await page.goto('/');
+    await setup(page);
     // Both default to the same centered position; addText is added second, so it renders on
-    // top of the Wall LED display in Konva's stacking order.
-    await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+    // top of the LED display in Konva's stacking order.
+    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
     await page.getByRole('button', { name: 'テキストを追加' }).click();
 
     await deselectViaBlankCanvas(page);
@@ -225,8 +208,8 @@ test.describe('canvas object reselection', () => {
   test('exported PNG is byte-identical whether the display was freshly added or reselected by click (no hit-area or selection UI leaks into export)', async ({
     page,
   }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+    await setup(page);
+    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
 
     const firstDownloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'PNGで書き出す' }).click();

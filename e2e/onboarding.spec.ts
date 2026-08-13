@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { addSpaceBackground } from './support/spaceBackground.js';
 
 test.use({ locale: 'ja-JP', storageState: { cookies: [], origins: [] } });
 
@@ -15,9 +16,12 @@ test('does not block the toolbar: sections stay usable while the card is showing
 
   await expect(page.getByRole('note', { name: 'ようこそ' })).toBeVisible();
 
-  const wallLedButton = page.getByRole('button', { name: '壁掛けLEDを追加' });
-  await expect(wallLedButton).toBeVisible();
-  await wallLedButton.click();
+  await addSpaceBackground(page);
+  await expect(page.getByRole('note', { name: 'ようこそ' })).toBeVisible();
+
+  const ledButton = page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true });
+  await expect(ledButton).toBeEnabled();
+  await ledButton.click();
 
   await expect(page.getByRole('note', { name: 'ようこそ' })).toBeVisible();
 });

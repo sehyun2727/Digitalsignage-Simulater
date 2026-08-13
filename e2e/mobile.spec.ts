@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import { devices, expect, test } from '@playwright/test';
 import { readPngDimensions } from './support/png.js';
+import { solidColorPng } from './support/spaceBackground.js';
 
 // Emulates a mobile Chromium viewport/touch profile (userAgent, isMobile, hasTouch,
 // deviceScaleFactor from Playwright's iPhone 13 device descriptor) at the exact
@@ -22,26 +23,6 @@ test.use({
   locale: 'ja-JP',
 });
 
-async function solidColorPng(
-  page: import('@playwright/test').Page,
-  color: string,
-  size = 100,
-): Promise<Buffer> {
-  const dataUrl = await page.evaluate(
-    ({ color, size }) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d')!;
-      ctx.fillStyle = color;
-      ctx.fillRect(0, 0, size, size);
-      return canvas.toDataURL('image/png');
-    },
-    { color, size },
-  );
-  return Buffer.from(dataUrl.split(',')[1]!, 'base64');
-}
-
 async function expectNoHorizontalOverflow(page: import('@playwright/test').Page) {
   const overflow = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
@@ -50,7 +31,19 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
   expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
 }
 
-test('full mobile content and export workflow at 390x844 (Wall LED)', async ({ page }) => {
+async function addSpaceBackground(
+  page: import('@playwright/test').Page,
+  width = 1920,
+  height = 1080,
+) {
+  const spaceBackground = await solidColorPng(page, '#1155ff', width, height);
+  await page
+    .getByLabel('空間写真を追加')
+    .setInputFiles({ name: 'space.png', mimeType: 'image/png', buffer: spaceBackground });
+  await expect(page.getByRole('button', { name: '空間写真を削除' })).toBeVisible();
+}
+
+test('full mobile content and export workflow at 390x844 (LED)', async ({ page }) => {
   // 1. Open the app.
   await page.goto('/');
 
@@ -58,17 +51,13 @@ test('full mobile content and export workflow at 390x844 (Wall LED)', async ({ p
   await expect(page.getByRole('heading', { name: 'Digital Signage Simulator' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
 
-  // 3. Upload a valid space background photo.
-  const spaceBackground = await solidColorPng(page, '#1155ff');
-  await page
-    .getByLabel('空間写真を追加')
-    .setInputFiles({ name: 'space.png', mimeType: 'image/png', buffer: spaceBackground });
-  await expect(page.getByRole('button', { name: '空間写真を削除' })).toBeVisible();
+  // 3. Upload a valid space background photo; its resolution becomes the export size.
+  await addSpaceBackground(page, 1920, 1080);
 
-  // 4. Add a Wall LED display.
-  await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+  // 4. Add an LED display.
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
 
-  // 5. Select the display (adding it auto-selects it; the properties panel confirms this).
+  // 5. Select the display (adding it auto-selects it; the content section confirms this).
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
   ).toBeVisible();
@@ -86,13 +75,13 @@ test('full mobile content and export workflow at 390x844 (Wall LED)', async ({ p
   await fitSelect.selectOption('cover');
   await expect(fitSelect).toHaveValue('cover');
 
-  // 8. Change material Outdoor LED -> LCD -> back to Outdoor LED.
+  // 8. Change material LED -> LCD -> back to LED.
   const materialSelect = page.getByRole('combobox', { name: 'ディスプレイ素材' });
-  await expect(materialSelect).toHaveValue('outdoor-led');
+  await expect(materialSelect).toHaveValue('led');
   await materialSelect.selectOption('lcd');
   await expect(materialSelect).toHaveValue('lcd');
-  await materialSelect.selectOption('outdoor-led');
-  await expect(materialSelect).toHaveValue('outdoor-led');
+  await materialSelect.selectOption('led');
+  await expect(materialSelect).toHaveValue('led');
 
   // 9. Adjust intensity and brightness.
   const intensitySlider = page.getByRole('slider', { name: '質感の強さ' });
@@ -115,7 +104,7 @@ test('full mobile content and export workflow at 390x844 (Wall LED)', async ({ p
   expect(path).toBeTruthy();
   const buffer = await fs.readFile(path!);
 
-  // 12. Confirm the exported PNG is 1920x1080 for the Wall LED (wall-led) template.
+  // 12. Confirm the exported PNG matches the uploaded space photo's resolution.
   expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
 
   // 13. Confirm no horizontal overflow at this viewport.
@@ -124,8 +113,8 @@ test('full mobile content and export workflow at 390x844 (Wall LED)', async ({ p
   // 14. Confirm key controls are visible/reachable (scrolled into view without failing).
   await page.getByRole('button', { name: 'PNGで書き出す' }).scrollIntoViewIfNeeded();
   await expect(page.getByRole('button', { name: 'PNGで書き出す' })).toBeVisible();
-  await page.getByRole('button', { name: '壁掛けLEDを追加' }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole('button', { name: '壁掛けLEDを追加' })).toBeVisible();
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true })).toBeVisible();
 
   // 15. Confirm the canvas region is present and usable (rendered with a non-zero box).
   const canvasBox = await page.locator('.editor-canvas-container').boundingBox();
@@ -134,10 +123,10 @@ test('full mobile content and export workflow at 390x844 (Wall LED)', async ({ p
   expect(canvasBox!.height).toBeGreaterThan(0);
 
   // 16. Confirm the HULL CTA is present and points at the approved external URL.
-  const hullLink = page.getByRole('link', { name: 'HULLに問い合わせる' });
+  const hullLink = page.getByRole('link', { name: 'サイネージ設置はこちら' });
   await hullLink.scrollIntoViewIfNeeded();
   await expect(hullLink).toBeVisible();
-  await expect(hullLink).toHaveAttribute('href', 'https://hull-inc.jp/contact');
+  await expect(hullLink).toHaveAttribute('href', 'https://hull-inc.jp/');
   await expect(hullLink).toHaveAttribute('target', '_blank');
   await expect(hullLink).toHaveAttribute('rel', 'noopener noreferrer');
 
@@ -147,14 +136,17 @@ test('full mobile content and export workflow at 390x844 (Wall LED)', async ({ p
   await expect(disclaimer).toBeVisible();
 });
 
-test('mobile smoke: Stand Display content and export at 390x844', async ({ page }) => {
+test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 390x844', async ({
+  page,
+}) => {
   await page.goto('/');
 
-  // Switch template, add a Stand Display, apply content, export, and confirm the
-  // portrait 1080x1920 resolution — a lighter-weight companion to the Wall LED flow
-  // above, covering the second template shape on a mobile viewport.
-  await page.getByLabel('テンプレート').selectOption('stand-display');
-  await page.getByRole('button', { name: 'スタンド型ディスプレイを追加' }).click();
+  // A lighter-weight companion to the LED flow above: a portrait space photo drives a
+  // portrait export, and the LCD material is used instead of LED (no separate "template
+  // shape" concept exists any more — document size comes solely from the uploaded photo).
+  await addSpaceBackground(page, 1080, 1920);
+
+  await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
 
   const content = await solidColorPng(page, '#ff8800');
@@ -178,6 +170,7 @@ test('mobile: adds a custom portable product with a screen region and exports it
   page,
 }) => {
   await page.goto('/');
+  await addSpaceBackground(page, 1920, 1080);
 
   // 1. Open the portable builder and confirm it renders as an accessible dialog at this
   // viewport (no horizontal overflow introduced by the modal itself).
@@ -208,7 +201,7 @@ test('mobile: adds a custom portable product with a screen region and exports it
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
 
-  // 5. Export and confirm the resolution still matches the active template exactly.
+  // 5. Export and confirm the resolution still matches the uploaded space photo exactly.
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'PNGで書き出す' }).click();
   const download = await downloadPromise;
@@ -231,6 +224,8 @@ test('mobile: dragging the portable screen region moves and resizes it at 390x84
   // already covered by the desktop real-pointer-drag suite in portable.spec.ts; this is a
   // usability smoke check that the same interaction isn't broken by the narrow viewport/dialog.
   await page.goto('/');
+  await addSpaceBackground(page, 1920, 1080);
+
   await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
   const dialog = page.getByRole('dialog');
   const productPhoto = await solidColorPng(page, '#1155ff');
@@ -281,9 +276,9 @@ test('mobile: dragging the portable screen region moves and resizes it at 390x84
 });
 
 const deleteButton = (page: import('@playwright/test').Page) =>
-  page.getByRole('button', { name: '削除' });
+  page.getByRole('button', { name: '削除', exact: true });
 
-test('mobile: a Wall LED display is reselectable by tap after being deselected at 390x844', async ({
+test('mobile: an LED display is reselectable by tap after being deselected at 390x844', async ({
   page,
 }) => {
   // Companion to e2e/reselection.spec.ts's desktop coverage of the same fix (the hit-area
@@ -291,10 +286,14 @@ test('mobile: a Wall LED display is reselectable by tap after being deselected a
   // clickable after deselection): this confirms the same interaction also works through
   // Playwright's touch-viewport emulation, not just real mouse input.
   await page.goto('/');
-  await page.getByRole('button', { name: '壁掛けLEDを追加' }).click();
+  await addSpaceBackground(page, 1920, 1080);
+
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
   await expect(deleteButton(page)).toBeEnabled();
 
-  const box = (await page.locator('.editor-canvas-container').boundingBox())!;
+  const canvasContainer = page.locator('.editor-canvas-container');
+  await canvasContainer.scrollIntoViewIfNeeded();
+  const box = (await canvasContainer.boundingBox())!;
   await page.mouse.click(box.x + 5, box.y + 5);
   await expect(deleteButton(page)).toBeDisabled();
 
