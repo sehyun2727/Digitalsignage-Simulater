@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { sweepUnusedAssets } from '../lib/assetRegistry';
+import { normalizeObjectGeometry } from '../lib/geometryNormalization';
 import { createId } from '../lib/id';
 import { computeDefaultPortableSize } from '../lib/portableRegion';
 import type {
-  DisplayFrameId,
+  DisplayMaterial,
   DisplaySignageObject,
   EditorDocument,
   ElementId,
@@ -11,15 +12,9 @@ import type {
   PortableSignageObject,
   SignageObject,
   SpaceBackground,
-  TemplateId,
   TextSignageObject,
 } from '../types/editor';
-import {
-  createEmptyDocument,
-  DEFAULT_MATERIAL_SETTINGS,
-  DISPLAY_FRAME_TEMPLATES,
-  TEMPLATES,
-} from '../types/editor';
+import { createEmptyDocument, DEFAULT_CURVATURE, DEFAULT_MATERIAL_SETTINGS, getDocumentSize } from '../types/editor';
 
 const HISTORY_LIMIT = 50;
 
@@ -28,11 +23,9 @@ export interface EditorState {
   selectedId: ElementId | null;
   past: EditorDocument[];
   future: EditorDocument[];
-  selectTemplate: (templateId: TemplateId) => void;
-  setBackgroundColor: (color: string) => void;
   addText: () => void;
   addImage: (payload: { src: string; naturalWidth: number; naturalHeight: number }) => void;
-  addDisplay: (frameId: DisplayFrameId) => void;
+  addDisplay: (material: DisplayMaterial) => void;
   addPortable: (payload: {
     productSourceId: string;
     productIntrinsicWidth: number;
@@ -40,10 +33,13 @@ export interface EditorState {
     productHasAlpha: boolean | null;
     screenRegion: { x: number; y: number; width: number; height: number };
   }) => void;
-  addSpaceBackground: (payload: {
+  setSpaceBackground: (payload: {
     sourceId: string;
     naturalWidth: number;
     naturalHeight: number;
+    width: number;
+    height: number;
+    downscaled: boolean;
   }) => void;
   removeSpaceBackground: () => void;
   selectObject: (id: ElementId | null) => void;
@@ -81,8 +77,8 @@ function shallowValueEqual(a: unknown, b: unknown): boolean {
 }
 
 // A one-level-deep comparison is enough here: patch values are either primitives (x, y,
-// text, material...) or flat objects of primitives (content, materialSettings), never
-// deeply nested structures.
+// text, material...) or flat objects of primitives (content, materialSettings, curvature),
+// never deeply nested structures.
 function hasObjectChange(target: SignageObject, patch: Partial<SignageObject>): boolean {
   return (Object.keys(patch) as (keyof SignageObject)[]).some(
     (key) => !shallowValueEqual(target[key], patch[key]),
@@ -107,39 +103,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   past: [],
   future: [],
 
-  selectTemplate: (templateId) => {
-    const { document } = get();
-    if (document.templateId === templateId) return;
-    set({
-      document: {
-        templateId,
-        backgroundColor: document.backgroundColor,
-        spaceBackground: null,
-        objects: [],
-      },
-      selectedId: null,
-      past: pushHistory(get().past, document),
-      future: [],
-    });
-  },
-
-  setBackgroundColor: (color) => {
-    const { document } = get();
-    set({
-      document: { ...document, backgroundColor: color },
-      past: pushHistory(get().past, document),
-      future: [],
-    });
-  },
-
   addText: () => {
     const { document } = get();
-    const template = TEMPLATES[document.templateId];
+    const size = getDocumentSize(document);
+    if (!size) return;
     const newObject: TextSignageObject = {
       id: createId(),
       kind: 'text',
-      x: template.width / 2 - 150,
-      y: template.height / 2 - 30,
+      x: size.width / 2 - 150,
+      y: size.height / 2 - 30,
       width: 300,
       height: 60,
       rotation: 0,
@@ -158,16 +130,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   addImage: ({ src, naturalWidth, naturalHeight }) => {
     const { document } = get();
-    const template = TEMPLATES[document.templateId];
-    const maxWidth = template.width * 0.6;
+    const size = getDocumentSize(document);
+    if (!size) return;
+    const maxWidth = size.width * 0.6;
     const scale = naturalWidth > maxWidth ? maxWidth / naturalWidth : 1;
     const width = naturalWidth * scale;
     const height = naturalHeight * scale;
     const newObject: ImageSignageObject = {
       id: createId(),
       kind: 'image',
-      x: template.width / 2 - width / 2,
-      y: template.height / 2 - height / 2,
+      x: size.width / 2 - width / 2,
+      y: size.height / 2 - height / 2,
       width,
       height,
       rotation: 0,
@@ -183,24 +156,25 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  addDisplay: (frameId) => {
+  addDisplay: (material) => {
     const { document } = get();
-    const template = TEMPLATES[document.templateId];
-    const frame = DISPLAY_FRAME_TEMPLATES[frameId];
-    const width = Math.min(frame.defaultWidth, template.width * 0.9);
-    const height = Math.min(frame.defaultHeight, template.height * 0.9);
+    const size = getDocumentSize(document);
+    if (!size) return;
+    const width = Math.min(480, size.width * 0.9);
+    const height = Math.min(270, size.height * 0.9);
     const newObject: DisplaySignageObject = {
       id: createId(),
       kind: 'display',
-      x: template.width / 2 - width / 2,
-      y: template.height / 2 - height / 2,
+      x: size.width / 2 - width / 2,
+      y: size.height / 2 - height / 2,
       width,
       height,
       rotation: 0,
-      frameId,
+      frameId: 'wall-led',
       content: null,
-      material: frame.defaultMaterial,
+      material,
       materialSettings: { ...DEFAULT_MATERIAL_SETTINGS },
+      curvature: { ...DEFAULT_CURVATURE },
     };
     set({
       document: { ...document, objects: [...document.objects, newObject] },
@@ -218,16 +192,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     screenRegion,
   }) => {
     const { document } = get();
-    const template = TEMPLATES[document.templateId];
+    const size = getDocumentSize(document);
+    if (!size) return;
     const { width, height } = computeDefaultPortableSize(
       { width: productIntrinsicWidth, height: productIntrinsicHeight },
-      template,
+      size,
     );
     const newObject: PortableSignageObject = {
       id: createId(),
       kind: 'portable',
-      x: template.width / 2 - width / 2,
-      y: template.height / 2 - height / 2,
+      x: size.width / 2 - width / 2,
+      y: size.height / 2 - height / 2,
       width,
       height,
       rotation: 0,
@@ -239,6 +214,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       content: null,
       material: 'lcd',
       materialSettings: { ...DEFAULT_MATERIAL_SETTINGS },
+      curvature: { ...DEFAULT_CURVATURE },
     };
     set({
       document: { ...document, objects: [...document.objects, newObject] },
@@ -248,21 +224,47 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  addSpaceBackground: ({ sourceId, naturalWidth, naturalHeight }) => {
+  // Handles both the first space-photo upload and a later replace in one action: when a
+  // background already exists, every object's geometry is re-mapped to the new document size
+  // (preserving normalized center/size, see geometryNormalization.ts) in the *same* history
+  // entry as the background swap, so a single Undo restores both the old photo and the old
+  // object positions together instead of requiring two separate undo steps.
+  setSpaceBackground: ({ sourceId, naturalWidth, naturalHeight, width, height, downscaled }) => {
     const { document } = get();
-    const spaceBackground: SpaceBackground = { sourceId, naturalWidth, naturalHeight };
+    const spaceBackground: SpaceBackground = {
+      sourceId,
+      naturalWidth,
+      naturalHeight,
+      width,
+      height,
+      downscaled,
+    };
+    const oldSize = getDocumentSize(document);
+    const newSize = { width, height };
+    const objects = oldSize
+      ? document.objects.map((object) => ({
+          ...object,
+          ...normalizeObjectGeometry(object, oldSize, newSize),
+        }))
+      : document.objects;
+
     set({
-      document: { ...document, spaceBackground },
+      document: { ...document, spaceBackground, objects },
       past: pushHistory(get().past, document),
       future: [],
     });
   },
 
+  // Returning to the empty state (rather than only clearing spaceBackground) avoids leaving
+  // signage objects positioned against a document size that no longer exists — there is no
+  // valid canvas without a space photo. A single history entry means Undo restores the photo
+  // and every object together.
   removeSpaceBackground: () => {
     const { document } = get();
     if (!document.spaceBackground) return;
     set({
-      document: { ...document, spaceBackground: null },
+      document: createEmptyDocument(),
+      selectedId: null,
       past: pushHistory(get().past, document),
       future: [],
     });

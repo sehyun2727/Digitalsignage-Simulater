@@ -49,28 +49,52 @@ export const MAX_CONTENT_SCALE = 3;
 export const MAX_CONTENT_OFFSET = 1;
 
 /**
- * Visual-preview-only screen materials. These approximate how content reads on an
- * outdoor LED wall vs. an LCD panel; they do not simulate real product photometry
- * (see ADR 0003).
+ * Visual-preview-only screen display technologies. These approximate how content reads on an
+ * LED wall, an LCD panel, or a transparent LED mesh; they do not simulate real product
+ * photometry (see ADR 0003, ADR 0007). `'outdoor-led'` is the Sprint 2-4.1 legacy value kept
+ * only so `normalizeMaterial` (src/lib/materialTexture.ts) can migrate any in-memory state
+ * created before Sprint 4.2 without crashing.
  */
-export type DisplayMaterial = 'outdoor-led' | 'lcd';
+export type DisplayMaterial = 'led' | 'lcd' | 'transparent-led' | 'outdoor-led';
+
+/** The set of materials a freshly created object or the material <select> should offer. */
+export const CURRENT_DISPLAY_MATERIALS: readonly Exclude<DisplayMaterial, 'outdoor-led'>[] = [
+  'led',
+  'lcd',
+  'transparent-led',
+];
 
 export interface MaterialSettings {
-  /** Strength of the material's texture/glow overlay, 0-100. */
+  /** Strength of the material's texture/glow overlay, 0-100 (LED grid / LCD reflection base). */
   intensity: number;
   /** Screen brightness wash, 0-100; 50 is neutral (no wash applied). */
   brightness: number;
+  /** Transparent LED only: how much the space photo shows through dark screen areas, 0-100. */
+  transparency: number;
+  /** Advanced: visual pixel/mesh grid density, 0-100 (LED, Transparent LED). */
+  gridDensity: number;
+  /** Advanced: glow/bloom impression around bright content, 0-100 (LED, Transparent LED). */
+  glow: number;
+  /** Advanced: mild contrast boost, 0-100; 50 is neutral. */
+  contrast: number;
 }
 
-export const DEFAULT_MATERIAL_SETTINGS: MaterialSettings = { intensity: 50, brightness: 50 };
+export const DEFAULT_MATERIAL_SETTINGS: MaterialSettings = {
+  intensity: 50,
+  brightness: 50,
+  transparency: 60,
+  gridDensity: 50,
+  glow: 40,
+  contrast: 50,
+};
 export const MIN_MATERIAL_SETTING = 0;
 export const MAX_MATERIAL_SETTING = 100;
 
 /**
  * The clipping region for a display's screen, expressed as a fraction of the display
- * object's own bounding box so it scales/rotates with the object. Only 'rect' is used in
- * Sprint 2; the 'polygon' variant is reserved for future photo-based templates (e.g.
- * DokoDemo) whose screens are not axis-aligned rectangles.
+ * object's own bounding box so it scales/rotates with the object. Only 'rect' is used so far;
+ * the 'polygon' variant is reserved for future photo-based templates whose screens are not
+ * axis-aligned rectangles.
  */
 export type ScreenRegion =
   | {
@@ -85,12 +109,17 @@ export type ScreenRegion =
       points: number[];
     };
 
+/**
+ * Object *form* (mounting/frame shape) — deliberately independent of `DisplayMaterial` (display
+ * technology). A wall-mounted rectangle can be LED, LCD, or Transparent LED; this sprint's Add
+ * Signage buttons always create the plain wall form (see editorStore.addDisplay), but the stand
+ * form and its rendering remain available for the object-form axis described in ADR 0007.
+ */
 export type DisplayFrameId = 'wall-led' | 'stand-display';
 
 export interface DisplayFrameTemplate {
   id: DisplayFrameId;
   screenRegion: ScreenRegion;
-  defaultMaterial: DisplayMaterial;
   defaultWidth: number;
   defaultHeight: number;
 }
@@ -99,25 +128,34 @@ export const DISPLAY_FRAME_TEMPLATES: Record<DisplayFrameId, DisplayFrameTemplat
   'wall-led': {
     id: 'wall-led',
     screenRegion: { shape: 'rect', x: 0.02, y: 0.02, width: 0.96, height: 0.96 },
-    defaultMaterial: 'outdoor-led',
     defaultWidth: 480,
     defaultHeight: 270,
   },
   'stand-display': {
     id: 'stand-display',
     screenRegion: { shape: 'rect', x: 0.08, y: 0.04, width: 0.84, height: 0.72 },
-    defaultMaterial: 'lcd',
     defaultWidth: 220,
     defaultHeight: 420,
   },
 };
 
+export type CurvatureMode = 'flat' | 'concave' | 'convex';
+
+/** A visual-only 2D curvature approximation, not true 3D/perspective (see ADR 0007). */
+export interface Curvature {
+  mode: CurvatureMode;
+  /** 0-100; meaningless (and ignored) while mode is 'flat'. */
+  amount: number;
+}
+
+export const DEFAULT_CURVATURE: Curvature = { mode: 'flat', amount: 0 };
+export const MIN_CURVATURE_AMOUNT = 0;
+export const MAX_CURVATURE_AMOUNT = 100;
+
 /**
- * A placeable signage display (a physical Wall LED panel or Stand Display kiosk) whose
- * screen region clips user content and renders a material preview. Distinct from the
- * document-level `TemplateId`, which still controls the overall canvas/export resolution
- * from Sprint 1 — a display object is something placed *within* that canvas, optionally
- * over a space background photo (see EditorDocument.spaceBackground).
+ * A placeable signage display whose screen region clips user content and renders a material +
+ * curvature preview. Document/export resolution is derived entirely from the space background
+ * photo (see EditorDocument) — this object only describes where/how signage sits within it.
  */
 export interface DisplaySignageObject extends BaseSignageObject {
   kind: 'display';
@@ -125,11 +163,12 @@ export interface DisplaySignageObject extends BaseSignageObject {
   content: SignageContent | null;
   material: DisplayMaterial;
   materialSettings: MaterialSettings;
+  curvature: Curvature;
 }
 
 /**
  * A user's own portable product photo (e.g. a photo of a kiosk, tablet stand, or vehicle they
- * own) with a rectangular screen region marked on it, so Sprint 2's content/material system can
+ * own) with a rectangular screen region marked on it, so the content/material system can
  * render simulated signage content inside that region. `screenRegion` is fraction-based
  * (0-1, relative to the *photo's own* pixel dimensions) rather than relative to the object's
  * bounding box like `DisplayFrameTemplate.screenRegion` — the two coincide in practice because
@@ -152,51 +191,45 @@ export interface PortableSignageObject extends BaseSignageObject {
   content: SignageContent | null;
   material: DisplayMaterial;
   materialSettings: MaterialSettings;
+  curvature: Curvature;
 }
 
-export type SignageObject =
-  TextSignageObject | ImageSignageObject | DisplaySignageObject | PortableSignageObject;
-
-export type TemplateId = 'wall-led' | 'stand-display';
-
-export interface SignageTemplate {
-  id: TemplateId;
-  width: number;
-  height: number;
-}
-
-export const TEMPLATES: Record<TemplateId, SignageTemplate> = {
-  'wall-led': { id: 'wall-led', width: 1920, height: 1080 },
-  'stand-display': { id: 'stand-display', width: 1080, height: 1920 },
-};
-
-export const DEFAULT_TEMPLATE_ID: TemplateId = 'wall-led';
+export type SignageObject = TextSignageObject | ImageSignageObject | DisplaySignageObject | PortableSignageObject;
 
 /**
- * An optional space/site photo shown behind all objects, in place of the flat
- * `backgroundColor`, so signage display objects can be composed into a real environment.
- * `sourceId` keys into the same runtime asset registry as display content.
+ * The uploaded space/site photo shown behind all objects. Sprint 4.2 makes this the *only*
+ * source of document/export dimensions (see ADR 0007) — there is no more standalone document
+ * template. `sourceId` keys into the same runtime asset registry as display content.
+ *
+ * `naturalWidth`/`naturalHeight` are the photo's own decoded pixel size, kept only so the Space
+ * section can show the user the original resolution. `width`/`height` are the *effective*
+ * document/export dimensions actually used for the canvas — identical to natural size unless
+ * the decoded pixel count exceeded `MAX_DECODED_PIXELS` (src/lib/imageSafety.ts), in which case
+ * they are a deterministically downscaled, aspect-ratio-preserving fallback.
  */
 export interface SpaceBackground {
   sourceId: string;
   naturalWidth: number;
   naturalHeight: number;
+  width: number;
+  height: number;
+  downscaled: boolean;
 }
 
 export interface EditorDocument {
-  templateId: TemplateId;
-  backgroundColor: string;
   spaceBackground: SpaceBackground | null;
   objects: SignageObject[];
 }
 
-export const DEFAULT_BACKGROUND_COLOR = '#0b1120';
-
-export function createEmptyDocument(templateId: TemplateId = DEFAULT_TEMPLATE_ID): EditorDocument {
+export function createEmptyDocument(): EditorDocument {
   return {
-    templateId,
-    backgroundColor: DEFAULT_BACKGROUND_COLOR,
     spaceBackground: null,
     objects: [],
   };
+}
+
+/** The document/export size in effect right now, or null before any space photo exists. */
+export function getDocumentSize(document: EditorDocument): { width: number; height: number } | null {
+  if (!document.spaceBackground) return null;
+  return { width: document.spaceBackground.width, height: document.spaceBackground.height };
 }

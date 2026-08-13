@@ -1,8 +1,11 @@
+import { computeSafeDimensions } from './imageSafety';
 import { createId } from './id';
 
 export interface RegisteredAsset {
+  /** Empty string for a downscaled space background, whose original Blob URL is revoked
+   *  immediately after the one-time downscale draw (see registerSpaceBackgroundAsset). */
   objectUrl: string;
-  image: HTMLImageElement;
+  image: HTMLImageElement | HTMLCanvasElement;
   naturalWidth: number;
   naturalHeight: number;
 }
@@ -52,6 +55,71 @@ export function getRegisteredAsset(sourceId: string): RegisteredAsset | undefine
 }
 
 /**
+ * Registers a space background photo, applying the decoded-pixel safety limit (see
+ * src/lib/imageSafety.ts and ADR 0007): the document/export resolution now comes directly from
+ * this photo, so an extreme panorama or scan must not be allowed to crash the tab. When the
+ * decoded image already fits, this behaves exactly like `registerAsset`. When it doesn't, the
+ * image is drawn once onto an offscreen canvas at the deterministic safe size and that canvas
+ * becomes the stored, rendered asset — the full-resolution decode and its Blob URL are dropped
+ * immediately afterward, so memory stays bounded by the effective (safe) pixel count rather
+ * than the original file's.
+ */
+export async function registerSpaceBackgroundAsset(file: File): Promise<{
+  sourceId: string;
+  naturalWidth: number;
+  naturalHeight: number;
+  width: number;
+  height: number;
+  downscaled: boolean;
+}> {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await loadImage(objectUrl);
+    const naturalWidth = image.naturalWidth;
+    const naturalHeight = image.naturalHeight;
+    const safe = computeSafeDimensions(naturalWidth, naturalHeight);
+    const sourceId = createId();
+
+    if (!safe.downscaled) {
+      registry.set(sourceId, { objectUrl, image, naturalWidth, naturalHeight });
+      return {
+        sourceId,
+        naturalWidth,
+        naturalHeight,
+        width: naturalWidth,
+        height: naturalHeight,
+        downscaled: false,
+      };
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = safe.width;
+    canvas.height = safe.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('decode-error');
+    ctx.drawImage(image, 0, 0, safe.width, safe.height);
+    URL.revokeObjectURL(objectUrl);
+    registry.set(sourceId, {
+      objectUrl: '',
+      image: canvas,
+      naturalWidth: safe.width,
+      naturalHeight: safe.height,
+    });
+    return {
+      sourceId,
+      naturalWidth,
+      naturalHeight,
+      width: safe.width,
+      height: safe.height,
+      downscaled: true,
+    };
+  } catch (error) {
+    URL.revokeObjectURL(objectUrl);
+    throw error;
+  }
+}
+
+/**
  * Immediately revokes and drops one registered asset, regardless of reachability. Intended for
  * assets that were registered as part of an in-progress, not-yet-committed flow (e.g. a photo
  * uploaded inside the portable builder dialog that the user then cancels) — such an asset is
@@ -61,7 +129,7 @@ export function getRegisteredAsset(sourceId: string): RegisteredAsset | undefine
 export function releaseAsset(sourceId: string): void {
   const asset = registry.get(sourceId);
   if (!asset) return;
-  URL.revokeObjectURL(asset.objectUrl);
+  if (asset.objectUrl) URL.revokeObjectURL(asset.objectUrl);
   registry.delete(sourceId);
 }
 
@@ -72,7 +140,7 @@ export function releaseAsset(sourceId: string): void {
  * (rather than throwing) if canvas readback is unavailable, so callers can treat "unknown"
  * the same as "no transparency detected" without crashing the upload flow.
  */
-export function detectHasAlpha(image: HTMLImageElement): boolean | null {
+export function detectHasAlpha(image: HTMLImageElement | HTMLCanvasElement): boolean | null {
   try {
     const sampleSize = 32;
     const canvas = document.createElement('canvas');
@@ -100,7 +168,7 @@ export function detectHasAlpha(image: HTMLImageElement): boolean | null {
 export function sweepUnusedAssets(usedSourceIds: ReadonlySet<string>): void {
   for (const [sourceId, asset] of registry) {
     if (!usedSourceIds.has(sourceId)) {
-      URL.revokeObjectURL(asset.objectUrl);
+      if (asset.objectUrl) URL.revokeObjectURL(asset.objectUrl);
       registry.delete(sourceId);
     }
   }
