@@ -6,11 +6,7 @@ import {
   selectSelectedObject,
   useEditorStore,
 } from '../../src/store/editorStore';
-import {
-  createEmptyDocument,
-  DEFAULT_MATERIAL_SETTINGS,
-  DEFAULT_TEMPLATE_ID,
-} from '../../src/types/editor';
+import { createEmptyDocument, DEFAULT_CURVATURE, DEFAULT_MATERIAL_SETTINGS } from '../../src/types/editor';
 
 class SucceedingMockImage {
   onload: (() => void) | null = null;
@@ -35,6 +31,20 @@ function resetStore() {
   });
 }
 
+// Document/export size is derived entirely from the space background photo (see ADR 0007), so
+// every object-adding action no-ops until one exists. Tests that need objects must call this
+// first.
+function addSpaceBackground(sourceId = 'src-1', width = 1000, height = 500) {
+  useEditorStore.getState().setSpaceBackground({
+    sourceId,
+    naturalWidth: width,
+    naturalHeight: height,
+    width,
+    height,
+    downscaled: false,
+  });
+}
+
 describe('editorStore', () => {
   beforeEach(() => {
     resetStore();
@@ -44,12 +54,32 @@ describe('editorStore', () => {
     const state = useEditorStore.getState();
 
     expect(state.document.objects).toHaveLength(0);
-    expect(state.document.templateId).toBe(DEFAULT_TEMPLATE_ID);
+    expect(state.document.spaceBackground).toBeNull();
     expect(selectCanUndo(state)).toBe(false);
     expect(selectCanRedo(state)).toBe(false);
   });
 
+  it('does not add objects before a space background exists', () => {
+    useEditorStore.getState().addText();
+    useEditorStore
+      .getState()
+      .addImage({ src: 'blob:mock', naturalWidth: 100, naturalHeight: 100 });
+    useEditorStore.getState().addDisplay('led');
+    useEditorStore.getState().addPortable({
+      productSourceId: 'product-src-1',
+      productIntrinsicWidth: 100,
+      productIntrinsicHeight: 100,
+      productHasAlpha: null,
+      screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+    });
+
+    const state = useEditorStore.getState();
+    expect(state.document.objects).toHaveLength(0);
+    expect(selectCanUndo(state)).toBe(false);
+  });
+
   it('adds a text object, selects it, and makes undo available', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     const state = useEditorStore.getState();
 
@@ -59,7 +89,8 @@ describe('editorStore', () => {
     expect(selectCanUndo(state)).toBe(true);
   });
 
-  it('adds an image object scaled to fit within the template', () => {
+  it('adds an image object scaled to fit within the document', () => {
+    addSpaceBackground();
     useEditorStore
       .getState()
       .addImage({ src: 'blob:mock', naturalWidth: 4000, naturalHeight: 2000 });
@@ -74,6 +105,7 @@ describe('editorStore', () => {
   });
 
   it('selects and deselects objects', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     const id = useEditorStore.getState().document.objects[0]!.id;
 
@@ -86,9 +118,10 @@ describe('editorStore', () => {
   });
 
   it('selects a different object without needing to deselect first, and never pushes history', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     const firstId = useEditorStore.getState().document.objects[0]!.id;
-    useEditorStore.getState().addDisplay('wall-led');
+    useEditorStore.getState().addDisplay('led');
     const secondId = useEditorStore.getState().document.objects[1]!.id;
     const pastLengthBefore = useEditorStore.getState().past.length;
 
@@ -104,6 +137,7 @@ describe('editorStore', () => {
   });
 
   it('clears the selection on undo and redo, so a subsequent click is a fresh reselection', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     const id = useEditorStore.getState().document.objects[0]!.id;
     useEditorStore.getState().commitObjectChange(id, { x: 500, y: 400 });
@@ -119,6 +153,7 @@ describe('editorStore', () => {
   });
 
   it('a drag-style position commit pushes exactly one history entry', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     const id = useEditorStore.getState().document.objects[0]!.id;
     const pastLengthBefore = useEditorStore.getState().past.length;
@@ -129,6 +164,7 @@ describe('editorStore', () => {
   });
 
   it('commits object changes to history and undo restores the previous state', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     const id = useEditorStore.getState().document.objects[0]!.id;
 
@@ -144,6 +180,7 @@ describe('editorStore', () => {
   });
 
   it('updateObjectTransient does not push history entries', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     const id = useEditorStore.getState().document.objects[0]!.id;
     const pastLengthBefore = useEditorStore.getState().past.length;
@@ -155,6 +192,7 @@ describe('editorStore', () => {
   });
 
   it('deletes the selected object and commits history', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     useEditorStore.getState().deleteSelected();
 
@@ -171,30 +209,8 @@ describe('editorStore', () => {
     expect(useEditorStore.getState().document.objects).toHaveLength(0);
   });
 
-  it('switching templates clears objects and commits history', () => {
-    useEditorStore.getState().addText();
-    useEditorStore.getState().selectTemplate('stand-display');
-
-    const state = useEditorStore.getState();
-    expect(state.document.templateId).toBe('stand-display');
-    expect(state.document.objects).toHaveLength(0);
-    expect(selectCanUndo(state)).toBe(true);
-  });
-
-  it('undo after a template switch restores the previous template and its objects', () => {
-    useEditorStore.getState().addText();
-    const originalObjectId = useEditorStore.getState().document.objects[0]!.id;
-    useEditorStore.getState().selectTemplate('stand-display');
-
-    useEditorStore.getState().undo();
-
-    const state = useEditorStore.getState();
-    expect(state.document.templateId).toBe('wall-led');
-    expect(state.document.objects).toHaveLength(1);
-    expect(state.document.objects[0]?.id).toBe(originalObjectId);
-  });
-
   it('commits a resize change to history and undo/redo restore it', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     const id = useEditorStore.getState().document.objects[0]!.id;
 
@@ -215,6 +231,7 @@ describe('editorStore', () => {
   });
 
   it('commits a rotation change to history and undo/redo restore it', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     const id = useEditorStore.getState().document.objects[0]!.id;
 
@@ -229,6 +246,7 @@ describe('editorStore', () => {
   });
 
   it('committing a patch with no actual value change does not push a history entry', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     const id = useEditorStore.getState().document.objects[0]!.id;
     const { x, y } = useEditorStore.getState().document.objects[0]!;
@@ -240,6 +258,7 @@ describe('editorStore', () => {
   });
 
   it('a new commit after undo clears the redo stack', () => {
+    addSpaceBackground();
     useEditorStore.getState().addText();
     const id = useEditorStore.getState().document.objects[0]!.id;
     useEditorStore.getState().commitObjectChange(id, { x: 500, y: 400 });
@@ -251,24 +270,27 @@ describe('editorStore', () => {
     expect(selectCanRedo(useEditorStore.getState())).toBe(false);
   });
 
-  it('adds a display object with the frame default material and no content', () => {
-    useEditorStore.getState().addDisplay('wall-led');
+  it('adds a display object with the given material and no content', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
     const state = useEditorStore.getState();
     const display = state.document.objects[0];
 
     expect(display?.kind).toBe('display');
     if (display?.kind === 'display') {
       expect(display.frameId).toBe('wall-led');
-      expect(display.material).toBe('outdoor-led');
+      expect(display.material).toBe('led');
       expect(display.materialSettings).toEqual(DEFAULT_MATERIAL_SETTINGS);
+      expect(display.curvature).toEqual(DEFAULT_CURVATURE);
       expect(display.content).toBeNull();
     }
     expect(state.selectedId).toBe(display?.id);
     expect(selectCanUndo(state)).toBe(true);
   });
 
-  it('adds a stand-display object defaulting to the LCD material', () => {
-    useEditorStore.getState().addDisplay('stand-display');
+  it('adds a display object defaulting to the LCD material', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('lcd');
     const display = useEditorStore.getState().document.objects[0];
 
     expect(display?.kind).toBe('display');
@@ -277,14 +299,15 @@ describe('editorStore', () => {
     }
   });
 
-  it('adds and removes a space background, both committing history', () => {
-    useEditorStore
-      .getState()
-      .addSpaceBackground({ sourceId: 'src-1', naturalWidth: 1000, naturalHeight: 500 });
+  it('adds and replaces a space background, both committing history', () => {
+    addSpaceBackground('src-1', 1000, 500);
     expect(useEditorStore.getState().document.spaceBackground).toEqual({
       sourceId: 'src-1',
       naturalWidth: 1000,
       naturalHeight: 500,
+      width: 1000,
+      height: 500,
+      downscaled: false,
     });
     expect(selectCanUndo(useEditorStore.getState())).toBe(true);
 
@@ -300,17 +323,49 @@ describe('editorStore', () => {
     expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
   });
 
-  it('switching templates also clears the space background', () => {
-    useEditorStore
-      .getState()
-      .addSpaceBackground({ sourceId: 'src-1', naturalWidth: 1000, naturalHeight: 500 });
-    useEditorStore.getState().selectTemplate('stand-display');
+  it('removeSpaceBackground clears objects too, and a single undo restores both', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addText();
+    expect(useEditorStore.getState().document.objects).toHaveLength(1);
 
-    expect(useEditorStore.getState().document.spaceBackground).toBeNull();
+    useEditorStore.getState().removeSpaceBackground();
+    const cleared = useEditorStore.getState();
+    expect(cleared.document.spaceBackground).toBeNull();
+    expect(cleared.document.objects).toHaveLength(0);
+
+    useEditorStore.getState().undo();
+    const restored = useEditorStore.getState();
+    expect(restored.document.spaceBackground).not.toBeNull();
+    expect(restored.document.objects).toHaveLength(1);
+  });
+
+  it('replacing a space background re-normalizes existing object geometry to the new size', () => {
+    addSpaceBackground('src-1', 1000, 500);
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().commitObjectChange(id, { x: 100, y: 50, width: 200, height: 100 });
+
+    useEditorStore.getState().setSpaceBackground({
+      sourceId: 'src-2',
+      naturalWidth: 2000,
+      naturalHeight: 1000,
+      width: 2000,
+      height: 1000,
+      downscaled: false,
+    });
+
+    const display = useEditorStore.getState().document.objects[0]!;
+    // Original center fraction was (100+100)/1000 = 0.2 horizontally and (50+50)/500 = 0.2
+    // vertically; that fraction (and the size fraction) must be preserved at the new size.
+    expect((display.x + display.width / 2) / 2000).toBeCloseTo(0.2);
+    expect((display.y + display.height / 2) / 1000).toBeCloseTo(0.2);
+    expect(display.width / 2000).toBeCloseTo(200 / 1000);
+    expect(display.height / 1000).toBeCloseTo(100 / 500);
   });
 
   it('commits a content patch on a display object and undo/redo restore it', () => {
-    useEditorStore.getState().addDisplay('wall-led');
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
     const id = useEditorStore.getState().document.objects[0]!.id;
 
     useEditorStore.getState().commitObjectChange(id, {
@@ -336,7 +391,8 @@ describe('editorStore', () => {
   });
 
   it('committing an identical materialSettings patch does not push a history entry', () => {
-    useEditorStore.getState().addDisplay('wall-led');
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
     const id = useEditorStore.getState().document.objects[0]!.id;
     const pastLengthBefore = useEditorStore.getState().past.length;
 
@@ -347,7 +403,8 @@ describe('editorStore', () => {
     expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
   });
 
-  it('adds a portable object centered in the template, defaulting to LCD and no content', () => {
+  it('adds a portable object centered in the document, defaulting to LCD and no content', () => {
+    addSpaceBackground();
     useEditorStore.getState().addPortable({
       productSourceId: 'product-src-1',
       productIntrinsicWidth: 400,
@@ -365,6 +422,7 @@ describe('editorStore', () => {
       expect(portable.screenRegion).toEqual({ x: 0.2, y: 0.2, width: 0.6, height: 0.6 });
       expect(portable.material).toBe('lcd');
       expect(portable.materialSettings).toEqual(DEFAULT_MATERIAL_SETTINGS);
+      expect(portable.curvature).toEqual(DEFAULT_CURVATURE);
       expect(portable.content).toBeNull();
       expect(portable.width / portable.height).toBeCloseTo(400 / 800);
     }
@@ -373,6 +431,7 @@ describe('editorStore', () => {
   });
 
   it('undo/redo restores a deleted portable object', () => {
+    addSpaceBackground();
     useEditorStore.getState().addPortable({
       productSourceId: 'product-src-1',
       productIntrinsicWidth: 400,
@@ -388,6 +447,7 @@ describe('editorStore', () => {
   });
 
   it('committing an identical screenRegion patch does not push a history entry', () => {
+    addSpaceBackground();
     useEditorStore.getState().addPortable({
       productSourceId: 'product-src-1',
       productIntrinsicWidth: 400,
@@ -406,6 +466,7 @@ describe('editorStore', () => {
   });
 
   it('committing a changed screenRegion patch pushes history and undo/redo restore it', () => {
+    addSpaceBackground();
     useEditorStore.getState().addPortable({
       productSourceId: 'product-src-1',
       productIntrinsicWidth: 400,
@@ -460,16 +521,29 @@ describe('editorStore asset lifecycle', () => {
     vi.unstubAllGlobals();
   });
 
+  function attachAsSpaceBackground(asset: {
+    sourceId: string;
+    naturalWidth: number;
+    naturalHeight: number;
+  }) {
+    useEditorStore.getState().setSpaceBackground({
+      ...asset,
+      width: asset.naturalWidth,
+      height: asset.naturalHeight,
+      downscaled: false,
+    });
+  }
+
   it('keeps a space background asset registered while it is reachable from the document', async () => {
     const asset = await registerAsset(createFile());
-    useEditorStore.getState().addSpaceBackground(asset);
+    attachAsSpaceBackground(asset);
 
     expect(getRegisteredAsset(asset.sourceId)).toBeDefined();
   });
 
   it('revokes a space background asset once it is removed and no longer reachable from history', async () => {
     const asset = await registerAsset(createFile());
-    useEditorStore.getState().addSpaceBackground(asset);
+    attachAsSpaceBackground(asset);
     useEditorStore.getState().removeSpaceBackground();
 
     // The removal is still in `past`, so the asset stays reachable until that history is gone.
@@ -481,7 +555,7 @@ describe('editorStore asset lifecycle', () => {
 
   it('keeps an asset reachable through undo history after it is removed from the live document', async () => {
     const asset = await registerAsset(createFile());
-    useEditorStore.getState().addSpaceBackground(asset);
+    attachAsSpaceBackground(asset);
     useEditorStore.getState().removeSpaceBackground();
 
     expect(useEditorStore.getState().document.spaceBackground).toBeNull();
@@ -492,7 +566,8 @@ describe('editorStore asset lifecycle', () => {
   });
 
   it('revokes a display content asset once undo/redo history no longer references it', async () => {
-    useEditorStore.getState().addDisplay('wall-led');
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
     const id = useEditorStore.getState().document.objects[0]!.id;
     // Register the asset right before attaching it, with no store mutation in between —
     // matching the real upload flow (registerAsset then immediate commit) — since the sweep
@@ -520,6 +595,7 @@ describe('editorStore asset lifecycle', () => {
   });
 
   it("keeps a portable object's product asset registered while it is reachable from the document", async () => {
+    addSpaceBackground();
     const productAsset = await registerAsset(createFile('product.png'));
 
     useEditorStore.getState().addPortable({
@@ -534,6 +610,7 @@ describe('editorStore asset lifecycle', () => {
   });
 
   it("keeps a portable object's content asset registered alongside its product asset", async () => {
+    addSpaceBackground();
     const productAsset = await registerAsset(createFile('product.png'));
     useEditorStore.getState().addPortable({
       productSourceId: productAsset.sourceId,
@@ -561,6 +638,7 @@ describe('editorStore asset lifecycle', () => {
   });
 
   it("revokes a portable object's product and content assets once undo/redo history no longer references them", async () => {
+    addSpaceBackground();
     const productAsset = await registerAsset(createFile('product.png'));
     useEditorStore.getState().addPortable({
       productSourceId: productAsset.sourceId,

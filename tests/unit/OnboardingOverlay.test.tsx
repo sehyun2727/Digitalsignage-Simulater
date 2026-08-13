@@ -39,7 +39,7 @@ describe('OnboardingOverlay', () => {
     render(<App />);
 
     expect(screen.getByRole('note', { name: ja.onboardingTitle })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: ja.editorAddWallLedButton })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: ja.editorAddLedButton })).toBeInTheDocument();
   });
 
   it('the start button hides the card and persists the choice to localStorage', async () => {

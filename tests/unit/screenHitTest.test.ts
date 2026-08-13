@@ -9,6 +9,7 @@ import {
 import { getScreenRect } from '../../src/lib/displayFrame';
 import { resolveScreenRegionRect } from '../../src/lib/contentLayout';
 import {
+  DEFAULT_CURVATURE,
   DEFAULT_MATERIAL_SETTINGS,
   type DisplaySignageObject,
   type PortableSignageObject,
@@ -25,8 +26,9 @@ const display: DisplaySignageObject = {
   rotation: 0,
   frameId: 'wall-led',
   content: null,
-  material: 'outdoor-led',
+  material: 'led',
   materialSettings: DEFAULT_MATERIAL_SETTINGS,
+  curvature: DEFAULT_CURVATURE,
 };
 
 const portable: PortableSignageObject = {
@@ -45,6 +47,7 @@ const portable: PortableSignageObject = {
   content: null,
   material: 'lcd',
   materialSettings: DEFAULT_MATERIAL_SETTINGS,
+  curvature: DEFAULT_CURVATURE,
 };
 
 const text: TextSignageObject = {

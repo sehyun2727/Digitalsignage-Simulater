@@ -63,9 +63,23 @@ const ZERO_RECT: DOMRect = {
   },
 };
 
+// Document/export size is derived entirely from the space background photo (see ADR 0007), so
+// the "Add Portable" button (and every other add-signage control) is disabled until one exists.
+// These tests only exercise the portable builder itself, not the space-photo upload flow, so the
+// background is injected directly rather than driven through the DOM.
 function resetStore() {
   useEditorStore.setState({
-    document: createEmptyDocument(),
+    document: {
+      ...createEmptyDocument(),
+      spaceBackground: {
+        sourceId: 'space-1',
+        naturalWidth: 400,
+        naturalHeight: 300,
+        width: 400,
+        height: 300,
+        downscaled: false,
+      },
+    },
     selectedId: null,
     past: [],
     future: [],

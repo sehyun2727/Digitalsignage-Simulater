@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { PortableProductView } from '../../src/features/editor/PortableProductView';
 import { SignageDisplayView } from '../../src/features/editor/SignageDisplayView';
 import {
+  DEFAULT_CURVATURE,
   DEFAULT_MATERIAL_SETTINGS,
   type DisplaySignageObject,
   type PortableSignageObject,
@@ -60,6 +61,7 @@ describe('canvas object hit-area (reselection fix)', () => {
       content: null,
       material: 'outdoor-led',
       materialSettings: DEFAULT_MATERIAL_SETTINGS,
+      curvature: DEFAULT_CURVATURE,
     };
 
     const tree = SignageDisplayView({ object, groupProps });
@@ -88,6 +90,7 @@ describe('canvas object hit-area (reselection fix)', () => {
       content: null,
       material: 'lcd',
       materialSettings: DEFAULT_MATERIAL_SETTINGS,
+      curvature: DEFAULT_CURVATURE,
     };
 
     const tree = SignageDisplayView({ object, groupProps });
@@ -120,6 +123,7 @@ describe('canvas object hit-area (reselection fix)', () => {
       content: null,
       material: 'lcd',
       materialSettings: DEFAULT_MATERIAL_SETTINGS,
+      curvature: DEFAULT_CURVATURE,
     };
 
     const tree = PortableProductView({ object, groupProps });
@@ -148,6 +152,7 @@ describe('canvas object hit-area (reselection fix)', () => {
       content: null,
       material: 'outdoor-led',
       materialSettings: DEFAULT_MATERIAL_SETTINGS,
+      curvature: DEFAULT_CURVATURE,
     };
 
     const tree = SignageDisplayView({ object, groupProps }) as ReactElement<{

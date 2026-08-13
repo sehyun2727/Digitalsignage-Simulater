@@ -3,8 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { forwardRef, useImperativeHandle } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/app/App';
+import { en } from '../../src/i18n/locales/en';
 import { ja } from '../../src/i18n/locales/ja';
+import { useEditorStore } from '../../src/store/editorStore';
 import { useUiStore } from '../../src/store/uiStore';
+import { createEmptyDocument } from '../../src/types/editor';
 
 class SucceedingImage {
   onload: (() => void) | null = null;
@@ -46,6 +49,18 @@ function mockBrowserLocale(languages: string[]) {
   vi.spyOn(window.navigator, 'language', 'get').mockReturnValue(languages[0] ?? 'ja');
 }
 
+// Every "Add signage" control (and the header Export button) is disabled until a space photo
+// exists, since document/export size is now derived entirely from that photo. Tests that need to
+// add objects or export must upload one first via this helper.
+async function addSpaceBackground(user: ReturnType<typeof userEvent.setup>) {
+  vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+  await user.upload(
+    screen.getByLabelText(ja.editorAddSpaceBackgroundButton),
+    createImageFile('space.png'),
+  );
+  await screen.findByRole('button', { name: ja.editorRemoveSpaceBackgroundButton });
+}
+
 describe('App', () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -55,6 +70,14 @@ describe('App', () => {
     // onboardingDismissed is forced true here since these tests exercise the toolbar itself,
     // not the onboarding card (see OnboardingOverlay.test.tsx).
     useUiStore.setState({ comparisonMode: false, onboardingDismissed: true });
+    // useEditorStore is also a module-level singleton; reset it so the space background,
+    // objects, and history from one test never leak into the next.
+    useEditorStore.setState({
+      document: createEmptyDocument(),
+      selectedId: null,
+      past: [],
+      future: [],
+    });
   });
 
   afterEach(() => {
@@ -87,7 +110,7 @@ describe('App', () => {
     render(<App />);
 
     const link = screen.getByRole('link', { name: ja.hullCtaLabel });
-    expect(link).toHaveAttribute('href', 'https://hull-inc.jp/contact');
+    expect(link).toHaveAttribute('href', 'https://hull-inc.jp/');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getByText(ja.hullCtaExternalNotice)).toBeInTheDocument();
@@ -116,7 +139,7 @@ describe('App', () => {
     );
 
     expect(document.documentElement.lang).toBe('en');
-    expect(screen.getByRole('link', { name: 'Contact HULL' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: en.hullCtaLabel })).toBeInTheDocument();
   });
 
   it('persists the selected locale across remounts', async () => {
@@ -138,6 +161,7 @@ describe('App', () => {
     canvasMock.exportToDataUrl = () => null;
     const user = userEvent.setup();
     render(<App />);
+    await addSpaceBackground(user);
 
     await user.click(screen.getByRole('button', { name: ja.editorExportButton }));
 
@@ -148,6 +172,10 @@ describe('App', () => {
     const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-url');
 
+    const user = userEvent.setup();
+    render(<App />);
+    await addSpaceBackground(user);
+
     class FailingImage {
       onload: (() => void) | null = null;
       onerror: (() => void) | null = null;
@@ -156,9 +184,6 @@ describe('App', () => {
       }
     }
     vi.stubGlobal('Image', FailingImage as unknown as typeof Image);
-
-    const user = userEvent.setup();
-    render(<App />);
 
     const file = new File([new Uint8Array([1, 2, 3])], 'corrupt.png', { type: 'image/png' });
     await user.upload(screen.getByLabelText(ja.editorAddImageButton), file);
@@ -202,35 +227,35 @@ describe('App', () => {
       expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
     });
 
-    it('adds a Wall LED display and shows its empty-content and material properties', async () => {
+    it('adds an LED display and shows its empty-content and material properties', async () => {
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
-      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
 
       expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
 
-      expect(screen.getByRole('combobox', { name: ja.editorMaterialLabel })).toHaveValue(
-        'outdoor-led',
-      );
+      expect(screen.getByRole('combobox', { name: ja.editorMaterialLabel })).toHaveValue('led');
       expect(screen.getByText(ja.editorMaterialPreviewNotice)).toBeInTheDocument();
     });
 
-    it('adds a Stand Display and defaults its material to LCD', async () => {
+    it('adds an LCD display and its material select shows LCD', async () => {
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
-      await user.click(screen.getByRole('button', { name: ja.editorAddStandDisplayButton }));
+      await user.click(screen.getByRole('button', { name: ja.editorAddLcdButton }));
 
       expect(screen.getByRole('combobox', { name: ja.editorMaterialLabel })).toHaveValue('lcd');
     });
 
     it('uploads content into a display, edits fit/offset/scale, and resets placement', async () => {
-      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
-      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
 
       await user.upload(
         screen.getByLabelText(ja.editorContentUploadButton),
@@ -257,11 +282,11 @@ describe('App', () => {
     });
 
     it('removes uploaded content from a display', async () => {
-      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
-      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
 
       await user.upload(
         screen.getByLabelText(ja.editorContentUploadButton),
@@ -273,11 +298,12 @@ describe('App', () => {
     });
 
     it('shows an accessible error when uploaded display content fails to decode', async () => {
-      vi.stubGlobal('Image', FailingImage as unknown as typeof Image);
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
+      vi.stubGlobal('Image', FailingImage as unknown as typeof Image);
 
-      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
 
       await user.upload(
         screen.getByLabelText(ja.editorContentUploadButton),
@@ -290,8 +316,9 @@ describe('App', () => {
     it('changes the display material and resets material effects to neutral', async () => {
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
-      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
 
       const materialSelect = screen.getByRole('combobox', { name: ja.editorMaterialLabel });
       await user.selectOptions(materialSelect, 'lcd');
@@ -309,8 +336,9 @@ describe('App', () => {
     it('undoing an added display removes it and clears the properties panel', async () => {
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
-      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
 
       expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
 
@@ -321,11 +349,12 @@ describe('App', () => {
   });
 
   describe('Sprint 4.1: original/result comparison toggle', () => {
-    it('switching to the original view clears selection and shows the no-space hint; switching back restores both', async () => {
+    it('switching to the original view clears the selection; switching back restores it', async () => {
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
-      await user.click(screen.getByRole('button', { name: ja.editorAddWallLedButton }));
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
       expect(screen.getByRole('button', { name: ja.editorDeleteButton })).toBeEnabled();
 
       const resultButton = screen.getByRole('button', { name: ja.comparisonResultLabel });
@@ -338,13 +367,23 @@ describe('App', () => {
       expect(originalButton).toHaveAttribute('aria-pressed', 'true');
       expect(resultButton).toHaveAttribute('aria-pressed', 'false');
       expect(screen.getByRole('button', { name: ja.editorDeleteButton })).toBeDisabled();
-      expect(screen.getByText(ja.comparisonOriginalNoSpaceHint)).toBeInTheDocument();
+      expect(screen.queryByText(ja.comparisonOriginalNoSpaceHint)).not.toBeInTheDocument();
 
       await user.click(resultButton);
 
       expect(resultButton).toHaveAttribute('aria-pressed', 'true');
       expect(originalButton).toHaveAttribute('aria-pressed', 'false');
-      expect(screen.queryByText(ja.comparisonOriginalNoSpaceHint)).not.toBeInTheDocument();
+    });
+
+    it('shows the no-space hint when switching to the original view before any space background exists', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      const originalButton = screen.getByRole('button', { name: ja.comparisonOriginalLabel });
+      await user.click(originalButton);
+
+      expect(originalButton).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText(ja.comparisonOriginalNoSpaceHint)).toBeInTheDocument();
     });
   });
 
@@ -362,6 +401,7 @@ describe('App', () => {
     it('opens the portable builder as an accessible dialog on the photo step', async () => {
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
 
@@ -377,6 +417,7 @@ describe('App', () => {
     it('closes the portable builder without adding an object when cancelled', async () => {
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
       await user.click(screen.getByRole('button', { name: ja.portableCancelButton }));
@@ -386,11 +427,12 @@ describe('App', () => {
     });
 
     it('revokes the uploaded photo object URL when the builder is cancelled on the photo step', async () => {
-      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
-      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
+
+      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
       await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
@@ -404,11 +446,12 @@ describe('App', () => {
     });
 
     it('revokes the uploaded photo object URL when the builder is cancelled on the region step', async () => {
-      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
-      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
+
+      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
       await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
@@ -420,14 +463,15 @@ describe('App', () => {
     });
 
     it('revokes the previous photo object URL when a replacement photo is uploaded before adding', async () => {
-      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
+      const user = userEvent.setup();
+      render(<App />);
+      await addSpaceBackground(user);
+
       const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
       const createSpy = vi
         .spyOn(URL, 'createObjectURL')
         .mockReturnValueOnce('blob:mock-first')
         .mockReturnValueOnce('blob:mock-second');
-      const user = userEvent.setup();
-      render(<App />);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
       await user.upload(getPortablePhotoInput(), createImageFile('first.png'));
@@ -441,11 +485,12 @@ describe('App', () => {
     });
 
     it('does not revoke the photo object URL once the product has been added to the document', async () => {
-      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
-      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
+
+      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
       await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
@@ -461,6 +506,7 @@ describe('App', () => {
       // emulation before it ever reaches the component.
       const user = userEvent.setup({ applyAccept: false });
       render(<App />);
+      await addSpaceBackground(user);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
       const badFile = new File(['not an image'], 'notes.txt', { type: 'text/plain' });
@@ -470,9 +516,10 @@ describe('App', () => {
     });
 
     it('shows an accessible error when the portable photo fails to decode', async () => {
-      vi.stubGlobal('Image', FailingImage as unknown as typeof Image);
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
+      vi.stubGlobal('Image', FailingImage as unknown as typeof Image);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
       await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
@@ -481,9 +528,9 @@ describe('App', () => {
     });
 
     it('walks photo then region steps, adds a portable object, and re-enters the region editor', async () => {
-      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
       await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
@@ -526,9 +573,9 @@ describe('App', () => {
     });
 
     it('rejects a screen region smaller than the minimum size with an accessible error', async () => {
-      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
       await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
@@ -547,9 +594,9 @@ describe('App', () => {
     });
 
     it('resets the screen region back to its default', async () => {
-      vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
       const user = userEvent.setup();
       render(<App />);
+      await addSpaceBackground(user);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
       await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
