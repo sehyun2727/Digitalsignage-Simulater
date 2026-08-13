@@ -8,12 +8,12 @@
 - **日本語:** ブラウザ上でシンプルなデジタルサイネージ画面を作成し、画像として書き出すための個人プロジェクトです。
 - **English:** An independent personal project for creating simple digital-signage compositions in the browser and exporting them as images.
 
-> Signage Canvas는 공식 HULL 서비스가 아니며 HULL과 제휴·후원·운영 관계가 없습니다. HULL은 외부 문의 CTA로만 표시됩니다.
-> 문의 링크: https://hull-inc.jp/contact
+> Signage Canvas는 공식 HULL 서비스가 아니며 HULL과 제휴·후원·운영 관계가 없습니다. HULL은 외부 CTA로만 표시됩니다.
+> CTA 링크: https://hull-inc.jp/ (Sprint 4.2부터 — 이전에는 https://hull-inc.jp/contact 였습니다)
 
 ## 상태
 
-**현재 상태: Sprint 4.1 완료 — Sprint 0~4.1이 통합되어 배포 가능한 상태입니다 (Sprint 3.2: 캔버스 객체 재선택 결함 수정, Sprint 4.1: 통합 툴바 에디터 UI 포함)**
+**현재 상태: Sprint 4.2 완료 — Sprint 0~4.2가 통합되어 배포 가능한 상태입니다 (Sprint 3.2: 캔버스 객체 재선택 결함 수정, Sprint 4.1: 통합 툴바 에디터 UI, Sprint 4.2: 사진 우선(photo-first) 문서 모델·LED/LCD/透過LED/포터블 4종 신호기·곡률(curvature) 제어 포함)**
 
 Sprint 0에서 구현된 것:
 
@@ -167,6 +167,41 @@ Sprint 4.1에서 구현된 것 (통합 툴바 에디터 UI):
   신호기 추가 버튼 그리드가 좁은 화면(390px)에서 가로 스크롤을 유발하던 두 가지 결함과, 세로로 긴 템플릿
   선택 시 캔버스가 헤더 영역까지 겹쳐 보이던 결함을 수정했습니다.
 
+Sprint 4.2에서 구현된 것 (사진 우선 문서 모델 및 소재/곡률 확장):
+
+- **사진 우선(photo-first) 문서 모델**: 더 이상 문서 템플릿을 먼저 선택하지 않습니다. 처음 업로드한 공간
+  사진이 그 자체로 문서가 되어, 사진의 방향 보정된 가로세로 비율 그대로(늘이거나 자르지 않고) 캔버스 크기와
+  PNG 내보내기 해상도를 결정합니다. 공간 사진이 없으면 문서 자체가 없는 상태이며, 신호기 추가 버튼은 모두
+  비활성화되어 사진을 먼저 추가하도록 안내합니다. 자세한 배경은
+  [`docs/adr/0007-photo-first-document-and-materials-sprint-4-2.md`](docs/adr/0007-photo-first-document-and-materials-sprint-4-2.md)
+  참고.
+- **디코딩 픽셀 안전 한도**: 매우 큰 사진을 업로드해도 디코딩 픽셀 수가 4,000만 픽셀(`MAX_DECODED_PIXELS`)을
+  넘지 않도록, 가로세로 비율을 유지한 채 동일한 배율로 결정론적으로 축소합니다.
+- **공간 사진 교체/삭제**: 공간 사진을 다른 사진으로 교체하거나 삭제할 수 있으며, 각각 실행 취소/다시 실행
+  히스토리에 정확히 한 개의 항목만 남깁니다. 교체 시 기존에 배치된 신호기 객체들의 위치·크기는 새 문서
+  크기에 비례하도록 자동으로 재배치됩니다(절대 좌표가 아닌 문서 대비 비율 기준).
+- **4종 신호기 패밀리**: LED, LCD, 透過(투과)LED 디스플레이와 기존의 사용자 지정 포터블 제품을 각각 독립된
+  버튼으로 추가합니다. 문서 크기(=공간 사진 해상도)와 완전히 분리되어 있어, 어떤 신호기를 선택해도 배치
+  가능한 위치와 크기는 동일한 로직을 따릅니다.
+- **소재 옵션 확장**: 질감 강도(intensity)·밝기(brightness) 2개뿐이던 소재 조절 슬라이더가 투과율
+  (transparency, 透過LED 전용)·그리드 밀도(gridDensity)·발광(glow)·대비(contrast)까지 6개로 늘었습니다.
+  소재별로 실제 적용되는 슬라이더만 외관 섹션에 표시됩니다(예: LCD는 그리드/발광 슬라이더가 없음).
+- **곡률(curvature) 제어**: LED와 透過LED 소재에 한해 평면(flat)/오목(concave)/볼록(convex) + 정도(0-100)
+  슬라이더를 제공합니다. 화면 영역을 여러 개의 세로 스트립으로 나누고 각 스트립을 포물선 형태로 상하
+  변위시키는 2차원 근사 표현이며, 실제 3D·원근 렌더링이 아닙니다(자세한 배경은 위 ADR 0007 참고).
+- **HULL CTA 링크 변경**: 문의 링크가 `https://hull-inc.jp/contact`에서 `https://hull-inc.jp/`로 변경되었고,
+  버튼 문구도 3개 언어 모두 갱신되었습니다. 화면 우측 하단 고정 녹색 버튼이라는 위치/방식은 Sprint 4.1과
+  동일합니다.
+- **PNG 파일명 단순화**: 더 이상 템플릿 ID가 없으므로 파일명에서 해당 구간이 사라졌습니다 —
+  `signage-canvas_{yyyyMMdd-HHmmss}.png`.
+
+Sprint 4.2에서 구현되지 않은 것 (범위 밖):
+
+- 진짜 3D·원근 기반 곡률 렌더링 — 현재는 2차원 스트립 변위 근사입니다.
+- 문서(공간 사진·신호기 배치)의 서버 또는 `localStorage` 영속화 — 새로고침하면 편집 내용이 초기화됩니다
+  (Sprint 1부터 유지된 정책, 변경 없음).
+- 신호기 프레임(베젤/스탠드) 형상 자체의 확장 — 기존 단순화된 사각형 베젤 표현을 그대로 사용합니다.
+
 ## 기술 스택
 
 - React 19 + TypeScript + Vite
@@ -251,16 +286,20 @@ docker run --rm -p 8080:8080 digital-signage-simulator:local
 
 ## PNG 내보내기 정책
 
-- 내보내기는 화면 확대/축소(줌) 상태와 무관하게 항상 선택된 템플릿의 원본 픽셀 해상도로 생성됩니다 (`wall-led`: 1920×1080, `stand-display`: 1080×1920).
+- 내보내기는 화면 확대/축소(줌) 상태와 무관하게 항상 업로드된 공간 사진의 방향 보정된 원본 해상도로
+  생성됩니다(디코딩 픽셀 안전 한도로 축소된 경우 그 축소된 해상도 기준). 문서 크기를 별도로 선택하는 템플릿
+  개념은 더 이상 없습니다 — 자세한 배경은
+  [`docs/adr/0007-photo-first-document-and-materials-sprint-4-2.md`](docs/adr/0007-photo-first-document-and-materials-sprint-4-2.md)
+  참고.
 - Transformer의 선택 테두리·핸들은 내보내기 직전 동기적으로 숨겼다가 즉시 복원하는 방식으로 처리되어, 내보낸 PNG에는 절대 포함되지 않습니다.
-- 파일명 형식: `signage-canvas_{templateId}_{yyyyMMdd-HHmmss}.png` (예: `signage-canvas_wall-led_20260106-153000.png`). 콜론(`:`) 등 파일 시스템에서 문제가 되는 문자는 포함되지 않습니다.
+- 파일명 형식: `signage-canvas_{yyyyMMdd-HHmmss}.png` (예: `signage-canvas_20260813-143052.png`). 콜론(`:`) 등 파일 시스템에서 문제가 되는 문자는 포함되지 않습니다.
 - 내보내기에 실패하면(예: 캔버스가 준비되지 않음) 파일 다운로드를 생략하고 접근성 있는 오류 메시지를 보여줍니다.
 
 ## HULL CTA 안내
 
-HULL은 Signage Canvas의 운영 주체가 아닙니다. 프로젝트 안에서 HULL을 언급할 경우, 외부 문의 링크로만 명확하게 표시합니다.
+HULL은 Signage Canvas의 운영 주체가 아닙니다. 프로젝트 안에서 HULL을 언급할 경우, 외부 CTA 링크로만 명확하게 표시합니다.
 
-- 문의 링크: https://hull-inc.jp/contact (새 탭에서 열림, `rel="noopener noreferrer"`)
+- CTA 링크: https://hull-inc.jp/ (새 탭에서 열림, `rel="noopener noreferrer"`)
 
 HULL의 상표, 로고, 서비스 설명을 공식 제휴처럼 사용하지 않습니다.
 
@@ -268,7 +307,7 @@ HULL의 상표, 로고, 서비스 설명을 공식 제휴처럼 사용하지 않
 
 초기 배포 대상은 Render **Static Site**입니다. 상세 설정은
 [`docs/runbooks/render-static-site.md`](docs/runbooks/render-static-site.md)를 참고하세요.
-Sprint 4.1 기준으로 `main`은 Sprint 0~4.1을 모두 포함하며 위 설정으로 배포 가능하지만, 실제 Render 배포는
+Sprint 4.2 기준으로 `main`은 Sprint 0~4.2를 모두 포함하며 위 설정으로 배포 가능하지만, 실제 Render 배포는
 아직 수행되지 않았습니다 — Render 계정/서비스 생성 권한이 이 작업 환경에 없어 설정만 확인·문서화되어
 있습니다.
 
@@ -286,6 +325,8 @@ Sprint 4.1 기준으로 `main`은 Sprint 0~4.1을 모두 포함하며 위 설정
 │   │                     # (포터블 제품 마법사), PortableProductView, OnboardingOverlay 등
 │   ├── i18n/           # 일본어·한국어·영어 리소스, 감지/저장 로직
 │   ├── lib/            # 공통 유틸리티/상수 (파일 검증, 파일명 생성, 에셋 레지스트리, 콘텐츠 배치/프레임/소재 지오메트리,
+│   │                     # curvature.ts — 곡률 스트립 근사, imageSafety.ts — 디코딩 픽셀 안전 한도,
+│   │                     # geometryNormalization.ts — 공간 사진 교체 시 객체 재배치,
 │   │                     # portableRegion.ts — 화면 영역 정규화 사각형 지오메트리 등)
 │   ├── store/          # Zustand 에디터 스토어 (문서 상태, 히스토리, 에셋 스윕 구독)
 │   ├── styles/          # 전역 스타일
@@ -303,6 +344,7 @@ Sprint 4.1 기준으로 `main`은 Sprint 0~4.1을 모두 포함하며 위 설정
 │   ├── adr/0004-custom-portable-template.md
 │   ├── adr/0005-canvas-object-reselection-hotfix.md
 │   ├── adr/0006-guided-editor-sprint-4-1.md
+│   ├── adr/0007-photo-first-document-and-materials-sprint-4-2.md
 │   └── runbooks/
 └── .github/workflows/ci.yml
 ```
@@ -317,13 +359,18 @@ Sprint 4.1 기준으로 `main`은 Sprint 0~4.1을 모두 포함하며 위 설정
   있는 실기기 충돌 검증은 아직 수행하지 않았습니다(자세한 내용은
   `docs/adr/0006-guided-editor-sprint-4-1.md`의 Consequences 참고).
 - Render 실배포는 아직 수행되지 않았고 설정만 문서화되어 있습니다.
-- 디스플레이 프레임(베젤/스탠드)과 소재(屋外LED/LCD) 프리뷰는 단순화된 시각적 표현이며, 실제 제품 형상이나
+- 디스플레이 프레임(베젤/스탠드)과 소재(LED/LCD/透過LED) 프리뷰는 단순화된 시각적 표현이며, 실제 제품 형상이나
   성능을 재현하지 않습니다(자세한 내용은 `docs/adr/0003-content-and-material-model.md` 참고).
+- 곡률(curvature) 제어는 화면 영역을 여러 세로 스트립으로 나눠 포물선 형태로 변위시키는 2차원 근사이며,
+  실제 3D·원근 렌더링이 아닙니다(자세한 배경은
+  `docs/adr/0007-photo-first-document-and-materials-sprint-4-2.md` 참고).
 - 디스플레이당 화면 콘텐츠는 정지 이미지 1개만 지원합니다 — 다중 콘텐츠 슬롯이나 동영상은 범위 밖입니다.
 - 포터블 제품의 화면 영역은 사진 자체의 좌표계에 고정된 축 정렬 직사각형 하나뿐입니다 — 원근/4점/다각형
   영역이나 제품당 여러 화면 영역은 지원하지 않습니다.
 - 포터블 객체는 생성 후 사진을 교체할 수 없습니다 — 다른 사진을 쓰려면 객체를 삭제하고 새로 추가해야 합니다
   (자세한 배경은 `docs/adr/0004-custom-portable-template.md` 참고).
+- 편집 중인 문서(공간 사진·신호기 배치)는 세션 동안만 유지되며 새로고침하면 초기화됩니다 — 서버/localStorage
+  영속화는 범위 밖입니다.
 - 라이선스 미정.
 
 ## 범위 관리
