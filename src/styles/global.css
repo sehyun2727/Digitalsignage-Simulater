@@ -258,6 +258,19 @@ a {
   font-family: inherit;
 }
 
+.toolbar-checkbox-field {
+  /* Overrides the column-stacked `.toolbar-section label` base rule: a checkbox
+     reads naturally inline with its own label text, not stacked above it. */
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toolbar-checkbox-field input[type='checkbox'] {
+  width: auto;
+  padding: 0;
+}
+
 .toolbar-actions {
   display: flex;
   flex-wrap: wrap;
@@ -288,6 +301,19 @@ a {
   margin: 0;
   font-size: 0.8rem;
   color: var(--color-muted);
+}
+
+.curvature-mode-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.curvature-mode-group button.is-active {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
 }
 
 .space-background-thumb {

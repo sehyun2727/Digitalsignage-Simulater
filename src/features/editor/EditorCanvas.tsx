@@ -7,7 +7,7 @@ import { validateImageFile } from '../../lib/fileValidation';
 import { findTopmostScreenHit, getObjectScreenRect } from '../../lib/screenHitTest';
 import type { Point } from '../../lib/screenHitTest';
 import { useEditorStore } from '../../store/editorStore';
-import { TEMPLATES } from '../../types/editor';
+import { getDocumentSize } from '../../types/editor';
 import type { SignageObject } from '../../types/editor';
 import { CanvasObjectView } from './CanvasObjectView';
 import { SpaceBackgroundView } from './SpaceBackgroundView';
@@ -35,7 +35,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   const dropTargetObject = document.objects.find((object) => object.id === dropTargetId) ?? null;
   const dropTargetRect = dropTargetObject ? getObjectScreenRect(dropTargetObject) : null;
 
-  const template = TEMPLATES[document.templateId];
+  const size = getDocumentSize(document);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
   const transformerRef = useRef<Konva.Transformer | null>(null);
@@ -54,8 +54,8 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     return () => observer.disconnect();
   }, []);
 
-  const fitScale = containerWidth > 0 ? containerWidth / template.width : 1;
-  const stageHeight = template.height * fitScale;
+  const fitScale = containerWidth > 0 && size ? containerWidth / size.width : 1;
+  const stageHeight = size ? size.height * fitScale : 0;
 
   useImperativeHandle(ref, () => ({
     exportToDataUrl: () => {
@@ -214,7 +214,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {containerWidth > 0 && (
+      {containerWidth > 0 && size && (
         <Stage
           ref={stageRef}
           width={containerWidth}
@@ -229,19 +229,11 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
           }}
         >
           <Layer>
-            <Rect
-              x={0}
-              y={0}
-              width={template.width}
-              height={template.height}
-              fill={document.backgroundColor}
-              listening={false}
-            />
             {document.spaceBackground && (
               <SpaceBackgroundView
                 spaceBackground={document.spaceBackground}
-                width={template.width}
-                height={template.height}
+                width={size.width}
+                height={size.height}
               />
             )}
             <Group ref={objectsGroupRef} visible={!comparisonMode} listening={!comparisonMode}>

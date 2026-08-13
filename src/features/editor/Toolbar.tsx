@@ -1,31 +1,42 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale } from '../../i18n/localeContext';
-import { getRegisteredAsset, registerAsset } from '../../lib/assetRegistry';
+import {
+  getRegisteredAsset,
+  registerAsset,
+  registerSpaceBackgroundAsset,
+} from '../../lib/assetRegistry';
 import {
   clampContentOffset,
   clampContentScale,
   clampMaterialSetting,
 } from '../../lib/contentLayout';
+import { clampCurvatureAmount, isCurvatureSupported } from '../../lib/curvature';
 import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
+import { normalizeMaterial } from '../../lib/materialTexture';
 import { selectSelectedObject, useEditorStore } from '../../store/editorStore';
 import { useUiStore } from '../../store/uiStore';
 import {
+  CURRENT_DISPLAY_MATERIALS,
+  DEFAULT_CURVATURE,
   DEFAULT_MATERIAL_SETTINGS,
+  getDocumentSize,
   MAX_CONTENT_SCALE,
+  MAX_CURVATURE_AMOUNT,
   MAX_MATERIAL_SETTING,
   MIN_CONTENT_SCALE,
+  MIN_CURVATURE_AMOUNT,
   MIN_MATERIAL_SETTING,
-  TEMPLATES,
 } from '../../types/editor';
 import { PortableBuilderModal } from './PortableBuilderModal';
 import type { ImageValidationError } from '../../lib/fileValidation';
 import type {
   ContentFit,
+  CurvatureMode,
   DisplayMaterial,
   DisplaySignageObject,
+  MaterialSettings,
   PortableSignageObject,
   SignageObject,
-  TemplateId,
 } from '../../types/editor';
 
 interface ToolbarProps {
@@ -33,11 +44,11 @@ interface ToolbarProps {
 }
 
 /**
- * The single always-visible right-side toolbar (Sprint 4.1 correction). Six fixed sections in
- * a fixed order — Space, Add signage, Selected signage, Content, Appearance, Export — replace
- * the earlier five-stage guided flow (see ADR 0006): nothing here is mounted/unmounted based
- * on navigation, so every control is reachable at all times and existing accessible-name-based
- * tests keep working unchanged.
+ * The single always-visible right-side toolbar (Sprint 4.1 correction, Sprint 4.2 photo-first
+ * rework). Six fixed sections in a fixed order — Space, Add signage, Selected signage, Content,
+ * Appearance, Export — so nothing here is mounted/unmounted based on navigation, and every
+ * control stays reachable at all times. The Space section's uploaded photo is the sole source of
+ * document/export size (see ADR 0007); every other section is gated on that photo existing.
  */
 export function Toolbar({ onImageError }: ToolbarProps) {
   const { messages } = useLocale();
@@ -63,19 +74,42 @@ function ToolbarSection({ heading, children }: { heading: string; children: Reac
   );
 }
 
+function SpaceBackgroundThumbnail({ sourceId }: { sourceId: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // A plain <img src> can't represent a downscaled space background, whose decoded asset is an
+  // offscreen HTMLCanvasElement rather than a Blob URL (see assetRegistry.registerSpaceBackgroundAsset).
+  // Drawing into a small preview canvas works uniformly for either asset shape.
+  useEffect(() => {
+    const asset = getRegisteredAsset(sourceId);
+    const canvas = canvasRef.current;
+    if (!asset || !canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const scale = Math.min(canvas.width / asset.naturalWidth, canvas.height / asset.naturalHeight);
+    const drawWidth = asset.naturalWidth * scale;
+    const drawHeight = asset.naturalHeight * scale;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(
+      asset.image,
+      (canvas.width - drawWidth) / 2,
+      (canvas.height - drawHeight) / 2,
+      drawWidth,
+      drawHeight,
+    );
+  }, [sourceId]);
+
+  return (
+    <canvas ref={canvasRef} className="space-background-thumb" width={160} height={90} aria-hidden="true" />
+  );
+}
+
 function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationError) => void }) {
   const { messages } = useLocale();
-  const templateId = useEditorStore((state) => state.document.templateId);
   const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
-  const selectTemplate = useEditorStore((state) => state.selectTemplate);
-  const addSpaceBackground = useEditorStore((state) => state.addSpaceBackground);
+  const setSpaceBackground = useEditorStore((state) => state.setSpaceBackground);
   const removeSpaceBackground = useEditorStore((state) => state.removeSpaceBackground);
   const spaceBackgroundInputRef = useRef<HTMLInputElement | null>(null);
-
-  const templateLabel: Record<TemplateId, string> = {
-    'wall-led': messages.editorTemplateWallLed,
-    'stand-display': messages.editorTemplateStandDisplay,
-  };
 
   const handleSpaceBackgroundChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -89,53 +123,38 @@ function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationE
     }
 
     try {
-      const asset = await registerAsset(file);
-      addSpaceBackground(asset);
+      const asset = await registerSpaceBackgroundAsset(file);
+      setSpaceBackground(asset);
     } catch {
       onImageError('decode-error');
     }
   };
 
-  const thumbnailUrl = spaceBackground
-    ? getRegisteredAsset(spaceBackground.sourceId)?.objectUrl
-    : undefined;
+  const addOrReplaceLabel = spaceBackground
+    ? messages.editorReplaceSpaceBackgroundButton
+    : messages.editorAddSpaceBackgroundButton;
 
   return (
     <ToolbarSection heading={messages.toolbarSpaceSectionHeading}>
-      <label className="toolbar-field">
-        <span>{messages.editorTemplateLabel}</span>
-        <select
-          value={templateId}
-          onChange={(event) => selectTemplate(event.target.value as TemplateId)}
-        >
-          {Object.keys(TEMPLATES).map((id) => (
-            <option key={id} value={id}>
-              {templateLabel[id as TemplateId]}
-            </option>
-          ))}
-        </select>
-      </label>
+      {!spaceBackground && <p className="toolbar-notice">{messages.toolbarSpaceEmptyHint}</p>}
 
-      {spaceBackground && thumbnailUrl && (
-        <img
-          className="space-background-thumb"
-          src={thumbnailUrl}
-          alt=""
-          width={spaceBackground.naturalWidth}
-          height={spaceBackground.naturalHeight}
-        />
-      )}
       {spaceBackground && (
-        <p className="toolbar-notice">
-          {spaceBackground.naturalWidth} × {spaceBackground.naturalHeight} px
-        </p>
+        <>
+          <SpaceBackgroundThumbnail sourceId={spaceBackground.sourceId} />
+          <p className="toolbar-notice">
+            {messages.editorSpaceBackgroundDimensionsLabel}: {spaceBackground.width} ×{' '}
+            {spaceBackground.height} px
+          </p>
+          {spaceBackground.downscaled && (
+            <p className="toolbar-notice">{messages.editorSpaceBackgroundDownscaledNotice}</p>
+          )}
+        </>
       )}
+      <p className="toolbar-notice">{messages.editorSpaceBackgroundPrivacyNotice}</p>
 
       <div className="toolbar-actions">
         <button type="button" onClick={() => spaceBackgroundInputRef.current?.click()}>
-          {spaceBackground
-            ? messages.editorAddSpaceBackgroundButton
-            : messages.editorAddSpaceBackgroundButton}
+          {addOrReplaceLabel}
         </button>
         {spaceBackground && (
           <button type="button" onClick={removeSpaceBackground}>
@@ -149,7 +168,7 @@ function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationE
         accept={ACCEPTED_IMAGE_TYPES.join(',')}
         onChange={handleSpaceBackgroundChange}
         className="visually-hidden"
-        aria-label={messages.editorAddSpaceBackgroundButton}
+        aria-label={addOrReplaceLabel}
       />
     </ToolbarSection>
   );
@@ -161,11 +180,13 @@ function AddSignageSection({
   onImageError: (error: ImageValidationError) => void;
 }) {
   const { messages } = useLocale();
+  const document = useEditorStore((state) => state.document);
   const addText = useEditorStore((state) => state.addText);
   const addImage = useEditorStore((state) => state.addImage);
   const addDisplay = useEditorStore((state) => state.addDisplay);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const canAddSignage = getDocumentSize(document) !== null;
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -199,23 +220,36 @@ function AddSignageSection({
 
   return (
     <ToolbarSection heading={messages.toolbarAddSignageSectionHeading}>
+      {!canAddSignage && <p className="toolbar-notice">{messages.toolbarAddSignageDisabledHint}</p>}
+
       <div className="toolbar-actions toolbar-actions-grid">
-        <button type="button" onClick={() => addDisplay('wall-led')}>
-          {messages.editorAddWallLedButton}
+        <button type="button" disabled={!canAddSignage} onClick={() => addDisplay('led')}>
+          {messages.editorAddLedButton}
         </button>
-        <button type="button" onClick={() => addDisplay('stand-display')}>
-          {messages.editorAddStandDisplayButton}
+        <button type="button" disabled={!canAddSignage} onClick={() => addDisplay('lcd')}>
+          {messages.editorAddLcdButton}
         </button>
-        <button type="button" onClick={() => setBuilderOpen(true)}>
+        <button
+          type="button"
+          disabled={!canAddSignage}
+          onClick={() => addDisplay('transparent-led')}
+        >
+          {messages.editorAddTransparentLedButton}
+        </button>
+        <button type="button" disabled={!canAddSignage} onClick={() => setBuilderOpen(true)}>
           {messages.editorAddPortableButton}
         </button>
       </div>
 
       <div className="toolbar-actions">
-        <button type="button" onClick={addText}>
+        <button type="button" disabled={!canAddSignage} onClick={addText}>
           {messages.editorAddTextButton}
         </button>
-        <button type="button" onClick={() => fileInputRef.current?.click()}>
+        <button
+          type="button"
+          disabled={!canAddSignage}
+          onClick={() => fileInputRef.current?.click()}
+        >
           {messages.editorAddImageButton}
         </button>
       </div>
@@ -280,10 +314,12 @@ function signageTypeLabel(
       return messages.signageTypeImage;
     case 'portable':
       return messages.signageTypePortable;
-    case 'display':
-      return object.frameId === 'wall-led'
-        ? messages.signageTypeWallLed
-        : messages.signageTypeStandDisplay;
+    case 'display': {
+      const material = normalizeMaterial(object.material);
+      if (material === 'lcd') return messages.signageTypeLcd;
+      if (material === 'transparent-led') return messages.signageTypeTransparentLed;
+      return messages.signageTypeLed;
+    }
   }
 }
 
@@ -654,35 +690,91 @@ function AppearanceSection() {
   );
 }
 
+function materialOptionLabel(
+  material: DisplayMaterial,
+  messages: ReturnType<typeof useLocale>['messages'],
+): string {
+  const normalized = normalizeMaterial(material);
+  if (normalized === 'lcd') return messages.editorMaterialLcd;
+  if (normalized === 'transparent-led') return messages.editorMaterialTransparentLed;
+  return messages.editorMaterialLed;
+}
+
+function curvatureModeLabel(
+  mode: CurvatureMode,
+  messages: ReturnType<typeof useLocale>['messages'],
+): string {
+  if (mode === 'concave') return messages.editorCurvatureConcave;
+  if (mode === 'convex') return messages.editorCurvatureConvex;
+  return messages.editorCurvatureFlat;
+}
+
+const CURVATURE_MODES: CurvatureMode[] = ['flat', 'concave', 'convex'];
+
 function AppearanceFields({ object }: { object: DisplaySignageObject | PortableSignageObject }) {
   const { messages } = useLocale();
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const updateObjectTransient = useEditorStore((state) => state.updateObjectTransient);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [intensityDraft, setIntensityDraft] = useState(object.materialSettings.intensity);
   const [brightnessDraft, setBrightnessDraft] = useState(object.materialSettings.brightness);
+  const [transparencyDraft, setTransparencyDraft] = useState(object.materialSettings.transparency);
+  const [gridDensityDraft, setGridDensityDraft] = useState(object.materialSettings.gridDensity);
+  const [glowDraft, setGlowDraft] = useState(object.materialSettings.glow);
+  const [contrastDraft, setContrastDraft] = useState(object.materialSettings.contrast);
+  const [curvatureAmountDraft, setCurvatureAmountDraft] = useState(object.curvature.amount);
+
+  const material = normalizeMaterial(object.material);
+  const isTransparentLed = material === 'transparent-led';
+  const supportsGridAndGlow = material === 'led' || isTransparentLed;
+  const curvatureSupported = isCurvatureSupported(material);
 
   const commit = (patch: Partial<SignageObject>) => commitObjectChange(object.id, patch);
 
-  const commitMaterialSettings = (patch: Partial<{ intensity: number; brightness: number }>) => {
+  const commitMaterialSettings = (patch: Partial<MaterialSettings>) => {
     commit({ materialSettings: { ...object.materialSettings, ...patch } });
   };
 
-  const previewMaterialSettings = (patch: Partial<{ intensity: number; brightness: number }>) => {
+  const previewMaterialSettings = (patch: Partial<MaterialSettings>) => {
     updateObjectTransient(object.id, {
       materialSettings: { ...object.materialSettings, ...patch },
     });
   };
 
+  const commitCurvature = (patch: Partial<{ mode: CurvatureMode; amount: number }>) => {
+    commit({ curvature: { ...object.curvature, ...patch } });
+  };
+
+  const resetMaterial = () => {
+    commit({ materialSettings: { ...DEFAULT_MATERIAL_SETTINGS } });
+    setIntensityDraft(DEFAULT_MATERIAL_SETTINGS.intensity);
+    setBrightnessDraft(DEFAULT_MATERIAL_SETTINGS.brightness);
+    setTransparencyDraft(DEFAULT_MATERIAL_SETTINGS.transparency);
+    setGridDensityDraft(DEFAULT_MATERIAL_SETTINGS.gridDensity);
+    setGlowDraft(DEFAULT_MATERIAL_SETTINGS.glow);
+    setContrastDraft(DEFAULT_MATERIAL_SETTINGS.contrast);
+  };
+
+  const resetCurvature = () => {
+    commit({ curvature: { ...DEFAULT_CURVATURE } });
+    setCurvatureAmountDraft(DEFAULT_CURVATURE.amount);
+  };
+
   return (
     <>
-      <select
-        aria-label={messages.editorMaterialLabel}
-        value={object.material}
-        onChange={(event) => commit({ material: event.target.value as DisplayMaterial })}
-      >
-        <option value="outdoor-led">{messages.editorMaterialOutdoorLed}</option>
-        <option value="lcd">{messages.editorMaterialLcd}</option>
-      </select>
+      <label>
+        <span>{messages.editorMaterialLabel}</span>
+        <select
+          value={material}
+          onChange={(event) => commit({ material: event.target.value as DisplayMaterial })}
+        >
+          {CURRENT_DISPLAY_MATERIALS.map((value) => (
+            <option key={value} value={value}>
+              {materialOptionLabel(value, messages)}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label>
         <span>{messages.editorMaterialIntensityLabel}</span>
@@ -724,30 +816,173 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
         />
       </label>
 
-      <button
-        type="button"
-        onClick={() => {
-          commit({ materialSettings: { ...DEFAULT_MATERIAL_SETTINGS } });
-          setIntensityDraft(DEFAULT_MATERIAL_SETTINGS.intensity);
-          setBrightnessDraft(DEFAULT_MATERIAL_SETTINGS.brightness);
-        }}
-      >
+      {isTransparentLed && (
+        <label>
+          <span>{messages.editorMaterialTransparencyLabel}</span>
+          <input
+            type="range"
+            min={MIN_MATERIAL_SETTING}
+            max={MAX_MATERIAL_SETTING}
+            value={transparencyDraft}
+            onInput={(event) => {
+              const transparency = Number((event.target as HTMLInputElement).value);
+              setTransparencyDraft(transparency);
+              previewMaterialSettings({ transparency });
+            }}
+            onPointerUp={() =>
+              commitMaterialSettings({ transparency: clampMaterialSetting(transparencyDraft) })
+            }
+            onBlur={() =>
+              commitMaterialSettings({ transparency: clampMaterialSetting(transparencyDraft) })
+            }
+          />
+        </label>
+      )}
+
+      {isTransparentLed && (
+        <p className="toolbar-notice">{messages.editorTransparentLedDisclaimer}</p>
+      )}
+
+      <label className="toolbar-checkbox-field">
+        <input
+          type="checkbox"
+          checked={advancedOpen}
+          onChange={(event) => setAdvancedOpen(event.target.checked)}
+        />
+        <span>{messages.editorMaterialAdvancedToggleLabel}</span>
+      </label>
+
+      {advancedOpen && (
+        <>
+          {supportsGridAndGlow && (
+            <label>
+              <span>{messages.editorMaterialGridDensityLabel}</span>
+              <input
+                type="range"
+                min={MIN_MATERIAL_SETTING}
+                max={MAX_MATERIAL_SETTING}
+                value={gridDensityDraft}
+                onInput={(event) => {
+                  const gridDensity = Number((event.target as HTMLInputElement).value);
+                  setGridDensityDraft(gridDensity);
+                  previewMaterialSettings({ gridDensity });
+                }}
+                onPointerUp={() =>
+                  commitMaterialSettings({ gridDensity: clampMaterialSetting(gridDensityDraft) })
+                }
+                onBlur={() =>
+                  commitMaterialSettings({ gridDensity: clampMaterialSetting(gridDensityDraft) })
+                }
+              />
+            </label>
+          )}
+
+          {supportsGridAndGlow && (
+            <label>
+              <span>{messages.editorMaterialGlowLabel}</span>
+              <input
+                type="range"
+                min={MIN_MATERIAL_SETTING}
+                max={MAX_MATERIAL_SETTING}
+                value={glowDraft}
+                onInput={(event) => {
+                  const glow = Number((event.target as HTMLInputElement).value);
+                  setGlowDraft(glow);
+                  previewMaterialSettings({ glow });
+                }}
+                onPointerUp={() => commitMaterialSettings({ glow: clampMaterialSetting(glowDraft) })}
+                onBlur={() => commitMaterialSettings({ glow: clampMaterialSetting(glowDraft) })}
+              />
+            </label>
+          )}
+
+          <label>
+            <span>{messages.editorMaterialContrastLabel}</span>
+            <input
+              type="range"
+              min={MIN_MATERIAL_SETTING}
+              max={MAX_MATERIAL_SETTING}
+              value={contrastDraft}
+              onInput={(event) => {
+                const contrast = Number((event.target as HTMLInputElement).value);
+                setContrastDraft(contrast);
+                previewMaterialSettings({ contrast });
+              }}
+              onPointerUp={() =>
+                commitMaterialSettings({ contrast: clampMaterialSetting(contrastDraft) })
+              }
+              onBlur={() => commitMaterialSettings({ contrast: clampMaterialSetting(contrastDraft) })}
+            />
+          </label>
+        </>
+      )}
+
+      <button type="button" onClick={resetMaterial}>
         {messages.editorMaterialResetButton}
       </button>
 
       <p className="toolbar-notice">{messages.editorMaterialPreviewNotice}</p>
+
+      <div className="curvature-mode-group" role="group" aria-label={messages.editorCurvatureModeLabel}>
+        <span>{messages.editorCurvatureModeLabel}</span>
+        <div className="toolbar-actions">
+          {CURVATURE_MODES.map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              disabled={!curvatureSupported}
+              className={object.curvature.mode === mode ? 'is-active' : undefined}
+              aria-pressed={object.curvature.mode === mode}
+              onClick={() => commitCurvature({ mode })}
+            >
+              {curvatureModeLabel(mode, messages)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {!curvatureSupported && (
+        <p className="toolbar-notice">{messages.editorCurvatureUnsupportedHint}</p>
+      )}
+
+      {curvatureSupported && object.curvature.mode !== 'flat' && (
+        <label>
+          <span>{messages.editorCurvatureAmountLabel}</span>
+          <input
+            type="range"
+            min={MIN_CURVATURE_AMOUNT}
+            max={MAX_CURVATURE_AMOUNT}
+            value={curvatureAmountDraft}
+            onInput={(event) => {
+              const amount = Number((event.target as HTMLInputElement).value);
+              setCurvatureAmountDraft(amount);
+              updateObjectTransient(object.id, { curvature: { ...object.curvature, amount } });
+            }}
+            onPointerUp={() =>
+              commitCurvature({ amount: clampCurvatureAmount(curvatureAmountDraft) })
+            }
+            onBlur={() => commitCurvature({ amount: clampCurvatureAmount(curvatureAmountDraft) })}
+          />
+        </label>
+      )}
+
+      {curvatureSupported && (
+        <button type="button" onClick={resetCurvature}>
+          {messages.editorCurvatureResetButton}
+        </button>
+      )}
     </>
   );
 }
 
 function ExportSection() {
   const { messages } = useLocale();
-  const templateId = useEditorStore((state) => state.document.templateId);
+  const document = useEditorStore((state) => state.document);
   const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
   const comparisonMode = useUiStore((state) => state.comparisonMode);
   const setComparisonMode = useUiStore((state) => state.setComparisonMode);
   const selectObject = useEditorStore((state) => state.selectObject);
-  const template = TEMPLATES[templateId];
+  const size = getDocumentSize(document);
 
   const setMode = (nextComparisonMode: boolean) => {
     setComparisonMode(nextComparisonMode);
@@ -778,9 +1013,13 @@ function ExportSection() {
         <p className="toolbar-notice">{messages.comparisonOriginalNoSpaceHint}</p>
       )}
 
-      <p className="toolbar-notice">
-        {messages.exportResolutionLabel}: {template.width} × {template.height} px
-      </p>
+      {size ? (
+        <p className="toolbar-notice">
+          {messages.exportResolutionLabel}: {size.width} × {size.height} px
+        </p>
+      ) : (
+        <p className="toolbar-notice">{messages.toolbarExportDisabledReason}</p>
+      )}
     </ToolbarSection>
   );
 }

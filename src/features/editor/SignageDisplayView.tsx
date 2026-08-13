@@ -1,14 +1,9 @@
-import { Group, Image as KonvaImage, Rect } from 'react-konva';
-import { getRegisteredAsset } from '../../lib/assetRegistry';
-import { computeContentLayout } from '../../lib/contentLayout';
+import { Group, Line, Rect } from 'react-konva';
+import { computeCurvatureOutlinePoints, isCurvatureSupported } from '../../lib/curvature';
 import { getFrameDecorations, getScreenRect } from '../../lib/displayFrame';
-import {
-  getBrightnessOverlay,
-  getLedPatternCanvas,
-  LCD_HIGHLIGHT_COLOR_STOPS,
-  materialPatternOpacity,
-} from '../../lib/materialTexture';
+import { normalizeMaterial } from '../../lib/materialTexture';
 import type { DisplaySignageObject } from '../../types/editor';
+import { ScreenComposition } from './ScreenComposition';
 
 interface SignageDisplayViewProps {
   object: DisplaySignageObject;
@@ -17,16 +12,17 @@ interface SignageDisplayViewProps {
   groupProps: Record<string, unknown>;
 }
 
+const BEZEL_FILL = '#15181f';
+
 export function SignageDisplayView({ object, groupProps }: SignageDisplayViewProps) {
   const screen = getScreenRect(object.frameId, object.width, object.height);
   const decorations = getFrameDecorations(object.frameId, object.width, object.height);
-  const asset = object.content ? getRegisteredAsset(object.content.sourceId) : undefined;
-  const patternOpacity = materialPatternOpacity(object.material, object.materialSettings.intensity);
-  const brightnessOverlay = getBrightnessOverlay(object.materialSettings.brightness);
-  const contentLayout =
-    asset && object.content
-      ? computeContentLayout(screen, asset.naturalWidth, asset.naturalHeight, object.content)
-      : null;
+  const curvatureActive =
+    isCurvatureSupported(normalizeMaterial(object.material)) && object.curvature.mode !== 'flat';
+  const curvedOutline = curvatureActive
+    ? computeCurvatureOutlinePoints(screen, object.curvature)
+    : null;
+  const bezelThickness = Math.max(4, Math.min(screen.width, screen.height) * 0.04);
 
   return (
     <Group {...groupProps}>
@@ -50,76 +46,39 @@ export function SignageDisplayView({ object, groupProps }: SignageDisplayViewPro
         perfectDrawEnabled={false}
         name="display-hit-area"
       />
-      {decorations.map((rect, index) => (
-        <Rect
-          key={index}
-          x={rect.x}
-          y={rect.y}
-          width={rect.width}
-          height={rect.height}
-          fill={rect.fill}
+      {curvedOutline ? (
+        // Curvature is a 2D visual approximation (see ADR 0007): the flat rectangular bezel
+        // would either clip the curved screen's bulge or leave an uneven flat-vs-curved gap, so
+        // the bezel itself is redrawn as a stroked outline that hugs the screen's own curved
+        // silhouette instead — a cheap way to make "frame treatment follows the curve" true
+        // without warping the frame's own geometry.
+        <Line
+          points={curvedOutline}
+          closed
+          stroke={BEZEL_FILL}
+          strokeWidth={bezelThickness}
           listening={false}
         />
-      ))}
-      <Group clipFunc={(ctx) => ctx.rect(screen.x, screen.y, screen.width, screen.height)}>
-        <Rect
-          x={screen.x}
-          y={screen.y}
-          width={screen.width}
-          height={screen.height}
-          fill="#05070a"
-          listening={false}
-        />
-        {asset && contentLayout && (
-          <KonvaImage
-            image={asset.image}
-            x={contentLayout.x}
-            y={contentLayout.y}
-            width={contentLayout.width}
-            height={contentLayout.height}
-            listening={false}
-          />
-        )}
-        {object.material === 'outdoor-led' && (
+      ) : (
+        decorations.map((rect, index) => (
           <Rect
-            x={screen.x}
-            y={screen.y}
-            width={screen.width}
-            height={screen.height}
-            // Konva's runtime fillPatternImage accepts HTMLCanvasElement (Shape.js passes it
-            // straight to ctx.createPattern), but its ShapeConfig type only declares
-            // HTMLImageElement — a known type/runtime mismatch in the Konva package.
-            fillPatternImage={getLedPatternCanvas() as unknown as HTMLImageElement}
-            fillPatternRepeat="repeat"
-            opacity={patternOpacity}
+            key={index}
+            x={rect.x}
+            y={rect.y}
+            width={rect.width}
+            height={rect.height}
+            fill={rect.fill}
             listening={false}
           />
-        )}
-        {object.material === 'lcd' && (
-          <Rect
-            x={screen.x}
-            y={screen.y}
-            width={screen.width}
-            height={screen.height}
-            fillLinearGradientStartPoint={{ x: screen.x, y: screen.y }}
-            fillLinearGradientEndPoint={{ x: screen.x + screen.width, y: screen.y + screen.height }}
-            fillLinearGradientColorStops={LCD_HIGHLIGHT_COLOR_STOPS}
-            opacity={patternOpacity}
-            listening={false}
-          />
-        )}
-        {brightnessOverlay && (
-          <Rect
-            x={screen.x}
-            y={screen.y}
-            width={screen.width}
-            height={screen.height}
-            fill={brightnessOverlay.fill}
-            opacity={brightnessOverlay.opacity}
-            listening={false}
-          />
-        )}
-      </Group>
+        ))
+      )}
+      <ScreenComposition
+        screen={screen}
+        material={object.material}
+        materialSettings={object.materialSettings}
+        curvature={object.curvature}
+        content={object.content}
+      />
     </Group>
   );
 }

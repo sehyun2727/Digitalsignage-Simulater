@@ -1,13 +1,8 @@
 import { Group, Image as KonvaImage, Rect } from 'react-konva';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
-import { computeContentLayout, resolveScreenRegionRect } from '../../lib/contentLayout';
-import {
-  getBrightnessOverlay,
-  getLedPatternCanvas,
-  LCD_HIGHLIGHT_COLOR_STOPS,
-  materialPatternOpacity,
-} from '../../lib/materialTexture';
+import { resolveScreenRegionRect } from '../../lib/contentLayout';
 import type { PortableSignageObject } from '../../types/editor';
+import { ScreenComposition } from './ScreenComposition';
 
 interface PortableProductViewProps {
   object: PortableSignageObject;
@@ -18,11 +13,11 @@ interface PortableProductViewProps {
 
 /**
  * Renders a user's own portable product photo as the object's background (instead of a
- * hand-authored frame, as SignageDisplayView draws for the built-in templates), clips the
- * marked screen region, and reuses the same content/material rendering recipe as a built-in
- * display. `object.screenRegion` is a fraction of the *photo's* own dimensions, but since the
- * object's bounding box is always kept at the photo's aspect ratio (see the transform
- * aspect-lock in CanvasObjectView.tsx), it can be resolved directly against the object size.
+ * hand-authored frame, as SignageDisplayView draws for the built-in templates), and reuses
+ * ScreenComposition for the marked screen region's content/material/curvature rendering.
+ * `object.screenRegion` is a fraction of the *photo's* own dimensions, but since the object's
+ * bounding box is always kept at the photo's aspect ratio (see the transform aspect-lock in
+ * CanvasObjectView.tsx), it can be resolved directly against the object size.
  */
 export function PortableProductView({ object, groupProps }: PortableProductViewProps) {
   const productAsset = getRegisteredAsset(object.productSourceId);
@@ -30,18 +25,6 @@ export function PortableProductView({ object, groupProps }: PortableProductViewP
     { width: object.width, height: object.height },
     { shape: 'rect', ...object.screenRegion },
   );
-  const contentAsset = object.content ? getRegisteredAsset(object.content.sourceId) : undefined;
-  const patternOpacity = materialPatternOpacity(object.material, object.materialSettings.intensity);
-  const brightnessOverlay = getBrightnessOverlay(object.materialSettings.brightness);
-  const contentLayout =
-    contentAsset && object.content
-      ? computeContentLayout(
-          screen,
-          contentAsset.naturalWidth,
-          contentAsset.naturalHeight,
-          object.content,
-        )
-      : null;
 
   return (
     <Group {...groupProps}>
@@ -76,65 +59,13 @@ export function PortableProductView({ object, groupProps }: PortableProductViewP
           listening={false}
         />
       )}
-      <Group clipFunc={(ctx) => ctx.rect(screen.x, screen.y, screen.width, screen.height)}>
-        <Rect
-          x={screen.x}
-          y={screen.y}
-          width={screen.width}
-          height={screen.height}
-          fill="#05070a"
-          listening={false}
-        />
-        {contentAsset && contentLayout && (
-          <KonvaImage
-            image={contentAsset.image}
-            x={contentLayout.x}
-            y={contentLayout.y}
-            width={contentLayout.width}
-            height={contentLayout.height}
-            listening={false}
-          />
-        )}
-        {object.material === 'outdoor-led' && (
-          <Rect
-            x={screen.x}
-            y={screen.y}
-            width={screen.width}
-            height={screen.height}
-            // Konva's runtime fillPatternImage accepts HTMLCanvasElement (Shape.js passes it
-            // straight to ctx.createPattern), but its ShapeConfig type only declares
-            // HTMLImageElement — a known type/runtime mismatch in the Konva package.
-            fillPatternImage={getLedPatternCanvas() as unknown as HTMLImageElement}
-            fillPatternRepeat="repeat"
-            opacity={patternOpacity}
-            listening={false}
-          />
-        )}
-        {object.material === 'lcd' && (
-          <Rect
-            x={screen.x}
-            y={screen.y}
-            width={screen.width}
-            height={screen.height}
-            fillLinearGradientStartPoint={{ x: screen.x, y: screen.y }}
-            fillLinearGradientEndPoint={{ x: screen.x + screen.width, y: screen.y + screen.height }}
-            fillLinearGradientColorStops={LCD_HIGHLIGHT_COLOR_STOPS}
-            opacity={patternOpacity}
-            listening={false}
-          />
-        )}
-        {brightnessOverlay && (
-          <Rect
-            x={screen.x}
-            y={screen.y}
-            width={screen.width}
-            height={screen.height}
-            fill={brightnessOverlay.fill}
-            opacity={brightnessOverlay.opacity}
-            listening={false}
-          />
-        )}
-      </Group>
+      <ScreenComposition
+        screen={screen}
+        material={object.material}
+        materialSettings={object.materialSettings}
+        curvature={object.curvature}
+        content={object.content}
+      />
     </Group>
   );
 }

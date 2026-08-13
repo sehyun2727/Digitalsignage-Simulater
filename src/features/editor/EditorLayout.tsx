@@ -20,7 +20,6 @@ export function EditorLayout() {
   const { messages } = useLocale();
   const objectCount = useEditorStore((state) => state.document.objects.length);
   const objects = useEditorStore((state) => state.document.objects);
-  const templateId = useEditorStore((state) => state.document.templateId);
   const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
   const deleteSelected = useEditorStore((state) => state.deleteSelected);
   const undo = useEditorStore((state) => state.undo);
@@ -98,12 +97,12 @@ export function EditorLayout() {
 
     const link = document.createElement('a');
     link.href = dataUrl;
-    link.download = buildExportFilename(templateId);
+    link.download = buildExportFilename();
     document.body.appendChild(link);
     link.click();
     link.remove();
     setAnnouncement(messages.editorExportedAnnouncement);
-  }, [templateId, messages]);
+  }, [messages]);
 
   const handleQuickCompareToggle = useCallback(() => {
     const next = !comparisonMode;
@@ -142,7 +141,7 @@ export function EditorLayout() {
               : messages.headerCompareToOriginalButton}
           </button>
           <LanguageSelector />
-          <button type="button" onClick={handleExport}>
+          <button type="button" onClick={handleExport} disabled={!spaceBackground}>
             {messages.editorExportButton}
           </button>
         </div>
@@ -150,8 +149,11 @@ export function EditorLayout() {
 
       <div className="editor-workspace">
         <div className="editor-canvas-wrapper">
-          {objectCount === 0 && !comparisonMode && (
-            <p className="editor-empty-hint">{messages.editorEmptyCanvasHint}</p>
+          {!spaceBackground && !comparisonMode && (
+            <p className="editor-empty-hint">{messages.editorCanvasEmptyHint}</p>
+          )}
+          {spaceBackground && objectCount === 0 && !comparisonMode && (
+            <p className="editor-empty-hint">{messages.editorCanvasNoSignageHint}</p>
           )}
           <EditorCanvas
             ref={canvasRef}
