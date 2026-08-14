@@ -181,6 +181,7 @@ a {
 }
 
 .editor-canvas-container {
+  position: relative;
   width: 100%;
   border: 1px solid var(--color-border);
   border-radius: 0.5rem;
@@ -190,6 +191,80 @@ a {
      gestures on touch devices instead of the browser intercepting them as
      page scroll/zoom. The rest of the page still scrolls normally. */
   touch-action: none;
+}
+
+.perspective-edit-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.perspective-edit-hint {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.25rem;
+  background-color: rgba(255, 255, 255, 0.9);
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.perspective-edit-outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.perspective-edit-outline polygon {
+  fill: rgba(37, 99, 235, 0.15);
+  stroke: #2563eb;
+  stroke-width: 2;
+}
+
+.perspective-edit-handle {
+  position: absolute;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-left: -0.875rem;
+  margin-top: -0.875rem;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 2px solid #2563eb;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+  touch-action: none;
+}
+
+.perspective-edit-handle:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.perspective-corner-fields {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.92);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.perspective-corner-fields fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .editor-empty-hint {

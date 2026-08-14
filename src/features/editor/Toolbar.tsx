@@ -26,6 +26,7 @@ import {
   MIN_CONTENT_SCALE,
   MIN_CURVATURE_AMOUNT,
   MIN_MATERIAL_SETTING,
+  supportsPerspective,
 } from '../../types/editor';
 import { PortableBuilderModal } from './PortableBuilderModal';
 import type { ImageValidationError } from '../../lib/fileValidation';
@@ -35,6 +36,7 @@ import type {
   DisplayMaterial,
   DisplaySignageObject,
   MaterialSettings,
+  PerspectiveCapableObject,
   PortableSignageObject,
   SignageObject,
 } from '../../types/editor';
@@ -474,6 +476,8 @@ function SelectedSignageFields({
         </>
       )}
 
+      {supportsPerspective(selected) && <PerspectiveFitControls object={selected} />}
+
       {selected.kind === 'portable' && (
         <div className="toolbar-actions">
           <button type="button" onClick={() => setRegionEditorOpen(true)}>
@@ -494,6 +498,34 @@ function SelectedSignageFields({
         />
       )}
     </>
+  );
+}
+
+/** Entry points for perspective ("Fit to space") edit mode; while this object's own edit session
+ *  is open, the corner-drag controls live in PerspectiveEditOverlay instead, so this renders
+ *  nothing to avoid a second, conflicting "Fit to space" affordance on screen at the same time. */
+function PerspectiveFitControls({ object }: { object: PerspectiveCapableObject }) {
+  const { messages } = useLocale();
+  const perspectiveEditId = useEditorStore((state) => state.perspectiveEditId);
+  const beginPerspectiveEdit = useEditorStore((state) => state.beginPerspectiveEdit);
+  const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
+
+  if (perspectiveEditId === object.id) return null;
+
+  return (
+    <div className="toolbar-actions">
+      <button type="button" onClick={() => beginPerspectiveEdit(object.id)}>
+        {messages.editorPerspectiveFitButton}
+      </button>
+      {object.placementMode === 'perspective' && (
+        <button
+          type="button"
+          onClick={() => commitObjectChange(object.id, { placementMode: 'rect' })}
+        >
+          {messages.editorPerspectiveUseRectButton}
+        </button>
+      )}
+    </div>
   );
 }
 

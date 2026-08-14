@@ -10,6 +10,7 @@ import { useEditorStore } from '../../store/editorStore';
 import { getDocumentSize } from '../../types/editor';
 import type { SignageObject } from '../../types/editor';
 import { CanvasObjectView } from './CanvasObjectView';
+import { PerspectiveEditOverlay } from './PerspectiveEditOverlay';
 import { SpaceBackgroundView } from './SpaceBackgroundView';
 
 export interface EditorCanvasHandle {
@@ -31,6 +32,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   const selectedId = useEditorStore((state) => state.selectedId);
   const selectObject = useEditorStore((state) => state.selectObject);
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
+  const perspectiveEditId = useEditorStore((state) => state.perspectiveEditId);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const dropTargetObject = document.objects.find((object) => object.id === dropTargetId) ?? null;
   const dropTargetRect = dropTargetObject ? getObjectScreenRect(dropTargetObject) : null;
@@ -96,7 +98,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   useEffect(() => {
     const transformer = transformerRef.current;
     if (!transformer) return;
-    if (comparisonMode || !selectedId) {
+    if (comparisonMode || !selectedId || perspectiveEditId) {
       transformer.nodes([]);
       transformer.getLayer()?.batchDraw();
       return;
@@ -125,7 +127,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     );
     transformer.nodes(node ? [node] : []);
     transformer.getLayer()?.batchDraw();
-  }, [selectedId, document.objects, comparisonMode]);
+  }, [selectedId, document.objects, comparisonMode, perspectiveEditId]);
 
   const registerNode = (id: string, node: Konva.Node | null) => {
     if (node) {
@@ -222,10 +224,14 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
           scaleX={fitScale}
           scaleY={fitScale}
           onMouseDown={(event) => {
-            if (!comparisonMode && event.target === event.target.getStage()) selectObject(null);
+            if (!comparisonMode && !perspectiveEditId && event.target === event.target.getStage()) {
+              selectObject(null);
+            }
           }}
           onTouchStart={(event) => {
-            if (!comparisonMode && event.target === event.target.getStage()) selectObject(null);
+            if (!comparisonMode && !perspectiveEditId && event.target === event.target.getStage()) {
+              selectObject(null);
+            }
           }}
         >
           <Layer>
@@ -236,7 +242,11 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
                 height={size.height}
               />
             )}
-            <Group ref={objectsGroupRef} visible={!comparisonMode} listening={!comparisonMode}>
+            <Group
+              ref={objectsGroupRef}
+              visible={!comparisonMode}
+              listening={!comparisonMode && !perspectiveEditId}
+            >
               {document.objects.map((object) => (
                 <CanvasObjectView
                   key={object.id}
@@ -276,6 +286,9 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
             />
           </Layer>
         </Stage>
+      )}
+      {!comparisonMode && size && perspectiveEditId && (
+        <PerspectiveEditOverlay documentSize={size} fitScale={fitScale} />
       )}
     </div>
   );

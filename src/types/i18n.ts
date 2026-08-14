@@ -94,6 +94,23 @@ export interface Messages {
   editorCurvatureResetButton: string;
   editorCurvatureUnsupportedHint: string;
 
+  editorPerspectiveFitButton: string;
+  editorPerspectiveUseRectButton: string;
+  editorPerspectiveHint: string;
+  editorPerspectiveCornerTopLeft: string;
+  editorPerspectiveCornerTopRight: string;
+  editorPerspectiveCornerBottomRight: string;
+  editorPerspectiveCornerBottomLeft: string;
+  editorPerspectiveApplyButton: string;
+  editorPerspectiveCancelButton: string;
+  editorPerspectiveResetButton: string;
+  editorPerspectiveErrorOutOfBounds: string;
+  editorPerspectiveErrorSelfIntersecting: string;
+  editorPerspectiveErrorConcave: string;
+  editorPerspectiveErrorMinArea: string;
+  editorPerspectiveErrorMinEdge: string;
+  editorPerspectiveErrorInvalidValues: string;
+
   portableSectionHeading: string;
   editorAddPortableButton: string;
   portableTypeLabel: string;
