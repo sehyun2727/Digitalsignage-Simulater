@@ -2,7 +2,7 @@
 
 ## Status
 
-Sprint 4.3 complete. The editor is **photo-first**: the uploaded space-background
+Sprint 4.4 complete. The editor is **photo-first**: the uploaded space-background
 photo alone defines the document's export resolution (orientation-corrected, never
 stretched or cropped, downscaled deterministically past a decoded-pixel safety limit)
 — there is no document/template picker. Four signage families are placeable once a
@@ -21,6 +21,14 @@ Content, Appearance, Export) is unchanged; see
 (photo → screen-region → add) and Sprint 3.2's canvas reselection hotfix are both
 still in place — see [ADR 0004](../adr/0004-custom-portable-template.md) and
 [ADR 0005](../adr/0005-canvas-object-reselection-hotfix.md).
+Sprint 4.4 replaced the single flat material-settings default with three named
+rendering presets (Natural/Bright/Night, seeding material, contact-shadow, and
+environment-integration values together), made glow content-luminance-aware, and
+fixed several rendering-quality defects (LED/Transparent-LED grid opacity fading at
+small sizes, a narrower LCD highlight band, frame-excluded environment blending,
+contact shadows enabled by default per installation plane, curvature strip-seam
+overlap, and Konva export-cache re-baking at export resolution) — see
+[ADR 0009](../adr/0009-photorealistic-rendering-core.md).
 
 ## Runtime shape
 
@@ -76,6 +84,11 @@ Flat `src/` layout, per `CLAUDE.md` §4 (chosen over a monorepo `apps/` tree —
   gating), `videoExportCapability` (`captureStream`/`MediaRecorder` support
   detection), and `videoExport` (the in-browser canvas-to-WebM recording pipeline) —
   see [ADR 0008](../adr/0008-perspective-environment-and-video-sprint-4-3.md).
+  `renderingPresets` (Natural/Bright/Night preset resolution for material settings,
+  contact shadow, and environment integration together), `contentLuminance` (mean
+  image-luminance sampling that scales glow strength), and `konvaCacheSync` (re-bakes
+  cached/filtered Konva bitmaps at export resolution immediately before a PNG snapshot)
+  — see [ADR 0009](../adr/0009-photorealistic-rendering-core.md).
 - `src/store/` — the Zustand editor store (`editorStore.ts`): photo-first document
   state (`getDocumentSize` derives width/height solely from the uploaded space photo),
   selection, undo/redo history, the reachability-based asset-sweep subscription, and
