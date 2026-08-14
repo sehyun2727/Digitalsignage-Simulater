@@ -27,14 +27,19 @@ export interface ImageSignageObject extends BaseSignageObject {
 /** How uploaded screen content is fit within a display's screen region. */
 export type ContentFit = 'contain' | 'cover';
 
+/** The kind of media a signage screen shows. Video was added in Sprint 4.3 (ADR 0008). */
+export type ContentKind = 'image' | 'video';
+
 /**
- * A user-supplied image shown inside a display object's screen region.
+ * A user-supplied image or video shown inside a display object's screen region.
  * `sourceId` keys into the runtime asset registry (src/lib/assetRegistry.ts) rather than
  * embedding a Blob URL directly, so undo/redo history can hold plain, serializable state
- * while decoded image/Object URL resources are managed separately with their own lifecycle.
+ * while decoded image/video/Object URL resources are managed separately with their own
+ * lifecycle. Video playback state (play/pause, current time, mute) is deliberately not part of
+ * this type — it is transient runtime state, not document/history state (sprint spec section 26).
  */
 export interface SignageContent {
-  kind: 'image';
+  kind: ContentKind;
   sourceId: string;
   fit: ContentFit;
   /** Fraction of the screen width/height the content center is shifted, roughly -1..1. */
@@ -152,6 +157,78 @@ export const DEFAULT_CURVATURE: Curvature = { mode: 'flat', amount: 0 };
 export const MIN_CURVATURE_AMOUNT = 0;
 export const MAX_CURVATURE_AMOUNT = 100;
 
+/** A single normalized (0-1, fraction of the current document) point. */
+export interface NormalizedPoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * A four-point perspective quad fitting signage to a photographed installation plane (ADR 0008).
+ * Coordinates are normalized (0-1) fractions of the current photo-first document, not preview
+ * CSS pixels or export pixels, so the quad survives space-photo replacement and canvas resizing
+ * unchanged (see src/lib/quadGeometry.ts documentQuadToNormalized/normalizedQuadToDocument).
+ * Corner order is always fixed — top-left, top-right, bottom-right, bottom-left — and is never
+ * reassigned by validation or editing code (src/lib/quadGeometry.ts validateQuad).
+ */
+export interface NormalizedQuad {
+  topLeft: NormalizedPoint;
+  topRight: NormalizedPoint;
+  bottomRight: NormalizedPoint;
+  bottomLeft: NormalizedPoint;
+}
+
+/**
+ * 'rect' is the existing axis-aligned/rotated bounding-box placement (x/y/width/height/rotation).
+ * 'perspective' additionally warps the screen composition into `perspectiveQuad` (ADR 0008).
+ * `perspectiveQuad` is populated as soon as the user has ever applied "Fit to space" once, and is
+ * kept (not deleted) if they later switch back to 'rect', so re-entering perspective mode restores
+ * their last quad instead of re-deriving a fresh one from the current rectangle.
+ */
+export type PlacementMode = 'rect' | 'perspective';
+
+export const DEFAULT_PLACEMENT_MODE: PlacementMode = 'rect';
+
+/**
+ * A soft shadow cast by the signage silhouette onto the space photo, to help it read as sitting
+ * on/against the photographed surface (sprint spec section 9). Visual-only, not a physically
+ * based light/occlusion simulation.
+ */
+export interface ContactShadowSettings {
+  enabled: boolean;
+  /** 0-100 opacity/darkness of the shadow. */
+  strength: number;
+  /** 0-100 blur radius. */
+  blur: number;
+  /** Fraction of the signage silhouette size the shadow is offset, roughly -1..1. */
+  offsetX: number;
+  offsetY: number;
+}
+
+export const DEFAULT_CONTACT_SHADOW: ContactShadowSettings = {
+  enabled: false,
+  strength: 50,
+  blur: 50,
+  offsetX: 0,
+  offsetY: 0.2,
+};
+export const MIN_CONTACT_SHADOW_SETTING = 0;
+export const MAX_CONTACT_SHADOW_SETTING = 100;
+
+/**
+ * A single bounded control blending the rendered signage toward the space photo's tone (reduced
+ * saturation/contrast/highlight strength at higher settings) so it reads as more naturally
+ * installed. Never modifies the source space photo itself (sprint spec section 9).
+ */
+export interface EnvironmentIntegrationSettings {
+  /** 0-100; 0 disables all blending. */
+  strength: number;
+}
+
+export const DEFAULT_ENVIRONMENT_INTEGRATION: EnvironmentIntegrationSettings = { strength: 0 };
+export const MIN_ENVIRONMENT_INTEGRATION = 0;
+export const MAX_ENVIRONMENT_INTEGRATION = 100;
+
 /**
  * A placeable signage display whose screen region clips user content and renders a material +
  * curvature preview. Document/export resolution is derived entirely from the space background
@@ -164,6 +241,10 @@ export interface DisplaySignageObject extends BaseSignageObject {
   material: DisplayMaterial;
   materialSettings: MaterialSettings;
   curvature: Curvature;
+  placementMode: PlacementMode;
+  perspectiveQuad: NormalizedQuad | null;
+  contactShadow: ContactShadowSettings;
+  environmentIntegration: EnvironmentIntegrationSettings;
 }
 
 /**
@@ -192,9 +273,20 @@ export interface PortableSignageObject extends BaseSignageObject {
   material: DisplayMaterial;
   materialSettings: MaterialSettings;
   curvature: Curvature;
+  placementMode: PlacementMode;
+  perspectiveQuad: NormalizedQuad | null;
+  contactShadow: ContactShadowSettings;
+  environmentIntegration: EnvironmentIntegrationSettings;
 }
 
 export type SignageObject = TextSignageObject | ImageSignageObject | DisplaySignageObject | PortableSignageObject;
+
+/** The signage object kinds that have a screen and can be fit to a perspective quad. */
+export type PerspectiveCapableObject = DisplaySignageObject | PortableSignageObject;
+
+export function supportsPerspective(object: SignageObject): object is PerspectiveCapableObject {
+  return object.kind === 'display' || object.kind === 'portable';
+}
 
 /**
  * The uploaded space/site photo shown behind all objects. Sprint 4.2 makes this the *only*
