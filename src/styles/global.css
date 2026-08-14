@@ -245,17 +245,37 @@ a {
   outline-offset: 2px;
 }
 
-.perspective-corner-fields {
+.perspective-edit-panel {
   position: absolute;
   bottom: 0.75rem;
   left: 0.75rem;
   right: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.perspective-corner-fields {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   background-color: rgba(255, 255, 255, 0.92);
   border-radius: 0.5rem;
   padding: 0.5rem;
+}
+
+.perspective-edit-panel .editor-properties-actions {
+  display: flex;
+  gap: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.92);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.perspective-edit-panel .editor-properties-error {
+  background-color: rgba(255, 255, 255, 0.92);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.6rem;
 }
 
 .perspective-corner-fields fieldset {

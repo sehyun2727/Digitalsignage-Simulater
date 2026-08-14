@@ -166,57 +166,63 @@ export function PerspectiveEditOverlay({ documentSize, fitScale }: PerspectiveEd
           />
         );
       })}
-      <div className="perspective-corner-fields">
-        {QUAD_CORNER_ORDER.map((corner) => {
-          const point = draftQuad[corner];
-          return (
-            <fieldset key={corner}>
-              <legend>{messages[CORNER_LABEL_KEY[corner]]}</legend>
-              <label>
-                <span>{messages.editorPositionXLabel}</span>
-                <input
-                  type="number"
-                  step={0.01}
-                  min={0}
-                  max={1}
-                  value={Number(point.x.toFixed(2))}
-                  onChange={(event) =>
-                    handleNumericFieldChange(corner, 'x', Number(event.target.value))
-                  }
-                />
-              </label>
-              <label>
-                <span>{messages.editorPositionYLabel}</span>
-                <input
-                  type="number"
-                  step={0.01}
-                  min={0}
-                  max={1}
-                  value={Number(point.y.toFixed(2))}
-                  onChange={(event) =>
-                    handleNumericFieldChange(corner, 'y', Number(event.target.value))
-                  }
-                />
-              </label>
-            </fieldset>
-          );
-        })}
-      </div>
-      {!validation.valid && validation.reason && (
-        <p role="alert" className="editor-properties-error">
-          {messages[ERROR_MESSAGE_KEY[validation.reason]]}
-        </p>
-      )}
-      <div className="editor-properties-actions">
-        <button type="button" onClick={resetPerspectiveEdit}>
-          {messages.editorPerspectiveResetButton}
-        </button>
-        <button type="button" onClick={cancelPerspectiveEdit}>
-          {messages.editorPerspectiveCancelButton}
-        </button>
-        <button type="button" onClick={handleApply} disabled={!validation.valid}>
-          {messages.editorPerspectiveApplyButton}
-        </button>
+      {/* Grouped into one bottom-docked panel (rather than each piece positioning itself
+          absolutely) so the corner fields, validation alert, and action buttons stack in normal
+          flow and never overlap the top-docked hint text — they previously did at some viewport
+          widths, which silently ate clicks on Apply/Cancel/Reset in a real browser layout. */}
+      <div className="perspective-edit-panel">
+        <div className="perspective-corner-fields">
+          {QUAD_CORNER_ORDER.map((corner) => {
+            const point = draftQuad[corner];
+            return (
+              <fieldset key={corner}>
+                <legend>{messages[CORNER_LABEL_KEY[corner]]}</legend>
+                <label>
+                  <span>{messages.editorPositionXLabel}</span>
+                  <input
+                    type="number"
+                    step={0.01}
+                    min={0}
+                    max={1}
+                    value={Number(point.x.toFixed(2))}
+                    onChange={(event) =>
+                      handleNumericFieldChange(corner, 'x', Number(event.target.value))
+                    }
+                  />
+                </label>
+                <label>
+                  <span>{messages.editorPositionYLabel}</span>
+                  <input
+                    type="number"
+                    step={0.01}
+                    min={0}
+                    max={1}
+                    value={Number(point.y.toFixed(2))}
+                    onChange={(event) =>
+                      handleNumericFieldChange(corner, 'y', Number(event.target.value))
+                    }
+                  />
+                </label>
+              </fieldset>
+            );
+          })}
+        </div>
+        {!validation.valid && validation.reason && (
+          <p role="alert" className="editor-properties-error">
+            {messages[ERROR_MESSAGE_KEY[validation.reason]]}
+          </p>
+        )}
+        <div className="editor-properties-actions">
+          <button type="button" onClick={resetPerspectiveEdit}>
+            {messages.editorPerspectiveResetButton}
+          </button>
+          <button type="button" onClick={cancelPerspectiveEdit}>
+            {messages.editorPerspectiveCancelButton}
+          </button>
+          <button type="button" onClick={handleApply} disabled={!validation.valid}>
+            {messages.editorPerspectiveApplyButton}
+          </button>
+        </div>
       </div>
     </div>
   );
