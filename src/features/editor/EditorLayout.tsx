@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LanguageSelector } from '../../components/LanguageSelector';
 import { useLocale } from '../../i18n/localeContext';
+import type { ContentValidationError } from '../../lib/contentUpload';
 import { buildExportFilename } from '../../lib/exportFilename';
 import type { ImageValidationError } from '../../lib/fileValidation';
 import { selectCanRedo, selectCanUndo, useEditorStore } from '../../store/editorStore';
 import { useUiStore } from '../../store/uiStore';
+import type { ContentKind } from '../../types/editor';
 import type { EditorCanvasHandle } from './EditorCanvas';
 import { EditorCanvas } from './EditorCanvas';
 import { OnboardingOverlay } from './OnboardingOverlay';
@@ -78,6 +80,28 @@ export function EditorLayout() {
       }
     },
     [messages],
+  );
+
+  // Image and video validation errors share the same string values (e.g. 'too-large') for
+  // different limits (10MB vs. 80MB), so the announcement must branch on `kind` first to show
+  // an accurate message rather than reusing handleImageError's image-only wording.
+  const handleContentError = useCallback(
+    (kind: ContentKind, error: ContentValidationError) => {
+      if (kind === 'image') {
+        handleImageError(error as ImageValidationError);
+        return;
+      }
+      if (error === 'unsupported-type') {
+        setAnnouncement(messages.editorVideoUploadErrorUnsupportedType);
+      } else if (error === 'too-large') {
+        setAnnouncement(messages.editorVideoUploadErrorTooLarge);
+      } else if (error === 'unsupported-codec') {
+        setAnnouncement(messages.editorVideoUploadErrorUnsupportedCodec);
+      } else {
+        setAnnouncement(messages.editorVideoUploadErrorDecodeFailed);
+      }
+    },
+    [messages, handleImageError],
   );
 
   const handleExport = useCallback(() => {
@@ -158,7 +182,7 @@ export function EditorLayout() {
           <EditorCanvas
             ref={canvasRef}
             comparisonMode={comparisonMode}
-            onImageError={handleImageError}
+            onContentError={handleContentError}
           />
         </div>
         <Toolbar onImageError={handleImageError} />

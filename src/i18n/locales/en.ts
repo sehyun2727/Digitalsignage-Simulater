@@ -39,6 +39,10 @@ export const en: Messages = {
   editorImageUploadErrorUnsupportedType: 'Only PNG, JPEG, and WebP images are supported.',
   editorImageUploadErrorTooLarge: 'Image size must be 10MB or smaller.',
   editorImageUploadErrorDecodeFailed: 'Could not load the image. The file may be corrupted.',
+  editorVideoUploadErrorUnsupportedType: 'Only MP4 and WebM videos are supported.',
+  editorVideoUploadErrorTooLarge: 'Video size must be 80MB or smaller.',
+  editorVideoUploadErrorUnsupportedCodec: 'This browser cannot play this video’s codec.',
+  editorVideoUploadErrorDecodeFailed: 'Could not load the video. The file may be corrupted.',
   editorExportedAnnouncement: 'Exported the PNG image.',
   editorExportErrorAnnouncement: 'Failed to export the PNG image. Please try again.',
 

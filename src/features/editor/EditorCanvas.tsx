@@ -1,14 +1,13 @@
 import type Konva from 'konva';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Group, Layer, Rect, Stage, Transformer } from 'react-konva';
-import { registerAsset } from '../../lib/assetRegistry';
-import type { ImageValidationError } from '../../lib/fileValidation';
-import { validateImageFile } from '../../lib/fileValidation';
+import type { ContentValidationError } from '../../lib/contentUpload';
+import { contentKindForFile, registerContentAsset, validateContentFile } from '../../lib/contentUpload';
 import { findTopmostScreenHit, getObjectScreenRect } from '../../lib/screenHitTest';
 import type { Point } from '../../lib/screenHitTest';
 import { useEditorStore } from '../../store/editorStore';
 import { getDocumentSize } from '../../types/editor';
-import type { SignageObject } from '../../types/editor';
+import type { ContentKind, SignageObject } from '../../types/editor';
 import { CanvasObjectView } from './CanvasObjectView';
 import { PerspectiveEditOverlay } from './PerspectiveEditOverlay';
 import { SpaceBackgroundView } from './SpaceBackgroundView';
@@ -18,14 +17,14 @@ export interface EditorCanvasHandle {
 }
 
 interface EditorCanvasProps {
-  onImageError: (error: ImageValidationError) => void;
+  onContentError: (kind: ContentKind, error: ContentValidationError) => void;
   /** When true, renders only the space background so the user can compare it against the
    *  composed result; signage objects, selection, and drag-and-drop are all suppressed. */
   comparisonMode?: boolean;
 }
 
 export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function EditorCanvas(
-  { onImageError, comparisonMode = false },
+  { onContentError, comparisonMode = false },
   ref,
 ) {
   const document = useEditorStore((state) => state.document);
@@ -184,17 +183,17 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     const file = event.dataTransfer.files[0];
     if (!targetId || !file) return;
 
-    const validationError = validateImageFile(file);
-    if (validationError) {
-      onImageError(validationError);
+    const validation = validateContentFile(file);
+    if (validation) {
+      onContentError(validation.kind, validation.error);
       return;
     }
 
     try {
-      const asset = await registerAsset(file);
+      const asset = await registerContentAsset(file);
       commitObjectChange(targetId, {
         content: {
-          kind: 'image',
+          kind: asset.kind,
           sourceId: asset.sourceId,
           fit: 'contain',
           offsetX: 0,
@@ -204,7 +203,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       });
       selectObject(targetId);
     } catch {
-      onImageError('decode-error');
+      onContentError(contentKindForFile(file), 'decode-error');
     }
   };
 

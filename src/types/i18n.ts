@@ -41,6 +41,10 @@ export interface Messages {
   editorImageUploadErrorUnsupportedType: string;
   editorImageUploadErrorTooLarge: string;
   editorImageUploadErrorDecodeFailed: string;
+  editorVideoUploadErrorUnsupportedType: string;
+  editorVideoUploadErrorTooLarge: string;
+  editorVideoUploadErrorUnsupportedCodec: string;
+  editorVideoUploadErrorDecodeFailed: string;
   editorExportedAnnouncement: string;
   editorExportErrorAnnouncement: string;
 

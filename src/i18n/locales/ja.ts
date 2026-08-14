@@ -39,6 +39,11 @@ export const ja: Messages = {
   editorImageUploadErrorTooLarge: '画像サイズは10MB以下にしてください。',
   editorImageUploadErrorDecodeFailed:
     '画像を読み込めませんでした。ファイルが破損している可能性があります。',
+  editorVideoUploadErrorUnsupportedType: 'MP4、WebM形式の動画のみ利用できます。',
+  editorVideoUploadErrorTooLarge: '動画サイズは80MB以下にしてください。',
+  editorVideoUploadErrorUnsupportedCodec: 'このブラウザでは動画のコーデックを再生できません。',
+  editorVideoUploadErrorDecodeFailed:
+    '動画を読み込めませんでした。ファイルが破損している可能性があります。',
   editorExportedAnnouncement: 'PNG画像を書き出しました。',
   editorExportErrorAnnouncement: 'PNG画像の書き出しに失敗しました。もう一度お試しください。',
 
