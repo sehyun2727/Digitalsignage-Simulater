@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { readPngDimensions } from './support/png.js';
 import { samplePngPixels } from './support/pixels.js';
 import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
+import { addVideoContent } from './support/video.js';
 
 test.use({ locale: 'ja-JP' });
 
@@ -82,6 +83,21 @@ test('removes uploaded content from a display', async ({ page }) => {
 
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
+  ).toBeVisible();
+});
+
+test('uploads a generated video clip into a display and shows the autoplay/loop/mute hint', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await addSpaceBackground(page);
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+
+  await addVideoContent(page);
+
+  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(
+    page.getByText('動画は自動再生・ループ再生・ミュートで表示されます。'),
   ).toBeVisible();
 });
 
