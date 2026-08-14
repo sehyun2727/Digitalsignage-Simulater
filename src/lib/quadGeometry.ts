@@ -525,3 +525,59 @@ export function buildQuadMesh(quad: NormalizedQuad, subdivisions: number): QuadM
   }
   return cells;
 }
+
+/**
+ * A 2D affine transform in `CanvasRenderingContext2D.setTransform(a, b, c, d, e, f)` parameter
+ * order: maps (x, y) to (a*x + c*y + e, b*x + d*y + f).
+ */
+export interface AffineMatrix {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  e: number;
+  f: number;
+}
+
+/**
+ * Solves for the unique affine transform mapping `src`'s three points onto `dst`'s corresponding
+ * three points (an affine transform has 6 degrees of freedom, exactly matched by 3 point
+ * correspondences). Used to draw one `QuadMeshCell` at a time: Canvas 2D has no native projective
+ * transform, so a renderer splits each mesh cell into two triangles and draws each with its own
+ * affine transform (see PerspectiveScreenView.tsx) — as the mesh gets finer, the piecewise-affine
+ * result converges to the true perspective warp `buildQuadMesh`'s homography describes. Returns
+ * null when `src`'s three points are collinear (degenerate, no unique affine transform exists).
+ */
+export function solveAffine(
+  src: readonly [Point, Point, Point],
+  dst: readonly [Point, Point, Point],
+): AffineMatrix | null {
+  const [s0, s1, s2] = src;
+  const [d0, d1, d2] = dst;
+  const ux = s1.x - s0.x;
+  const uy = s1.y - s0.y;
+  const vx = s2.x - s0.x;
+  const vy = s2.y - s0.y;
+  const denominator = ux * vy - vx * uy;
+  if (Math.abs(denominator) <= DEFAULT_EPSILON) return null;
+
+  const upx = d1.x - d0.x;
+  const upy = d1.y - d0.y;
+  const vpx = d2.x - d0.x;
+  const vpy = d2.y - d0.y;
+
+  const a = (upx * vy - vpx * uy) / denominator;
+  const b = (upy * vy - vpy * uy) / denominator;
+  const c = (vpx * ux - upx * vx) / denominator;
+  const d = (vpy * ux - upy * vx) / denominator;
+  const e = d0.x - a * s0.x - c * s0.y;
+  const f = d0.y - b * s0.x - d * s0.y;
+  return { a, b, c, d, e, f };
+}
+
+export function applyAffine(matrix: AffineMatrix, point: Point): Point {
+  return {
+    x: matrix.a * point.x + matrix.c * point.y + matrix.e,
+    y: matrix.b * point.x + matrix.d * point.y + matrix.f,
+  };
+}

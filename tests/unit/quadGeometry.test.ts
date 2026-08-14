@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyAffine,
   applyHomography,
   bilinearInterpolateQuad,
   buildQuadMesh,
@@ -35,9 +36,10 @@ import {
   rectToQuadPoints,
   segmentsIntersect,
   signedArea,
+  solveAffine,
   validateQuad,
 } from '../../src/lib/quadGeometry';
-import type { NormalizedQuad } from '../../src/lib/quadGeometry';
+import type { NormalizedQuad, Point } from '../../src/lib/quadGeometry';
 
 const RECT_QUAD: NormalizedQuad = {
   topLeft: { x: 0.1, y: 0.1 },
@@ -557,5 +559,91 @@ describe('buildQuadMesh', () => {
       bottomLeft: { x: 1, y: 0.5 },
     };
     expect(buildQuadMesh(degenerate, 4)).toBeNull();
+  });
+});
+
+describe('solveAffine / applyAffine', () => {
+  it('solves the identity transform for identical src/dst points', () => {
+    const points: [Point, Point, Point] = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 0, y: 1 },
+    ];
+    const matrix = solveAffine(points, points);
+    expect(matrix).toEqual({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
+  });
+
+  it('solves a pure translation', () => {
+    const src: [Point, Point, Point] = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 0, y: 1 },
+    ];
+    const dst: [Point, Point, Point] = [
+      { x: 5, y: 7 },
+      { x: 6, y: 7 },
+      { x: 5, y: 8 },
+    ];
+    const matrix = solveAffine(src, dst)!;
+    for (const point of src) {
+      const mapped = applyAffine(matrix, point);
+      const expected = dst[src.indexOf(point)]!;
+      expect(mapped.x).toBeCloseTo(expected.x, 6);
+      expect(mapped.y).toBeCloseTo(expected.y, 6);
+    }
+  });
+
+  it('solves a scale + shear + rotation combination and reproduces all three correspondences', () => {
+    const src: [Point, Point, Point] = [
+      { x: 0, y: 0 },
+      { x: 2, y: 0 },
+      { x: 0, y: 3 },
+    ];
+    const dst: [Point, Point, Point] = [
+      { x: 10, y: -4 },
+      { x: 14, y: 2 },
+      { x: 4, y: -1 },
+    ];
+    const matrix = solveAffine(src, dst)!;
+    expect(matrix).not.toBeNull();
+    src.forEach((point, index) => {
+      const mapped = applyAffine(matrix, point);
+      expect(mapped.x).toBeCloseTo(dst[index]!.x, 6);
+      expect(mapped.y).toBeCloseTo(dst[index]!.y, 6);
+    });
+  });
+
+  it('maps an arbitrary interior point consistently with the barycentric combination of src', () => {
+    const src: [Point, Point, Point] = [
+      { x: 0, y: 0 },
+      { x: 4, y: 0 },
+      { x: 0, y: 4 },
+    ];
+    const dst: [Point, Point, Point] = [
+      { x: 100, y: 100 },
+      { x: 140, y: 90 },
+      { x: 90, y: 140 },
+    ];
+    const matrix = solveAffine(src, dst)!;
+    // The centroid of src maps to the centroid of dst under any affine transform.
+    const centroidSrc = { x: (0 + 4 + 0) / 3, y: (0 + 0 + 4) / 3 };
+    const centroidDst = { x: (100 + 140 + 90) / 3, y: (100 + 90 + 140) / 3 };
+    const mapped = applyAffine(matrix, centroidSrc);
+    expect(mapped.x).toBeCloseTo(centroidDst.x, 6);
+    expect(mapped.y).toBeCloseTo(centroidDst.y, 6);
+  });
+
+  it('returns null when the source points are collinear (degenerate)', () => {
+    const collinearSrc: [Point, Point, Point] = [
+      { x: 0, y: 0 },
+      { x: 1, y: 1 },
+      { x: 2, y: 2 },
+    ];
+    const dst: [Point, Point, Point] = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+    ];
+    expect(solveAffine(collinearSrc, dst)).toBeNull();
   });
 });

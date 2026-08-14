@@ -245,6 +245,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
                   onRegisterNode={registerNode}
                   onDragEnd={handleDragEnd}
                   onTransformEnd={handleTransformEnd}
+                  documentSize={size}
                 />
               ))}
             </Group>

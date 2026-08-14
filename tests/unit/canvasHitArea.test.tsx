@@ -70,7 +70,7 @@ describe('canvas object hit-area (reselection fix)', () => {
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
     };
 
-    const tree = SignageDisplayView({ object, groupProps });
+    const tree = SignageDisplayView({ object, groupProps, documentSize: null });
     const hitArea = findHitArea(tree, 'display-hit-area');
 
     expect(hitArea.props).toMatchObject({
@@ -103,7 +103,7 @@ describe('canvas object hit-area (reselection fix)', () => {
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
     };
 
-    const tree = SignageDisplayView({ object, groupProps });
+    const tree = SignageDisplayView({ object, groupProps, documentSize: null });
     const hitArea = findHitArea(tree, 'display-hit-area');
 
     expect(hitArea.props).toMatchObject({
@@ -140,7 +140,7 @@ describe('canvas object hit-area (reselection fix)', () => {
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
     };
 
-    const tree = PortableProductView({ object, groupProps });
+    const tree = PortableProductView({ object, groupProps, documentSize: null });
     const hitArea = findHitArea(tree, 'portable-hit-area');
 
     expect(hitArea.props).toMatchObject({
@@ -173,10 +173,17 @@ describe('canvas object hit-area (reselection fix)', () => {
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
     };
 
-    const tree = SignageDisplayView({ object, groupProps }) as ReactElement<{
+    // SignageDisplayView's root is a Fragment (the interactive Group, plus a sibling perspective
+    // warp view rendered only in 'perspective' mode) — so this walks into the Group (the
+    // Fragment's first child) before checking its own first child is the hit-area rect.
+    const tree = SignageDisplayView({ object, groupProps, documentSize: null }) as ReactElement<{
       children?: ReactNode;
     }>;
-    const groupChildren = tree.props.children;
+    const topLevelChildren = tree.props.children;
+    const group = (Array.isArray(topLevelChildren) ? topLevelChildren[0] : topLevelChildren) as ReactElement<{
+      children?: ReactNode;
+    }>;
+    const groupChildren = group.props.children;
     const firstChild = Array.isArray(groupChildren) ? groupChildren[0] : groupChildren;
 
     expect((firstChild as ReactElement<Record<string, unknown>>).props.name).toBe(
