@@ -15,7 +15,10 @@ const DEG_TO_RAD = Math.PI / 180;
  * Shared by screenHitTest.ts (hit testing) and quadGeometry.ts (deriving a perspective quad from
  * an object's current rect) — kept in its own module so neither has to import the other.
  */
-export function toLocalPoint(point: Point, object: { x: number; y: number; rotation: number }): Point {
+export function toLocalPoint(
+  point: Point,
+  object: { x: number; y: number; rotation: number },
+): Point {
   const dx = point.x - object.x;
   const dy = point.y - object.y;
   const rad = object.rotation * DEG_TO_RAD;

@@ -46,9 +46,9 @@ describe('normalizeObjectGeometry', () => {
   it('returns the object unchanged when the old document size is zero or negative', () => {
     const object = { x: 10, y: 20, width: 30, height: 40 };
 
-    expect(normalizeObjectGeometry(object, { width: 0, height: 100 }, { width: 200, height: 200 })).toBe(
-      object,
-    );
+    expect(
+      normalizeObjectGeometry(object, { width: 0, height: 100 }, { width: 200, height: 200 }),
+    ).toBe(object);
     expect(
       normalizeObjectGeometry(object, { width: 100, height: -5 }, { width: 200, height: 200 }),
     ).toBe(object);

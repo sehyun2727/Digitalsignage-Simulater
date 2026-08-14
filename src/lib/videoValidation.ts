@@ -1,7 +1,8 @@
 export const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/webm'] as const;
 export const MAX_VIDEO_BYTES = 80 * 1024 * 1024;
 
-export type VideoValidationError = 'unsupported-type' | 'too-large' | 'unsupported-codec' | 'decode-error';
+export type VideoValidationError =
+  'unsupported-type' | 'too-large' | 'unsupported-codec' | 'decode-error';
 
 /**
  * Synchronous, no-network codec probe via the standard `HTMLVideoElement.canPlayType` API.

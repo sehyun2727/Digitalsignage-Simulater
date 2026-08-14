@@ -147,7 +147,9 @@ export function EditorLayout() {
     setIsExportingVideo(true);
     try {
       const videoDurationsSeconds = objects
-        .flatMap((object) => (object.kind === 'display' || object.kind === 'portable' ? [object.content] : []))
+        .flatMap((object) =>
+          object.kind === 'display' || object.kind === 'portable' ? [object.content] : [],
+        )
         .flatMap((content) => (content?.kind === 'video' ? [content.sourceId] : []))
         .map((sourceId) => getRegisteredAsset(sourceId)?.image)
         .flatMap((image) => (image instanceof HTMLVideoElement ? [image.duration] : []));

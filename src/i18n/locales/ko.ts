@@ -25,8 +25,10 @@ export const ko: Messages = {
   editorExportedVideoAnnouncement: '동영상을 내보냈습니다.',
   editorExportVideoErrorAnnouncement: '동영상을 내보내지 못했습니다.',
   editorContentVideoAutoplayHint: '동영상은 자동 재생, 반복 재생, 음소거 상태로 표시됩니다.',
-  editorCanvasEmptyHint: '먼저 공간 사진을 업로드해 주세요. 사진의 가로세로 비율이 그대로 내보내기 크기가 됩니다.',
-  editorCanvasNoSignageHint: '"사이니지 추가" 섹션에서 LED·LCD·투명 LED·포터블 제품을 배치해 보세요.',
+  editorCanvasEmptyHint:
+    '먼저 공간 사진을 업로드해 주세요. 사진의 가로세로 비율이 그대로 내보내기 크기가 됩니다.',
+  editorCanvasNoSignageHint:
+    '"사이니지 추가" 섹션에서 LED·LCD·투명 LED·포터블 제품을 배치해 보세요.',
   editorPropertiesTitle: '속성',
   editorPropertiesEmptyHint: '요소를 선택하면 속성을 편집할 수 있습니다.',
   editorPositionXLabel: 'X 좌표',
@@ -129,8 +131,10 @@ export const ko: Messages = {
   editorPerspectiveCancelButton: '취소',
   editorPerspectiveResetButton: '초기화',
   editorPerspectiveErrorOutOfBounds: '꼭짓점이 사진 범위를 벗어났습니다.',
-  editorPerspectiveErrorSelfIntersecting: '변이 서로 교차합니다. 교차하지 않는 사각형으로 만들어 주세요.',
-  editorPerspectiveErrorConcave: '오목한 모양은 사용할 수 없습니다. 볼록한 사각형으로 만들어 주세요.',
+  editorPerspectiveErrorSelfIntersecting:
+    '변이 서로 교차합니다. 교차하지 않는 사각형으로 만들어 주세요.',
+  editorPerspectiveErrorConcave:
+    '오목한 모양은 사용할 수 없습니다. 볼록한 사각형으로 만들어 주세요.',
   editorPerspectiveErrorMinArea: '면적이 너무 작습니다. 조금 더 크게 배치해 주세요.',
   editorPerspectiveErrorMinEdge: '변의 길이가 너무 짧습니다.',
   editorPerspectiveErrorInvalidValues: '꼭짓점 값이 올바르지 않습니다.',
@@ -200,8 +204,7 @@ export const ko: Messages = {
   comparisonOriginalNoSpaceHint: '아직 추가된 공간 사진이 없습니다.',
 
   statusBarHintNoSpace: '먼저 "공간" 섹션에서 공간 사진을 추가해 보세요.',
-  statusBarHintNoSignage:
-    '"사이니지 추가" 섹션에서 LED·LCD·투명 LED·포터블 제품을 배치해 보세요.',
+  statusBarHintNoSignage: '"사이니지 추가" 섹션에서 LED·LCD·투명 LED·포터블 제품을 배치해 보세요.',
   statusBarHintNoContent: '선택한 사이니지에 "콘텐츠" 섹션에서 이미지를 추가할 수 있습니다.',
   statusBarHintReady: '준비가 되면 "내보내기" 섹션에서 PNG로 내보내 보세요.',
 

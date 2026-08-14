@@ -27,7 +27,8 @@ export const en: Messages = {
   editorContentVideoAutoplayHint: 'Video content plays automatically, loops, and is muted.',
   editorCanvasEmptyHint:
     'Start by uploading a space photo. Its aspect ratio becomes the export size exactly.',
-  editorCanvasNoSignageHint: 'Place an LED, LCD, Transparent LED, or portable product from Add signage.',
+  editorCanvasNoSignageHint:
+    'Place an LED, LCD, Transparent LED, or portable product from Add signage.',
   editorPropertiesTitle: 'Properties',
   editorPropertiesEmptyHint: 'Select an element to edit its properties.',
   editorPositionXLabel: 'X position',
@@ -61,7 +62,8 @@ export const en: Messages = {
   editorSpaceBackgroundDimensionsLabel: 'Export size',
   editorSpaceBackgroundDownscaledNotice:
     'The image was too large and was automatically downscaled to a safe size.',
-  editorSpaceBackgroundPrivacyNotice: 'The photo is processed only in your browser and is never sent to a server.',
+  editorSpaceBackgroundPrivacyNotice:
+    'The photo is processed only in your browser and is never sent to a server.',
 
   editorAddLedButton: 'Add LED display',
   editorAddLcdButton: 'Add LCD display',
@@ -129,7 +131,8 @@ export const en: Messages = {
   editorPerspectiveCancelButton: 'Cancel',
   editorPerspectiveResetButton: 'Reset',
   editorPerspectiveErrorOutOfBounds: 'A corner is outside the photo’s bounds.',
-  editorPerspectiveErrorSelfIntersecting: 'The edges cross each other. Use a shape whose edges do not intersect.',
+  editorPerspectiveErrorSelfIntersecting:
+    'The edges cross each other. Use a shape whose edges do not intersect.',
   editorPerspectiveErrorConcave: 'This shape is concave. Use a convex quadrilateral instead.',
   editorPerspectiveErrorMinArea: 'The shape is too small. Make it a bit larger.',
   editorPerspectiveErrorMinEdge: 'One of the edges is too short.',

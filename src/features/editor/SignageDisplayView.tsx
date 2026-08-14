@@ -84,7 +84,8 @@ export function SignageDisplayView({ object, groupProps, documentSize }: Signage
   // renders as a sibling of the interactive Group below rather than inside it (see
   // PerspectiveScreenView.tsx), and the Group here keeps only its hit-area for
   // select/drag/transform, not the (now warped elsewhere) visual content.
-  const showPerspective = object.placementMode === 'perspective' && object.perspectiveQuad && documentSize;
+  const showPerspective =
+    object.placementMode === 'perspective' && object.perspectiveQuad && documentSize;
 
   return (
     <>

@@ -25,8 +25,10 @@ export const ja: Messages = {
   editorExportedVideoAnnouncement: '動画を書き出しました。',
   editorExportVideoErrorAnnouncement: '動画の書き出しに失敗しました。',
   editorContentVideoAutoplayHint: '動画は自動再生・ループ再生・ミュートで表示されます。',
-  editorCanvasEmptyHint: 'まずは空間写真をアップロードしてください。写真の縦横比がそのまま書き出しサイズになります。',
-  editorCanvasNoSignageHint: '「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。',
+  editorCanvasEmptyHint:
+    'まずは空間写真をアップロードしてください。写真の縦横比がそのまま書き出しサイズになります。',
+  editorCanvasNoSignageHint:
+    '「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。',
   editorPropertiesTitle: 'プロパティ',
   editorPropertiesEmptyHint: '要素を選択するとプロパティを編集できます。',
   editorPositionXLabel: 'X座標',
@@ -62,12 +64,14 @@ export const ja: Messages = {
   editorSpaceBackgroundDimensionsLabel: '書き出しサイズ',
   editorSpaceBackgroundDownscaledNotice:
     '画像が大きすぎるため、安全な範囲まで自動的に縮小しました。',
-  editorSpaceBackgroundPrivacyNotice: '写真はブラウザ内でのみ処理され、サーバーには送信されません。',
+  editorSpaceBackgroundPrivacyNotice:
+    '写真はブラウザ内でのみ処理され、サーバーには送信されません。',
 
   editorAddLedButton: 'LEDディスプレイを追加',
   editorAddLcdButton: 'LCDディスプレイを追加',
   editorAddTransparentLedButton: '透過LEDディスプレイを追加',
-  toolbarAddSignageDisabledHint: 'サイネージを追加するには、先に空間写真をアップロードしてください。',
+  toolbarAddSignageDisabledHint:
+    'サイネージを追加するには、先に空間写真をアップロードしてください。',
 
   editorContentLabel: '画面コンテンツ',
   editorContentUploadButton: 'コンテンツを追加',

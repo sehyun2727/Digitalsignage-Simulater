@@ -38,9 +38,9 @@ describe('computeCurvatureStrips', () => {
   });
 
   it('returns no strips for a degenerate (zero-size) screen', () => {
-    expect(computeCurvatureStrips({ x: 0, y: 0, width: 0, height: 100 }, { mode: 'convex', amount: 50 })).toEqual(
-      [],
-    );
+    expect(
+      computeCurvatureStrips({ x: 0, y: 0, width: 0, height: 100 }, { mode: 'convex', amount: 50 }),
+    ).toEqual([]);
   });
 
   it('returns the requested number of equal-width strips spanning the screen', () => {

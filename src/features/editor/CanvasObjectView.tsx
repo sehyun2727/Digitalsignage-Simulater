@@ -99,11 +99,15 @@ export function CanvasObjectView({
   }
 
   if (object.kind === 'display') {
-    return <SignageDisplayView object={object} groupProps={commonProps} documentSize={documentSize} />;
+    return (
+      <SignageDisplayView object={object} groupProps={commonProps} documentSize={documentSize} />
+    );
   }
 
   if (object.kind === 'portable') {
-    return <PortableProductView object={object} groupProps={commonProps} documentSize={documentSize} />;
+    return (
+      <PortableProductView object={object} groupProps={commonProps} documentSize={documentSize} />
+    );
   }
 
   if (!image) return null;

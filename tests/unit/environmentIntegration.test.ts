@@ -69,7 +69,7 @@ describe('computeContactShadowGeometry', () => {
     expect(geometry).not.toBeNull();
     expect(geometry?.centerX).toBeCloseTo(100);
     expect(geometry?.centerY).toBeCloseTo(100 + 0.2 * 100);
-    expect(geometry?.radiusX).toBeCloseTo(200 / 2 * 0.85);
+    expect(geometry?.radiusX).toBeCloseTo((200 / 2) * 0.85);
     expect(geometry?.opacity).toBeGreaterThan(0);
     expect(geometry?.opacity).toBeLessThanOrEqual(0.6);
   });

@@ -23,7 +23,14 @@ interface ContactShadowViewProps {
  * as a sibling *before* the object's own interactive Group (see SignageDisplayView/
  * PortableProductView) so it always paints beneath that object's body.
  */
-export function ContactShadowView({ x, y, width, height, rotation, shadow }: ContactShadowViewProps) {
+export function ContactShadowView({
+  x,
+  y,
+  width,
+  height,
+  rotation,
+  shadow,
+}: ContactShadowViewProps) {
   const groupRef = useRef<Konva.Group | null>(null);
   const geometry = computeContactShadowGeometry(width, height, shadow);
   const blurRadius = contactShadowBlurRadius(width, height, shadow.blur);
@@ -40,7 +47,12 @@ export function ContactShadowView({ x, y, width, height, rotation, shadow }: Con
       // the blur radius keeps the softened edge inside the rasterized bitmap.
       const rect = node.getClientRect({ relativeTo: node });
       const pad = blurRadius * 2;
-      node.cache({ x: rect.x - pad, y: rect.y - pad, width: rect.width + pad * 2, height: rect.height + pad * 2 });
+      node.cache({
+        x: rect.x - pad,
+        y: rect.y - pad,
+        width: rect.width + pad * 2,
+        height: rect.height + pad * 2,
+      });
       node.filters([Konva.Filters.Blur]);
       node.blurRadius(blurRadius);
     }

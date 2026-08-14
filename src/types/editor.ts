@@ -279,7 +279,8 @@ export interface PortableSignageObject extends BaseSignageObject {
   environmentIntegration: EnvironmentIntegrationSettings;
 }
 
-export type SignageObject = TextSignageObject | ImageSignageObject | DisplaySignageObject | PortableSignageObject;
+export type SignageObject =
+  TextSignageObject | ImageSignageObject | DisplaySignageObject | PortableSignageObject;
 
 /** The signage object kinds that have a screen and can be fit to a perspective quad. */
 export type PerspectiveCapableObject = DisplaySignageObject | PortableSignageObject;
@@ -321,7 +322,9 @@ export function createEmptyDocument(): EditorDocument {
 }
 
 /** The document/export size in effect right now, or null before any space photo exists. */
-export function getDocumentSize(document: EditorDocument): { width: number; height: number } | null {
+export function getDocumentSize(
+  document: EditorDocument,
+): { width: number; height: number } | null {
   if (!document.spaceBackground) return null;
   return { width: document.spaceBackground.width, height: document.spaceBackground.height };
 }

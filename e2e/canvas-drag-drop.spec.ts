@@ -87,9 +87,7 @@ async function setup(page: import('@playwright/test').Page) {
 // region (2% inset on every side) shares the object's own center point: (960, 540).
 const DISPLAY_SCREEN_CENTER = { x: 960, y: 540 };
 
-test('dropping an image file onto an LED screen region assigns it as content', async ({
-  page,
-}) => {
+test('dropping an image file onto an LED screen region assigns it as content', async ({ page }) => {
   await setup(page);
   await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
 

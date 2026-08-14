@@ -17,7 +17,12 @@ import {
   transparentBackingOpacity,
   transparentContentOpacity,
 } from '../../lib/materialTexture';
-import type { Curvature, DisplayMaterial, MaterialSettings, SignageContent } from '../../types/editor';
+import type {
+  Curvature,
+  DisplayMaterial,
+  MaterialSettings,
+  SignageContent,
+} from '../../types/editor';
 import { useVideoPlaybackRedraw } from './useVideoPlaybackRedraw';
 
 interface ScreenCompositionProps {
@@ -94,20 +99,30 @@ function ContrastGroup({
  * Groups with different `y`/`scaleY`/clip (see lib/curvature.ts), rather than any manual pixel
  * warping, so every material effect below curves along with the strips for free.
  */
-export function ScreenComposition({ screen, material, materialSettings, curvature, content }: ScreenCompositionProps) {
+export function ScreenComposition({
+  screen,
+  material,
+  materialSettings,
+  curvature,
+  content,
+}: ScreenCompositionProps) {
   const normalized = normalizeMaterial(material);
   const isTransparentLed = normalized === 'transparent-led';
   const asset = content ? getRegisteredAsset(content.sourceId) : undefined;
   const rootRef = useRef<Konva.Group | null>(null);
   useVideoPlaybackRedraw(rootRef, content?.sourceId ?? null, content?.kind === 'video');
   const contentLayout =
-    asset && content ? computeContentLayout(screen, asset.naturalWidth, asset.naturalHeight, content) : null;
+    asset && content
+      ? computeContentLayout(screen, asset.naturalWidth, asset.naturalHeight, content)
+      : null;
   const patternOpacity = materialPatternOpacity(normalized, materialSettings.intensity);
   const brightnessOverlay = getBrightnessOverlay(materialSettings.brightness);
   const glow = normalized !== 'lcd' ? getGlowShadow(materialSettings.glow) : null;
   const contrastValue = contrastFilterValue(materialSettings.contrast);
 
-  const effectiveCurvature = isCurvatureSupported(normalized) ? curvature : { mode: 'flat' as const, amount: 0 };
+  const effectiveCurvature = isCurvatureSupported(normalized)
+    ? curvature
+    : { mode: 'flat' as const, amount: 0 };
   const strips = computeCurvatureStrips(screen, effectiveCurvature);
 
   const body = (
@@ -153,7 +168,9 @@ export function ScreenComposition({ screen, material, materialSettings, curvatur
           // Konva's runtime fillPatternImage accepts HTMLCanvasElement (Shape.js passes it
           // straight to ctx.createPattern), but its ShapeConfig type only declares
           // HTMLImageElement — a known type/runtime mismatch in the Konva package.
-          fillPatternImage={getLedPatternCanvas(materialSettings.gridDensity) as unknown as HTMLImageElement}
+          fillPatternImage={
+            getLedPatternCanvas(materialSettings.gridDensity) as unknown as HTMLImageElement
+          }
           fillPatternRepeat="repeat"
           opacity={patternOpacity}
           listening={false}

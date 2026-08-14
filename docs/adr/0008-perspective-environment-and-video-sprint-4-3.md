@@ -10,7 +10,7 @@ Sprint 4.2 (ADR 0007) made the uploaded space photo the document itself, added f
 signage families, and gave LED/Transparent LED a 2D curvature approximation — but every
 object still had to sit in an axis-aligned (optionally rotated) rectangle, static
 images were the only screen content, and there was no way to make placed signage read
-as sitting *in* the photographed scene beyond curvature. Sprint 4.3's approved scope
+as sitting _in_ the photographed scene beyond curvature. Sprint 4.3's approved scope
 adds three related capabilities on top of that unchanged photo-first foundation: fitting
 a display or portable product to an arbitrary quadrilateral on the photo (matching a
 photographed wall/surface that isn't square-on to the camera), a bounded contact-shadow
@@ -25,7 +25,7 @@ technical spike (§3) before this sprint began.
   rectangle model.** `DisplaySignageObject`/`PortableSignageObject` gained
   `placementMode: 'rect' | 'perspective'`, `perspectiveQuad: NormalizedQuad | null`,
   `contactShadow: ContactShadowSettings`, and `environmentIntegration:
-  EnvironmentIntegrationSettings` (`src/types/editor.ts`). The object's own
+EnvironmentIntegrationSettings` (`src/types/editor.ts`). The object's own
   `x/y/width/height/rotation` are never deleted or overwritten by perspective mode —
   they remain the authoritative bounds for selection, dragging, and hit-testing even
   while `placementMode === 'perspective'`. Only `PerspectiveCapableObject` (display or
@@ -65,7 +65,7 @@ technical spike (§3) before this sprint began.
   interactive `Group` (drag handle, Transformer target, selection hit-area `Rect` from
   ADR 0005) stays positioned at the object's flat `x/y/width/height/rotation`
   regardless of placement mode. Clicking inside the warped visual quad but outside the
-  flat rectangle does *not* select the object, and clicking inside the flat rectangle
+  flat rectangle does _not_ select the object, and clicking inside the flat rectangle
   does select it even where the warped visual body doesn't visually cover that point —
   a deliberate simplification recorded here rather than an oversight, since true
   quad-shaped hit-testing would need to reconcile with Transformer's own rectangular
@@ -82,7 +82,7 @@ technical spike (§3) before this sprint began.
 - **Video is a `ContentKind` alongside `image`, not a separate object type.**
   `SignageContent.kind: 'image' | 'video'` reuses the exact same `sourceId`/`fit`/
   `offsetX`/`offsetY`/`scale` placement model images already had; `src/lib/
-  videoValidation.ts` gates accepted MIME types and file size the same way image
+videoValidation.ts` gates accepted MIME types and file size the same way image
   upload validation already did (`CLAUDE.md` §4 file-handling rules). Playback state
   (play/pause/current time/mute) is deliberately excluded from `SignageContent` and
   kept as transient runtime state, not document/undo-redo history state — a video's
@@ -102,7 +102,7 @@ technical spike (§3) before this sprint began.
   there is no disabled-button state, only present-and-working or absent-with-an-
   explicit-unsupported-browser hint (`editorExportVideoUnsupportedHint`), per the video
   gate's required fallback-experience criterion (`CLAUDE.md` §3). `src/lib/
-  videoExport.ts`'s `resolveVideoExportDurationMs` records one full loop of the
+videoExport.ts`'s `resolveVideoExportDurationMs` records one full loop of the
   longest video content on the canvas (capped at 15s so a long source clip can't
   produce an unexpectedly huge export), or a fixed 6s default when the canvas has no
   video content at all — a still composition with only curvature/material effects is
@@ -149,7 +149,7 @@ technical spike (§3) before this sprint began.
   disclaimer: these are approximations for a sales-simulation tool, not a
   physically-based renderer.
 - **The full Playwright suite grew to 69 tests across 12 spec files** (`e2e/
-  perspective-video.spec.ts` new, covering perspective placement/hit-testing/undo-redo,
+perspective-video.spec.ts` new, covering perspective placement/hit-testing/undo-redo,
   transparent-LED blending, and video preview/export/unsupported-fallback on desktop;
   `e2e/mobile.spec.ts` extended with transparent-LED and perspective-via-numeric-fields
   coverage at the existing 390×844 touch viewport).

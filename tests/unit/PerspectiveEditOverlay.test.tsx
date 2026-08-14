@@ -16,9 +16,8 @@ import { createEmptyDocument } from '../../src/types/editor';
 // field logic end to end through the Toolbar's own "Fit to space" entry point.
 vi.mock('../../src/features/editor/EditorCanvas', async () => {
   const React = await import('react');
-  const { PerspectiveEditOverlay } = await import(
-    '../../src/features/editor/PerspectiveEditOverlay'
-  );
+  const { PerspectiveEditOverlay } =
+    await import('../../src/features/editor/PerspectiveEditOverlay');
   const { useEditorStore: store } = await import('../../src/store/editorStore');
   const { getDocumentSize: docSize } = await import('../../src/types/editor');
   return {
@@ -93,7 +92,9 @@ async function addSpaceBackground(user: ReturnType<typeof userEvent.setup>) {
 function firstDisplayObject(): DisplaySignageObject {
   const object = useEditorStore
     .getState()
-    .document.objects.find((candidate): candidate is DisplaySignageObject => candidate.kind === 'display');
+    .document.objects.find(
+      (candidate): candidate is DisplaySignageObject => candidate.kind === 'display',
+    );
   if (!object) throw new Error('expected a display object in the store');
   return object;
 }
@@ -151,14 +152,12 @@ describe('PerspectiveEditOverlay (Fit to space)', () => {
     fireEvent.pointerUp(topLeftHandle, { clientX: 50, clientY: 40, pointerId: 1 });
 
     // Document is 800x600 (space photo), fitScale is 1 in this mock, so preview px == document px.
-    expect(cornerFieldValue(ja.editorPerspectiveCornerTopLeft, ja.editorPositionXLabel)).toBeCloseTo(
-      50 / 800,
-      2,
-    );
-    expect(cornerFieldValue(ja.editorPerspectiveCornerTopLeft, ja.editorPositionYLabel)).toBeCloseTo(
-      40 / 600,
-      2,
-    );
+    expect(
+      cornerFieldValue(ja.editorPerspectiveCornerTopLeft, ja.editorPositionXLabel),
+    ).toBeCloseTo(50 / 800, 2);
+    expect(
+      cornerFieldValue(ja.editorPerspectiveCornerTopLeft, ja.editorPositionYLabel),
+    ).toBeCloseTo(40 / 600, 2);
     // Still just a live draft — nothing committed to history yet.
     expect(useEditorStore.getState().past.length).toBe(pastBeforeEdit);
 
@@ -192,9 +191,7 @@ describe('PerspectiveEditOverlay (Fit to space)', () => {
     expect(firstDisplayObject().placementMode).toBe('rect');
     // The last-applied quad is preserved so re-entering "Fit to space" restores it, not a fresh one.
     expect(firstDisplayObject().perspectiveQuad).not.toBeNull();
-    expect(
-      screen.getByRole('button', { name: ja.editorPerspectiveFitButton }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: ja.editorPerspectiveFitButton })).toBeInTheDocument();
   });
 
   it('cancelling a drag discards the draft with zero history entries', async () => {
@@ -243,7 +240,9 @@ describe('PerspectiveEditOverlay (Fit to space)', () => {
       cornerFieldValue(ja.editorPerspectiveCornerTopLeft, ja.editorPositionXLabel),
     ).toBeCloseTo(originalX, 2);
     // Reset stays inside the edit session — it does not Apply or Cancel.
-    expect(screen.getByRole('slider', { name: ja.editorPerspectiveCornerTopLeft })).toBeInTheDocument();
+    expect(
+      screen.getByRole('slider', { name: ja.editorPerspectiveCornerTopLeft }),
+    ).toBeInTheDocument();
   });
 
   it('moving a corner via the numeric field updates the draft the same as dragging', async () => {

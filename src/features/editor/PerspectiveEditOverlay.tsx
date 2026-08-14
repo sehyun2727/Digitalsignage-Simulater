@@ -22,7 +22,9 @@ interface PerspectiveEditOverlayProps {
 /** `keyof Messages` narrowed to the string-valued keys (excludes `localeName`, the one
  *  Record-valued field), so indexing `messages` through one of these keys always yields a
  *  plain string rather than the full union of every message's value type. */
-type StringMessageKey = { [K in keyof Messages]: Messages[K] extends string ? K : never }[keyof Messages];
+type StringMessageKey = {
+  [K in keyof Messages]: Messages[K] extends string ? K : never;
+}[keyof Messages];
 
 const CORNER_LABEL_KEY: Record<QuadCorner, StringMessageKey> = {
   topLeft: 'editorPerspectiveCornerTopLeft',
@@ -118,11 +120,7 @@ export function PerspectiveEditOverlay({ documentSize, fitScale }: PerspectiveEd
     updatePerspectiveDraft({ ...draftQuad, [corner]: next });
   };
 
-  const handleNumericFieldChange = (
-    corner: QuadCorner,
-    axis: 'x' | 'y',
-    value: number,
-  ) => {
+  const handleNumericFieldChange = (corner: QuadCorner, axis: 'x' | 'y', value: number) => {
     if (!Number.isFinite(value)) return;
     const current = draftQuad[corner];
     const next = clampPoint01({ ...current, [axis]: value });

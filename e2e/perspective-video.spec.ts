@@ -259,9 +259,7 @@ test.describe('video export unsupported fallback', () => {
     await setup(page);
 
     await expect(page.getByRole('button', { name: '動画で書き出す' })).toHaveCount(0);
-    await expect(
-      page.getByText('このブラウザは動画の書き出しに対応していません。'),
-    ).toBeVisible();
+    await expect(page.getByText('このブラウザは動画の書き出しに対応していません。')).toBeVisible();
 
     // The rest of the app must still work — PNG export is unaffected by video-export support.
     await expect(page.getByRole('button', { name: 'PNGで書き出す' })).toBeEnabled();

@@ -53,7 +53,11 @@ export function isPointOnObjectScreen(
   point: Point,
   documentSize: DocumentSize,
 ): boolean {
-  if (supportsPerspective(object) && object.placementMode === 'perspective' && object.perspectiveQuad) {
+  if (
+    supportsPerspective(object) &&
+    object.placementMode === 'perspective' &&
+    object.perspectiveQuad
+  ) {
     const quad = normalizedQuadToDocument(object.perspectiveQuad, documentSize);
     return isPointInQuad(point, quad);
   }

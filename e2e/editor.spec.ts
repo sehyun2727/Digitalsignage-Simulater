@@ -9,19 +9,17 @@ test('adds a text element and exports a PNG at the space photo resolution', asyn
   await page.goto('/');
 
   await expect(
-    page.getByText('まずは空間写真をアップロードしてください。写真の縦横比がそのまま書き出しサイズになります。'),
+    page.getByText(
+      'まずは空間写真をアップロードしてください。写真の縦横比がそのまま書き出しサイズになります。',
+    ),
   ).toBeVisible();
 
   await addSpaceBackground(page, { width: 1920, height: 1080 });
-  await expect(
-    page.locator('.editor-empty-hint'),
-  ).toBeVisible();
+  await expect(page.locator('.editor-empty-hint')).toBeVisible();
 
   await page.getByRole('button', { name: 'テキストを追加' }).click();
 
-  await expect(
-    page.locator('.editor-empty-hint'),
-  ).toBeHidden();
+  await expect(page.locator('.editor-empty-hint')).toBeHidden();
   await expect(page.getByRole('button', { name: '削除', exact: true })).toBeEnabled();
 
   const downloadPromise = page.waitForEvent('download');
@@ -39,14 +37,10 @@ test('undo removes the last added element and redo restores it', async ({ page }
   await expect(page.getByRole('button', { name: '削除', exact: true })).toBeEnabled();
 
   await page.getByRole('button', { name: '元に戻す' }).click();
-  await expect(
-    page.locator('.editor-empty-hint'),
-  ).toBeVisible();
+  await expect(page.locator('.editor-empty-hint')).toBeVisible();
 
   await page.getByRole('button', { name: 'やり直す' }).click();
-  await expect(
-    page.locator('.editor-empty-hint'),
-  ).toBeHidden();
+  await expect(page.locator('.editor-empty-hint')).toBeHidden();
 });
 
 test('rejects an unsupported image file type', async ({ page }) => {
@@ -142,7 +136,5 @@ test('typing in the text-content field does not trigger the delete or undo keybo
   // The object must still exist: neither Backspace nor Ctrl+Z leaked past the
   // editable textarea to trigger the global deleteSelected/undo shortcuts.
   await expect(page.getByRole('button', { name: '削除', exact: true })).toBeEnabled();
-  await expect(
-    page.locator('.editor-empty-hint'),
-  ).toBeHidden();
+  await expect(page.locator('.editor-empty-hint')).toBeHidden();
 });

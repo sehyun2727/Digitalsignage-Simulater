@@ -12,7 +12,9 @@ describe('resolveVideoExportDurationMs', () => {
   });
 
   it('ignores non-finite or non-positive durations (e.g. a video whose metadata has not loaded)', () => {
-    expect(resolveVideoExportDurationMs([NaN, 0, -5, Infinity])).toBe(DEFAULT_VIDEO_EXPORT_DURATION_MS);
+    expect(resolveVideoExportDurationMs([NaN, 0, -5, Infinity])).toBe(
+      DEFAULT_VIDEO_EXPORT_DURATION_MS,
+    );
   });
 
   it('uses the longest video duration, converted to milliseconds', () => {
@@ -76,7 +78,8 @@ class ThrowingMediaRecorder {
 
 function stubCanvasCaptureStream(stream: MockStream = new MockStream()) {
   const canvas = document.createElement('canvas');
-  (canvas as unknown as { captureStream: (fps?: number) => MockStream }).captureStream = () => stream;
+  (canvas as unknown as { captureStream: (fps?: number) => MockStream }).captureStream = () =>
+    stream;
   return canvas;
 }
 
@@ -132,7 +135,9 @@ describe('recordCanvasToVideo', () => {
     const stream = new MockStream();
     const canvas = stubCanvasCaptureStream(stream);
 
-    await expect(recordCanvasToVideo(canvas, { durationMs: 5 })).rejects.toThrow('unsupported mimeType');
+    await expect(recordCanvasToVideo(canvas, { durationMs: 5 })).rejects.toThrow(
+      'unsupported mimeType',
+    );
     expect(stream.tracks.every((track) => track.stopped)).toBe(true);
   });
 
@@ -140,7 +145,10 @@ describe('recordCanvasToVideo', () => {
     vi.stubGlobal('MediaRecorder', MockMediaRecorder as unknown as typeof MediaRecorder);
     const canvas = stubCanvasCaptureStream();
 
-    const blob = await recordCanvasToVideo(canvas, { durationMs: 5, mimeType: 'video/webm;codecs=vp8' });
+    const blob = await recordCanvasToVideo(canvas, {
+      durationMs: 5,
+      mimeType: 'video/webm;codecs=vp8',
+    });
 
     expect(blob.type).toBe('video/webm;codecs=vp8');
   });

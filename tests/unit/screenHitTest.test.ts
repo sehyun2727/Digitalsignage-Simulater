@@ -181,9 +181,7 @@ describe('isPointOnObjectScreen', () => {
     // (300, 300) in document space is (0.3, 0.3) normalized — inside the quad.
     expect(isPointOnObjectScreen(perspectiveDisplay, { x: 300, y: 300 }, documentSize)).toBe(true);
     // (700, 700) is (0.7, 0.7) normalized — outside the quad.
-    expect(isPointOnObjectScreen(perspectiveDisplay, { x: 700, y: 700 }, documentSize)).toBe(
-      false,
-    );
+    expect(isPointOnObjectScreen(perspectiveDisplay, { x: 700, y: 700 }, documentSize)).toBe(false);
   });
 
   it('falls back to the rect+rotation hit test when placementMode is perspective but no quad has been applied yet', () => {
@@ -204,7 +202,9 @@ describe('findTopmostScreenHit', () => {
   });
 
   it('returns null when no object screen contains the point', () => {
-    expect(findTopmostScreenHit([display, portable], { x: -9999, y: -9999 }, documentSize)).toBeNull();
+    expect(
+      findTopmostScreenHit([display, portable], { x: -9999, y: -9999 }, documentSize),
+    ).toBeNull();
   });
 
   it('returns null for an empty object list', () => {

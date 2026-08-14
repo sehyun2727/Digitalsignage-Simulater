@@ -113,8 +113,12 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   // 14. Confirm key controls are visible/reachable (scrolled into view without failing).
   await page.getByRole('button', { name: 'PNGで書き出す' }).scrollIntoViewIfNeeded();
   await expect(page.getByRole('button', { name: 'PNGで書き出す' })).toBeVisible();
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true })).toBeVisible();
+  await page
+    .getByRole('button', { name: 'LEDディスプレイを追加', exact: true })
+    .scrollIntoViewIfNeeded();
+  await expect(
+    page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }),
+  ).toBeVisible();
 
   // 15. Confirm the canvas region is present and usable (rendered with a non-zero box).
   const canvasBox = await page.locator('.editor-canvas-container').boundingBox();

@@ -185,7 +185,11 @@ test.describe('canvas object reselection', () => {
     // enough to fully remove the object (it would instead revert the last no-op selection).
     await page.getByRole('button', { name: '元に戻す' }).click();
     await expect(
-      page.getByText('「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。').first(),
+      page
+        .getByText(
+          '「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。',
+        )
+        .first(),
     ).toBeVisible();
   });
 

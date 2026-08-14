@@ -6,7 +6,11 @@ import {
   selectSelectedObject,
   useEditorStore,
 } from '../../src/store/editorStore';
-import { createEmptyDocument, DEFAULT_CURVATURE, DEFAULT_MATERIAL_SETTINGS } from '../../src/types/editor';
+import {
+  createEmptyDocument,
+  DEFAULT_CURVATURE,
+  DEFAULT_MATERIAL_SETTINGS,
+} from '../../src/types/editor';
 
 class SucceedingMockImage {
   onload: (() => void) | null = null;
@@ -64,9 +68,7 @@ describe('editorStore', () => {
 
   it('does not add objects before a space background exists', () => {
     useEditorStore.getState().addText();
-    useEditorStore
-      .getState()
-      .addImage({ src: 'blob:mock', naturalWidth: 100, naturalHeight: 100 });
+    useEditorStore.getState().addImage({ src: 'blob:mock', naturalWidth: 100, naturalHeight: 100 });
     useEditorStore.getState().addDisplay('led');
     useEditorStore.getState().addPortable({
       productSourceId: 'product-src-1',
@@ -721,7 +723,10 @@ describe('editorStore perspective edit', () => {
     expect(state.perspectiveDraftQuad).not.toBeNull();
     expect(state.perspectiveEditOriginalQuad).toEqual(state.perspectiveDraftQuad);
     expect(state.past.length).toBe(pastLengthBefore);
-    expect(state.document.objects[0]).toMatchObject({ placementMode: 'rect', perspectiveQuad: null });
+    expect(state.document.objects[0]).toMatchObject({
+      placementMode: 'rect',
+      perspectiveQuad: null,
+    });
   });
 
   it('seeds the draft from an already-applied quad instead of re-deriving one from the rect', () => {
@@ -755,14 +760,12 @@ describe('editorStore perspective edit', () => {
     addSpaceBackground();
     useEditorStore.getState().addDisplay('led');
 
-    useEditorStore
-      .getState()
-      .updatePerspectiveDraft({
-        topLeft: { x: 0, y: 0 },
-        topRight: { x: 1, y: 0 },
-        bottomRight: { x: 1, y: 1 },
-        bottomLeft: { x: 0, y: 1 },
-      });
+    useEditorStore.getState().updatePerspectiveDraft({
+      topLeft: { x: 0, y: 0 },
+      topRight: { x: 1, y: 0 },
+      bottomRight: { x: 1, y: 1 },
+      bottomLeft: { x: 0, y: 1 },
+    });
 
     expect(useEditorStore.getState().perspectiveDraftQuad).toBeNull();
   });
@@ -838,7 +841,10 @@ describe('editorStore perspective edit', () => {
     const state = useEditorStore.getState();
     expect(state.past.length).toBe(pastLengthBefore);
     expect(state.perspectiveEditId).toBe(id);
-    expect(state.document.objects[0]).toMatchObject({ placementMode: 'rect', perspectiveQuad: null });
+    expect(state.document.objects[0]).toMatchObject({
+      placementMode: 'rect',
+      perspectiveQuad: null,
+    });
   });
 
   it('re-applying an unchanged quad is a no-op that still exits edit mode without new history', () => {
@@ -878,7 +884,10 @@ describe('editorStore perspective edit', () => {
     expect(state.perspectiveEditId).toBeNull();
     expect(state.perspectiveDraftQuad).toBeNull();
     expect(state.past.length).toBe(pastLengthBefore);
-    expect(state.document.objects[0]).toMatchObject({ placementMode: 'rect', perspectiveQuad: null });
+    expect(state.document.objects[0]).toMatchObject({
+      placementMode: 'rect',
+      perspectiveQuad: null,
+    });
   });
 
   it('resetPerspectiveEdit restores the original draft and stays in edit mode, with no history', () => {

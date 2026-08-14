@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MAX_VIDEO_BYTES, canPlayVideoType, validateVideoFile } from '../../src/lib/videoValidation';
+import {
+  MAX_VIDEO_BYTES,
+  canPlayVideoType,
+  validateVideoFile,
+} from '../../src/lib/videoValidation';
 
 function createFile(type: string, size: number): File {
   return new File([new Uint8Array(size)], 'clip', { type });

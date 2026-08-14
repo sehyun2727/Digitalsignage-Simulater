@@ -24,7 +24,11 @@ interface PortableProductViewProps {
  * bounding box is always kept at the photo's aspect ratio (see the transform aspect-lock in
  * CanvasObjectView.tsx), it can be resolved directly against the object size.
  */
-export function PortableProductView({ object, groupProps, documentSize }: PortableProductViewProps) {
+export function PortableProductView({
+  object,
+  groupProps,
+  documentSize,
+}: PortableProductViewProps) {
   const productAsset = getRegisteredAsset(object.productSourceId);
   const screen = resolveScreenRegionRect(
     { width: object.width, height: object.height },
@@ -69,7 +73,8 @@ export function PortableProductView({ object, groupProps, documentSize }: Portab
   // See SignageDisplayView.tsx: perspectiveQuad is absolute document-space and decoupled from
   // this object's own x/y/rotation, so the warped photo+screen renders as a sibling of the
   // interactive Group rather than inside it.
-  const showPerspective = object.placementMode === 'perspective' && object.perspectiveQuad && documentSize;
+  const showPerspective =
+    object.placementMode === 'perspective' && object.perspectiveQuad && documentSize;
 
   return (
     <>

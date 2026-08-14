@@ -105,12 +105,8 @@ describe('isFiniteQuad', () => {
   });
 
   it('is false when any coordinate is NaN or infinite', () => {
-    expect(
-      isFiniteQuad({ ...RECT_QUAD, topLeft: { x: NaN, y: 0.1 } }),
-    ).toBe(false);
-    expect(
-      isFiniteQuad({ ...RECT_QUAD, bottomRight: { x: Infinity, y: 0.9 } }),
-    ).toBe(false);
+    expect(isFiniteQuad({ ...RECT_QUAD, topLeft: { x: NaN, y: 0.1 } })).toBe(false);
+    expect(isFiniteQuad({ ...RECT_QUAD, bottomRight: { x: Infinity, y: 0.9 } })).toBe(false);
   });
 });
 
@@ -211,15 +207,15 @@ describe('isQuadEdgeLengthValid / isQuadAreaValid', () => {
 
 describe('segmentsIntersect', () => {
   it('detects a crossing pair of segments', () => {
-    expect(
-      segmentsIntersect({ x: 0, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }, { x: 1, y: 0 }),
-    ).toBe(true);
+    expect(segmentsIntersect({ x: 0, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }, { x: 1, y: 0 })).toBe(
+      true,
+    );
   });
 
   it('does not report non-crossing parallel segments as intersecting', () => {
-    expect(
-      segmentsIntersect({ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }),
-    ).toBe(false);
+    expect(segmentsIntersect({ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 })).toBe(
+      false,
+    );
   });
 });
 

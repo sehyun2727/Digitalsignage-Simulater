@@ -11,7 +11,7 @@ Sprints 1–4.1 required picking a document template up front (`wall-led` 1920×
 existed. A space-background photo, if uploaded, was composited inside that fixed
 document regardless of its own resolution or aspect ratio — a mismatch for the
 project's actual use case, which is a salesperson photographing a real installation
-site and simulating signage on top of *that specific photo*.
+site and simulating signage on top of _that specific photo_.
 
 Sprint 4.2's approved scope turns Signage Canvas into a **photo-first sales
 simulation tool**: the uploaded space photo defines the document, not the other way
@@ -37,13 +37,13 @@ what a few of those sections contain and do.
 - **Replace and Remove are each a single history entry.** Replacing the space photo
   re-maps every existing object's position and size through
   `src/lib/geometryNormalization.ts`, which expresses each object as a fraction of the
-  *old* document's dimensions and re-applies that fraction to the *new* dimensions —
+  _old_ document's dimensions and re-applies that fraction to the _new_ dimensions —
   so a display centered at 50%/50% of a 1920×1080 photo stays centered at 50%/50% of a
   replacement 1080×1920 photo instead of landing off-canvas or at a stale pixel
   coordinate.
 - **Four signage families replace the old two-template display model**: LED, LCD,
   Transparent LED (three values of `DisplayMaterial` — `'led' | 'lcd' |
-  'transparent-led'`), and the existing custom portable product. Every "add" button in
+'transparent-led'`), and the existing custom portable product. Every "add" button in
   the toolbar's Add-signage section is disabled until a space photo exists, guiding
   the user to upload a photo first rather than failing silently. The legacy
   `'outdoor-led'` material value (from Sprint 2/3) is migrated to `'led'` by
@@ -98,8 +98,8 @@ what a few of those sections contain and do.
   sized (480×270 by default) regardless of material.
 - **Two hint strings are intentionally identical text rendered in two different DOM
   locations for two different conditions**: `editorCanvasNoSignageHint` (canvas
-  overlay, hides once *any* object exists) and `statusBarHintNoSignage` (status bar,
-  hides only once a *signage-kind* — display or portable — object exists). Adding a
+  overlay, hides once _any_ object exists) and `statusBarHintNoSignage` (status bar,
+  hides only once a _signage-kind_ — display or portable — object exists). Adding a
   text or image object hides the canvas overlay hint but leaves the status bar hint
   visible, which is correct but means `getByText()` on that string needs `.first()`
   or, better, scoping to `.editor-empty-hint` when a test's intent is specifically

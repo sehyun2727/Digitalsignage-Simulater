@@ -155,9 +155,7 @@ export function segmentsIntersect(a1: Point, a2: Point, b1: Point, b2: Point): b
   const d2 = cross(sub(b2, b1), sub(a2, b1));
   const d3 = cross(sub(a2, a1), sub(b1, a1));
   const d4 = cross(sub(a2, a1), sub(b2, a1));
-  return (
-    ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))
-  );
+  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
 }
 
 /** Only the two pairs of opposite (non-adjacent) edges can cross in a 4-point polygon. */
@@ -186,12 +184,7 @@ export function isQuadConvex(quad: NormalizedQuad): boolean {
 }
 
 export type QuadInvalidReason =
-  | 'invalid-values'
-  | 'out-of-bounds'
-  | 'self-intersecting'
-  | 'concave'
-  | 'min-area'
-  | 'min-edge';
+  'invalid-values' | 'out-of-bounds' | 'self-intersecting' | 'concave' | 'min-area' | 'min-edge';
 
 export interface QuadValidationOptions {
   minAreaFraction?: number;
@@ -462,7 +455,16 @@ export function invertHomography(matrix: Matrix3x3): Matrix3x3 | null {
   const inv8 = (a * e - b * d) / det;
   if (Math.abs(inv8) <= DEFAULT_EPSILON) return null;
 
-  return [inv0 / inv8, inv1 / inv8, inv2 / inv8, inv3 / inv8, inv4 / inv8, inv5 / inv8, inv6 / inv8, inv7 / inv8];
+  return [
+    inv0 / inv8,
+    inv1 / inv8,
+    inv2 / inv8,
+    inv3 / inv8,
+    inv4 / inv8,
+    inv5 / inv8,
+    inv6 / inv8,
+    inv7 / inv8,
+  ];
 }
 
 /**

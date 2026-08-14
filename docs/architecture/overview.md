@@ -148,7 +148,7 @@ rectangular bounds rather than a product photo's alpha channel — see
 
 An object whose `placementMode` is `'perspective'` keeps that same interactive Group
 (and therefore the same rectangular hit-testing and Transformer selection UI) at its
-flat `x/y/width/height/rotation`; only the *visual* screen composition is warped, by a
+flat `x/y/width/height/rotation`; only the _visual_ screen composition is warped, by a
 sibling `PerspectiveScreenView` mapping the composed content onto the object's
 `perspectiveQuad` (normalized 0-1 corners — `src/lib/quadGeometry.ts`). Clicking inside
 the warped visual shape but outside the flat rectangle does not select the object, and

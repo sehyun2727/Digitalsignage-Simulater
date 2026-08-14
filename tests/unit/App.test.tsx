@@ -97,8 +97,9 @@ vi.mock('../../src/lib/videoExportCapability', () => ({
 }));
 
 vi.mock('../../src/lib/videoExport', async () => {
-  const actual =
-    await vi.importActual<typeof import('../../src/lib/videoExport')>('../../src/lib/videoExport');
+  const actual = await vi.importActual<typeof import('../../src/lib/videoExport')>(
+    '../../src/lib/videoExport',
+  );
   return {
     ...actual,
     recordCanvasToVideo: (...args: Parameters<typeof actual.recordCanvasToVideo>) =>
@@ -258,9 +259,7 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
     await addSpaceBackground(user);
-    expect(
-      screen.queryByText(ja.editorExportVideoUnsupportedHint),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(ja.editorExportVideoUnsupportedHint)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: ja.editorExportVideoButton }));
 
@@ -272,9 +271,7 @@ describe('App', () => {
     resolveRecording(new Blob(['clip'], { type: 'video/webm' }));
 
     expect(await screen.findByText(ja.editorExportedVideoAnnouncement)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: ja.editorExportVideoButton }),
-    ).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: ja.editorExportVideoButton })).not.toBeDisabled();
   });
 
   it('shows an accessible error and does not download when video export fails', async () => {
@@ -286,9 +283,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: ja.editorExportVideoButton }));
 
     expect(await screen.findByText(ja.editorExportVideoErrorAnnouncement)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: ja.editorExportVideoButton }),
-    ).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: ja.editorExportVideoButton })).not.toBeDisabled();
   });
 
   it('shows an accessible error and revokes the object URL when an uploaded image fails to decode', async () => {

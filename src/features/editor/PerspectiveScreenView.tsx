@@ -40,7 +40,13 @@ const OFFSCREEN_MARGIN = 10000;
  * small triangles, each with its own affine transform following the quad's homography mesh — as
  * the grid gets finer this converges to the true perspective warp.
  */
-export function PerspectiveScreenView({ children, width, height, quad, documentSize }: PerspectiveScreenViewProps) {
+export function PerspectiveScreenView({
+  children,
+  width,
+  height,
+  quad,
+  documentSize,
+}: PerspectiveScreenViewProps) {
   const sourceGroupRef = useRef<Konva.Group | null>(null);
   const shapeRef = useRef<Konva.Shape | null>(null);
   // A plain ref, not useState: `toCanvas()` returns a new HTMLCanvasElement object on every call,

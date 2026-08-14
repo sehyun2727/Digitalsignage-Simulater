@@ -8,7 +8,11 @@ import {
 } from '../../lib/contentLayout';
 import { clampCurvatureAmount, isCurvatureSupported } from '../../lib/curvature';
 import type { ContentValidationError } from '../../lib/contentUpload';
-import { contentKindForFile, registerContentAsset, validateContentFile } from '../../lib/contentUpload';
+import {
+  contentKindForFile,
+  registerContentAsset,
+  validateContentFile,
+} from '../../lib/contentUpload';
 import {
   clampContactShadowOffset,
   clampContactShadowSetting,
@@ -116,7 +120,13 @@ function SpaceBackgroundThumbnail({ sourceId }: { sourceId: string }) {
   }, [sourceId]);
 
   return (
-    <canvas ref={canvasRef} className="space-background-thumb" width={160} height={90} aria-hidden="true" />
+    <canvas
+      ref={canvasRef}
+      className="space-background-thumb"
+      width={160}
+      height={90}
+      aria-hidden="true"
+    />
   );
 }
 
@@ -982,7 +992,9 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                   setGlowDraft(glow);
                   previewMaterialSettings({ glow });
                 }}
-                onPointerUp={() => commitMaterialSettings({ glow: clampMaterialSetting(glowDraft) })}
+                onPointerUp={() =>
+                  commitMaterialSettings({ glow: clampMaterialSetting(glowDraft) })
+                }
                 onBlur={() => commitMaterialSettings({ glow: clampMaterialSetting(glowDraft) })}
               />
             </label>
@@ -1003,7 +1015,9 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
               onPointerUp={() =>
                 commitMaterialSettings({ contrast: clampMaterialSetting(contrastDraft) })
               }
-              onBlur={() => commitMaterialSettings({ contrast: clampMaterialSetting(contrastDraft) })}
+              onBlur={() =>
+                commitMaterialSettings({ contrast: clampMaterialSetting(contrastDraft) })
+              }
             />
           </label>
         </>
@@ -1015,7 +1029,11 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
 
       <p className="toolbar-notice">{messages.editorMaterialPreviewNotice}</p>
 
-      <div className="curvature-mode-group" role="group" aria-label={messages.editorCurvatureModeLabel}>
+      <div
+        className="curvature-mode-group"
+        role="group"
+        aria-label={messages.editorCurvatureModeLabel}
+      >
         <span>{messages.editorCurvatureModeLabel}</span>
         <div className="toolbar-actions">
           {CURVATURE_MODES.map((mode) => (
@@ -1114,7 +1132,9 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                 onPointerUp={() =>
                   commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
                 }
-                onBlur={() => commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })}
+                onBlur={() =>
+                  commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
+                }
               />
             </label>
 
@@ -1156,7 +1176,9 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
       </div>
 
       <div className="toolbar-subsection">
-        <span className="toolbar-subsection-heading">{messages.editorEnvironmentIntegrationLabel}</span>
+        <span className="toolbar-subsection-heading">
+          {messages.editorEnvironmentIntegrationLabel}
+        </span>
 
         <label>
           <span>{messages.editorEnvironmentIntegrationStrengthLabel}</span>

@@ -49,7 +49,11 @@ test('shows an accessible error and does not add an element when an image fails 
     '画像を読み込めませんでした。ファイルが破損している可能性があります。',
   );
   await expect(
-    page.getByText('「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。').first(),
+    page
+      .getByText(
+        '「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。',
+      )
+      .first(),
   ).toBeVisible();
   await expect(page.getByRole('button', { name: '削除', exact: true })).toBeDisabled();
 });

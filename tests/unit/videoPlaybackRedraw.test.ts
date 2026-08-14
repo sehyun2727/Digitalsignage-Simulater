@@ -88,8 +88,6 @@ describe('useVideoPlaybackRedraw', () => {
     };
     getRegisteredAsset.mockReturnValue(imageAsset);
 
-    expect(() =>
-      renderHook(() => useVideoPlaybackRedraw(rootRef, 'src-2', true)),
-    ).not.toThrow();
+    expect(() => renderHook(() => useVideoPlaybackRedraw(rootRef, 'src-2', true))).not.toThrow();
   });
 });

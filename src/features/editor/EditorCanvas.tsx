@@ -2,7 +2,11 @@ import type Konva from 'konva';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Group, Layer, Rect, Stage, Transformer } from 'react-konva';
 import type { ContentValidationError } from '../../lib/contentUpload';
-import { contentKindForFile, registerContentAsset, validateContentFile } from '../../lib/contentUpload';
+import {
+  contentKindForFile,
+  registerContentAsset,
+  validateContentFile,
+} from '../../lib/contentUpload';
 import { findTopmostScreenHit, getObjectScreenRect } from '../../lib/screenHitTest';
 import type { Point } from '../../lib/screenHitTest';
 import { useEditorStore } from '../../store/editorStore';
