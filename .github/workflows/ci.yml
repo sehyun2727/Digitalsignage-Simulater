@@ -9,6 +9,7 @@ on:
         chore/sprint-0-project-foundation,
         feature/sprint-1-image-editor-mvp,
         feature/sprint-3-custom-portable,
+        feature/sprint-4-3-perspective-video,
       ]
 
 permissions:
