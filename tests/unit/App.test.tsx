@@ -31,18 +31,80 @@ function createImageFile(name = 'photo.png'): File {
   return new File([new Uint8Array([1, 2, 3])], name, { type: 'image/png' });
 }
 
+function createVideoFile(name = 'clip.mp4'): File {
+  return new File([new Uint8Array(1024)], name, { type: 'video/mp4' });
+}
+
+class SucceedingMockVideo {
+  onloadedmetadata: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  videoWidth = 1280;
+  videoHeight = 720;
+  muted = false;
+  playsInline = false;
+  preload = '';
+  set src(_value: string) {
+    queueMicrotask(() => this.onloadedmetadata?.());
+  }
+  // validateVideoFile (src/lib/videoValidation.ts) probes codec support via a fresh
+  // document.createElement('video') too, ahead of the registerVideoAsset decode this class
+  // otherwise stands in for, so it needs its own canPlayType.
+  canPlayType(): string {
+    return 'probably';
+  }
+}
+
+// registerVideoAsset (src/lib/assetRegistry.ts) decodes through a real <video> element, which
+// jsdom cannot actually play — swap document.createElement('video') for a controllable stand-in,
+// the same approach contentUpload.test.ts uses at the lib level.
+function stubVideoElement() {
+  const originalCreateElement = document.createElement.bind(document);
+  vi.spyOn(document, 'createElement').mockImplementation((tagName: string, options?: unknown) => {
+    if (tagName === 'video') return new SucceedingMockVideo() as unknown as HTMLVideoElement;
+    return originalCreateElement(tagName, options as ElementCreationOptions);
+  });
+}
+
 const canvasMock = vi.hoisted(() => ({
   exportToDataUrl: (): string | null => 'data:image/png;base64,mock',
+  beginVideoExportCapture: (): HTMLCanvasElement | null => document.createElement('canvas'),
+  endVideoExportCapture: (): void => {},
 }));
 
 vi.mock('../../src/features/editor/EditorCanvas', () => ({
   EditorCanvas: forwardRef(function MockEditorCanvas(_props, ref) {
     useImperativeHandle(ref, () => ({
       exportToDataUrl: () => canvasMock.exportToDataUrl(),
+      beginVideoExportCapture: () => canvasMock.beginVideoExportCapture(),
+      endVideoExportCapture: () => canvasMock.endVideoExportCapture(),
     }));
     return <div data-testid="mock-editor-canvas" />;
   }),
 }));
+
+// The real capability probe depends on jsdom's (absent) MediaRecorder/captureStream support —
+// these tests care about EditorLayout's own UI reaction to that boolean, not the probe itself
+// (see videoExportCapability.test.ts for the probe's own coverage), so it is stubbed directly.
+const videoExportMock = vi.hoisted(() => ({
+  supported: true,
+  recordCanvasToVideo: vi.fn<
+    (canvas: HTMLCanvasElement, options: { durationMs: number }) => Promise<Blob>
+  >(async () => new Blob(['clip'], { type: 'video/webm' })),
+}));
+
+vi.mock('../../src/lib/videoExportCapability', () => ({
+  isVideoExportSupported: () => videoExportMock.supported,
+}));
+
+vi.mock('../../src/lib/videoExport', async () => {
+  const actual =
+    await vi.importActual<typeof import('../../src/lib/videoExport')>('../../src/lib/videoExport');
+  return {
+    ...actual,
+    recordCanvasToVideo: (...args: Parameters<typeof actual.recordCanvasToVideo>) =>
+      videoExportMock.recordCanvasToVideo(...args),
+  };
+});
 
 function mockBrowserLocale(languages: string[]) {
   vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(languages);
@@ -84,6 +146,13 @@ describe('App', () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     canvasMock.exportToDataUrl = () => 'data:image/png;base64,mock';
+    canvasMock.beginVideoExportCapture = () => document.createElement('canvas');
+    canvasMock.endVideoExportCapture = () => {};
+    videoExportMock.supported = true;
+    videoExportMock.recordCanvasToVideo.mockReset();
+    videoExportMock.recordCanvasToVideo.mockImplementation(
+      async () => new Blob(['clip'], { type: 'video/webm' }),
+    );
   });
 
   it('renders the editor shell', () => {
@@ -166,6 +235,60 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: ja.editorExportButton }));
 
     expect(await screen.findByText(ja.editorExportErrorAnnouncement)).toBeInTheDocument();
+  });
+
+  it('hides the video export button and shows the unsupported hint when the browser cannot record', async () => {
+    videoExportMock.supported = false;
+    render(<App />);
+
+    expect(
+      screen.queryByRole('button', { name: ja.editorExportVideoButton }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(ja.editorExportVideoUnsupportedHint)).toBeInTheDocument();
+  });
+
+  it('exports a video, showing the in-progress label while recording and announcing success once it resolves', async () => {
+    let resolveRecording: (blob: Blob) => void = () => {};
+    videoExportMock.recordCanvasToVideo.mockImplementation(
+      () =>
+        new Promise<Blob>((resolve) => {
+          resolveRecording = resolve;
+        }),
+    );
+    const user = userEvent.setup();
+    render(<App />);
+    await addSpaceBackground(user);
+    expect(
+      screen.queryByText(ja.editorExportVideoUnsupportedHint),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: ja.editorExportVideoButton }));
+
+    const inProgressButton = await screen.findByRole('button', {
+      name: ja.editorExportVideoInProgressButton,
+    });
+    expect(inProgressButton).toBeDisabled();
+
+    resolveRecording(new Blob(['clip'], { type: 'video/webm' }));
+
+    expect(await screen.findByText(ja.editorExportedVideoAnnouncement)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: ja.editorExportVideoButton }),
+    ).not.toBeDisabled();
+  });
+
+  it('shows an accessible error and does not download when video export fails', async () => {
+    videoExportMock.recordCanvasToVideo.mockRejectedValue(new Error('capture failed'));
+    const user = userEvent.setup();
+    render(<App />);
+    await addSpaceBackground(user);
+
+    await user.click(screen.getByRole('button', { name: ja.editorExportVideoButton }));
+
+    expect(await screen.findByText(ja.editorExportVideoErrorAnnouncement)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: ja.editorExportVideoButton }),
+    ).not.toBeDisabled();
   });
 
   it('shows an accessible error and revokes the object URL when an uploaded image fails to decode', async () => {
@@ -311,6 +434,37 @@ describe('App', () => {
       );
 
       expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
+    });
+
+    it('uploads a video into a display and shows the autoplay/loop/mute hint', async () => {
+      stubVideoElement();
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-video');
+      const user = userEvent.setup();
+      render(<App />);
+      await addSpaceBackground(user);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
+      await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createVideoFile());
+
+      expect(
+        await screen.findByRole('button', { name: ja.editorContentReplaceButton }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(ja.editorContentVideoAutoplayHint)).toBeInTheDocument();
+    });
+
+    it('shows an accessible error when an uploaded video has an unsupported codec', async () => {
+      vi.spyOn(HTMLVideoElement.prototype, 'canPlayType').mockReturnValue('');
+      const user = userEvent.setup();
+      render(<App />);
+      await addSpaceBackground(user);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
+      await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createVideoFile());
+
+      expect(
+        await screen.findByText(ja.editorVideoUploadErrorUnsupportedCodec),
+      ).toBeInTheDocument();
+      expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
     });
 
     it('changes the display material and resets material effects to neutral', async () => {
