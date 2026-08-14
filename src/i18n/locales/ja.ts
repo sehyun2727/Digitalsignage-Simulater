@@ -86,6 +86,13 @@ export const ja: Messages = {
   editorContentScaleLabel: 'コンテンツ拡大率',
   editorContentResetButton: 'コンテンツ配置をリセット',
 
+  editorRenderingPresetLabel: 'レンダリングプリセット',
+  editorRenderingPresetNatural: 'ナチュラル',
+  editorRenderingPresetBright: '明るい屋外',
+  editorRenderingPresetNight: '夜間',
+  editorRenderingPresetHint:
+    'プリセットは以下の素材・シャドウ・環境ブレンドの各スライダーの初期値を設定します。適用後も各スライダーは自由に調整できます。',
+
   editorMaterialLabel: 'ディスプレイ素材',
   editorMaterialLed: 'LED',
   editorMaterialLcd: 'LCD',

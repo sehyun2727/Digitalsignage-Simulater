@@ -27,7 +27,7 @@ export function SignageDisplayView({ object, groupProps, documentSize }: Signage
   const curvedOutline = curvatureActive
     ? computeCurvatureOutlinePoints(screen, object.curvature)
     : null;
-  const bezelThickness = Math.max(4, Math.min(screen.width, screen.height) * 0.04);
+  const bezelThickness = Math.min(18, Math.max(4, Math.min(screen.width, screen.height) * 0.04));
   const blendOpacity = environmentBlendOpacity(object.environmentIntegration.strength);
 
   const body = (
@@ -66,11 +66,14 @@ export function SignageDisplayView({ object, groupProps, documentSize }: Signage
         content={object.content}
       />
       {blendOpacity > 0 && (
+        // Restricted to the screen region only (not the frame/bezel): blending the frame too
+        // would desaturate/gray the physical-looking bezel along with the screen content, which
+        // is the "muddy" failure mode baseline defect 5 calls out (spec section 6/16).
         <Rect
-          x={0}
-          y={0}
-          width={object.width}
-          height={object.height}
+          x={screen.x}
+          y={screen.y}
+          width={screen.width}
+          height={screen.height}
           fill={ENVIRONMENT_BLEND_COLOR}
           opacity={blendOpacity}
           listening={false}

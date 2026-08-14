@@ -21,11 +21,23 @@ export const CURVATURE_SLICE_COUNT = 20;
 /** Maximum top/bottom edge displacement at the screen's center, as a fraction of screen height. */
 const MAX_CURVE_DEPTH_RATIO = 0.18;
 
+/**
+ * Each strip is clipped and rendered as its own Konva Group, so adjacent strips can leave a
+ * hairline anti-aliasing gap at their shared edge. Widening each interior edge's clip rect by
+ * half this amount closes that gap; since neighboring strips' `groupY`/`groupScaleY` differ only
+ * slightly (the curvature depth function is smooth across strip width), the resulting overlap is
+ * visually seamless rather than a doubled/ghosted edge.
+ */
+const STRIP_SEAM_OVERLAP_PX = 1;
+
 export interface CurvatureStrip {
   index: number;
-  /** Strip's x position and width, in the screen rect's own local coordinate space. */
+  /** Strip's true (non-overlapping) x position and width, in the screen rect's local space. */
   x: number;
   width: number;
+  /** Clip rect x/width, widened at interior edges by `STRIP_SEAM_OVERLAP_PX` to hide seams. */
+  clipX: number;
+  clipWidth: number;
   /** Konva Group `y`/`scaleY` that reproduces this strip's warped top/bottom edges. */
   groupY: number;
   groupScaleY: number;
@@ -72,10 +84,15 @@ export function computeCurvatureStrips(
     const bottomOffset = -sign * depth;
     const newHeight = screen.height + (bottomOffset - topOffset);
     const groupScaleY = newHeight / screen.height;
+    const halfOverlap = STRIP_SEAM_OVERLAP_PX / 2;
+    const leftExtend = index > 0 ? halfOverlap : 0;
+    const rightExtend = index < sliceCount - 1 ? halfOverlap : 0;
     strips.push({
       index,
       x: screen.x + stripX,
       width: stripWidth,
+      clipX: screen.x + stripX - leftExtend,
+      clipWidth: stripWidth + leftExtend + rightExtend,
       groupY: topOffset,
       groupScaleY,
     });

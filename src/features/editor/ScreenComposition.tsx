@@ -1,10 +1,11 @@
 import Konva from 'konva';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Group, Image as KonvaImage, Rect } from 'react-konva';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
 import { computeContentLayout } from '../../lib/contentLayout';
 import type { Rect as RectShape } from '../../lib/contentLayout';
+import { glowLuminanceFactor, sampleMeanLuminance } from '../../lib/contentLuminance';
 import { computeCurvatureStrips, isCurvatureSupported } from '../../lib/curvature';
 import {
   contrastFilterValue,
@@ -115,9 +116,20 @@ export function ScreenComposition({
     asset && content
       ? computeContentLayout(screen, asset.naturalWidth, asset.naturalHeight, content)
       : null;
-  const patternOpacity = materialPatternOpacity(normalized, materialSettings.intensity);
+  const screenSizePx = Math.min(screen.width, screen.height);
+  const patternOpacity = materialPatternOpacity(normalized, materialSettings.intensity, screenSizePx);
   const brightnessOverlay = getBrightnessOverlay(materialSettings.brightness);
-  const glow = normalized !== 'lcd' ? getGlowShadow(materialSettings.glow) : null;
+  // Video content is deliberately not sampled (a canvas readback per animation frame would add
+  // real per-frame cost for a visual-only approximation); its glow keeps the prior
+  // silhouette-only behavior via glowLuminanceFactor(null) === 1.
+  const meanLuminance = useMemo(() => {
+    if (!asset || !content || content.kind !== 'image') return null;
+    return sampleMeanLuminance(asset.image as HTMLImageElement | HTMLCanvasElement);
+  }, [asset, content]);
+  const glow =
+    normalized !== 'lcd'
+      ? getGlowShadow(materialSettings.glow * glowLuminanceFactor(meanLuminance))
+      : null;
   const contrastValue = contrastFilterValue(materialSettings.contrast);
 
   const effectiveCurvature = isCurvatureSupported(normalized)
@@ -182,8 +194,12 @@ export function ScreenComposition({
           y={screen.y}
           width={screen.width}
           height={screen.height}
-          fillLinearGradientStartPoint={{ x: screen.x, y: screen.y }}
-          fillLinearGradientEndPoint={{ x: screen.x + screen.width, y: screen.y + screen.height }}
+          // Konva resolves gradient points in the shape's own local drawing space (always
+          // starting at (0,0) regardless of its x/y translate), not the parent-relative
+          // coordinates screen.x/screen.y are expressed in — using screen.x/screen.y here would
+          // double-count that offset and shift the highlight band away from the screen rect.
+          fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+          fillLinearGradientEndPoint={{ x: screen.width, y: screen.height }}
           fillLinearGradientColorStops={LCD_HIGHLIGHT_COLOR_STOPS}
           opacity={patternOpacity}
           listening={false}
@@ -223,7 +239,7 @@ export function ScreenComposition({
             key={strip.index}
             y={strip.groupY}
             scaleY={strip.groupScaleY}
-            clipFunc={(ctx) => ctx.rect(strip.x, screen.y, strip.width, screen.height)}
+            clipFunc={(ctx) => ctx.rect(strip.clipX, screen.y, strip.clipWidth, screen.height)}
           >
             {body}
           </Group>

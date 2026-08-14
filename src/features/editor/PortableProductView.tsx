@@ -57,11 +57,13 @@ export function PortableProductView({
         content={object.content}
       />
       {blendOpacity > 0 && (
+        // Restricted to the screen region only (not the whole product photo): see
+        // SignageDisplayView.tsx for why the frame/product body must stay out of the blend.
         <Rect
-          x={0}
-          y={0}
-          width={object.width}
-          height={object.height}
+          x={screen.x}
+          y={screen.y}
+          width={screen.width}
+          height={screen.height}
           fill={ENVIRONMENT_BLEND_COLOR}
           opacity={blendOpacity}
           listening={false}

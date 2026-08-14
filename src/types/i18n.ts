@@ -81,6 +81,12 @@ export interface Messages {
   editorContentScaleLabel: string;
   editorContentResetButton: string;
 
+  editorRenderingPresetLabel: string;
+  editorRenderingPresetNatural: string;
+  editorRenderingPresetBright: string;
+  editorRenderingPresetNight: string;
+  editorRenderingPresetHint: string;
+
   editorMaterialLabel: string;
   editorMaterialLed: string;
   editorMaterialLcd: string;

@@ -83,6 +83,13 @@ export const ko: Messages = {
   editorContentScaleLabel: '콘텐츠 확대 비율',
   editorContentResetButton: '콘텐츠 배치 초기화',
 
+  editorRenderingPresetLabel: '렌더링 프리셋',
+  editorRenderingPresetNatural: '자연광',
+  editorRenderingPresetBright: '밝은 실외',
+  editorRenderingPresetNight: '야간',
+  editorRenderingPresetHint:
+    '프리셋은 아래 소재/그림자/환경 블렌드 슬라이더의 시작값을 설정합니다. 적용 후에도 각 슬라이더는 자유롭게 조정할 수 있습니다.',
+
   editorMaterialLabel: '디스플레이 소재',
   editorMaterialLed: 'LED',
   editorMaterialLcd: 'LCD',

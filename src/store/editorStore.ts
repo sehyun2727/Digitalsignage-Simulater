@@ -10,6 +10,13 @@ import {
   validateQuad,
   type QuadInvalidReason,
 } from '../lib/quadGeometry';
+import {
+  getPresetContactShadow,
+  getPresetEnvironmentIntegration,
+  getPresetMaterialSettings,
+  resolvePresetPatch,
+  type RenderingPresetId,
+} from '../lib/renderingPresets';
 import { getObjectScreenRect } from '../lib/screenHitTest';
 import type {
   DisplayMaterial,
@@ -25,14 +32,13 @@ import type {
 } from '../types/editor';
 import {
   createEmptyDocument,
-  DEFAULT_CONTACT_SHADOW,
   DEFAULT_CURVATURE,
-  DEFAULT_ENVIRONMENT_INTEGRATION,
-  DEFAULT_MATERIAL_SETTINGS,
   DEFAULT_PLACEMENT_MODE,
   getDocumentSize,
   supportsPerspective,
 } from '../types/editor';
+
+const DEFAULT_RENDERING_PRESET: RenderingPresetId = 'natural';
 
 const HISTORY_LIMIT = 50;
 
@@ -75,6 +81,12 @@ export interface EditorState {
   selectObject: (id: ElementId | null) => void;
   updateObjectTransient: (id: ElementId, patch: Partial<SignageObject>) => void;
   commitObjectChange: (id: ElementId, patch: Partial<SignageObject>) => void;
+  /**
+   * Re-seeds a display/portable object's materialSettings/contactShadow/environmentIntegration
+   * from a named rendering preset (Natural/Bright/Night), as a single history entry. No-op for
+   * object kinds without those fields or an unknown id.
+   */
+  applyRenderingPreset: (id: ElementId, preset: RenderingPresetId) => void;
   deleteSelected: () => void;
   undo: () => void;
   redo: () => void;
@@ -225,12 +237,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       frameId: 'wall-led',
       content: null,
       material,
-      materialSettings: { ...DEFAULT_MATERIAL_SETTINGS },
+      materialSettings: getPresetMaterialSettings(material, DEFAULT_RENDERING_PRESET),
       curvature: { ...DEFAULT_CURVATURE },
       placementMode: DEFAULT_PLACEMENT_MODE,
       perspectiveQuad: null,
-      contactShadow: { ...DEFAULT_CONTACT_SHADOW },
-      environmentIntegration: { ...DEFAULT_ENVIRONMENT_INTEGRATION },
+      contactShadow: getPresetContactShadow('display', material, DEFAULT_RENDERING_PRESET),
+      environmentIntegration: getPresetEnvironmentIntegration(DEFAULT_RENDERING_PRESET),
     };
     set({
       document: { ...document, objects: [...document.objects, newObject] },
@@ -269,12 +281,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       screenRegion,
       content: null,
       material: 'lcd',
-      materialSettings: { ...DEFAULT_MATERIAL_SETTINGS },
+      materialSettings: getPresetMaterialSettings('lcd', DEFAULT_RENDERING_PRESET),
       curvature: { ...DEFAULT_CURVATURE },
       placementMode: DEFAULT_PLACEMENT_MODE,
       perspectiveQuad: null,
-      contactShadow: { ...DEFAULT_CONTACT_SHADOW },
-      environmentIntegration: { ...DEFAULT_ENVIRONMENT_INTEGRATION },
+      contactShadow: getPresetContactShadow('portable', 'lcd', DEFAULT_RENDERING_PRESET),
+      environmentIntegration: getPresetEnvironmentIntegration(DEFAULT_RENDERING_PRESET),
     };
     set({
       document: { ...document, objects: [...document.objects, newObject] },
@@ -351,6 +363,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       past: pushHistory(past, document),
       future: [],
     });
+  },
+
+  applyRenderingPreset: (id, preset) => {
+    const { document } = get();
+    const target = document.objects.find((object) => object.id === id);
+    if (!target || (target.kind !== 'display' && target.kind !== 'portable')) return;
+    const patch = resolvePresetPatch(target.kind, target.material, preset);
+    get().commitObjectChange(id, patch);
   },
 
   deleteSelected: () => {

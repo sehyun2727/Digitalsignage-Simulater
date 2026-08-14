@@ -4,6 +4,8 @@ import {
   MIN_CONTACT_SHADOW_SETTING,
   MIN_ENVIRONMENT_INTEGRATION,
 } from '../types/editor';
+import type { ContactShadowSettings, DisplayMaterial } from '../types/editor';
+import { normalizeMaterial } from './materialTexture';
 
 /** Contact shadow strength/blur share the same 0-100 range as material settings. */
 export function clampContactShadowSetting(value: number): number {
@@ -20,7 +22,7 @@ export function clampEnvironmentIntegration(strength: number): number {
   return Math.min(MAX_ENVIRONMENT_INTEGRATION, Math.max(MIN_ENVIRONMENT_INTEGRATION, strength));
 }
 
-const MAX_ENVIRONMENT_BLEND_OPACITY = 0.35;
+const MAX_ENVIRONMENT_BLEND_OPACITY = 0.22;
 
 /** A neutral gray-blue tone, close to typical ambient/ceiling lighting, used for the blend wash. */
 export const ENVIRONMENT_BLEND_COLOR = '#888c94';
@@ -75,3 +77,25 @@ export function computeContactShadowGeometry(
 export function contactShadowBlurRadius(width: number, height: number, blur: number): number {
   return (clampContactShadowSetting(blur) / 100) * Math.max(width, height) * 0.15;
 }
+
+/**
+ * Which installation plane an object's default shadow should imply: a wall-mounted panel casts a
+ * tight, close shadow; a see-through transparent-LED "window" casts a faint one; a freestanding
+ * portable device casts a larger, more separated one (spec section 13).
+ */
+export type ShadowMode = 'wall' | 'window' | 'freestanding';
+
+export function resolveShadowMode(
+  kind: 'display' | 'portable',
+  material: DisplayMaterial | undefined,
+): ShadowMode {
+  if (kind === 'portable') return 'freestanding';
+  return normalizeMaterial(material) === 'transparent-led' ? 'window' : 'wall';
+}
+
+/** Default contact-shadow settings per installation plane, replacing the flat disabled-by-default. */
+export const SHADOW_MODE_BASE: Record<ShadowMode, ContactShadowSettings> = {
+  wall: { enabled: true, strength: 30, blur: 35, offsetX: 0, offsetY: 0.035 },
+  window: { enabled: true, strength: 18, blur: 30, offsetX: 0, offsetY: 0.03 },
+  freestanding: { enabled: true, strength: 35, blur: 40, offsetX: 0, offsetY: 0.06 },
+};

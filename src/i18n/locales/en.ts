@@ -83,6 +83,13 @@ export const en: Messages = {
   editorContentScaleLabel: 'Content zoom',
   editorContentResetButton: 'Reset content placement',
 
+  editorRenderingPresetLabel: 'Rendering preset',
+  editorRenderingPresetNatural: 'Natural',
+  editorRenderingPresetBright: 'Bright exterior',
+  editorRenderingPresetNight: 'Night',
+  editorRenderingPresetHint:
+    'Presets set a starting point for material, shadow, and environment-blend sliders below; every slider stays freely adjustable afterward.',
+
   editorMaterialLabel: 'Display material',
   editorMaterialLed: 'LED',
   editorMaterialLcd: 'LCD',

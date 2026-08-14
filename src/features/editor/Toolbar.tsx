@@ -20,14 +20,20 @@ import {
 } from '../../lib/environmentIntegration';
 import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
 import { normalizeMaterial } from '../../lib/materialTexture';
+import {
+  detectActivePreset,
+  getPresetContactShadow,
+  getPresetMaterialSettings,
+  getPresetEnvironmentIntegration,
+  RENDERING_PRESET_IDS,
+  resolvePresetPatch,
+  type RenderingPresetId,
+} from '../../lib/renderingPresets';
 import { selectSelectedObject, useEditorStore } from '../../store/editorStore';
 import { useUiStore } from '../../store/uiStore';
 import {
   CURRENT_DISPLAY_MATERIALS,
-  DEFAULT_CONTACT_SHADOW,
   DEFAULT_CURVATURE,
-  DEFAULT_ENVIRONMENT_INTEGRATION,
-  DEFAULT_MATERIAL_SETTINGS,
   getDocumentSize,
   MAX_CONTENT_SCALE,
   MAX_CONTACT_SHADOW_SETTING,
@@ -775,10 +781,20 @@ function curvatureModeLabel(
 
 const CURVATURE_MODES: CurvatureMode[] = ['flat', 'concave', 'convex'];
 
+function renderingPresetLabel(
+  preset: RenderingPresetId,
+  messages: ReturnType<typeof useLocale>['messages'],
+): string {
+  if (preset === 'bright') return messages.editorRenderingPresetBright;
+  if (preset === 'night') return messages.editorRenderingPresetNight;
+  return messages.editorRenderingPresetNatural;
+}
+
 function AppearanceFields({ object }: { object: DisplaySignageObject | PortableSignageObject }) {
   const { messages } = useLocale();
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const updateObjectTransient = useEditorStore((state) => state.updateObjectTransient);
+  const applyRenderingPresetAction = useEditorStore((state) => state.applyRenderingPreset);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [intensityDraft, setIntensityDraft] = useState(object.materialSettings.intensity);
   const [brightnessDraft, setBrightnessDraft] = useState(object.materialSettings.brightness);
@@ -799,6 +815,13 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
   const isTransparentLed = material === 'transparent-led';
   const supportsGridAndGlow = material === 'led' || isTransparentLed;
   const curvatureSupported = isCurvatureSupported(material);
+  const activePreset = detectActivePreset(
+    object.kind,
+    object.material,
+    object.materialSettings,
+    object.contactShadow,
+    object.environmentIntegration,
+  );
 
   const commit = (patch: Partial<SignageObject>) => commitObjectChange(object.id, patch);
 
@@ -834,14 +857,18 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
     });
   };
 
+  // "Reset" restores the Natural preset's per-material starting point rather than one flat
+  // legacy default, so a reset LED and a reset LCD each land on a plausible value for their own
+  // technology instead of an identical generic number (sprint spec section 7/21).
   const resetMaterial = () => {
-    commit({ materialSettings: { ...DEFAULT_MATERIAL_SETTINGS } });
-    setIntensityDraft(DEFAULT_MATERIAL_SETTINGS.intensity);
-    setBrightnessDraft(DEFAULT_MATERIAL_SETTINGS.brightness);
-    setTransparencyDraft(DEFAULT_MATERIAL_SETTINGS.transparency);
-    setGridDensityDraft(DEFAULT_MATERIAL_SETTINGS.gridDensity);
-    setGlowDraft(DEFAULT_MATERIAL_SETTINGS.glow);
-    setContrastDraft(DEFAULT_MATERIAL_SETTINGS.contrast);
+    const defaults = getPresetMaterialSettings(object.material, 'natural');
+    commit({ materialSettings: defaults });
+    setIntensityDraft(defaults.intensity);
+    setBrightnessDraft(defaults.brightness);
+    setTransparencyDraft(defaults.transparency);
+    setGridDensityDraft(defaults.gridDensity);
+    setGlowDraft(defaults.glow);
+    setContrastDraft(defaults.contrast);
   };
 
   const resetCurvature = () => {
@@ -850,20 +877,60 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
   };
 
   const resetContactShadow = () => {
-    commit({ contactShadow: { ...DEFAULT_CONTACT_SHADOW } });
-    setShadowStrengthDraft(DEFAULT_CONTACT_SHADOW.strength);
-    setShadowBlurDraft(DEFAULT_CONTACT_SHADOW.blur);
-    setShadowOffsetXDraft(DEFAULT_CONTACT_SHADOW.offsetX);
-    setShadowOffsetYDraft(DEFAULT_CONTACT_SHADOW.offsetY);
+    const defaults = getPresetContactShadow(object.kind, object.material, 'natural');
+    commit({ contactShadow: defaults });
+    setShadowStrengthDraft(defaults.strength);
+    setShadowBlurDraft(defaults.blur);
+    setShadowOffsetXDraft(defaults.offsetX);
+    setShadowOffsetYDraft(defaults.offsetY);
   };
 
   const resetEnvironmentIntegration = () => {
-    commit({ environmentIntegration: { ...DEFAULT_ENVIRONMENT_INTEGRATION } });
-    setEnvironmentStrengthDraft(DEFAULT_ENVIRONMENT_INTEGRATION.strength);
+    const defaults = getPresetEnvironmentIntegration('natural');
+    commit({ environmentIntegration: defaults });
+    setEnvironmentStrengthDraft(defaults.strength);
+  };
+
+  const applyPreset = (preset: RenderingPresetId) => {
+    const patch = resolvePresetPatch(object.kind, object.material, preset);
+    applyRenderingPresetAction(object.id, preset);
+    setIntensityDraft(patch.materialSettings.intensity);
+    setBrightnessDraft(patch.materialSettings.brightness);
+    setTransparencyDraft(patch.materialSettings.transparency);
+    setGridDensityDraft(patch.materialSettings.gridDensity);
+    setGlowDraft(patch.materialSettings.glow);
+    setContrastDraft(patch.materialSettings.contrast);
+    setShadowStrengthDraft(patch.contactShadow.strength);
+    setShadowBlurDraft(patch.contactShadow.blur);
+    setShadowOffsetXDraft(patch.contactShadow.offsetX);
+    setShadowOffsetYDraft(patch.contactShadow.offsetY);
+    setEnvironmentStrengthDraft(patch.environmentIntegration.strength);
   };
 
   return (
     <>
+      <div
+        className="rendering-preset-group"
+        role="group"
+        aria-label={messages.editorRenderingPresetLabel}
+      >
+        <span>{messages.editorRenderingPresetLabel}</span>
+        <div className="toolbar-actions">
+          {RENDERING_PRESET_IDS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className={activePreset === preset ? 'is-active' : undefined}
+              aria-pressed={activePreset === preset}
+              onClick={() => applyPreset(preset)}
+            >
+              {renderingPresetLabel(preset, messages)}
+            </button>
+          ))}
+        </div>
+        <p className="toolbar-notice">{messages.editorRenderingPresetHint}</p>
+      </div>
+
       <label>
         <span>{messages.editorMaterialLabel}</span>
         <select

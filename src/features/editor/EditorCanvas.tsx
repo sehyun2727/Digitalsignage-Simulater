@@ -7,6 +7,7 @@ import {
   registerContentAsset,
   validateContentFile,
 } from '../../lib/contentUpload';
+import { findCachedNodes, recacheAtPixelRatio } from '../../lib/konvaCacheSync';
 import { findTopmostScreenHit, getObjectScreenRect } from '../../lib/screenHitTest';
 import type { Point } from '../../lib/screenHitTest';
 import { useEditorStore } from '../../store/editorStore';
@@ -97,7 +98,20 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       // the ratio up by a fraction of a pixel keeps the result safely above the integer boundary
       // without any visible effect, so the export always lands on the template's exact resolution.
       const exportPixelRatio = (1 / fitScale) * (1 + 1e-6);
+
+      // Contrast (ScreenComposition's ContrastGroup) and contact-shadow blur (ContactShadowView)
+      // both require a rasterized `.cache()` bitmap, baked at Konva's default pixelRatio for
+      // cheap interactive editing. Left as-is, that bitmap would get stretched up to
+      // exportPixelRatio here and look visibly blurrier than the surrounding vector-rendered
+      // content, so temporarily re-bake every cached node at full export resolution, snapshot,
+      // then restore the cheap default for the live preview.
+      const cachedNodes = findCachedNodes(stage);
+      cachedNodes.forEach((node) => recacheAtPixelRatio(node, exportPixelRatio));
+      layer?.draw();
+
       const dataUrl = stage.toDataURL({ mimeType: 'image/png', pixelRatio: exportPixelRatio });
+
+      cachedNodes.forEach((node) => recacheAtPixelRatio(node));
 
       if (selectedNodes.length > 0) transformer?.nodes(selectedNodes);
       objectsGroup?.visible(!comparisonMode);
