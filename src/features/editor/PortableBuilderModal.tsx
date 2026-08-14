@@ -151,7 +151,12 @@ export function PortableBuilderModal({
         sourceId: asset.sourceId,
         naturalWidth: asset.naturalWidth,
         naturalHeight: asset.naturalHeight,
-        hasAlpha: registered ? detectHasAlpha(registered.image) : null,
+        // registerAsset (used here, never registerVideoAsset) only ever produces an image/canvas
+        // source, but the shared RegisteredAsset.image type also allows HTMLVideoElement.
+        hasAlpha:
+          registered && !(registered.image instanceof HTMLVideoElement)
+            ? detectHasAlpha(registered.image)
+            : null,
         previewUrl: registered?.objectUrl ?? '',
       });
       setRegion(defaultScreenRegion());

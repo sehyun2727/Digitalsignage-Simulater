@@ -5,7 +5,9 @@ export interface RegisteredAsset {
   /** Empty string for a downscaled space background, whose original Blob URL is revoked
    *  immediately after the one-time downscale draw (see registerSpaceBackgroundAsset). */
   objectUrl: string;
-  image: HTMLImageElement | HTMLCanvasElement;
+  /** An HTMLVideoElement here is a decoded, ready-to-draw video source (Konva.Image accepts
+   *  it directly as a CanvasImageSource) rather than a still frame; see registerVideoAsset. */
+  image: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement;
   naturalWidth: number;
   naturalHeight: number;
 }
@@ -52,6 +54,48 @@ export async function registerAsset(
 
 export function getRegisteredAsset(sourceId: string): RegisteredAsset | undefined {
   return registry.get(sourceId);
+}
+
+function loadVideo(objectUrl: string): Promise<HTMLVideoElement> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    // Muted + inline playback is required for the editor preview to autoplay at all in modern
+    // browsers (autoplay-with-sound is blocked); it also matches how a real signage screen
+    // plays looping video, so it is the correct default rather than a test-only workaround.
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    video.onloadedmetadata = () => resolve(video);
+    video.onerror = () => reject(new Error('decode-error'));
+    video.src = objectUrl;
+  });
+}
+
+/**
+ * Registers a decoded, ready-to-play video element the same way registerAsset registers a
+ * decoded image: caller has already run validateVideoFile (src/lib/videoValidation.ts), this
+ * only performs the actual browser-local decode and lifecycle bookkeeping. The returned
+ * `naturalWidth`/`naturalHeight` mirror the image asset shape (videoWidth/videoHeight under the
+ * hood) so downstream layout code (contentLayout.ts) needs no video-specific branch.
+ */
+export async function registerVideoAsset(
+  file: File,
+): Promise<{ sourceId: string; naturalWidth: number; naturalHeight: number }> {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const video = await loadVideo(objectUrl);
+    const sourceId = createId();
+    registry.set(sourceId, {
+      objectUrl,
+      image: video,
+      naturalWidth: video.videoWidth,
+      naturalHeight: video.videoHeight,
+    });
+    return { sourceId, naturalWidth: video.videoWidth, naturalHeight: video.videoHeight };
+  } catch (error) {
+    URL.revokeObjectURL(objectUrl);
+    throw error;
+  }
 }
 
 /**
