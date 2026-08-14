@@ -18,6 +18,7 @@ import {
   transparentContentOpacity,
 } from '../../lib/materialTexture';
 import type { Curvature, DisplayMaterial, MaterialSettings, SignageContent } from '../../types/editor';
+import { useVideoPlaybackRedraw } from './useVideoPlaybackRedraw';
 
 interface ScreenCompositionProps {
   /** Screen rect in the parent object's own local coordinate space. */
@@ -69,6 +70,8 @@ export function ScreenComposition({ screen, material, materialSettings, curvatur
   const normalized = normalizeMaterial(material);
   const isTransparentLed = normalized === 'transparent-led';
   const asset = content ? getRegisteredAsset(content.sourceId) : undefined;
+  const rootRef = useRef<Konva.Group | null>(null);
+  useVideoPlaybackRedraw(rootRef, content?.sourceId ?? null, content?.kind === 'video');
   const contentLayout =
     asset && content ? computeContentLayout(screen, asset.naturalWidth, asset.naturalHeight, content) : null;
   const patternOpacity = materialPatternOpacity(normalized, materialSettings.intensity);
@@ -156,21 +159,27 @@ export function ScreenComposition({ screen, material, materialSettings, curvatur
   );
 
   if (strips.length === 0) {
-    return <ContrastGroup contrastValue={contrastValue}>{body}</ContrastGroup>;
+    return (
+      <Group ref={rootRef}>
+        <ContrastGroup contrastValue={contrastValue}>{body}</ContrastGroup>
+      </Group>
+    );
   }
 
   return (
-    <ContrastGroup contrastValue={contrastValue}>
-      {strips.map((strip) => (
-        <Group
-          key={strip.index}
-          y={strip.groupY}
-          scaleY={strip.groupScaleY}
-          clipFunc={(ctx) => ctx.rect(strip.x, screen.y, strip.width, screen.height)}
-        >
-          {body}
-        </Group>
-      ))}
-    </ContrastGroup>
+    <Group ref={rootRef}>
+      <ContrastGroup contrastValue={contrastValue}>
+        {strips.map((strip) => (
+          <Group
+            key={strip.index}
+            y={strip.groupY}
+            scaleY={strip.groupScaleY}
+            clipFunc={(ctx) => ctx.rect(strip.x, screen.y, strip.width, screen.height)}
+          >
+            {body}
+          </Group>
+        ))}
+      </ContrastGroup>
+    </Group>
   );
 }
