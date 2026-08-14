@@ -73,14 +73,20 @@ export function PortableProductView({ object, groupProps, documentSize }: Portab
 
   return (
     <>
-      <ContactShadowView
-        x={object.x}
-        y={object.y}
-        width={object.width}
-        height={object.height}
-        rotation={object.rotation}
-        shadow={object.contactShadow}
-      />
+      {/* See SignageDisplayView.tsx: the shadow's geometry comes from the object's flat
+          x/y/width/height/rotation rect, which is disconnected from the warped body's actual
+          on-screen position once placementMode is 'perspective', so it is suppressed rather than
+          drawn in the wrong place. */}
+      {!showPerspective && (
+        <ContactShadowView
+          x={object.x}
+          y={object.y}
+          width={object.width}
+          height={object.height}
+          rotation={object.rotation}
+          shadow={object.contactShadow}
+        />
+      )}
       <Group {...groupProps}>
         {/* Every other descendant below is listening={false} (product photo, clip contents,
             material overlays); Konva only bubbles click/tap/drag hits up to this Group from a

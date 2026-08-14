@@ -38,7 +38,16 @@ interface ScreenCompositionProps {
  * rather than another opacity-overlay approximation. At the neutral value (50, contrastValue
  * 0) the cache is cleared instead, so the common case pays no rasterization cost at all.
  */
-function ContrastGroup({ contrastValue, children }: { contrastValue: number; children: ReactNode }) {
+function ContrastGroup({
+  contrastValue,
+  redrawContinuously,
+  children,
+}: {
+  contrastValue: number;
+  /** True while the composed content is a playing video, see the effect below. */
+  redrawContinuously: boolean;
+  children: ReactNode;
+}) {
   const groupRef = useRef<Konva.Group | null>(null);
 
   useEffect(() => {
@@ -54,6 +63,25 @@ function ContrastGroup({ contrastValue, children }: { contrastValue: number; chi
     }
     node.getLayer()?.batchDraw();
   });
+
+  // A cached Group draws a frozen bitmap (see Konva's Node.cache()), so a video element inside
+  // it stops visibly playing the moment contrast is applied — the cache never observes the
+  // video's later frames on its own. While contrast is active on video content, keep re-baking
+  // the cache every animation frame (matching useVideoPlaybackRedraw's loop) so the filtered
+  // result still plays instead of freezing on whichever frame happened to be cached first.
+  useEffect(() => {
+    if (!redrawContinuously || contrastValue === 0) return;
+    const node = groupRef.current;
+    const layer = node?.getLayer();
+    if (!node || !layer) return;
+    const animation = new Konva.Animation(() => {
+      node.cache();
+    }, layer);
+    animation.start();
+    return () => {
+      animation.stop();
+    };
+  }, [redrawContinuously, contrastValue]);
 
   return <Group ref={groupRef}>{children}</Group>;
 }
@@ -158,17 +186,21 @@ export function ScreenComposition({ screen, material, materialSettings, curvatur
     </Group>
   );
 
+  const isVideo = content?.kind === 'video';
+
   if (strips.length === 0) {
     return (
       <Group ref={rootRef}>
-        <ContrastGroup contrastValue={contrastValue}>{body}</ContrastGroup>
+        <ContrastGroup contrastValue={contrastValue} redrawContinuously={isVideo}>
+          {body}
+        </ContrastGroup>
       </Group>
     );
   }
 
   return (
     <Group ref={rootRef}>
-      <ContrastGroup contrastValue={contrastValue}>
+      <ContrastGroup contrastValue={contrastValue} redrawContinuously={isVideo}>
         {strips.map((strip) => (
           <Group
             key={strip.index}

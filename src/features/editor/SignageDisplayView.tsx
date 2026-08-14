@@ -88,14 +88,21 @@ export function SignageDisplayView({ object, groupProps, documentSize }: Signage
 
   return (
     <>
-      <ContactShadowView
-        x={object.x}
-        y={object.y}
-        width={object.width}
-        height={object.height}
-        rotation={object.rotation}
-        shadow={object.contactShadow}
-      />
+      {/* The shadow's geometry is derived from the object's flat x/y/width/height/rotation rect
+          (see ContactShadowView), which is meaningless once placementMode is 'perspective' — the
+          visible body has moved to perspectiveQuad's own document-space corners instead (see the
+          comment above). Rendering it anyway would draw a shadow disconnected from where the
+          warped screen actually sits, so it is suppressed rather than shown in the wrong place. */}
+      {!showPerspective && (
+        <ContactShadowView
+          x={object.x}
+          y={object.y}
+          width={object.width}
+          height={object.height}
+          rotation={object.rotation}
+          shadow={object.contactShadow}
+        />
+      )}
       <Group {...groupProps}>
         {/* Every other descendant below is listening={false} (decoration, clip contents,
             material overlays); Konva only bubbles click/tap/drag hits up to this Group from a

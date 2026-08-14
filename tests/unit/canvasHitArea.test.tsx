@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from 'react';
 import { Group, Rect } from 'react-konva';
 import { describe, expect, it } from 'vitest';
+import { ContactShadowView } from '../../src/features/editor/ContactShadowView';
 import { PortableProductView } from '../../src/features/editor/PortableProductView';
 import { SignageDisplayView } from '../../src/features/editor/SignageDisplayView';
 import {
@@ -187,5 +188,95 @@ describe('canvas object hit-area (reselection fix)', () => {
     expect((firstChild as ReactElement<Record<string, unknown>>).props.name).toBe(
       'display-hit-area',
     );
+  });
+
+  const perspectiveQuad = {
+    topLeft: { x: 0.1, y: 0.1 },
+    topRight: { x: 0.9, y: 0.15 },
+    bottomRight: { x: 0.85, y: 0.9 },
+    bottomLeft: { x: 0.15, y: 0.85 },
+  };
+  const documentSize = { width: 1000, height: 500 };
+
+  it('suppresses the contact shadow for a perspective-placed display, since its rect geometry no longer matches the warped body', () => {
+    const object: DisplaySignageObject = {
+      id: 'obj-5',
+      kind: 'display',
+      x: 0,
+      y: 0,
+      width: 480,
+      height: 270,
+      rotation: 0,
+      frameId: 'wall-led',
+      content: null,
+      material: 'outdoor-led',
+      materialSettings: DEFAULT_MATERIAL_SETTINGS,
+      curvature: DEFAULT_CURVATURE,
+      placementMode: 'perspective',
+      perspectiveQuad,
+      contactShadow: { ...DEFAULT_CONTACT_SHADOW, enabled: true },
+      environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+    };
+
+    const tree = SignageDisplayView({ object, groupProps, documentSize });
+
+    expect(findAllByType(tree, ContactShadowView)).toHaveLength(0);
+  });
+
+  it('suppresses the contact shadow for a perspective-placed portable product', () => {
+    const object: PortableSignageObject = {
+      id: 'obj-6',
+      kind: 'portable',
+      x: 0,
+      y: 0,
+      width: 300,
+      height: 200,
+      rotation: 0,
+      productSourceId: 'unregistered-source',
+      productIntrinsicWidth: 600,
+      productIntrinsicHeight: 400,
+      productHasAlpha: false,
+      screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+      content: null,
+      material: 'lcd',
+      materialSettings: DEFAULT_MATERIAL_SETTINGS,
+      curvature: DEFAULT_CURVATURE,
+      placementMode: 'perspective',
+      perspectiveQuad,
+      contactShadow: { ...DEFAULT_CONTACT_SHADOW, enabled: true },
+      environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+    };
+
+    const tree = PortableProductView({ object, groupProps, documentSize });
+
+    expect(findAllByType(tree, ContactShadowView)).toHaveLength(0);
+  });
+
+  it('still renders the contact shadow for a rect-placed display with an applied perspective quad from a prior edit', () => {
+    // A quad can remain stored on the object (see the perspective store tests) even while
+    // placementMode has been switched back to 'rect'; the shadow should follow placementMode,
+    // not merely the presence of a quad.
+    const object: DisplaySignageObject = {
+      id: 'obj-7',
+      kind: 'display',
+      x: 0,
+      y: 0,
+      width: 480,
+      height: 270,
+      rotation: 0,
+      frameId: 'wall-led',
+      content: null,
+      material: 'outdoor-led',
+      materialSettings: DEFAULT_MATERIAL_SETTINGS,
+      curvature: DEFAULT_CURVATURE,
+      placementMode: 'rect',
+      perspectiveQuad,
+      contactShadow: { ...DEFAULT_CONTACT_SHADOW, enabled: true },
+      environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+    };
+
+    const tree = SignageDisplayView({ object, groupProps, documentSize });
+
+    expect(findAllByType(tree, ContactShadowView)).toHaveLength(1);
   });
 });
