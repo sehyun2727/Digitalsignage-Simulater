@@ -10,6 +10,7 @@ on:
         feature/sprint-1-image-editor-mvp,
         feature/sprint-3-custom-portable,
         feature/sprint-4-3-perspective-video,
+        feature/sprint-4-4-photorealistic-rendering,
       ]
 
 permissions:
