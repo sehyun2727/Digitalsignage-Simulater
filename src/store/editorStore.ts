@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import { sweepUnusedAssets } from '../lib/assetRegistry';
+import { resolveShadowMode } from '../lib/environmentIntegration';
 import { normalizeObjectGeometry } from '../lib/geometryNormalization';
 import { createId } from '../lib/id';
+import {
+  clampOcclusionSetting,
+  clampPoint01 as clampOcclusionPoint01,
+  validateOcclusionPolygon,
+  type OcclusionInvalidReason,
+} from '../lib/occlusion';
 import { computeDefaultPortableSize } from '../lib/portableRegion';
 import {
   clampQuad01,
@@ -24,7 +31,9 @@ import type {
   EditorDocument,
   ElementId,
   ImageSignageObject,
+  NormalizedPoint,
   NormalizedQuad,
+  OcclusionMask,
   PortableSignageObject,
   SignageObject,
   SpaceBackground,
@@ -33,6 +42,8 @@ import type {
 import {
   createEmptyDocument,
   DEFAULT_CURVATURE,
+  DEFAULT_OCCLUSION_FEATHER,
+  DEFAULT_OCCLUSION_OPACITY,
   DEFAULT_PLACEMENT_MODE,
   getDocumentSize,
   supportsPerspective,
@@ -48,6 +59,12 @@ export interface ApplyPerspectiveEditResult {
   reason?: QuadInvalidReason;
 }
 
+/** Result of `applyOcclusionEdit`, so the occlusion overlay UI can show why Apply did nothing. */
+export interface ApplyOcclusionEditResult {
+  applied: boolean;
+  reason?: OcclusionInvalidReason;
+}
+
 export interface EditorState {
   document: EditorDocument;
   selectedId: ElementId | null;
@@ -59,6 +76,14 @@ export interface EditorState {
   perspectiveDraftQuad: NormalizedQuad | null;
   /** The quad `perspectiveDraftQuad` started from, restored by `resetPerspectiveEdit`. */
   perspectiveEditOriginalQuad: NormalizedQuad | null;
+  /** Id of the display/portable object currently editing a foreground occlusion mask, if any. */
+  occlusionEditObjectId: ElementId | null;
+  /** Id of the existing mask being edited, or null while drawing a brand-new mask. */
+  occlusionEditMaskId: ElementId | null;
+  /** Live in-progress polygon points while occlusion edit mode is open; not yet committed. */
+  occlusionDraftPoints: NormalizedPoint[];
+  occlusionDraftFeather: number;
+  occlusionDraftOpacity: number;
   addText: () => void;
   addImage: (payload: { src: string; naturalWidth: number; naturalHeight: number }) => void;
   addDisplay: (material: DisplayMaterial) => void;
@@ -109,6 +134,28 @@ export interface EditorState {
   cancelPerspectiveEdit: () => void;
   /** Restores the draft quad to what it was when edit mode began. Stays in edit mode, no history. */
   resetPerspectiveEdit: () => void;
+  /**
+   * Enters foreground occlusion edit mode for `objectId`: seeds the draft polygon from an
+   * existing mask when `maskId` is given (editing), or an empty point list when omitted (drawing
+   * a brand-new mask). No-op for object kinds without occlusion support or before a space photo
+   * exists.
+   */
+  beginOcclusionEdit: (objectId: ElementId, maskId?: ElementId) => void;
+  /** Updates the live draft polygon points while editing (clamped to the document's 0-1 bounds). */
+  updateOcclusionDraftPoints: (points: NormalizedPoint[]) => void;
+  setOcclusionDraftFeather: (value: number) => void;
+  setOcclusionDraftOpacity: (value: number) => void;
+  /**
+   * Validates and commits the draft mask as a single history entry, then exits edit mode. Does
+   * nothing (zero history entries) when the draft is geometrically invalid, or identical to the
+   * mask already stored (no-op re-apply).
+   */
+  applyOcclusionEdit: () => ApplyOcclusionEditResult;
+  /** Exits edit mode without committing any change. Zero history entries. */
+  cancelOcclusionEdit: () => void;
+  /** Removes a mask outright, as a single history entry. */
+  deleteOcclusionMask: (objectId: ElementId, maskId: ElementId) => void;
+  setOcclusionMaskEnabled: (objectId: ElementId, maskId: ElementId, enabled: boolean) => void;
 }
 
 function pushHistory(past: EditorDocument[], current: EditorDocument): EditorDocument[] {
@@ -166,6 +213,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   perspectiveEditId: null,
   perspectiveDraftQuad: null,
   perspectiveEditOriginalQuad: null,
+  occlusionEditObjectId: null,
+  occlusionEditMaskId: null,
+  occlusionDraftPoints: [],
+  occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
+  occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
 
   addText: () => {
     const { document } = get();
@@ -243,6 +295,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       perspectiveQuad: null,
       contactShadow: getPresetContactShadow('display', material, DEFAULT_RENDERING_PRESET),
       environmentIntegration: getPresetEnvironmentIntegration(DEFAULT_RENDERING_PRESET),
+      installationMode: resolveShadowMode('display', material),
+      occlusionMasks: [],
     };
     set({
       document: { ...document, objects: [...document.objects, newObject] },
@@ -287,6 +341,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       perspectiveQuad: null,
       contactShadow: getPresetContactShadow('portable', 'lcd', DEFAULT_RENDERING_PRESET),
       environmentIntegration: getPresetEnvironmentIntegration(DEFAULT_RENDERING_PRESET),
+      installationMode: resolveShadowMode('portable', 'lcd'),
+      occlusionMasks: [],
     };
     set({
       document: { ...document, objects: [...document.objects, newObject] },
@@ -387,6 +443,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       perspectiveEditId: null,
       perspectiveDraftQuad: null,
       perspectiveEditOriginalQuad: null,
+      occlusionEditObjectId: null,
+      occlusionEditMaskId: null,
+      occlusionDraftPoints: [],
+      occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
+      occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
     });
   },
 
@@ -402,6 +463,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       perspectiveEditId: null,
       perspectiveDraftQuad: null,
       perspectiveEditOriginalQuad: null,
+      occlusionEditObjectId: null,
+      occlusionEditMaskId: null,
+      occlusionDraftPoints: [],
+      occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
+      occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
     });
   },
 
@@ -417,6 +483,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       perspectiveEditId: null,
       perspectiveDraftQuad: null,
       perspectiveEditOriginalQuad: null,
+      occlusionEditObjectId: null,
+      occlusionEditMaskId: null,
+      occlusionDraftPoints: [],
+      occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
+      occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
     });
   },
 
@@ -504,6 +575,164 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { perspectiveEditId, perspectiveEditOriginalQuad } = get();
     if (!perspectiveEditId || !perspectiveEditOriginalQuad) return;
     set({ perspectiveDraftQuad: perspectiveEditOriginalQuad });
+  },
+
+  beginOcclusionEdit: (objectId, maskId) => {
+    const { document } = get();
+    const target = document.objects.find((object) => object.id === objectId);
+    if (!target || (target.kind !== 'display' && target.kind !== 'portable')) return;
+    if (!document.spaceBackground) return;
+
+    const existingMask = maskId ? target.occlusionMasks.find((mask) => mask.id === maskId) : null;
+    set({
+      occlusionEditObjectId: objectId,
+      occlusionEditMaskId: existingMask ? existingMask.id : null,
+      occlusionDraftPoints: existingMask ? existingMask.points : [],
+      occlusionDraftFeather: existingMask ? existingMask.feather : DEFAULT_OCCLUSION_FEATHER,
+      occlusionDraftOpacity: existingMask ? existingMask.opacity : DEFAULT_OCCLUSION_OPACITY,
+    });
+  },
+
+  updateOcclusionDraftPoints: (points) => {
+    const { occlusionEditObjectId } = get();
+    if (!occlusionEditObjectId) return;
+    set({ occlusionDraftPoints: points.map(clampOcclusionPoint01) });
+  },
+
+  setOcclusionDraftFeather: (value) => {
+    const { occlusionEditObjectId } = get();
+    if (!occlusionEditObjectId) return;
+    set({ occlusionDraftFeather: clampOcclusionSetting(value) });
+  },
+
+  setOcclusionDraftOpacity: (value) => {
+    const { occlusionEditObjectId } = get();
+    if (!occlusionEditObjectId) return;
+    set({ occlusionDraftOpacity: clampOcclusionSetting(value) });
+  },
+
+  applyOcclusionEdit: () => {
+    const {
+      occlusionEditObjectId,
+      occlusionEditMaskId,
+      occlusionDraftPoints,
+      occlusionDraftFeather,
+      occlusionDraftOpacity,
+      document,
+      past,
+    } = get();
+    if (!occlusionEditObjectId) return { applied: false };
+
+    const resetState = {
+      occlusionEditObjectId: null,
+      occlusionEditMaskId: null,
+      occlusionDraftPoints: [],
+      occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
+      occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
+    };
+
+    const target = document.objects.find((object) => object.id === occlusionEditObjectId);
+    if (!target || (target.kind !== 'display' && target.kind !== 'portable')) {
+      set(resetState);
+      return { applied: false };
+    }
+
+    const validation = validateOcclusionPolygon(occlusionDraftPoints);
+    if (!validation.valid) return { applied: false, reason: validation.reason };
+
+    const existingMask = occlusionEditMaskId
+      ? target.occlusionMasks.find((mask) => mask.id === occlusionEditMaskId)
+      : null;
+    const isNoop =
+      existingMask != null &&
+      existingMask.feather === occlusionDraftFeather &&
+      existingMask.opacity === occlusionDraftOpacity &&
+      existingMask.points.length === occlusionDraftPoints.length &&
+      existingMask.points.every(
+        (point, index) =>
+          point.x === occlusionDraftPoints[index]!.x && point.y === occlusionDraftPoints[index]!.y,
+      );
+
+    if (isNoop) {
+      set(resetState);
+      return { applied: true };
+    }
+
+    const nextMask: OcclusionMask = existingMask
+      ? {
+          ...existingMask,
+          points: occlusionDraftPoints,
+          feather: occlusionDraftFeather,
+          opacity: occlusionDraftOpacity,
+        }
+      : {
+          id: createId(),
+          kind: 'polygon',
+          points: occlusionDraftPoints,
+          feather: occlusionDraftFeather,
+          opacity: occlusionDraftOpacity,
+          enabled: true,
+        };
+    const nextMasks = existingMask
+      ? target.occlusionMasks.map((mask) => (mask.id === nextMask.id ? nextMask : mask))
+      : [...target.occlusionMasks, nextMask];
+
+    const nextDocument: EditorDocument = {
+      ...document,
+      objects: patchObjects(document.objects, occlusionEditObjectId, {
+        occlusionMasks: nextMasks,
+      } as Partial<SignageObject>),
+    };
+    set({
+      document: nextDocument,
+      past: pushHistory(past, document),
+      future: [],
+      ...resetState,
+    });
+    return { applied: true };
+  },
+
+  cancelOcclusionEdit: () => {
+    set({
+      occlusionEditObjectId: null,
+      occlusionEditMaskId: null,
+      occlusionDraftPoints: [],
+      occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
+      occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
+    });
+  },
+
+  deleteOcclusionMask: (objectId, maskId) => {
+    const { document, past } = get();
+    const target = document.objects.find((object) => object.id === objectId);
+    if (!target || (target.kind !== 'display' && target.kind !== 'portable')) return;
+    if (!target.occlusionMasks.some((mask) => mask.id === maskId)) return;
+
+    const nextDocument: EditorDocument = {
+      ...document,
+      objects: patchObjects(document.objects, objectId, {
+        occlusionMasks: target.occlusionMasks.filter((mask) => mask.id !== maskId),
+      } as Partial<SignageObject>),
+    };
+    set({ document: nextDocument, past: pushHistory(past, document), future: [] });
+  },
+
+  setOcclusionMaskEnabled: (objectId, maskId, enabled) => {
+    const { document, past } = get();
+    const target = document.objects.find((object) => object.id === objectId);
+    if (!target || (target.kind !== 'display' && target.kind !== 'portable')) return;
+    const existing = target.occlusionMasks.find((mask) => mask.id === maskId);
+    if (!existing || existing.enabled === enabled) return;
+
+    const nextDocument: EditorDocument = {
+      ...document,
+      objects: patchObjects(document.objects, objectId, {
+        occlusionMasks: target.occlusionMasks.map((mask) =>
+          mask.id === maskId ? { ...mask, enabled } : mask,
+        ),
+      } as Partial<SignageObject>),
+    };
+    set({ document: nextDocument, past: pushHistory(past, document), future: [] });
   },
 }));
 

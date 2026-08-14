@@ -4,7 +4,7 @@ import {
   MIN_CONTACT_SHADOW_SETTING,
   MIN_ENVIRONMENT_INTEGRATION,
 } from '../types/editor';
-import type { ContactShadowSettings, DisplayMaterial } from '../types/editor';
+import type { ContactShadowSettings, DisplayMaterial, InstallationMode } from '../types/editor';
 import { normalizeMaterial } from './materialTexture';
 
 /** Contact shadow strength/blur share the same 0-100 range as material settings. */
@@ -81,10 +81,14 @@ export function contactShadowBlurRadius(width: number, height: number, blur: num
 /**
  * Which installation plane an object's default shadow should imply: a wall-mounted panel casts a
  * tight, close shadow; a see-through transparent-LED "window" casts a faint one; a freestanding
- * portable device casts a larger, more separated one (spec section 13).
+ * portable device casts a larger, more separated one (spec section 13). Alias of the persisted
+ * `InstallationMode` document field (src/types/editor.ts) — kept as a separate exported name here
+ * since this module is the historical/shadow-specific home for the concept.
  */
-export type ShadowMode = 'wall' | 'window' | 'freestanding';
+export type ShadowMode = InstallationMode;
 
+/** Material/kind-derived default, used to seed a freshly created object and to migrate documents
+ * saved before `installationMode` existed as an explicit, user-overridable field. */
 export function resolveShadowMode(
   kind: 'display' | 'portable',
   material: DisplayMaterial | undefined,

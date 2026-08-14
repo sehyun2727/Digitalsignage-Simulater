@@ -1,5 +1,6 @@
 import { Image as KonvaImage } from 'react-konva';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
+import { computeCoverFit } from '../../lib/spaceBackgroundFit';
 import type { SpaceBackground } from '../../types/editor';
 
 interface SpaceBackgroundViewProps {
@@ -13,17 +14,15 @@ export function SpaceBackgroundView({ spaceBackground, width, height }: SpaceBac
   const asset = getRegisteredAsset(spaceBackground.sourceId);
   if (!asset) return null;
 
-  const scale = Math.max(width / asset.naturalWidth, height / asset.naturalHeight);
-  const drawWidth = asset.naturalWidth * scale;
-  const drawHeight = asset.naturalHeight * scale;
+  const fit = computeCoverFit(asset.naturalWidth, asset.naturalHeight, width, height);
 
   return (
     <KonvaImage
       image={asset.image}
-      x={(width - drawWidth) / 2}
-      y={(height - drawHeight) / 2}
-      width={drawWidth}
-      height={drawHeight}
+      x={fit.x}
+      y={fit.y}
+      width={fit.width}
+      height={fit.height}
       listening={false}
     />
   );

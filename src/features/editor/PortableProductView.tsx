@@ -3,8 +3,9 @@ import { getRegisteredAsset } from '../../lib/assetRegistry';
 import { resolveScreenRegionRect } from '../../lib/contentLayout';
 import { ENVIRONMENT_BLEND_COLOR, environmentBlendOpacity } from '../../lib/environmentIntegration';
 import type { DocumentSize } from '../../lib/quadGeometry';
-import type { PortableSignageObject } from '../../types/editor';
+import type { PortableSignageObject, SpaceBackground } from '../../types/editor';
 import { ContactShadowView } from './ContactShadowView';
+import { OcclusionMaskLayer } from './OcclusionMaskLayer';
 import { PerspectiveScreenView } from './PerspectiveScreenView';
 import { ScreenComposition } from './ScreenComposition';
 
@@ -14,6 +15,7 @@ interface PortableProductViewProps {
   // Group so a portable object participates in the same Transformer as every other kind.
   groupProps: Record<string, unknown>;
   documentSize: DocumentSize | null;
+  spaceBackground: SpaceBackground | null;
 }
 
 /**
@@ -28,6 +30,7 @@ export function PortableProductView({
   object,
   groupProps,
   documentSize,
+  spaceBackground,
 }: PortableProductViewProps) {
   const productAsset = getRegisteredAsset(object.productSourceId);
   const screen = resolveScreenRegionRect(
@@ -127,6 +130,13 @@ export function PortableProductView({
         >
           {body}
         </PerspectiveScreenView>
+      )}
+      {documentSize && spaceBackground && object.occlusionMasks.length > 0 && (
+        <OcclusionMaskLayer
+          masks={object.occlusionMasks}
+          documentSize={documentSize}
+          spaceBackground={spaceBackground}
+        />
       )}
     </>
   );

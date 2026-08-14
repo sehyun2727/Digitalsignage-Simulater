@@ -310,6 +310,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
                   onDragEnd={handleDragEnd}
                   onTransformEnd={handleTransformEnd}
                   documentSize={size}
+                  spaceBackground={document.spaceBackground}
                 />
               ))}
             </Group>

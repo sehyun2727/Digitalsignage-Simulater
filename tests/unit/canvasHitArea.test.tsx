@@ -69,9 +69,16 @@ describe('canvas object hit-area (reselection fix)', () => {
       perspectiveQuad: null,
       contactShadow: DEFAULT_CONTACT_SHADOW,
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+      installationMode: 'wall',
+      occlusionMasks: [],
     };
 
-    const tree = SignageDisplayView({ object, groupProps, documentSize: null });
+    const tree = SignageDisplayView({
+      object,
+      groupProps,
+      documentSize: null,
+      spaceBackground: null,
+    });
     const hitArea = findHitArea(tree, 'display-hit-area');
 
     expect(hitArea.props).toMatchObject({
@@ -102,9 +109,16 @@ describe('canvas object hit-area (reselection fix)', () => {
       perspectiveQuad: null,
       contactShadow: DEFAULT_CONTACT_SHADOW,
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+      installationMode: 'wall',
+      occlusionMasks: [],
     };
 
-    const tree = SignageDisplayView({ object, groupProps, documentSize: null });
+    const tree = SignageDisplayView({
+      object,
+      groupProps,
+      documentSize: null,
+      spaceBackground: null,
+    });
     const hitArea = findHitArea(tree, 'display-hit-area');
 
     expect(hitArea.props).toMatchObject({
@@ -139,9 +153,16 @@ describe('canvas object hit-area (reselection fix)', () => {
       perspectiveQuad: null,
       contactShadow: DEFAULT_CONTACT_SHADOW,
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+      installationMode: 'wall',
+      occlusionMasks: [],
     };
 
-    const tree = PortableProductView({ object, groupProps, documentSize: null });
+    const tree = PortableProductView({
+      object,
+      groupProps,
+      documentSize: null,
+      spaceBackground: null,
+    });
     const hitArea = findHitArea(tree, 'portable-hit-area');
 
     expect(hitArea.props).toMatchObject({
@@ -172,13 +193,20 @@ describe('canvas object hit-area (reselection fix)', () => {
       perspectiveQuad: null,
       contactShadow: DEFAULT_CONTACT_SHADOW,
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+      installationMode: 'wall',
+      occlusionMasks: [],
     };
 
     // SignageDisplayView's root is a Fragment (a contact-shadow sibling, the interactive Group,
     // plus a sibling perspective warp view rendered only in 'perspective' mode) — so this finds
     // the Group among the Fragment's children before checking its own first child is the
     // hit-area rect.
-    const tree = SignageDisplayView({ object, groupProps, documentSize: null }) as ReactElement;
+    const tree = SignageDisplayView({
+      object,
+      groupProps,
+      documentSize: null,
+      spaceBackground: null,
+    }) as ReactElement;
     const groups = findAllByType(tree, Group) as ReactElement<{ children?: ReactNode }>[];
     const group = groups[0];
     if (!group) throw new Error('no Group found in the rendered tree');
@@ -216,9 +244,11 @@ describe('canvas object hit-area (reselection fix)', () => {
       perspectiveQuad,
       contactShadow: { ...DEFAULT_CONTACT_SHADOW, enabled: true },
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+      installationMode: 'wall',
+      occlusionMasks: [],
     };
 
-    const tree = SignageDisplayView({ object, groupProps, documentSize });
+    const tree = SignageDisplayView({ object, groupProps, documentSize, spaceBackground: null });
 
     expect(findAllByType(tree, ContactShadowView)).toHaveLength(0);
   });
@@ -245,9 +275,11 @@ describe('canvas object hit-area (reselection fix)', () => {
       perspectiveQuad,
       contactShadow: { ...DEFAULT_CONTACT_SHADOW, enabled: true },
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+      installationMode: 'wall',
+      occlusionMasks: [],
     };
 
-    const tree = PortableProductView({ object, groupProps, documentSize });
+    const tree = PortableProductView({ object, groupProps, documentSize, spaceBackground: null });
 
     expect(findAllByType(tree, ContactShadowView)).toHaveLength(0);
   });
@@ -273,9 +305,11 @@ describe('canvas object hit-area (reselection fix)', () => {
       perspectiveQuad,
       contactShadow: { ...DEFAULT_CONTACT_SHADOW, enabled: true },
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+      installationMode: 'wall',
+      occlusionMasks: [],
     };
 
-    const tree = SignageDisplayView({ object, groupProps, documentSize });
+    const tree = SignageDisplayView({ object, groupProps, documentSize, spaceBackground: null });
 
     expect(findAllByType(tree, ContactShadowView)).toHaveLength(1);
   });

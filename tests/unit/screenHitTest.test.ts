@@ -35,6 +35,8 @@ const display: DisplaySignageObject = {
   perspectiveQuad: null,
   contactShadow: DEFAULT_CONTACT_SHADOW,
   environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+  installationMode: 'wall',
+  occlusionMasks: [],
 };
 
 const portable: PortableSignageObject = {
@@ -58,6 +60,8 @@ const portable: PortableSignageObject = {
   perspectiveQuad: null,
   contactShadow: DEFAULT_CONTACT_SHADOW,
   environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
+  installationMode: 'freestanding',
+  occlusionMasks: [],
 };
 
 const text: TextSignageObject = {

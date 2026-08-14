@@ -230,6 +230,43 @@ export const MIN_ENVIRONMENT_INTEGRATION = 0;
 export const MAX_ENVIRONMENT_INTEGRATION = 100;
 
 /**
+ * Which physical plane an object is installed against — a wall-mounted panel, a see-through
+ * transparent-LED "window", or a freestanding portable device (sprint spec section 10). Drives
+ * default/available contact-shadow behavior (see src/lib/environmentIntegration.ts
+ * resolveShadowMode/SHADOW_MODE_BASE, whose `ShadowMode` type aliases this one). User-overridable
+ * after creation; falls back to the material/kind-derived default for documents saved before this
+ * field existed (see resolveInstallationMode in editorStore.ts).
+ */
+export type InstallationMode = 'wall' | 'window' | 'freestanding';
+
+/**
+ * A user-drawn polygon marking a foreground obstruction (e.g. a pillar, plant, or person standing
+ * in front of the installed signage in the space photo) so the original photo pixels show through
+ * instead of the rendered signage there (sprint spec section 7). Points are normalized (0-1)
+ * fractions of the *whole document*, matching `NormalizedQuad` — they survive space-photo
+ * replacement and canvas resizing unchanged, and are independent of the owning object's own
+ * position/rotation/transform. Never modifies the source space photo; purely an extra render/clip
+ * step (see src/lib/occlusion.ts, ScreenComposition-adjacent mask rendering).
+ */
+export interface OcclusionMask {
+  id: ElementId;
+  kind: 'polygon';
+  points: NormalizedPoint[];
+  /** 0-100 edge softness. */
+  feather: number;
+  /** 0-100 how fully the original photo replaces the rendered signage inside the mask. */
+  opacity: number;
+  enabled: boolean;
+}
+
+export const MIN_OCCLUSION_POINTS = 3;
+export const MAX_OCCLUSION_POINTS = 24;
+export const DEFAULT_OCCLUSION_FEATHER = 30;
+export const DEFAULT_OCCLUSION_OPACITY = 100;
+export const MIN_OCCLUSION_SETTING = 0;
+export const MAX_OCCLUSION_SETTING = 100;
+
+/**
  * A placeable signage display whose screen region clips user content and renders a material +
  * curvature preview. Document/export resolution is derived entirely from the space background
  * photo (see EditorDocument) — this object only describes where/how signage sits within it.
@@ -245,6 +282,8 @@ export interface DisplaySignageObject extends BaseSignageObject {
   perspectiveQuad: NormalizedQuad | null;
   contactShadow: ContactShadowSettings;
   environmentIntegration: EnvironmentIntegrationSettings;
+  installationMode: InstallationMode;
+  occlusionMasks: OcclusionMask[];
 }
 
 /**
@@ -277,6 +316,8 @@ export interface PortableSignageObject extends BaseSignageObject {
   perspectiveQuad: NormalizedQuad | null;
   contactShadow: ContactShadowSettings;
   environmentIntegration: EnvironmentIntegrationSettings;
+  installationMode: InstallationMode;
+  occlusionMasks: OcclusionMask[];
 }
 
 export type SignageObject =

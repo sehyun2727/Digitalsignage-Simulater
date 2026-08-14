@@ -4,8 +4,9 @@ import { getFrameDecorations, getScreenRect } from '../../lib/displayFrame';
 import { ENVIRONMENT_BLEND_COLOR, environmentBlendOpacity } from '../../lib/environmentIntegration';
 import { normalizeMaterial } from '../../lib/materialTexture';
 import type { DocumentSize } from '../../lib/quadGeometry';
-import type { DisplaySignageObject } from '../../types/editor';
+import type { DisplaySignageObject, SpaceBackground } from '../../types/editor';
 import { ContactShadowView } from './ContactShadowView';
+import { OcclusionMaskLayer } from './OcclusionMaskLayer';
 import { PerspectiveScreenView } from './PerspectiveScreenView';
 import { ScreenComposition } from './ScreenComposition';
 
@@ -15,11 +16,17 @@ interface SignageDisplayViewProps {
   // Group so a display object participates in the same Transformer as every other kind.
   groupProps: Record<string, unknown>;
   documentSize: DocumentSize | null;
+  spaceBackground: SpaceBackground | null;
 }
 
 const BEZEL_FILL = '#15181f';
 
-export function SignageDisplayView({ object, groupProps, documentSize }: SignageDisplayViewProps) {
+export function SignageDisplayView({
+  object,
+  groupProps,
+  documentSize,
+  spaceBackground,
+}: SignageDisplayViewProps) {
   const screen = getScreenRect(object.frameId, object.width, object.height);
   const decorations = getFrameDecorations(object.frameId, object.width, object.height);
   const curvatureActive =
@@ -139,6 +146,13 @@ export function SignageDisplayView({ object, groupProps, documentSize }: Signage
         >
           {body}
         </PerspectiveScreenView>
+      )}
+      {documentSize && spaceBackground && object.occlusionMasks.length > 0 && (
+        <OcclusionMaskLayer
+          masks={object.occlusionMasks}
+          documentSize={documentSize}
+          spaceBackground={spaceBackground}
+        />
       )}
     </>
   );

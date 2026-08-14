@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Image as KonvaImage, Text as KonvaText } from 'react-konva';
 import type { DocumentSize } from '../../lib/quadGeometry';
 import { useHtmlImage } from '../../lib/useHtmlImage';
-import type { SignageObject } from '../../types/editor';
+import type { SignageObject, SpaceBackground } from '../../types/editor';
 import { PortableProductView } from './PortableProductView';
 import { SignageDisplayView } from './SignageDisplayView';
 
@@ -14,6 +14,7 @@ interface CanvasObjectViewProps {
   onDragEnd: (id: string, x: number, y: number) => void;
   onTransformEnd: (id: string, patch: Partial<SignageObject>) => void;
   documentSize: DocumentSize | null;
+  spaceBackground: SpaceBackground | null;
 }
 
 export function CanvasObjectView({
@@ -23,6 +24,7 @@ export function CanvasObjectView({
   onDragEnd,
   onTransformEnd,
   documentSize,
+  spaceBackground,
 }: CanvasObjectViewProps) {
   const nodeRef = useRef<Konva.Node | null>(null);
   const image = useHtmlImage(object.kind === 'image' ? object.src : null);
@@ -100,13 +102,23 @@ export function CanvasObjectView({
 
   if (object.kind === 'display') {
     return (
-      <SignageDisplayView object={object} groupProps={commonProps} documentSize={documentSize} />
+      <SignageDisplayView
+        object={object}
+        groupProps={commonProps}
+        documentSize={documentSize}
+        spaceBackground={spaceBackground}
+      />
     );
   }
 
   if (object.kind === 'portable') {
     return (
-      <PortableProductView object={object} groupProps={commonProps} documentSize={documentSize} />
+      <PortableProductView
+        object={object}
+        groupProps={commonProps}
+        documentSize={documentSize}
+        spaceBackground={spaceBackground}
+      />
     );
   }
 
