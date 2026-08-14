@@ -6,11 +6,8 @@ import {
   selectSelectedObject,
   useEditorStore,
 } from '../../src/store/editorStore';
-import {
-  createEmptyDocument,
-  DEFAULT_CURVATURE,
-  DEFAULT_MATERIAL_SETTINGS,
-} from '../../src/types/editor';
+import { getPresetMaterialSettings } from '../../src/lib/renderingPresets';
+import { createEmptyDocument, DEFAULT_CURVATURE } from '../../src/types/editor';
 
 class SucceedingMockImage {
   onload: (() => void) | null = null;
@@ -285,7 +282,7 @@ describe('editorStore', () => {
     if (display?.kind === 'display') {
       expect(display.frameId).toBe('wall-led');
       expect(display.material).toBe('led');
-      expect(display.materialSettings).toEqual(DEFAULT_MATERIAL_SETTINGS);
+      expect(display.materialSettings).toEqual(getPresetMaterialSettings('led', 'natural'));
       expect(display.curvature).toEqual(DEFAULT_CURVATURE);
       expect(display.content).toBeNull();
     }
@@ -433,7 +430,7 @@ describe('editorStore', () => {
 
     useEditorStore
       .getState()
-      .commitObjectChange(id, { materialSettings: { ...DEFAULT_MATERIAL_SETTINGS } });
+      .commitObjectChange(id, { materialSettings: getPresetMaterialSettings('led', 'natural') });
 
     expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
   });
@@ -456,7 +453,7 @@ describe('editorStore', () => {
       expect(portable.productHasAlpha).toBe(true);
       expect(portable.screenRegion).toEqual({ x: 0.2, y: 0.2, width: 0.6, height: 0.6 });
       expect(portable.material).toBe('lcd');
-      expect(portable.materialSettings).toEqual(DEFAULT_MATERIAL_SETTINGS);
+      expect(portable.materialSettings).toEqual(getPresetMaterialSettings('lcd', 'natural'));
       expect(portable.curvature).toEqual(DEFAULT_CURVATURE);
       expect(portable.content).toBeNull();
       expect(portable.width / portable.height).toBeCloseTo(400 / 800);

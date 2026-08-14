@@ -165,3 +165,84 @@ test('cover-fit display content is clipped to the screen region and never spills
   expect(screenCenterPixel.g).toBeLessThan(50);
   expect(screenCenterPixel.b).toBeLessThan(50);
 });
+
+test('a newly added LED display has its contact shadow enabled by default and it renders in the export', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await addSpaceBackground(page);
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+
+  // Regression check for the "shadow disabled by default" defect: a freshly added display must
+  // already have a contact shadow, not require the user to opt in.
+  await expect(page.getByRole('checkbox', { name: '接地シャドウを有効にする' })).toBeChecked();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  const download = await downloadPromise;
+  const buffer = await fs.readFile((await download.path())!);
+
+  // Default display placement centers a 480x270 object at x:[720,1200] y:[405,675] on the
+  // 1920x1080 canvas (see the cover-fit test above). The wall-mode default shadow
+  // (SHADOW_MODE_BASE.wall, offsetY 0.035) centers its ellipse just below the object's bottom
+  // edge, at local y = 270 * 1.035 ≈ 279 -> canvas y ≈ 405 + 279 = 684, directly below the
+  // display's own horizontal center (960). A point far from both the display and the shadow's
+  // radius (x 200, well outside [756,1164]) gives the plain space-photo baseline color (#334455).
+  const [shadowPoint, baselinePoint] = await samplePngPixels(page, buffer, [
+    [960, 690],
+    [200, 900],
+  ]);
+
+  const brightness = (p: { r: number; g: number; b: number }) => p.r + p.g + p.b;
+  expect(brightness(shadowPoint)).toBeLessThan(brightness(baselinePoint));
+});
+
+test('rendering presets update the material sliders and the export brightness together', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await addSpaceBackground(page);
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+
+  const brightnessSlider = page.getByRole('slider', { name: '明るさ' });
+  const naturalBrightness = await brightnessSlider.inputValue();
+
+  const nightButton = page.getByRole('button', { name: '夜間' });
+  await nightButton.click();
+  await expect(nightButton).toHaveAttribute('aria-pressed', 'true');
+
+  const nightBrightness = await brightnessSlider.inputValue();
+  expect(Number(nightBrightness)).toBeLessThan(Number(naturalBrightness));
+
+  // Zero the LED grid pattern so it doesn't perturb the sampled screen-center pixel, matching
+  // the cover-fit test's approach above.
+  const intensitySlider = page.getByRole('slider', { name: '質感の強さ' });
+  await intensitySlider.focus();
+  await intensitySlider.press('Home');
+  await intensitySlider.press('Tab');
+
+  const content = await solidColorPng(page, '#ffffff');
+  await page
+    .getByLabel('コンテンツを追加')
+    .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
+  await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
+
+  const nightDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  const nightBuffer = await fs.readFile((await (await nightDownload).path())!);
+
+  const brightButton = page.getByRole('button', { name: '明るい屋外' });
+  await brightButton.click();
+  await expect(brightButton).toHaveAttribute('aria-pressed', 'true');
+
+  const brightDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  const brightBuffer = await fs.readFile((await (await brightDownload).path())!);
+
+  // Screen center (960, 540) per the cover-fit test above.
+  const [nightPixel] = await samplePngPixels(page, nightBuffer, [[960, 540]]);
+  const [brightPixel] = await samplePngPixels(page, brightBuffer, [[960, 540]]);
+
+  const brightness = (p: { r: number; g: number; b: number }) => p.r + p.g + p.b;
+  expect(brightness(brightPixel)).toBeGreaterThan(brightness(nightPixel));
+});

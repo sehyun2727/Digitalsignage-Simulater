@@ -86,6 +86,25 @@ describe('computeCurvatureStrips', () => {
 
     expect(Math.abs(high.groupY)).toBeGreaterThan(Math.abs(low.groupY));
   });
+
+  it('widens each interior clip edge so neighboring strips overlap and hide seams', () => {
+    const strips = computeCurvatureStrips(screen, { mode: 'convex', amount: 50 }, 10);
+    const [first, second] = strips;
+
+    // Interior edge between strip 0 and strip 1: each extends its clip halfway into the other.
+    expect(first!.clipX).toBeCloseTo(first!.x);
+    expect(first!.clipX + first!.clipWidth).toBeGreaterThan(second!.x);
+    expect(second!.clipX).toBeLessThan(first!.x + first!.width);
+  });
+
+  it('does not extend the clip rect past the screen edges on the outermost strips', () => {
+    const strips = computeCurvatureStrips(screen, { mode: 'convex', amount: 50 }, 10);
+    const outerFirst = strips[0]!;
+    const outerLast = strips[strips.length - 1]!;
+
+    expect(outerFirst.clipX).toBeCloseTo(screen.x);
+    expect(outerLast.clipX + outerLast.clipWidth).toBeCloseTo(screen.x + screen.width);
+  });
 });
 
 describe('computeCurvatureOutlinePoints', () => {

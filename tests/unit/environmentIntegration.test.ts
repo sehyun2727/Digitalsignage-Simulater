@@ -6,6 +6,8 @@ import {
   computeContactShadowGeometry,
   contactShadowBlurRadius,
   environmentBlendOpacity,
+  resolveShadowMode,
+  SHADOW_MODE_BASE,
 } from '../../src/lib/environmentIntegration';
 
 describe('clampContactShadowSetting', () => {
@@ -88,5 +90,35 @@ describe('contactShadowBlurRadius', () => {
   it('scales with blur and the larger object dimension', () => {
     expect(contactShadowBlurRadius(200, 100, 100)).toBeCloseTo(200 * 0.15);
     expect(contactShadowBlurRadius(100, 200, 100)).toBeCloseTo(200 * 0.15);
+  });
+});
+
+describe('resolveShadowMode', () => {
+  it('resolves portable objects to freestanding regardless of material', () => {
+    expect(resolveShadowMode('portable', 'led')).toBe('freestanding');
+    expect(resolveShadowMode('portable', 'transparent-led')).toBe('freestanding');
+  });
+
+  it('resolves a display with transparent-led material to window', () => {
+    expect(resolveShadowMode('display', 'transparent-led')).toBe('window');
+  });
+
+  it('resolves every other display material to wall', () => {
+    expect(resolveShadowMode('display', 'led')).toBe('wall');
+    expect(resolveShadowMode('display', 'lcd')).toBe('wall');
+    expect(resolveShadowMode('display', undefined)).toBe('wall');
+  });
+});
+
+describe('SHADOW_MODE_BASE', () => {
+  it('enables a shadow by default for every mode', () => {
+    expect(SHADOW_MODE_BASE.wall.enabled).toBe(true);
+    expect(SHADOW_MODE_BASE.window.enabled).toBe(true);
+    expect(SHADOW_MODE_BASE.freestanding.enabled).toBe(true);
+  });
+
+  it('gives the window mode the faintest shadow and freestanding the strongest', () => {
+    expect(SHADOW_MODE_BASE.window.strength).toBeLessThan(SHADOW_MODE_BASE.wall.strength);
+    expect(SHADOW_MODE_BASE.freestanding.strength).toBeGreaterThan(SHADOW_MODE_BASE.wall.strength);
   });
 });

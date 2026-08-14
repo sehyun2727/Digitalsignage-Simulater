@@ -462,7 +462,7 @@ describe('App', () => {
       expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
     });
 
-    it('changes the display material and resets material effects to neutral', async () => {
+    it('changes the display material and resets material effects to its material default', async () => {
       const user = userEvent.setup();
       render(<App />);
       await addSpaceBackground(user);
@@ -479,7 +479,31 @@ describe('App', () => {
       expect(intensitySlider).toHaveValue('80');
 
       await user.click(screen.getByRole('button', { name: ja.editorMaterialResetButton }));
-      expect(intensitySlider).toHaveValue('50');
+      // LCD's own Natural-preset baseline (see renderingPresets.ts), not a flat generic value.
+      expect(intensitySlider).toHaveValue('18');
+    });
+
+    it('clicking a rendering preset button updates material sliders and marks itself active', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+      await addSpaceBackground(user);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
+
+      const naturalButton = screen.getByRole('button', { name: ja.editorRenderingPresetNatural });
+      const nightButton = screen.getByRole('button', { name: ja.editorRenderingPresetNight });
+      expect(naturalButton).toHaveAttribute('aria-pressed', 'true');
+      expect(nightButton).toHaveAttribute('aria-pressed', 'false');
+
+      const brightnessSlider = screen.getByRole('slider', { name: ja.editorMaterialBrightnessLabel });
+      const naturalBrightness = brightnessSlider.getAttribute('value');
+
+      await user.click(nightButton);
+
+      expect(nightButton).toHaveAttribute('aria-pressed', 'true');
+      expect(naturalButton).toHaveAttribute('aria-pressed', 'false');
+      expect(brightnessSlider.getAttribute('value')).not.toBe(naturalBrightness);
+      expect(Number(brightnessSlider.getAttribute('value'))).toBeLessThan(Number(naturalBrightness));
     });
 
     it('undoing an added display removes it and clears the properties panel', async () => {

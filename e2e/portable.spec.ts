@@ -441,11 +441,13 @@ test.describe('export composition (pixel verification)', () => {
     await dialog.getByRole('button', { name: '追加', exact: true }).click();
     await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
 
-    // The LCD highlight is a diagonal gradient from the screen region's own top-left corner, so
-    // sample just inside it - not the region's center, which the gradient never reaches.
-    // Region top-left in absolute canvas coords: object origin (690, 270) + 20% of the 540px
-    // object size = (798, 378); +6px inward keeps the sample off the region's exact edge.
-    const samplePoint: [number, number] = [804, 384];
+    // The LCD highlight is a narrow diagonal specular band peaking at 30% of the way from the
+    // screen region's top-left to its bottom-right corner (LCD_HIGHLIGHT_COLOR_STOPS), not a
+    // corner-to-corner wash - so the sample point must land inside that band, not just anywhere
+    // near the corner. Region top-left in absolute canvas coords: object origin (690, 270) + 20%
+    // of the 540px object size = (798, 378), region size 0.6 * 540 = 324px per side; the 30%
+    // diagonal point is (798 + 0.3 * 324, 378 + 0.3 * 324) = (895, 475).
+    const samplePoint: [number, number] = [895, 475];
 
     const downloadPromise1 = page.waitForEvent('download');
     await page.getByRole('button', { name: 'PNGで書き出す' }).click();

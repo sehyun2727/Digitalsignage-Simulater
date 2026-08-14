@@ -69,6 +69,21 @@ describe('materialPatternOpacity', () => {
       materialPatternOpacity('led', 100),
     );
   });
+
+  it('fades the LED/transparent-led grid toward a lower opacity at small screen sizes', () => {
+    const small = materialPatternOpacity('led', 100, 20);
+    const large = materialPatternOpacity('led', 100, 200);
+    expect(small).toBeLessThan(large);
+    expect(small).toBeGreaterThan(0);
+  });
+
+  it('leaves LCD unaffected by screen size (it is a highlight band, not a pixel grid)', () => {
+    expect(materialPatternOpacity('lcd', 100, 20)).toBeCloseTo(materialPatternOpacity('lcd', 100, 200));
+  });
+
+  it('defaults to full-size opacity when no screen size is given', () => {
+    expect(materialPatternOpacity('led', 100)).toBeCloseTo(materialPatternOpacity('led', 100, 200));
+  });
 });
 
 describe('getBrightnessOverlay', () => {
