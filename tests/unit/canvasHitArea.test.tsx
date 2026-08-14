@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from 'react';
-import { Rect } from 'react-konva';
+import { Group, Rect } from 'react-konva';
 import { describe, expect, it } from 'vitest';
 import { PortableProductView } from '../../src/features/editor/PortableProductView';
 import { SignageDisplayView } from '../../src/features/editor/SignageDisplayView';
@@ -173,16 +173,14 @@ describe('canvas object hit-area (reselection fix)', () => {
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
     };
 
-    // SignageDisplayView's root is a Fragment (the interactive Group, plus a sibling perspective
-    // warp view rendered only in 'perspective' mode) — so this walks into the Group (the
-    // Fragment's first child) before checking its own first child is the hit-area rect.
-    const tree = SignageDisplayView({ object, groupProps, documentSize: null }) as ReactElement<{
-      children?: ReactNode;
-    }>;
-    const topLevelChildren = tree.props.children;
-    const group = (Array.isArray(topLevelChildren) ? topLevelChildren[0] : topLevelChildren) as ReactElement<{
-      children?: ReactNode;
-    }>;
+    // SignageDisplayView's root is a Fragment (a contact-shadow sibling, the interactive Group,
+    // plus a sibling perspective warp view rendered only in 'perspective' mode) — so this finds
+    // the Group among the Fragment's children before checking its own first child is the
+    // hit-area rect.
+    const tree = SignageDisplayView({ object, groupProps, documentSize: null }) as ReactElement;
+    const groups = findAllByType(tree, Group) as ReactElement<{ children?: ReactNode }>[];
+    const group = groups[0];
+    if (!group) throw new Error('no Group found in the rendered tree');
     const groupChildren = group.props.children;
     const firstChild = Array.isArray(groupChildren) ? groupChildren[0] : groupChildren;
 

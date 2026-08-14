@@ -391,6 +391,19 @@ a {
   color: #fff;
 }
 
+.toolbar-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.toolbar-subsection-heading {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .space-background-thumb {
   max-width: 100%;
   max-height: 8rem;

@@ -1,8 +1,10 @@
 import { Group, Image as KonvaImage, Rect } from 'react-konva';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
 import { resolveScreenRegionRect } from '../../lib/contentLayout';
+import { ENVIRONMENT_BLEND_COLOR, environmentBlendOpacity } from '../../lib/environmentIntegration';
 import type { DocumentSize } from '../../lib/quadGeometry';
 import type { PortableSignageObject } from '../../types/editor';
+import { ContactShadowView } from './ContactShadowView';
 import { PerspectiveScreenView } from './PerspectiveScreenView';
 import { ScreenComposition } from './ScreenComposition';
 
@@ -29,6 +31,8 @@ export function PortableProductView({ object, groupProps, documentSize }: Portab
     { shape: 'rect', ...object.screenRegion },
   );
 
+  const blendOpacity = environmentBlendOpacity(object.environmentIntegration.strength);
+
   const body = (
     <>
       {productAsset && (
@@ -48,6 +52,17 @@ export function PortableProductView({ object, groupProps, documentSize }: Portab
         curvature={object.curvature}
         content={object.content}
       />
+      {blendOpacity > 0 && (
+        <Rect
+          x={0}
+          y={0}
+          width={object.width}
+          height={object.height}
+          fill={ENVIRONMENT_BLEND_COLOR}
+          opacity={blendOpacity}
+          listening={false}
+        />
+      )}
     </>
   );
 
@@ -58,6 +73,14 @@ export function PortableProductView({ object, groupProps, documentSize }: Portab
 
   return (
     <>
+      <ContactShadowView
+        x={object.x}
+        y={object.y}
+        width={object.width}
+        height={object.height}
+        rotation={object.rotation}
+        shadow={object.contactShadow}
+      />
       <Group {...groupProps}>
         {/* Every other descendant below is listening={false} (product photo, clip contents,
             material overlays); Konva only bubbles click/tap/drag hits up to this Group from a

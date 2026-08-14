@@ -101,6 +101,17 @@ export const ja: Messages = {
   editorCurvatureResetButton: '曲面をリセット',
   editorCurvatureUnsupportedHint: 'この素材では曲面表現を利用できません（フラットのみ）。',
 
+  editorContactShadowLabel: '接地シャドウ',
+  editorContactShadowEnableLabel: '接地シャドウを有効にする',
+  editorContactShadowStrengthLabel: '強さ',
+  editorContactShadowBlurLabel: 'ぼかし',
+  editorContactShadowOffsetXLabel: '水平方向のオフセット',
+  editorContactShadowOffsetYLabel: '垂直方向のオフセット',
+  editorContactShadowResetButton: 'シャドウをリセット',
+  editorEnvironmentIntegrationLabel: '環境なじませ',
+  editorEnvironmentIntegrationStrengthLabel: 'なじませ強度',
+  editorEnvironmentIntegrationResetButton: 'なじませをリセット',
+
   editorPerspectiveFitButton: '空間に合わせて配置（パース）',
   editorPerspectiveUseRectButton: '通常配置に戻す',
   editorPerspectiveHint:

@@ -98,6 +98,17 @@ export interface Messages {
   editorCurvatureResetButton: string;
   editorCurvatureUnsupportedHint: string;
 
+  editorContactShadowLabel: string;
+  editorContactShadowEnableLabel: string;
+  editorContactShadowStrengthLabel: string;
+  editorContactShadowBlurLabel: string;
+  editorContactShadowOffsetXLabel: string;
+  editorContactShadowOffsetYLabel: string;
+  editorContactShadowResetButton: string;
+  editorEnvironmentIntegrationLabel: string;
+  editorEnvironmentIntegrationStrengthLabel: string;
+  editorEnvironmentIntegrationResetButton: string;
+
   editorPerspectiveFitButton: string;
   editorPerspectiveUseRectButton: string;
   editorPerspectiveHint: string;

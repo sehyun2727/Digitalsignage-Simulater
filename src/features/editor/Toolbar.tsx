@@ -11,30 +11,43 @@ import {
   clampMaterialSetting,
 } from '../../lib/contentLayout';
 import { clampCurvatureAmount, isCurvatureSupported } from '../../lib/curvature';
+import {
+  clampContactShadowOffset,
+  clampContactShadowSetting,
+  clampEnvironmentIntegration,
+} from '../../lib/environmentIntegration';
 import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
 import { normalizeMaterial } from '../../lib/materialTexture';
 import { selectSelectedObject, useEditorStore } from '../../store/editorStore';
 import { useUiStore } from '../../store/uiStore';
 import {
   CURRENT_DISPLAY_MATERIALS,
+  DEFAULT_CONTACT_SHADOW,
   DEFAULT_CURVATURE,
+  DEFAULT_ENVIRONMENT_INTEGRATION,
   DEFAULT_MATERIAL_SETTINGS,
   getDocumentSize,
   MAX_CONTENT_SCALE,
+  MAX_CONTACT_SHADOW_SETTING,
   MAX_CURVATURE_AMOUNT,
+  MAX_ENVIRONMENT_INTEGRATION,
   MAX_MATERIAL_SETTING,
   MIN_CONTENT_SCALE,
+  MIN_CONTACT_SHADOW_SETTING,
   MIN_CURVATURE_AMOUNT,
+  MIN_ENVIRONMENT_INTEGRATION,
   MIN_MATERIAL_SETTING,
   supportsPerspective,
 } from '../../types/editor';
 import { PortableBuilderModal } from './PortableBuilderModal';
 import type { ImageValidationError } from '../../lib/fileValidation';
 import type {
+  ContactShadowSettings,
   ContentFit,
   CurvatureMode,
   DisplayMaterial,
   DisplaySignageObject,
+  EnvironmentIntegrationSettings,
   MaterialSettings,
   PerspectiveCapableObject,
   PortableSignageObject,
@@ -755,6 +768,13 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
   const [glowDraft, setGlowDraft] = useState(object.materialSettings.glow);
   const [contrastDraft, setContrastDraft] = useState(object.materialSettings.contrast);
   const [curvatureAmountDraft, setCurvatureAmountDraft] = useState(object.curvature.amount);
+  const [shadowStrengthDraft, setShadowStrengthDraft] = useState(object.contactShadow.strength);
+  const [shadowBlurDraft, setShadowBlurDraft] = useState(object.contactShadow.blur);
+  const [shadowOffsetXDraft, setShadowOffsetXDraft] = useState(object.contactShadow.offsetX);
+  const [shadowOffsetYDraft, setShadowOffsetYDraft] = useState(object.contactShadow.offsetY);
+  const [environmentStrengthDraft, setEnvironmentStrengthDraft] = useState(
+    object.environmentIntegration.strength,
+  );
 
   const material = normalizeMaterial(object.material);
   const isTransparentLed = material === 'transparent-led';
@@ -777,6 +797,24 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
     commit({ curvature: { ...object.curvature, ...patch } });
   };
 
+  const commitContactShadow = (patch: Partial<ContactShadowSettings>) => {
+    commit({ contactShadow: { ...object.contactShadow, ...patch } });
+  };
+
+  const previewContactShadow = (patch: Partial<ContactShadowSettings>) => {
+    updateObjectTransient(object.id, { contactShadow: { ...object.contactShadow, ...patch } });
+  };
+
+  const commitEnvironmentIntegration = (patch: Partial<EnvironmentIntegrationSettings>) => {
+    commit({ environmentIntegration: { ...object.environmentIntegration, ...patch } });
+  };
+
+  const previewEnvironmentIntegration = (patch: Partial<EnvironmentIntegrationSettings>) => {
+    updateObjectTransient(object.id, {
+      environmentIntegration: { ...object.environmentIntegration, ...patch },
+    });
+  };
+
   const resetMaterial = () => {
     commit({ materialSettings: { ...DEFAULT_MATERIAL_SETTINGS } });
     setIntensityDraft(DEFAULT_MATERIAL_SETTINGS.intensity);
@@ -790,6 +828,19 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
   const resetCurvature = () => {
     commit({ curvature: { ...DEFAULT_CURVATURE } });
     setCurvatureAmountDraft(DEFAULT_CURVATURE.amount);
+  };
+
+  const resetContactShadow = () => {
+    commit({ contactShadow: { ...DEFAULT_CONTACT_SHADOW } });
+    setShadowStrengthDraft(DEFAULT_CONTACT_SHADOW.strength);
+    setShadowBlurDraft(DEFAULT_CONTACT_SHADOW.blur);
+    setShadowOffsetXDraft(DEFAULT_CONTACT_SHADOW.offsetX);
+    setShadowOffsetYDraft(DEFAULT_CONTACT_SHADOW.offsetY);
+  };
+
+  const resetEnvironmentIntegration = () => {
+    commit({ environmentIntegration: { ...DEFAULT_ENVIRONMENT_INTEGRATION } });
+    setEnvironmentStrengthDraft(DEFAULT_ENVIRONMENT_INTEGRATION.strength);
   };
 
   return (
@@ -1003,6 +1054,130 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
           {messages.editorCurvatureResetButton}
         </button>
       )}
+
+      <div className="toolbar-subsection">
+        <span className="toolbar-subsection-heading">{messages.editorContactShadowLabel}</span>
+
+        <label className="toolbar-checkbox-field">
+          <input
+            type="checkbox"
+            checked={object.contactShadow.enabled}
+            onChange={(event) => commitContactShadow({ enabled: event.target.checked })}
+          />
+          <span>{messages.editorContactShadowEnableLabel}</span>
+        </label>
+
+        {object.contactShadow.enabled && (
+          <>
+            <label>
+              <span>{messages.editorContactShadowStrengthLabel}</span>
+              <input
+                type="range"
+                min={MIN_CONTACT_SHADOW_SETTING}
+                max={MAX_CONTACT_SHADOW_SETTING}
+                value={shadowStrengthDraft}
+                onInput={(event) => {
+                  const strength = Number((event.target as HTMLInputElement).value);
+                  setShadowStrengthDraft(strength);
+                  previewContactShadow({ strength });
+                }}
+                onPointerUp={() =>
+                  commitContactShadow({ strength: clampContactShadowSetting(shadowStrengthDraft) })
+                }
+                onBlur={() =>
+                  commitContactShadow({ strength: clampContactShadowSetting(shadowStrengthDraft) })
+                }
+              />
+            </label>
+
+            <label>
+              <span>{messages.editorContactShadowBlurLabel}</span>
+              <input
+                type="range"
+                min={MIN_CONTACT_SHADOW_SETTING}
+                max={MAX_CONTACT_SHADOW_SETTING}
+                value={shadowBlurDraft}
+                onInput={(event) => {
+                  const blur = Number((event.target as HTMLInputElement).value);
+                  setShadowBlurDraft(blur);
+                  previewContactShadow({ blur });
+                }}
+                onPointerUp={() =>
+                  commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
+                }
+                onBlur={() => commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })}
+              />
+            </label>
+
+            <label>
+              <span>{messages.editorContactShadowOffsetXLabel}</span>
+              <input
+                type="number"
+                step={0.05}
+                min={-1}
+                max={1}
+                value={shadowOffsetXDraft}
+                onChange={(event) => setShadowOffsetXDraft(Number(event.target.value))}
+                onBlur={() =>
+                  commitContactShadow({ offsetX: clampContactShadowOffset(shadowOffsetXDraft) })
+                }
+              />
+            </label>
+
+            <label>
+              <span>{messages.editorContactShadowOffsetYLabel}</span>
+              <input
+                type="number"
+                step={0.05}
+                min={-1}
+                max={1}
+                value={shadowOffsetYDraft}
+                onChange={(event) => setShadowOffsetYDraft(Number(event.target.value))}
+                onBlur={() =>
+                  commitContactShadow({ offsetY: clampContactShadowOffset(shadowOffsetYDraft) })
+                }
+              />
+            </label>
+          </>
+        )}
+
+        <button type="button" onClick={resetContactShadow}>
+          {messages.editorContactShadowResetButton}
+        </button>
+      </div>
+
+      <div className="toolbar-subsection">
+        <span className="toolbar-subsection-heading">{messages.editorEnvironmentIntegrationLabel}</span>
+
+        <label>
+          <span>{messages.editorEnvironmentIntegrationStrengthLabel}</span>
+          <input
+            type="range"
+            min={MIN_ENVIRONMENT_INTEGRATION}
+            max={MAX_ENVIRONMENT_INTEGRATION}
+            value={environmentStrengthDraft}
+            onInput={(event) => {
+              const strength = Number((event.target as HTMLInputElement).value);
+              setEnvironmentStrengthDraft(strength);
+              previewEnvironmentIntegration({ strength });
+            }}
+            onPointerUp={() =>
+              commitEnvironmentIntegration({
+                strength: clampEnvironmentIntegration(environmentStrengthDraft),
+              })
+            }
+            onBlur={() =>
+              commitEnvironmentIntegration({
+                strength: clampEnvironmentIntegration(environmentStrengthDraft),
+              })
+            }
+          />
+        </label>
+
+        <button type="button" onClick={resetEnvironmentIntegration}>
+          {messages.editorEnvironmentIntegrationResetButton}
+        </button>
+      </div>
     </>
   );
 }

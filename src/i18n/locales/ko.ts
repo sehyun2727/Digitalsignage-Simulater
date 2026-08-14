@@ -100,6 +100,17 @@ export const ko: Messages = {
   editorCurvatureResetButton: '곡면 초기화',
   editorCurvatureUnsupportedHint: '이 소재에서는 곡면 표현을 사용할 수 없습니다 (평면만 지원).',
 
+  editorContactShadowLabel: '접지 그림자',
+  editorContactShadowEnableLabel: '접지 그림자 사용',
+  editorContactShadowStrengthLabel: '강도',
+  editorContactShadowBlurLabel: '블러',
+  editorContactShadowOffsetXLabel: '수평 오프셋',
+  editorContactShadowOffsetYLabel: '수직 오프셋',
+  editorContactShadowResetButton: '그림자 초기화',
+  editorEnvironmentIntegrationLabel: '환경 어우러짐',
+  editorEnvironmentIntegrationStrengthLabel: '어우러짐 강도',
+  editorEnvironmentIntegrationResetButton: '어우러짐 초기화',
+
   editorPerspectiveFitButton: '공간에 맞춰 배치 (원근)',
   editorPerspectiveUseRectButton: '일반 배치로 되돌리기',
   editorPerspectiveHint:

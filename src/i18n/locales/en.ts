@@ -100,6 +100,17 @@ export const en: Messages = {
   editorCurvatureResetButton: 'Reset curvature',
   editorCurvatureUnsupportedHint: 'This material does not support curvature (flat only).',
 
+  editorContactShadowLabel: 'Contact shadow',
+  editorContactShadowEnableLabel: 'Enable contact shadow',
+  editorContactShadowStrengthLabel: 'Strength',
+  editorContactShadowBlurLabel: 'Blur',
+  editorContactShadowOffsetXLabel: 'Horizontal offset',
+  editorContactShadowOffsetYLabel: 'Vertical offset',
+  editorContactShadowResetButton: 'Reset shadow',
+  editorEnvironmentIntegrationLabel: 'Environment blend',
+  editorEnvironmentIntegrationStrengthLabel: 'Blend strength',
+  editorEnvironmentIntegrationResetButton: 'Reset blend',
+
   editorPerspectiveFitButton: 'Fit to space (perspective)',
   editorPerspectiveUseRectButton: 'Switch to normal placement',
   editorPerspectiveHint:
