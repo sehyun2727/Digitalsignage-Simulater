@@ -366,6 +366,36 @@ describe('editorStore', () => {
     expect(display.height / 1000).toBeCloseTo(100 / 500);
   });
 
+  it('replacing a space background leaves an applied perspective quad untouched', () => {
+    addSpaceBackground('src-1', 1000, 500);
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    const draft = {
+      topLeft: { x: 0.1, y: 0.1 },
+      topRight: { x: 0.9, y: 0.15 },
+      bottomRight: { x: 0.85, y: 0.9 },
+      bottomLeft: { x: 0.15, y: 0.85 },
+    };
+    useEditorStore.getState().updatePerspectiveDraft(draft);
+    useEditorStore.getState().applyPerspectiveEdit();
+
+    // A different resolution and aspect ratio than the original photo: since the quad is stored
+    // as fractions of the document (0-1), it must survive the swap byte-for-byte rather than
+    // being remapped like x/y/width/height are.
+    useEditorStore.getState().setSpaceBackground({
+      sourceId: 'src-2',
+      naturalWidth: 1600,
+      naturalHeight: 2400,
+      width: 1600,
+      height: 2400,
+      downscaled: false,
+    });
+
+    const display = useEditorStore.getState().document.objects[0]!;
+    expect(display).toMatchObject({ placementMode: 'perspective', perspectiveQuad: draft });
+  });
+
   it('commits a content patch on a display object and undo/redo restore it', () => {
     addSpaceBackground();
     useEditorStore.getState().addDisplay('led');
