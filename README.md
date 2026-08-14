@@ -13,7 +13,7 @@
 
 ## 상태
 
-**현재 상태: Sprint 4.2 완료 — Sprint 0~4.2가 통합되어 배포 가능한 상태입니다 (Sprint 3.2: 캔버스 객체 재선택 결함 수정, Sprint 4.1: 통합 툴바 에디터 UI, Sprint 4.2: 사진 우선(photo-first) 문서 모델·LED/LCD/透過LED/포터블 4종 신호기·곡률(curvature) 제어 포함)**
+**현재 상태: Sprint 4.3 완료 — Sprint 0~4.3이 통합되어 배포 가능한 상태입니다 (Sprint 3.2: 캔버스 객체 재선택 결함 수정, Sprint 4.1: 통합 툴바 에디터 UI, Sprint 4.2: 사진 우선(photo-first) 문서 모델·LED/LCD/透過LED/포터블 4종 신호기·곡률(curvature) 제어, Sprint 4.3: 4점 원근 배치·환경 통합(그림자/톤 블렌딩)·동영상 콘텐츠 및 내보내기 포함)**
 
 Sprint 0에서 구현된 것:
 
@@ -202,6 +202,35 @@ Sprint 4.2에서 구현되지 않은 것 (범위 밖):
   (Sprint 1부터 유지된 정책, 변경 없음).
 - 신호기 프레임(베젤/스탠드) 형상 자체의 확장 — 기존 단순화된 사각형 베젤 표현을 그대로 사용합니다.
 
+Sprint 4.3에서 구현된 것 (4점 원근 배치, 환경 통합, 동영상):
+
+- **4점 원근(perspective) 배치**: 디스플레이·포터블 제품을 "空間に合わせて配置（パース）" 버튼으로 임의의
+  사각형(원근) 영역에 맞춰 배치할 수 있습니다. 네 모서리를 드래그하거나 숫자(X/Y좌표) 입력으로 정밀하게
+  조정하며, 자기교차·오목·화면 밖·최소 크기 미만 등의 잘못된 사각형은 적용(適用) 버튼이 비활성화되고
+  접근성 있는 오류 메시지로 안내됩니다. 원근 모드에서도 선택·드래그·크기 조절은 항상 객체의 원래 사각형
+  기준으로 동작하며(시각적으로 왜곡된 사각형 자체를 클릭 대상으로 삼지 않음), "通常配置に戻す" 버튼으로
+  언제든 일반 사각형 배치로 되돌릴 수 있습니다. 자세한 배경은
+  [`docs/adr/0008-perspective-environment-and-video-sprint-4-3.md`](docs/adr/0008-perspective-environment-and-video-sprint-4-3.md)
+  참고.
+- **환경 통합(그림자·톤 블렌딩)**: 신호기가 실제로 촬영된 장소에 설치된 것처럼 보이도록, 실루엣 형태의
+  접지 그림자(강도·흐림·오프셋 조절)와 배경 사진의 톤에 맞춰 채도/대비/하이라이트를 낮추는 블렌딩 강도를
+  각각 선택적으로 켤 수 있습니다. 두 기능 모두 순수 시각 효과이며 원본 공간 사진 자체는 절대 변경하지
+  않습니다.
+- **동영상 콘텐츠 및 내보내기**: 디스플레이·포터블 제품의 화면 콘텐츠로 정지 이미지 대신 동영상 파일을
+  업로드할 수 있습니다(자동 재생·반복 재생·음소거 고정, 별도 재생 컨트롤 없음). 브라우저가 지원하는 경우
+  "動画で書き出す" 버튼으로 캔버스를 그대로 녹화해 WebM 동영상으로 내보낼 수 있으며(서버 업로드 없이 전부
+  브라우저 내부에서 처리), 지원하지 않는 브라우저(예: 현재 Safari)에서는 버튼 자체가 나타나지 않고 대신
+  안내 문구가 표시됩니다. PNG 내보내기는 동영상 콘텐츠가 있어도 캔버스의 현재 프레임을 그대로 내보내는
+  기존 동작을 유지합니다.
+
+Sprint 4.3에서 구현되지 않은 것 (범위 밖):
+
+- 원근 모드의 클릭 판정은 항상 객체의 원래 사각형 기준입니다 — 시각적으로 왜곡된 사각형 형태 자체를
+  클릭 히트 영역으로 사용하지 않습니다(자세한 배경은 위 ADR 0008 참고).
+- 동영상 재생 컨트롤(재생/정지/탐색) — 항상 자동 재생·반복·음소거로만 표시됩니다.
+- 디스플레이·포터블 제품당 다중 콘텐츠 슬롯이나 재생목록 — 화면 콘텐츠는 이미지 또는 동영상 1개뿐입니다.
+- 동영상 트랜스코딩·화질/비트레이트 조절 — 브라우저의 `MediaRecorder` 기본 인코딩을 그대로 사용합니다.
+
 ## 기술 스택
 
 - React 19 + TypeScript + Vite
@@ -239,7 +268,8 @@ npm run format:check     # Prettier 검사만 수행
 npm run typecheck        # TypeScript 검사
 npm run test              # Vitest (watch)
 npm run test:run          # Vitest (단일 실행, CI에서 사용)
-npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드, 공간 배경/디스플레이 콘텐츠·소재, 포터블 제품, 모바일 뷰포트, 온보딩/비교 토글, 재선택)
+npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드, 공간 배경/디스플레이 콘텐츠·소재, 포터블 제품, 4점 원근 배치/透過LED/동영상, 모바일 뷰포트, 온보딩/비교 토글, 재선택)
+                           # E2E_PORT 환경변수로 미리보기 서버 포트를 바꿀 수 있습니다(기본값 4173). 예: E2E_PORT=4174 npm run test:e2e
 ```
 
 ## Docker 실행
@@ -295,6 +325,22 @@ docker run --rm -p 8080:8080 digital-signage-simulator:local
 - 파일명 형식: `signage-canvas_{yyyyMMdd-HHmmss}.png` (예: `signage-canvas_20260813-143052.png`). 콜론(`:`) 등 파일 시스템에서 문제가 되는 문자는 포함되지 않습니다.
 - 내보내기에 실패하면(예: 캔버스가 준비되지 않음) 파일 다운로드를 생략하고 접근성 있는 오류 메시지를 보여줍니다.
 
+## 동영상 업로드 및 내보내기 정책
+
+- 화면 콘텐츠로 이미지 대신 동영상 파일을 업로드할 수 있습니다. 허용 형식: `video/mp4`, `video/webm`. 최대
+  크기: 80MB.
+- 컨테이너(MIME 타입)가 허용 목록에 있어도 브라우저가 실제 코덱을 재생할 수 없는 경우가 있어,
+  `HTMLVideoElement.canPlayType()`로 사전 검사 후 재생 불가능한 파일은 접근성 있는 오류로 거부합니다.
+- 업로드된 동영상은 항상 자동 재생·반복 재생·음소거로만 표시되며, 별도의 재생/정지/탐색 컨트롤은
+  제공하지 않습니다.
+- "動画で書き出す" 버튼은 브라우저가 `HTMLCanvasElement.captureStream`과 `MediaRecorder`(WebM, VP9 또는
+  VP8)를 모두 지원할 때만 나타납니다. 지원하지 않는 브라우저(예: 현재 Safari)에서는 버튼이 아예 표시되지
+  않고 안내 문구만 보여주며, PNG 내보내기는 영향받지 않고 계속 사용할 수 있습니다.
+- 동영상 내보내기는 캔버스에 표시된 동영상 콘텐츠 중 가장 긴 재생 시간(최대 15초로 제한)만큼, 동영상
+  콘텐츠가 전혀 없으면 6초 동안 캔버스 화면을 그대로 녹화해 WebM 파일로 저장합니다 — 서버 업로드 없이
+  전부 브라우저 내부에서 처리됩니다.
+- 파일명 형식: `signage-canvas_{yyyyMMdd-HHmmss}.webm`.
+
 ## HULL CTA 안내
 
 HULL은 Signage Canvas의 운영 주체가 아닙니다. 프로젝트 안에서 HULL을 언급할 경우, 외부 CTA 링크로만 명확하게 표시합니다.
@@ -322,19 +368,25 @@ Sprint 4.2 기준으로 `main`은 Sprint 0~4.2를 모두 포함하며 위 설정
 │   ├── components/     # 공통 UI 컴포넌트
 │   ├── features/editor/ # 에디터 UI: EditorLayout(헤더+워크스페이스+상태 바), Toolbar(6섹션 통합 툴바),
 │   │                     # EditorCanvas, SignageDisplayView, SpaceBackgroundView, PortableBuilderModal
-│   │                     # (포터블 제품 마법사), PortableProductView, OnboardingOverlay 등
+│   │                     # (포터블 제품 마법사), PortableProductView, PerspectiveEditOverlay(원근 배치
+│   │                     # 편집 오버레이), PerspectiveScreenView(원근 왜곡 렌더링), OnboardingOverlay 등
 │   ├── i18n/           # 일본어·한국어·영어 리소스, 감지/저장 로직
 │   ├── lib/            # 공통 유틸리티/상수 (파일 검증, 파일명 생성, 에셋 레지스트리, 콘텐츠 배치/프레임/소재 지오메트리,
 │   │                     # curvature.ts — 곡률 스트립 근사, imageSafety.ts — 디코딩 픽셀 안전 한도,
 │   │                     # geometryNormalization.ts — 공간 사진 교체 시 객체 재배치,
-│   │                     # portableRegion.ts — 화면 영역 정규화 사각형 지오메트리 등)
-│   ├── store/          # Zustand 에디터 스토어 (문서 상태, 히스토리, 에셋 스윕 구독)
+│   │                     # portableRegion.ts — 화면 영역 정규화 사각형 지오메트리,
+│   │                     # quadGeometry.ts — 4점 원근 사각형 지오메트리/검증,
+│   │                     # videoValidation.ts / videoExportCapability.ts / videoExport.ts — 동영상
+│   │                     # 업로드 검증·내보내기 지원 감지·캔버스 녹화 파이프라인 등)
+│   ├── store/          # Zustand 에디터 스토어 (문서 상태, 히스토리, 원근 배치 드래프트 수명주기, 에셋 스윕 구독)
 │   ├── styles/          # 전역 스타일
 │   ├── test/            # Vitest 환경 설정
-│   └── types/            # 공유 타입 (에디터 문서/객체 — PortableSignageObject 포함, i18n 메시지)
+│   └── types/            # 공유 타입 (에디터 문서/객체 — PortableSignageObject, NormalizedQuad,
+│   │                     # ContactShadowSettings, EnvironmentIntegrationSettings 포함, i18n 메시지)
 ├── tests/unit/           # Vitest + React Testing Library (portableRegion.test.ts 포함)
-├── e2e/                   # Playwright e2e 테스트 (실제 Chromium — portable.spec.ts, mobile.spec.ts 포함)
-│   └── support/            # PNG/EXIF/픽셀 샘플링 등 테스트 전용 헬퍼
+├── e2e/                   # Playwright e2e 테스트 (실제 Chromium — portable.spec.ts, perspective-video.spec.ts,
+│   │                     # mobile.spec.ts 포함)
+│   └── support/            # PNG/EXIF/픽셀 샘플링, 동영상 픽스처 생성 등 테스트 전용 헬퍼
 ├── docker/nginx.conf       # SPA fallback 설정
 ├── Dockerfile
 ├── docs/
@@ -345,6 +397,7 @@ Sprint 4.2 기준으로 `main`은 Sprint 0~4.2를 모두 포함하며 위 설정
 │   ├── adr/0005-canvas-object-reselection-hotfix.md
 │   ├── adr/0006-guided-editor-sprint-4-1.md
 │   ├── adr/0007-photo-first-document-and-materials-sprint-4-2.md
+│   ├── adr/0008-perspective-environment-and-video-sprint-4-3.md
 │   └── runbooks/
 └── .github/workflows/ci.yml
 ```
@@ -364,9 +417,20 @@ Sprint 4.2 기준으로 `main`은 Sprint 0~4.2를 모두 포함하며 위 설정
 - 곡률(curvature) 제어는 화면 영역을 여러 세로 스트립으로 나눠 포물선 형태로 변위시키는 2차원 근사이며,
   실제 3D·원근 렌더링이 아닙니다(자세한 배경은
   `docs/adr/0007-photo-first-document-and-materials-sprint-4-2.md` 참고).
-- 디스플레이당 화면 콘텐츠는 정지 이미지 1개만 지원합니다 — 다중 콘텐츠 슬롯이나 동영상은 범위 밖입니다.
-- 포터블 제품의 화면 영역은 사진 자체의 좌표계에 고정된 축 정렬 직사각형 하나뿐입니다 — 원근/4점/다각형
-  영역이나 제품당 여러 화면 영역은 지원하지 않습니다.
+- 디스플레이·포터블 제품당 화면 콘텐츠는 이미지 또는 동영상 중 1개만 지원합니다 — 다중 콘텐츠 슬롯이나
+  재생목록은 범위 밖입니다.
+- 동영상은 항상 자동 재생·반복 재생·음소거로만 표시되며, 재생/정지/탐색 등의 컨트롤은 제공하지 않습니다.
+- 동영상 내보내기는 브라우저의 `MediaRecorder`가 지원하는 코덱(VP9/VP8, WebM 컨테이너)을 그대로 사용하며
+  별도의 화질/비트레이트 조절이나 트랜스코딩은 제공하지 않습니다. Safari 등 `captureStream`/
+  `MediaRecorder`를 지원하지 않는 브라우저에서는 동영상 내보내기 버튼 자체가 나타나지 않습니다(PNG
+  내보내기는 계속 사용할 수 있습니다).
+- 포터블 제품의 화면 영역은 사진 자체의 좌표계에 고정된 축 정렬 직사각형 하나뿐입니다 — 화면 영역 자체를
+  원근/4점/다각형으로 지정하거나 제품당 여러 화면 영역을 두는 기능은 지원하지 않습니다(단, 배치된 객체
+  전체를 4점 원근 사각형에 맞추는 기능은 위 Sprint 4.3 항목에서 지원합니다).
+- 4점 원근 배치 모드에서 클릭 판정(선택/드래그)은 항상 객체의 원래 사각형 기준이며, 시각적으로 왜곡된
+  사각형 형태 자체를 클릭 대상으로 사용하지 않습니다(자세한 배경은
+  `docs/adr/0008-perspective-environment-and-video-sprint-4-3.md` 참고).
+- 접지 그림자·환경 톤 블렌딩은 순수 시각 효과이며 실제 조명/그림자를 물리적으로 시뮬레이션하지 않습니다.
 - 포터블 객체는 생성 후 사진을 교체할 수 없습니다 — 다른 사진을 쓰려면 객체를 삭제하고 새로 추가해야 합니다
   (자세한 배경은 `docs/adr/0004-custom-portable-template.md` 참고).
 - 편집 중인 문서(공간 사진·신호기 배치)는 세션 동안만 유지되며 새로고침하면 초기화됩니다 — 서버/localStorage
