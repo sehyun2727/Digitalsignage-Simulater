@@ -303,3 +303,82 @@ test('mobile: an LED display is reselectable by tap after being deselected at 39
 
   await expectNoHorizontalOverflow(page);
 });
+
+test('mobile: adds a transparent LED display and blends more of the space background as transparency rises, at 390x844', async ({
+  page,
+}) => {
+  // Companion to the desktop coverage in e2e/perspective-video.spec.ts's "transparent LED
+  // window blending" describe block: confirms the material select, the two sliders, and the
+  // PNG export flow all stay usable/reachable at the narrow touch-viewport width.
+  await page.goto('/');
+  await addSpaceBackground(page, 1920, 1080);
+
+  await page.getByRole('button', { name: '透過LEDディスプレイを追加' }).click();
+  await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue(
+    'transparent-led',
+  );
+
+  const intensitySlider = page.getByRole('slider', { name: '質感の強さ' });
+  await intensitySlider.scrollIntoViewIfNeeded();
+  await intensitySlider.focus();
+  await intensitySlider.press('Home');
+  await intensitySlider.press('Tab');
+
+  const transparencySlider = page.getByRole('slider', { name: '透過度（背景の見え方）' });
+  await transparencySlider.scrollIntoViewIfNeeded();
+  await transparencySlider.focus();
+  await transparencySlider.press('End');
+  await transparencySlider.press('Tab');
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  const download = await downloadPromise;
+  const path = await download.path();
+  expect(path).toBeTruthy();
+
+  await expectNoHorizontalOverflow(page);
+});
+
+test('mobile: applies a four-point perspective quad via the corner input fields at 390x844', async ({
+  page,
+}) => {
+  // Companion to the desktop drag/keyboard coverage in e2e/perspective-video.spec.ts's
+  // "four-point perspective placement" describe block. This drives the numeric X/Y fields
+  // instead of a drag gesture: the perspective panel's own precise-value inputs are the
+  // touch-friendly path (a corner drag handle is a few pixels wide at this viewport), and
+  // desktop coverage already exercises the drag-handle/keyboard-nudge interaction itself.
+  await page.goto('/');
+  await addSpaceBackground(page, 1920, 1080);
+
+  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
+  await expectNoHorizontalOverflow(page);
+
+  const setCorner = async (
+    cornerLabel: '左上' | '右上' | '右下' | '左下',
+    xFraction: number,
+    yFraction: number,
+  ) => {
+    const fieldset = page.locator('fieldset').filter({ hasText: cornerLabel });
+    const xInput = fieldset.getByRole('spinbutton', { name: 'X座標' });
+    const yInput = fieldset.getByRole('spinbutton', { name: 'Y座標' });
+    await xInput.scrollIntoViewIfNeeded();
+    await xInput.fill(String(xFraction));
+    await xInput.blur();
+    await yInput.fill(String(yFraction));
+    await yInput.blur();
+  };
+
+  await setCorner('左上', 0.05, 0.05);
+  await setCorner('右上', 0.4, 0.05);
+  await setCorner('右下', 0.4, 0.4);
+  await setCorner('左下', 0.05, 0.4);
+
+  const applyButton = page.getByRole('button', { name: '適用' });
+  await applyButton.scrollIntoViewIfNeeded();
+  await expect(applyButton).toBeEnabled();
+  await applyButton.click();
+
+  await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
