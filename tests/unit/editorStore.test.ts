@@ -28,6 +28,9 @@ function resetStore() {
     selectedId: null,
     past: [],
     future: [],
+    perspectiveEditId: null,
+    perspectiveDraftQuad: null,
+    perspectiveEditOriginalQuad: null,
   });
 }
 
@@ -667,5 +670,226 @@ describe('editorStore asset lifecycle', () => {
     resetStore();
     expect(getRegisteredAsset(productAsset.sourceId)).toBeUndefined();
     expect(getRegisteredAsset(contentAsset.sourceId)).toBeUndefined();
+  });
+});
+
+describe('editorStore perspective edit', () => {
+  beforeEach(() => {
+    resetStore();
+  });
+
+  it('derives a starting quad from the object rect and does not touch history or the document', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().beginPerspectiveEdit(id);
+
+    const state = useEditorStore.getState();
+    expect(state.perspectiveEditId).toBe(id);
+    expect(state.perspectiveDraftQuad).not.toBeNull();
+    expect(state.perspectiveEditOriginalQuad).toEqual(state.perspectiveDraftQuad);
+    expect(state.past.length).toBe(pastLengthBefore);
+    expect(state.document.objects[0]).toMatchObject({ placementMode: 'rect', perspectiveQuad: null });
+  });
+
+  it('seeds the draft from an already-applied quad instead of re-deriving one from the rect', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    const firstDraft = useEditorStore.getState().perspectiveDraftQuad!;
+    const movedQuad = {
+      ...firstDraft,
+      topLeft: { x: firstDraft.topLeft.x + 0.05, y: firstDraft.topLeft.y },
+    };
+    useEditorStore.getState().updatePerspectiveDraft(movedQuad);
+    useEditorStore.getState().applyPerspectiveEdit();
+
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    expect(useEditorStore.getState().perspectiveDraftQuad).toEqual(movedQuad);
+  });
+
+  it('is a no-op for object kinds that do not support perspective', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addText();
+    const id = useEditorStore.getState().document.objects[0]!.id;
+
+    useEditorStore.getState().beginPerspectiveEdit(id);
+
+    expect(useEditorStore.getState().perspectiveEditId).toBeNull();
+  });
+
+  it('updatePerspectiveDraft is a no-op when not in edit mode', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+
+    useEditorStore
+      .getState()
+      .updatePerspectiveDraft({
+        topLeft: { x: 0, y: 0 },
+        topRight: { x: 1, y: 0 },
+        bottomRight: { x: 1, y: 1 },
+        bottomLeft: { x: 0, y: 1 },
+      });
+
+    expect(useEditorStore.getState().perspectiveDraftQuad).toBeNull();
+  });
+
+  it('clamps out-of-bounds draft points to the document 0-1 range', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginPerspectiveEdit(id);
+
+    useEditorStore.getState().updatePerspectiveDraft({
+      topLeft: { x: -0.5, y: -0.2 },
+      topRight: { x: 1.5, y: 0 },
+      bottomRight: { x: 1, y: 1 },
+      bottomLeft: { x: 0, y: 1 },
+    });
+
+    expect(useEditorStore.getState().perspectiveDraftQuad).toEqual({
+      topLeft: { x: 0, y: 0 },
+      topRight: { x: 1, y: 0 },
+      bottomRight: { x: 1, y: 1 },
+      bottomLeft: { x: 0, y: 1 },
+    });
+  });
+
+  it('applies a valid draft as a single history entry, switching placementMode to perspective', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    const pastLengthBefore = useEditorStore.getState().past.length;
+    const draft = {
+      topLeft: { x: 0.1, y: 0.1 },
+      topRight: { x: 0.9, y: 0.15 },
+      bottomRight: { x: 0.85, y: 0.9 },
+      bottomLeft: { x: 0.15, y: 0.85 },
+    };
+    useEditorStore.getState().updatePerspectiveDraft(draft);
+
+    const result = useEditorStore.getState().applyPerspectiveEdit();
+
+    expect(result).toEqual({ applied: true });
+    const state = useEditorStore.getState();
+    expect(state.past.length).toBe(pastLengthBefore + 1);
+    expect(state.perspectiveEditId).toBeNull();
+    expect(state.perspectiveDraftQuad).toBeNull();
+    expect(state.document.objects[0]).toMatchObject({
+      placementMode: 'perspective',
+      perspectiveQuad: draft,
+    });
+  });
+
+  it('rejects an invalid draft, applying nothing and pushing no history entry', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    const pastLengthBefore = useEditorStore.getState().past.length;
+    // Self-intersecting ("bowtie") quad: the top-right/bottom-right corners are swapped, so the
+    // top and bottom edges cross like an hourglass instead of forming a simple polygon.
+    const bowtie = {
+      topLeft: { x: 0.1, y: 0.1 },
+      topRight: { x: 0.9, y: 0.9 },
+      bottomRight: { x: 0.9, y: 0.1 },
+      bottomLeft: { x: 0.1, y: 0.9 },
+    };
+    useEditorStore.getState().updatePerspectiveDraft(bowtie);
+
+    const result = useEditorStore.getState().applyPerspectiveEdit();
+
+    expect(result.applied).toBe(false);
+    expect(result.reason).toBeDefined();
+    const state = useEditorStore.getState();
+    expect(state.past.length).toBe(pastLengthBefore);
+    expect(state.perspectiveEditId).toBe(id);
+    expect(state.document.objects[0]).toMatchObject({ placementMode: 'rect', perspectiveQuad: null });
+  });
+
+  it('re-applying an unchanged quad is a no-op that still exits edit mode without new history', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    const draft = useEditorStore.getState().perspectiveDraftQuad!;
+    useEditorStore.getState().updatePerspectiveDraft(draft);
+    useEditorStore.getState().applyPerspectiveEdit();
+
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    const pastLengthBefore = useEditorStore.getState().past.length;
+    const result = useEditorStore.getState().applyPerspectiveEdit();
+
+    expect(result).toEqual({ applied: true });
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
+    expect(useEditorStore.getState().perspectiveEditId).toBeNull();
+  });
+
+  it('cancelPerspectiveEdit discards the draft without touching the document or history', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    useEditorStore.getState().updatePerspectiveDraft({
+      topLeft: { x: 0.05, y: 0.05 },
+      topRight: { x: 0.95, y: 0.05 },
+      bottomRight: { x: 0.95, y: 0.95 },
+      bottomLeft: { x: 0.05, y: 0.95 },
+    });
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().cancelPerspectiveEdit();
+
+    const state = useEditorStore.getState();
+    expect(state.perspectiveEditId).toBeNull();
+    expect(state.perspectiveDraftQuad).toBeNull();
+    expect(state.past.length).toBe(pastLengthBefore);
+    expect(state.document.objects[0]).toMatchObject({ placementMode: 'rect', perspectiveQuad: null });
+  });
+
+  it('resetPerspectiveEdit restores the original draft and stays in edit mode, with no history', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    const original = useEditorStore.getState().perspectiveDraftQuad!;
+    useEditorStore.getState().updatePerspectiveDraft({
+      topLeft: { x: 0.3, y: 0.3 },
+      topRight: { x: 0.7, y: 0.3 },
+      bottomRight: { x: 0.7, y: 0.7 },
+      bottomLeft: { x: 0.3, y: 0.7 },
+    });
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().resetPerspectiveEdit();
+
+    const state = useEditorStore.getState();
+    expect(state.perspectiveEditId).toBe(id);
+    expect(state.perspectiveDraftQuad).toEqual(original);
+    expect(state.past.length).toBe(pastLengthBefore);
+  });
+
+  it('undo, redo, and deleteSelected all exit an in-progress perspective edit', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    expect(useEditorStore.getState().perspectiveEditId).toBe(id);
+    useEditorStore.getState().undo();
+    expect(useEditorStore.getState().perspectiveEditId).toBeNull();
+
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    useEditorStore.getState().redo();
+    expect(useEditorStore.getState().perspectiveEditId).toBeNull();
+
+    useEditorStore.getState().selectObject(id);
+    useEditorStore.getState().beginPerspectiveEdit(id);
+    useEditorStore.getState().deleteSelected();
+    expect(useEditorStore.getState().perspectiveEditId).toBeNull();
   });
 });

@@ -1,36 +1,14 @@
 import { resolveScreenRegionRect } from './contentLayout';
 import type { Rect } from './contentLayout';
 import { getScreenRect } from './displayFrame';
-import type { SignageObject } from '../types/editor';
+import { isPointInQuad, normalizedQuadToDocument } from './quadGeometry';
+import type { DocumentSize } from './quadGeometry';
+import { fromLocalPoint, toLocalPoint } from './rotationTransform';
+import type { Point } from './rotationTransform';
+import { supportsPerspective, type SignageObject } from '../types/editor';
 
-export interface Point {
-  x: number;
-  y: number;
-}
-
-const DEG_TO_RAD = Math.PI / 180;
-
-/**
- * Maps `point` from document/canvas space into `object`'s own unrotated local space (origin at
- * the object's x/y, extending to width/height) by inverse-rotating around that origin. This
- * mirrors Konva's rotation, which pivots around a node's x/y with no offset set (see
- * CanvasObjectView.tsx's commonProps) — so the same formula works without needing a live Konva
- * node, keeping this module pure and unit-testable in jsdom (which has no real canvas).
- */
-export function toLocalPoint(
-  point: Point,
-  object: { x: number; y: number; rotation: number },
-): Point {
-  const dx = point.x - object.x;
-  const dy = point.y - object.y;
-  const rad = object.rotation * DEG_TO_RAD;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-  return {
-    x: dx * cos + dy * sin,
-    y: -dx * sin + dy * cos,
-  };
-}
+export type { Point };
+export { fromLocalPoint, toLocalPoint };
 
 export function rectContainsPoint(rect: Rect, point: Point): boolean {
   return (
@@ -64,8 +42,21 @@ export function getObjectScreenRect(object: SignageObject): Rect | null {
  * True when `point` (in document/canvas space) falls within `object`'s own screen region,
  * accounting for the object's rotation. Drops on the bezel/frame/decorations around the screen
  * are deliberately excluded.
+ *
+ * A `placementMode: 'perspective'` object's screen is its `perspectiveQuad` (ADR 0008) — already
+ * expressed in absolute normalized document coordinates, with any visual rotation baked directly
+ * into its four corners — rather than the rect+rotation hit test used for 'rect' mode, so it is
+ * tested directly against `point` with no `toLocalPoint` conversion.
  */
-export function isPointOnObjectScreen(object: SignageObject, point: Point): boolean {
+export function isPointOnObjectScreen(
+  object: SignageObject,
+  point: Point,
+  documentSize: DocumentSize,
+): boolean {
+  if (supportsPerspective(object) && object.placementMode === 'perspective' && object.perspectiveQuad) {
+    const quad = normalizedQuadToDocument(object.perspectiveQuad, documentSize);
+    return isPointInQuad(point, quad);
+  }
   const screenRect = getObjectScreenRect(object);
   if (!screenRect) return false;
   return rectContainsPoint(screenRect, toLocalPoint(point, object));
@@ -77,10 +68,14 @@ export function isPointOnObjectScreen(object: SignageObject, point: Point): bool
  * render order in EditorCanvas.tsx), so scanning from the end mirrors that same z-order for
  * pointer hit-testing ties.
  */
-export function findTopmostScreenHit(objects: SignageObject[], point: Point): string | null {
+export function findTopmostScreenHit(
+  objects: SignageObject[],
+  point: Point,
+  documentSize: DocumentSize,
+): string | null {
   for (let i = objects.length - 1; i >= 0; i -= 1) {
     const object = objects[i];
-    if (object && isPointOnObjectScreen(object, point)) return object.id;
+    if (object && isPointOnObjectScreen(object, point, documentSize)) return object.id;
   }
   return null;
 }

@@ -9,7 +9,9 @@ import {
 import { getScreenRect } from '../../src/lib/displayFrame';
 import { resolveScreenRegionRect } from '../../src/lib/contentLayout';
 import {
+  DEFAULT_CONTACT_SHADOW,
   DEFAULT_CURVATURE,
+  DEFAULT_ENVIRONMENT_INTEGRATION,
   DEFAULT_MATERIAL_SETTINGS,
   type DisplaySignageObject,
   type PortableSignageObject,
@@ -29,6 +31,10 @@ const display: DisplaySignageObject = {
   material: 'led',
   materialSettings: DEFAULT_MATERIAL_SETTINGS,
   curvature: DEFAULT_CURVATURE,
+  placementMode: 'rect',
+  perspectiveQuad: null,
+  contactShadow: DEFAULT_CONTACT_SHADOW,
+  environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
 };
 
 const portable: PortableSignageObject = {
@@ -48,6 +54,10 @@ const portable: PortableSignageObject = {
   material: 'lcd',
   materialSettings: DEFAULT_MATERIAL_SETTINGS,
   curvature: DEFAULT_CURVATURE,
+  placementMode: 'rect',
+  perspectiveQuad: null,
+  contactShadow: DEFAULT_CONTACT_SHADOW,
+  environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
 };
 
 const text: TextSignageObject = {
@@ -63,6 +73,8 @@ const text: TextSignageObject = {
   color: '#000000',
   align: 'left',
 };
+
+const documentSize = { width: 1000, height: 1000 };
 
 describe('toLocalPoint', () => {
   it('is a plain translation when rotation is 0', () => {
@@ -120,27 +132,65 @@ describe('isPointOnObjectScreen', () => {
   it('is true for a point inside the unrotated screen area', () => {
     // wall-led screen region is {x:0.02, y:0.02, w:0.96, h:0.96} of a 200x100 object, so its
     // center (100, 50 local) is well inside the screen, away from the bezel.
-    expect(isPointOnObjectScreen(display, { x: display.x + 100, y: display.y + 50 })).toBe(true);
+    expect(
+      isPointOnObjectScreen(display, { x: display.x + 100, y: display.y + 50 }, documentSize),
+    ).toBe(true);
   });
 
   it('is false for a point on the bezel, inside the object bounds but outside the screen', () => {
-    expect(isPointOnObjectScreen(display, { x: display.x + 1, y: display.y + 1 })).toBe(false);
+    expect(
+      isPointOnObjectScreen(display, { x: display.x + 1, y: display.y + 1 }, documentSize),
+    ).toBe(false);
   });
 
   it('is false for a point entirely outside the object bounds', () => {
-    expect(isPointOnObjectScreen(display, { x: 10000, y: 10000 })).toBe(false);
+    expect(isPointOnObjectScreen(display, { x: 10000, y: 10000 }, documentSize)).toBe(false);
   });
 
   it('accounts for rotation when testing a point against the screen area', () => {
     const rotated = { ...display, rotation: 90 };
     // The point that hits the unrotated screen center no longer does once rotated...
-    expect(isPointOnObjectScreen(rotated, { x: display.x + 100, y: display.y + 50 })).toBe(false);
+    expect(
+      isPointOnObjectScreen(rotated, { x: display.x + 100, y: display.y + 50 }, documentSize),
+    ).toBe(false);
     // ...but the forward-rotated equivalent of that same local point does.
-    expect(isPointOnObjectScreen(rotated, { x: 50, y: 200 })).toBe(true);
+    expect(isPointOnObjectScreen(rotated, { x: 50, y: 200 }, documentSize)).toBe(true);
   });
 
   it('is false for object kinds with no screen region', () => {
-    expect(isPointOnObjectScreen(text, { x: 20, y: 20 })).toBe(false);
+    expect(isPointOnObjectScreen(text, { x: 20, y: 20 }, documentSize)).toBe(false);
+  });
+
+  it('tests a perspective-mode object against its quad, in absolute document coordinates, ignoring x/y/rotation/frame', () => {
+    const perspectiveDisplay: DisplaySignageObject = {
+      ...display,
+      // Deliberately mismatched rect fields, to prove the quad (not the rect+rotation path) is
+      // what gets tested once placementMode is 'perspective'.
+      x: 9999,
+      y: 9999,
+      rotation: 45,
+      placementMode: 'perspective',
+      perspectiveQuad: {
+        topLeft: { x: 0.1, y: 0.1 },
+        topRight: { x: 0.5, y: 0.1 },
+        bottomRight: { x: 0.5, y: 0.5 },
+        bottomLeft: { x: 0.1, y: 0.5 },
+      },
+    };
+
+    // (300, 300) in document space is (0.3, 0.3) normalized — inside the quad.
+    expect(isPointOnObjectScreen(perspectiveDisplay, { x: 300, y: 300 }, documentSize)).toBe(true);
+    // (700, 700) is (0.7, 0.7) normalized — outside the quad.
+    expect(isPointOnObjectScreen(perspectiveDisplay, { x: 700, y: 700 }, documentSize)).toBe(
+      false,
+    );
+  });
+
+  it('falls back to the rect+rotation hit test when placementMode is perspective but no quad has been applied yet', () => {
+    const notYetFitted: DisplaySignageObject = { ...display, placementMode: 'perspective' };
+    expect(
+      isPointOnObjectScreen(notYetFitted, { x: display.x + 100, y: display.y + 50 }, documentSize),
+    ).toBe(true);
   });
 });
 
@@ -150,14 +200,14 @@ describe('findTopmostScreenHit', () => {
     const front: DisplaySignageObject = { ...display, id: 'front' };
     const point = { x: display.x + 100, y: display.y + 50 };
 
-    expect(findTopmostScreenHit([back, front], point)).toBe('front');
+    expect(findTopmostScreenHit([back, front], point, documentSize)).toBe('front');
   });
 
   it('returns null when no object screen contains the point', () => {
-    expect(findTopmostScreenHit([display, portable], { x: -9999, y: -9999 })).toBeNull();
+    expect(findTopmostScreenHit([display, portable], { x: -9999, y: -9999 }, documentSize)).toBeNull();
   });
 
   it('returns null for an empty object list', () => {
-    expect(findTopmostScreenHit([], { x: 0, y: 0 })).toBeNull();
+    expect(findTopmostScreenHit([], { x: 0, y: 0 }, documentSize)).toBeNull();
   });
 });

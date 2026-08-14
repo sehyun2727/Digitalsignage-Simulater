@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { PortableProductView } from '../../src/features/editor/PortableProductView';
 import { SignageDisplayView } from '../../src/features/editor/SignageDisplayView';
 import {
+  DEFAULT_CONTACT_SHADOW,
   DEFAULT_CURVATURE,
+  DEFAULT_ENVIRONMENT_INTEGRATION,
   DEFAULT_MATERIAL_SETTINGS,
   type DisplaySignageObject,
   type PortableSignageObject,
@@ -62,6 +64,10 @@ describe('canvas object hit-area (reselection fix)', () => {
       material: 'outdoor-led',
       materialSettings: DEFAULT_MATERIAL_SETTINGS,
       curvature: DEFAULT_CURVATURE,
+      placementMode: 'rect',
+      perspectiveQuad: null,
+      contactShadow: DEFAULT_CONTACT_SHADOW,
+      environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
     };
 
     const tree = SignageDisplayView({ object, groupProps });
@@ -91,6 +97,10 @@ describe('canvas object hit-area (reselection fix)', () => {
       material: 'lcd',
       materialSettings: DEFAULT_MATERIAL_SETTINGS,
       curvature: DEFAULT_CURVATURE,
+      placementMode: 'rect',
+      perspectiveQuad: null,
+      contactShadow: DEFAULT_CONTACT_SHADOW,
+      environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
     };
 
     const tree = SignageDisplayView({ object, groupProps });
@@ -124,6 +134,10 @@ describe('canvas object hit-area (reselection fix)', () => {
       material: 'lcd',
       materialSettings: DEFAULT_MATERIAL_SETTINGS,
       curvature: DEFAULT_CURVATURE,
+      placementMode: 'rect',
+      perspectiveQuad: null,
+      contactShadow: DEFAULT_CONTACT_SHADOW,
+      environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
     };
 
     const tree = PortableProductView({ object, groupProps });
@@ -153,6 +167,10 @@ describe('canvas object hit-area (reselection fix)', () => {
       material: 'outdoor-led',
       materialSettings: DEFAULT_MATERIAL_SETTINGS,
       curvature: DEFAULT_CURVATURE,
+      placementMode: 'rect',
+      perspectiveQuad: null,
+      contactShadow: DEFAULT_CONTACT_SHADOW,
+      environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
     };
 
     const tree = SignageDisplayView({ object, groupProps }) as ReactElement<{

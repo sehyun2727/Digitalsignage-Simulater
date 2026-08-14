@@ -3,26 +3,56 @@ import { sweepUnusedAssets } from '../lib/assetRegistry';
 import { normalizeObjectGeometry } from '../lib/geometryNormalization';
 import { createId } from '../lib/id';
 import { computeDefaultPortableSize } from '../lib/portableRegion';
+import {
+  clampQuad01,
+  quadsEqual,
+  rectTransformToQuad,
+  validateQuad,
+  type QuadInvalidReason,
+} from '../lib/quadGeometry';
+import { getObjectScreenRect } from '../lib/screenHitTest';
 import type {
   DisplayMaterial,
   DisplaySignageObject,
   EditorDocument,
   ElementId,
   ImageSignageObject,
+  NormalizedQuad,
   PortableSignageObject,
   SignageObject,
   SpaceBackground,
   TextSignageObject,
 } from '../types/editor';
-import { createEmptyDocument, DEFAULT_CURVATURE, DEFAULT_MATERIAL_SETTINGS, getDocumentSize } from '../types/editor';
+import {
+  createEmptyDocument,
+  DEFAULT_CONTACT_SHADOW,
+  DEFAULT_CURVATURE,
+  DEFAULT_ENVIRONMENT_INTEGRATION,
+  DEFAULT_MATERIAL_SETTINGS,
+  DEFAULT_PLACEMENT_MODE,
+  getDocumentSize,
+  supportsPerspective,
+} from '../types/editor';
 
 const HISTORY_LIMIT = 50;
+
+/** Result of `applyPerspectiveEdit`, so the perspective overlay UI can show why Apply did nothing. */
+export interface ApplyPerspectiveEditResult {
+  applied: boolean;
+  reason?: QuadInvalidReason;
+}
 
 export interface EditorState {
   document: EditorDocument;
   selectedId: ElementId | null;
   past: EditorDocument[];
   future: EditorDocument[];
+  /** Id of the display/portable object currently in "Fit to space" perspective edit mode, if any. */
+  perspectiveEditId: ElementId | null;
+  /** Live in-progress quad while perspective edit mode is open; not yet committed to the document. */
+  perspectiveDraftQuad: NormalizedQuad | null;
+  /** The quad `perspectiveDraftQuad` started from, restored by `resetPerspectiveEdit`. */
+  perspectiveEditOriginalQuad: NormalizedQuad | null;
   addText: () => void;
   addImage: (payload: { src: string; naturalWidth: number; naturalHeight: number }) => void;
   addDisplay: (material: DisplayMaterial) => void;
@@ -48,6 +78,25 @@ export interface EditorState {
   deleteSelected: () => void;
   undo: () => void;
   redo: () => void;
+  /**
+   * Enters "Fit to space" perspective edit mode for `id`: seeds the draft quad from the object's
+   * existing `perspectiveQuad` if it has one (so re-entering restores the last-applied quad), or
+   * derives a starting quad from its current rect so the object doesn't visibly jump. No-op for
+   * object kinds that don't support perspective or before a space photo exists.
+   */
+  beginPerspectiveEdit: (id: ElementId) => void;
+  /** Updates the live draft quad while editing (clamped to the document's 0-1 bounds). No history. */
+  updatePerspectiveDraft: (quad: NormalizedQuad) => void;
+  /**
+   * Validates and commits the draft quad as a single history entry, then exits edit mode. Does
+   * nothing (zero history entries) when the draft is geometrically invalid, or when it is
+   * identical to the object's already-applied quad (no-op re-apply).
+   */
+  applyPerspectiveEdit: () => ApplyPerspectiveEditResult;
+  /** Exits edit mode without committing any change. Zero history entries. */
+  cancelPerspectiveEdit: () => void;
+  /** Restores the draft quad to what it was when edit mode began. Stays in edit mode, no history. */
+  resetPerspectiveEdit: () => void;
 }
 
 function pushHistory(past: EditorDocument[], current: EditorDocument): EditorDocument[] {
@@ -102,6 +151,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedId: null,
   past: [],
   future: [],
+  perspectiveEditId: null,
+  perspectiveDraftQuad: null,
+  perspectiveEditOriginalQuad: null,
 
   addText: () => {
     const { document } = get();
@@ -175,6 +227,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       material,
       materialSettings: { ...DEFAULT_MATERIAL_SETTINGS },
       curvature: { ...DEFAULT_CURVATURE },
+      placementMode: DEFAULT_PLACEMENT_MODE,
+      perspectiveQuad: null,
+      contactShadow: { ...DEFAULT_CONTACT_SHADOW },
+      environmentIntegration: { ...DEFAULT_ENVIRONMENT_INTEGRATION },
     };
     set({
       document: { ...document, objects: [...document.objects, newObject] },
@@ -215,6 +271,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       material: 'lcd',
       materialSettings: { ...DEFAULT_MATERIAL_SETTINGS },
       curvature: { ...DEFAULT_CURVATURE },
+      placementMode: DEFAULT_PLACEMENT_MODE,
+      perspectiveQuad: null,
+      contactShadow: { ...DEFAULT_CONTACT_SHADOW },
+      environmentIntegration: { ...DEFAULT_ENVIRONMENT_INTEGRATION },
     };
     set({
       document: { ...document, objects: [...document.objects, newObject] },
@@ -304,6 +364,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedId: null,
       past: pushHistory(past, document),
       future: [],
+      perspectiveEditId: null,
+      perspectiveDraftQuad: null,
+      perspectiveEditOriginalQuad: null,
     });
   },
 
@@ -316,6 +379,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       past: past.slice(0, -1),
       future: [document, ...future],
       selectedId: null,
+      perspectiveEditId: null,
+      perspectiveDraftQuad: null,
+      perspectiveEditOriginalQuad: null,
     });
   },
 
@@ -328,7 +394,96 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       future: future.slice(1),
       past: [...past, document],
       selectedId: null,
+      perspectiveEditId: null,
+      perspectiveDraftQuad: null,
+      perspectiveEditOriginalQuad: null,
     });
+  },
+
+  beginPerspectiveEdit: (id) => {
+    const { document } = get();
+    const target = document.objects.find((object) => object.id === id);
+    if (!target || !supportsPerspective(target)) return;
+    const documentSize = getDocumentSize(document);
+    if (!documentSize) return;
+
+    let initialQuad: NormalizedQuad | null = target.perspectiveQuad;
+    if (!initialQuad) {
+      const localScreenRect = getObjectScreenRect(target);
+      if (!localScreenRect) return;
+      initialQuad = rectTransformToQuad(localScreenRect, target, documentSize);
+    }
+
+    set({
+      perspectiveEditId: id,
+      perspectiveDraftQuad: initialQuad,
+      perspectiveEditOriginalQuad: initialQuad,
+    });
+  },
+
+  updatePerspectiveDraft: (quad) => {
+    const { perspectiveEditId } = get();
+    if (!perspectiveEditId) return;
+    set({ perspectiveDraftQuad: clampQuad01(quad) });
+  },
+
+  applyPerspectiveEdit: () => {
+    const { perspectiveEditId, perspectiveDraftQuad, document, past } = get();
+    if (!perspectiveEditId || !perspectiveDraftQuad) return { applied: false };
+
+    const target = document.objects.find((object) => object.id === perspectiveEditId);
+    if (!target || !supportsPerspective(target)) {
+      set({
+        perspectiveEditId: null,
+        perspectiveDraftQuad: null,
+        perspectiveEditOriginalQuad: null,
+      });
+      return { applied: false };
+    }
+
+    const validation = validateQuad(perspectiveDraftQuad);
+    if (!validation.valid) return { applied: false, reason: validation.reason };
+
+    const isNoop =
+      target.placementMode === 'perspective' &&
+      target.perspectiveQuad !== null &&
+      quadsEqual(target.perspectiveQuad, perspectiveDraftQuad);
+
+    if (isNoop) {
+      set({
+        perspectiveEditId: null,
+        perspectiveDraftQuad: null,
+        perspectiveEditOriginalQuad: null,
+      });
+      return { applied: true };
+    }
+
+    const nextDocument: EditorDocument = {
+      ...document,
+      objects: patchObjects(document.objects, perspectiveEditId, {
+        placementMode: 'perspective',
+        perspectiveQuad: perspectiveDraftQuad,
+      }),
+    };
+    set({
+      document: nextDocument,
+      past: pushHistory(past, document),
+      future: [],
+      perspectiveEditId: null,
+      perspectiveDraftQuad: null,
+      perspectiveEditOriginalQuad: null,
+    });
+    return { applied: true };
+  },
+
+  cancelPerspectiveEdit: () => {
+    set({ perspectiveEditId: null, perspectiveDraftQuad: null, perspectiveEditOriginalQuad: null });
+  },
+
+  resetPerspectiveEdit: () => {
+    const { perspectiveEditId, perspectiveEditOriginalQuad } = get();
+    if (!perspectiveEditId || !perspectiveEditOriginalQuad) return;
+    set({ perspectiveDraftQuad: perspectiveEditOriginalQuad });
   },
 }));
 

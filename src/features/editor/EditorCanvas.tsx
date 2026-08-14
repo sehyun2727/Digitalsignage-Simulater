@@ -161,7 +161,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
     const point = clientPointToDocumentPoint(event.clientX, event.clientY);
-    setDropTargetId(point ? findTopmostScreenHit(document.objects, point) : null);
+    setDropTargetId(point && size ? findTopmostScreenHit(document.objects, point, size) : null);
   };
 
   const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
@@ -178,7 +178,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     // flushed by the time `drop` fires right after `dragover` (React batches renders across
     // native browser events), so it can still be stale here.
     const point = clientPointToDocumentPoint(event.clientX, event.clientY);
-    const targetId = point ? findTopmostScreenHit(document.objects, point) : null;
+    const targetId = point && size ? findTopmostScreenHit(document.objects, point, size) : null;
     const file = event.dataTransfer.files[0];
     if (!targetId || !file) return;
 
