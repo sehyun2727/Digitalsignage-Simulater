@@ -19,6 +19,12 @@ export const en: Messages = {
   editorUndoButton: 'Undo',
   editorRedoButton: 'Redo',
   editorExportButton: 'Export as PNG',
+  editorExportVideoButton: 'Export as video',
+  editorExportVideoInProgressButton: 'Exporting...',
+  editorExportVideoUnsupportedHint: 'Video export is not supported in this browser.',
+  editorExportedVideoAnnouncement: 'Video exported.',
+  editorExportVideoErrorAnnouncement: 'Failed to export video.',
+  editorContentVideoAutoplayHint: 'Video content plays automatically, loops, and is muted.',
   editorCanvasEmptyHint:
     'Start by uploading a space photo. Its aspect ratio becomes the export size exactly.',
   editorCanvasNoSignageHint: 'Place an LED, LCD, Transparent LED, or portable product from Add signage.',

@@ -280,6 +280,14 @@ a {
   color: var(--color-muted);
 }
 
+.editor-header-notice {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
 .editor-status-bar {
   flex-shrink: 0;
   margin: 0;

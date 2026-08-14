@@ -14,6 +14,13 @@ import { SpaceBackgroundView } from './SpaceBackgroundView';
 
 export interface EditorCanvasHandle {
   exportToDataUrl: () => string | null;
+  /** Hides selection UI and forces signage visible for a video recording, mirroring
+   *  exportToDataUrl's setup, then returns the Layer's own live canvas element (not a snapshot)
+   *  so the caller can pass it to captureStream — the recording keeps observing this canvas's
+   *  pixels for as long as it runs, so unlike exportToDataUrl this state is not restored until
+   *  endVideoExportCapture() is called. */
+  beginVideoExportCapture: () => HTMLCanvasElement | null;
+  endVideoExportCapture: () => void;
 }
 
 interface EditorCanvasProps {
@@ -39,9 +46,11 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   const size = getDocumentSize(document);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
+  const layerRef = useRef<Konva.Layer | null>(null);
   const transformerRef = useRef<Konva.Transformer | null>(null);
   const objectsGroupRef = useRef<Konva.Group | null>(null);
   const nodesRef = useRef<Map<string, Konva.Node>>(new Map());
+  const capturedSelectionRef = useRef<Konva.Node[]>([]);
   const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(() => {
@@ -91,6 +100,34 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       layer?.draw();
 
       return dataUrl;
+    },
+    beginVideoExportCapture: () => {
+      const layer = layerRef.current;
+      const transformer = transformerRef.current;
+      const objectsGroup = objectsGroupRef.current;
+      if (!layer) return null;
+
+      capturedSelectionRef.current = transformer?.nodes() ?? [];
+      transformer?.nodes([]);
+      objectsGroup?.visible(true);
+      layer.draw();
+
+      // Konva's SceneCanvas wraps the actual <canvas> element it paints into; unlike
+      // stage.toCanvas()/toDataURL(), which rasterize a one-off snapshot, this is the live
+      // element MediaRecorder's captureStream keeps reading from as Konva keeps redrawing it
+      // (see useVideoPlaybackRedraw.ts's Konva.Animation loop) for the whole recording.
+      return layer.getCanvas()._canvas;
+    },
+    endVideoExportCapture: () => {
+      const layer = layerRef.current;
+      const transformer = transformerRef.current;
+      const objectsGroup = objectsGroupRef.current;
+      if (!layer) return;
+
+      if (capturedSelectionRef.current.length > 0) transformer?.nodes(capturedSelectionRef.current);
+      capturedSelectionRef.current = [];
+      objectsGroup?.visible(!comparisonMode);
+      layer.draw();
     },
   }));
 
@@ -233,7 +270,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
             }
           }}
         >
-          <Layer>
+          <Layer ref={layerRef}>
             {document.spaceBackground && (
               <SpaceBackgroundView
                 spaceBackground={document.spaceBackground}

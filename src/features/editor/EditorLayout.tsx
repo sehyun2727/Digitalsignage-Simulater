@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LanguageSelector } from '../../components/LanguageSelector';
 import { useLocale } from '../../i18n/localeContext';
+import { getRegisteredAsset } from '../../lib/assetRegistry';
 import type { ContentValidationError } from '../../lib/contentUpload';
-import { buildExportFilename } from '../../lib/exportFilename';
+import { buildExportFilename, buildVideoExportFilename } from '../../lib/exportFilename';
 import type { ImageValidationError } from '../../lib/fileValidation';
+import { isVideoExportSupported } from '../../lib/videoExportCapability';
+import { recordCanvasToVideo, resolveVideoExportDurationMs } from '../../lib/videoExport';
 import { selectCanRedo, selectCanUndo, useEditorStore } from '../../store/editorStore';
 import { useUiStore } from '../../store/uiStore';
 import type { ContentKind } from '../../types/editor';
@@ -35,6 +38,10 @@ export function EditorLayout() {
   const canvasRef = useRef<EditorCanvasHandle>(null);
   const [announcement, setAnnouncement] = useState('');
   const [onboardingOpen, setOnboardingOpen] = useState(!onboardingDismissed);
+  const [isExportingVideo, setIsExportingVideo] = useState(false);
+  // Feature support does not change over the page's lifetime, so this is computed once rather
+  // than re-probed on every render.
+  const videoExportSupported = useMemo(() => isVideoExportSupported(), []);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -128,6 +135,44 @@ export function EditorLayout() {
     setAnnouncement(messages.editorExportedAnnouncement);
   }, [messages]);
 
+  const handleExportVideo = useCallback(async () => {
+    if (!videoExportSupported || isExportingVideo) return;
+
+    const canvas = canvasRef.current?.beginVideoExportCapture() ?? null;
+    if (!canvas) {
+      setAnnouncement(messages.editorExportErrorAnnouncement);
+      return;
+    }
+
+    setIsExportingVideo(true);
+    try {
+      const videoDurationsSeconds = objects
+        .flatMap((object) => (object.kind === 'display' || object.kind === 'portable' ? [object.content] : []))
+        .flatMap((content) => (content?.kind === 'video' ? [content.sourceId] : []))
+        .map((sourceId) => getRegisteredAsset(sourceId)?.image)
+        .flatMap((image) => (image instanceof HTMLVideoElement ? [image.duration] : []));
+
+      const blob = await recordCanvasToVideo(canvas, {
+        durationMs: resolveVideoExportDurationMs(videoDurationsSeconds),
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = buildVideoExportFilename();
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setAnnouncement(messages.editorExportedVideoAnnouncement);
+    } catch {
+      setAnnouncement(messages.editorExportVideoErrorAnnouncement);
+    } finally {
+      canvasRef.current?.endVideoExportCapture();
+      setIsExportingVideo(false);
+    }
+  }, [messages, objects, videoExportSupported, isExportingVideo]);
+
   const handleQuickCompareToggle = useCallback(() => {
     const next = !comparisonMode;
     setComparisonMode(next);
@@ -168,8 +213,22 @@ export function EditorLayout() {
           <button type="button" onClick={handleExport} disabled={!spaceBackground}>
             {messages.editorExportButton}
           </button>
+          {videoExportSupported && (
+            <button
+              type="button"
+              onClick={handleExportVideo}
+              disabled={!spaceBackground || isExportingVideo}
+            >
+              {isExportingVideo
+                ? messages.editorExportVideoInProgressButton
+                : messages.editorExportVideoButton}
+            </button>
+          )}
         </div>
       </header>
+      {!videoExportSupported && (
+        <p className="editor-header-notice">{messages.editorExportVideoUnsupportedHint}</p>
+      )}
 
       <div className="editor-workspace">
         <div className="editor-canvas-wrapper">
@@ -185,7 +244,7 @@ export function EditorLayout() {
             onContentError={handleContentError}
           />
         </div>
-        <Toolbar onImageError={handleImageError} />
+        <Toolbar onImageError={handleImageError} onContentError={handleContentError} />
       </div>
 
       <p className="editor-status-bar">{statusHint}</p>

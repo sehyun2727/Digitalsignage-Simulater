@@ -10,6 +10,25 @@ export interface VideoExportOptions {
 
 const DEFAULT_EXPORT_FPS = 30;
 
+/** Used when the canvas has no video content to time the recording against. */
+export const DEFAULT_VIDEO_EXPORT_DURATION_MS = 6000;
+/** Caps a recording at the longest looping video content's own duration, so a long source clip
+ *  doesn't produce an unexpectedly huge export. */
+export const MAX_VIDEO_EXPORT_DURATION_MS = 15000;
+
+/**
+ * Picks how long a video export should record: one full loop of the longest video content
+ * shown on the canvas (capped at MAX_VIDEO_EXPORT_DURATION_MS), or a fixed default when the
+ * canvas has no video content at all (e.g. only static images/curvature/material effects).
+ */
+export function resolveVideoExportDurationMs(videoDurationsSeconds: readonly number[]): number {
+  const validDurationsMs = videoDurationsSeconds
+    .filter((duration) => Number.isFinite(duration) && duration > 0)
+    .map((duration) => duration * 1000);
+  if (validDurationsMs.length === 0) return DEFAULT_VIDEO_EXPORT_DURATION_MS;
+  return Math.min(MAX_VIDEO_EXPORT_DURATION_MS, Math.max(...validDurationsMs));
+}
+
 /**
  * Records `canvas`'s own live pixels (not a separate render pass) for `durationMs` and resolves
  * a Blob of the encoded video — entirely in-browser via `captureStream` + `MediaRecorder`, per

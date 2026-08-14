@@ -1,5 +1,28 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { recordCanvasToVideo } from '../../src/lib/videoExport';
+import {
+  DEFAULT_VIDEO_EXPORT_DURATION_MS,
+  MAX_VIDEO_EXPORT_DURATION_MS,
+  recordCanvasToVideo,
+  resolveVideoExportDurationMs,
+} from '../../src/lib/videoExport';
+
+describe('resolveVideoExportDurationMs', () => {
+  it('falls back to the default duration when there is no video content', () => {
+    expect(resolveVideoExportDurationMs([])).toBe(DEFAULT_VIDEO_EXPORT_DURATION_MS);
+  });
+
+  it('ignores non-finite or non-positive durations (e.g. a video whose metadata has not loaded)', () => {
+    expect(resolveVideoExportDurationMs([NaN, 0, -5, Infinity])).toBe(DEFAULT_VIDEO_EXPORT_DURATION_MS);
+  });
+
+  it('uses the longest video duration, converted to milliseconds', () => {
+    expect(resolveVideoExportDurationMs([2, 5, 3])).toBe(5000);
+  });
+
+  it('caps the result at MAX_VIDEO_EXPORT_DURATION_MS', () => {
+    expect(resolveVideoExportDurationMs([120])).toBe(MAX_VIDEO_EXPORT_DURATION_MS);
+  });
+});
 
 class MockTrack {
   stopped = false;

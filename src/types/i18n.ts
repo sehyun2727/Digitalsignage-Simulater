@@ -22,6 +22,12 @@ export interface Messages {
   editorUndoButton: string;
   editorRedoButton: string;
   editorExportButton: string;
+  editorExportVideoButton: string;
+  editorExportVideoInProgressButton: string;
+  editorExportVideoUnsupportedHint: string;
+  editorExportedVideoAnnouncement: string;
+  editorExportVideoErrorAnnouncement: string;
+  editorContentVideoAutoplayHint: string;
   editorCanvasEmptyHint: string;
   editorCanvasNoSignageHint: string;
   editorPropertiesTitle: string;

@@ -1,16 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocale } from '../../i18n/localeContext';
-import {
-  getRegisteredAsset,
-  registerAsset,
-  registerSpaceBackgroundAsset,
-} from '../../lib/assetRegistry';
+import { getRegisteredAsset, registerSpaceBackgroundAsset } from '../../lib/assetRegistry';
 import {
   clampContentOffset,
   clampContentScale,
   clampMaterialSetting,
 } from '../../lib/contentLayout';
 import { clampCurvatureAmount, isCurvatureSupported } from '../../lib/curvature';
+import type { ContentValidationError } from '../../lib/contentUpload';
+import { contentKindForFile, registerContentAsset, validateContentFile } from '../../lib/contentUpload';
 import {
   clampContactShadowOffset,
   clampContactShadowSetting,
@@ -39,11 +37,13 @@ import {
   MIN_MATERIAL_SETTING,
   supportsPerspective,
 } from '../../types/editor';
+import { ACCEPTED_VIDEO_TYPES } from '../../lib/videoValidation';
 import { PortableBuilderModal } from './PortableBuilderModal';
 import type { ImageValidationError } from '../../lib/fileValidation';
 import type {
   ContactShadowSettings,
   ContentFit,
+  ContentKind,
   CurvatureMode,
   DisplayMaterial,
   DisplaySignageObject,
@@ -56,6 +56,7 @@ import type {
 
 interface ToolbarProps {
   onImageError: (error: ImageValidationError) => void;
+  onContentError: (kind: ContentKind, error: ContentValidationError) => void;
 }
 
 /**
@@ -65,7 +66,7 @@ interface ToolbarProps {
  * control stays reachable at all times. The Space section's uploaded photo is the sole source of
  * document/export size (see ADR 0007); every other section is gated on that photo existing.
  */
-export function Toolbar({ onImageError }: ToolbarProps) {
+export function Toolbar({ onImageError, onContentError }: ToolbarProps) {
   const { messages } = useLocale();
 
   return (
@@ -73,7 +74,7 @@ export function Toolbar({ onImageError }: ToolbarProps) {
       <SpaceSection onImageError={onImageError} />
       <AddSignageSection onImageError={onImageError} />
       <SelectedSignageSection onImageError={onImageError} />
-      <ContentSection onImageError={onImageError} />
+      <ContentSection onContentError={onContentError} />
       <AppearanceSection />
       <ExportSection />
     </div>
@@ -542,7 +543,11 @@ function PerspectiveFitControls({ object }: { object: PerspectiveCapableObject }
   );
 }
 
-function ContentSection({ onImageError }: { onImageError: (error: ImageValidationError) => void }) {
+function ContentSection({
+  onContentError,
+}: {
+  onContentError: (kind: ContentKind, error: ContentValidationError) => void;
+}) {
   const { messages } = useLocale();
   const selected = useEditorStore(selectSelectedObject);
   const hasContentSupport = selected?.kind === 'display' || selected?.kind === 'portable';
@@ -552,7 +557,7 @@ function ContentSection({ onImageError }: { onImageError: (error: ImageValidatio
       {!hasContentSupport ? (
         <p className="toolbar-notice">{messages.toolbarContentEmptyHint}</p>
       ) : (
-        <ContentFields key={selected.id} object={selected} onImageError={onImageError} />
+        <ContentFields key={selected.id} object={selected} onContentError={onContentError} />
       )}
     </ToolbarSection>
   );
@@ -560,10 +565,10 @@ function ContentSection({ onImageError }: { onImageError: (error: ImageValidatio
 
 function ContentFields({
   object,
-  onImageError,
+  onContentError,
 }: {
   object: DisplaySignageObject | PortableSignageObject;
-  onImageError: (error: ImageValidationError) => void;
+  onContentError: (kind: ContentKind, error: ContentValidationError) => void;
 }) {
   const { messages } = useLocale();
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
@@ -579,17 +584,17 @@ function ContentFields({
     event.target.value = '';
     if (!file) return;
 
-    const error = validateImageFile(file);
-    if (error) {
-      onImageError(error);
+    const validation = validateContentFile(file);
+    if (validation) {
+      onContentError(validation.kind, validation.error);
       return;
     }
 
     try {
-      const asset = await registerAsset(file);
+      const asset = await registerContentAsset(file);
       commit({
         content: {
-          kind: 'image',
+          kind: asset.kind,
           sourceId: asset.sourceId,
           fit: object.content?.fit ?? 'contain',
           offsetX: 0,
@@ -601,7 +606,7 @@ function ContentFields({
       setOffsetYDraft(0);
       setScaleDraft(1);
     } catch {
-      onImageError('decode-error');
+      onContentError(contentKindForFile(file), 'decode-error');
     }
   };
 
@@ -617,6 +622,10 @@ function ContentFields({
               {messages.editorContentRemoveButton}
             </button>
           </div>
+
+          {object.content.kind === 'video' && (
+            <p className="toolbar-notice">{messages.editorContentVideoAutoplayHint}</p>
+          )}
 
           <label>
             <span>{messages.editorContentFitLabel}</span>
@@ -709,7 +718,7 @@ function ContentFields({
       <input
         ref={contentInputRef}
         type="file"
-        accept={ACCEPTED_IMAGE_TYPES.join(',')}
+        accept={[...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES].join(',')}
         onChange={handleContentFileChange}
         className="visually-hidden"
         aria-label={messages.editorContentUploadButton}
