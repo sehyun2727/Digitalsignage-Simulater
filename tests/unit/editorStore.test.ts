@@ -7,7 +7,12 @@ import {
   useEditorStore,
 } from '../../src/store/editorStore';
 import { getPresetMaterialSettings } from '../../src/lib/renderingPresets';
-import { createEmptyDocument, DEFAULT_CURVATURE } from '../../src/types/editor';
+import {
+  createEmptyDocument,
+  DEFAULT_CURVATURE,
+  DEFAULT_OCCLUSION_FEATHER,
+  DEFAULT_OCCLUSION_OPACITY,
+} from '../../src/types/editor';
 
 class SucceedingMockImage {
   onload: (() => void) | null = null;
@@ -32,6 +37,11 @@ function resetStore() {
     perspectiveEditId: null,
     perspectiveDraftQuad: null,
     perspectiveEditOriginalQuad: null,
+    occlusionEditObjectId: null,
+    occlusionEditMaskId: null,
+    occlusionDraftPoints: [],
+    occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
+    occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
   });
 }
 
@@ -782,9 +792,7 @@ describe('editorStore environment sampling', () => {
     useEditorStore.getState().sampleEnvironmentColor(id);
 
     const object = useEditorStore.getState().document.objects[0]!;
-    expect(object.kind === 'display' && object.environmentIntegration.sampledColor).toBe(
-      '#0a141e',
-    );
+    expect(object.kind === 'display' && object.environmentIntegration.sampledColor).toBe('#0a141e');
     expect(useEditorStore.getState().past.length).toBe(pastLength + 1);
 
     useEditorStore.getState().undo();
@@ -1030,5 +1038,222 @@ describe('editorStore perspective edit', () => {
     useEditorStore.getState().beginPerspectiveEdit(id);
     useEditorStore.getState().deleteSelected();
     expect(useEditorStore.getState().perspectiveEditId).toBeNull();
+  });
+});
+
+describe('editorStore occlusion edit', () => {
+  const VALID_TRIANGLE = [
+    { x: 0.1, y: 0.1 },
+    { x: 0.4, y: 0.1 },
+    { x: 0.25, y: 0.4 },
+  ];
+
+  beforeEach(() => {
+    resetStore();
+  });
+
+  it('starts a new mask draft with default feather/opacity and no mask id', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+
+    useEditorStore.getState().beginOcclusionEdit(id);
+
+    const state = useEditorStore.getState();
+    expect(state.occlusionEditObjectId).toBe(id);
+    expect(state.occlusionEditMaskId).toBeNull();
+    expect(state.occlusionDraftPoints).toEqual([]);
+  });
+
+  it('is a no-op for object kinds without occlusion masks (e.g. text)', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addText();
+    const id = useEditorStore.getState().document.objects[0]!.id;
+
+    useEditorStore.getState().beginOcclusionEdit(id);
+
+    expect(useEditorStore.getState().occlusionEditObjectId).toBeNull();
+  });
+
+  it('is a no-op without a space background', () => {
+    useEditorStore.getState().beginOcclusionEdit('nonexistent');
+    expect(useEditorStore.getState().occlusionEditObjectId).toBeNull();
+  });
+
+  it('applies a valid draft as a single history entry, adding a mask to the object', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginOcclusionEdit(id);
+    const pastLengthBefore = useEditorStore.getState().past.length;
+    useEditorStore.getState().updateOcclusionDraftPoints(VALID_TRIANGLE);
+
+    const result = useEditorStore.getState().applyOcclusionEdit();
+
+    expect(result).toEqual({ applied: true });
+    const state = useEditorStore.getState();
+    expect(state.past.length).toBe(pastLengthBefore + 1);
+    expect(state.occlusionEditObjectId).toBeNull();
+    const target = state.document.objects[0] as { occlusionMasks: { points: unknown }[] };
+    expect(target.occlusionMasks).toHaveLength(1);
+    expect(target.occlusionMasks[0]!.points).toEqual(VALID_TRIANGLE);
+  });
+
+  it('rejects an invalid (too few points) draft, applying nothing and pushing no history entry', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginOcclusionEdit(id);
+    const pastLengthBefore = useEditorStore.getState().past.length;
+    useEditorStore.getState().updateOcclusionDraftPoints([VALID_TRIANGLE[0]!, VALID_TRIANGLE[1]!]);
+
+    const result = useEditorStore.getState().applyOcclusionEdit();
+
+    expect(result).toEqual({ applied: false, reason: 'too-few-points' });
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
+    expect(useEditorStore.getState().occlusionEditObjectId).toBe(id);
+  });
+
+  it('re-editing an existing mask seeds the draft from its stored points/feather/opacity', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginOcclusionEdit(id);
+    useEditorStore.getState().updateOcclusionDraftPoints(VALID_TRIANGLE);
+    useEditorStore.getState().setOcclusionDraftFeather(60);
+    useEditorStore.getState().applyOcclusionEdit();
+    const target = useEditorStore.getState().document.objects[0] as {
+      occlusionMasks: { id: string }[];
+    };
+    const maskId = target.occlusionMasks[0]!.id;
+
+    useEditorStore.getState().beginOcclusionEdit(id, maskId);
+
+    const state = useEditorStore.getState();
+    expect(state.occlusionEditMaskId).toBe(maskId);
+    expect(state.occlusionDraftPoints).toEqual(VALID_TRIANGLE);
+    expect(state.occlusionDraftFeather).toBe(60);
+  });
+
+  it('editing an existing mask to identical values is a no-op that pushes no history entry', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginOcclusionEdit(id);
+    useEditorStore.getState().updateOcclusionDraftPoints(VALID_TRIANGLE);
+    useEditorStore.getState().applyOcclusionEdit();
+    const target = useEditorStore.getState().document.objects[0] as {
+      occlusionMasks: { id: string }[];
+    };
+    const maskId = target.occlusionMasks[0]!.id;
+    useEditorStore.getState().beginOcclusionEdit(id, maskId);
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    const result = useEditorStore.getState().applyOcclusionEdit();
+
+    expect(result).toEqual({ applied: true });
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
+  });
+
+  it('updateOcclusionDraftPoints clamps out-of-range coordinates to 0-1', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginOcclusionEdit(id);
+
+    useEditorStore.getState().updateOcclusionDraftPoints([{ x: -0.5, y: 1.5 }]);
+
+    expect(useEditorStore.getState().occlusionDraftPoints).toEqual([{ x: 0, y: 1 }]);
+  });
+
+  it('updateOcclusionDraftPoints/setOcclusionDraftFeather/setOcclusionDraftOpacity are no-ops when not in edit mode', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+
+    useEditorStore.getState().updateOcclusionDraftPoints(VALID_TRIANGLE);
+    useEditorStore.getState().setOcclusionDraftFeather(80);
+    useEditorStore.getState().setOcclusionDraftOpacity(80);
+
+    const state = useEditorStore.getState();
+    expect(state.occlusionDraftPoints).toEqual([]);
+    expect(state.occlusionDraftFeather).not.toBe(80);
+    expect(state.occlusionDraftOpacity).not.toBe(80);
+  });
+
+  it('setOcclusionDraftFeather/setOcclusionDraftOpacity clamp out-of-range values', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginOcclusionEdit(id);
+
+    useEditorStore.getState().setOcclusionDraftFeather(150);
+    useEditorStore.getState().setOcclusionDraftOpacity(-20);
+
+    const state = useEditorStore.getState();
+    expect(state.occlusionDraftFeather).toBe(100);
+    expect(state.occlusionDraftOpacity).toBe(0);
+  });
+
+  it('cancelOcclusionEdit exits edit mode without touching the document or history', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginOcclusionEdit(id);
+    useEditorStore.getState().updateOcclusionDraftPoints(VALID_TRIANGLE);
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().cancelOcclusionEdit();
+
+    const state = useEditorStore.getState();
+    expect(state.occlusionEditObjectId).toBeNull();
+    expect(state.occlusionDraftPoints).toEqual([]);
+    expect(state.past.length).toBe(pastLengthBefore);
+    const target = state.document.objects[0] as { occlusionMasks: unknown[] };
+    expect(target.occlusionMasks).toHaveLength(0);
+  });
+
+  it('deleteOcclusionMask removes the mask as a single history entry', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginOcclusionEdit(id);
+    useEditorStore.getState().updateOcclusionDraftPoints(VALID_TRIANGLE);
+    useEditorStore.getState().applyOcclusionEdit();
+    const target = useEditorStore.getState().document.objects[0] as {
+      occlusionMasks: { id: string }[];
+    };
+    const maskId = target.occlusionMasks[0]!.id;
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().deleteOcclusionMask(id, maskId);
+
+    const state = useEditorStore.getState();
+    expect(state.past.length).toBe(pastLengthBefore + 1);
+    const updated = state.document.objects[0] as { occlusionMasks: unknown[] };
+    expect(updated.occlusionMasks).toHaveLength(0);
+  });
+
+  it('setOcclusionMaskEnabled toggles a mask and is a no-op when the value is unchanged', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().beginOcclusionEdit(id);
+    useEditorStore.getState().updateOcclusionDraftPoints(VALID_TRIANGLE);
+    useEditorStore.getState().applyOcclusionEdit();
+    const target = useEditorStore.getState().document.objects[0] as {
+      occlusionMasks: { id: string; enabled: boolean }[];
+    };
+    const maskId = target.occlusionMasks[0]!.id;
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().setOcclusionMaskEnabled(id, maskId, false);
+    const afterToggle = useEditorStore.getState().document.objects[0] as {
+      occlusionMasks: { id: string; enabled: boolean }[];
+    };
+    expect(afterToggle.occlusionMasks[0]!.enabled).toBe(false);
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore + 1);
+
+    useEditorStore.getState().setOcclusionMaskEnabled(id, maskId, false);
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore + 1);
   });
 });
