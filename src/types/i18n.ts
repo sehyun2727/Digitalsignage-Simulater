@@ -239,4 +239,12 @@ export interface Messages {
   onboardingDescription: string;
   onboardingStartButton: string;
   onboardingDismissButton: string;
+
+  realismGuideTitle: string;
+  realismGuideDescription: string;
+  realismGuideStepPreset: string;
+  realismGuideStepInstallation: string;
+  realismGuideStepEnvironment: string;
+  realismGuideStepOcclusion: string;
+  realismGuideDismissButton: string;
 }

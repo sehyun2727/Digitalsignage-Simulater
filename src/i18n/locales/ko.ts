@@ -253,4 +253,16 @@ export const ko: Messages = {
     '오른쪽 툴바에는 "공간", "사이니지 추가", "선택한 사이니지", "콘텐츠", "외관", "내보내기"가 항상 표시됩니다. 먼저 공간 사진을 업로드하면 그 사진이 그대로 캔버스와 내보내기 크기가 됩니다. 위에서부터 순서대로 진행하면 사이니지 설치 이미지를 쉽게 만들 수 있습니다.',
   onboardingStartButton: '시작하기',
   onboardingDismissButton: '닫기',
+
+  realismGuideTitle: '리얼리티를 높이는 설정',
+  realismGuideDescription:
+    '이 "외관" 패널에는 설치 이미지를 실제 사진에 가깝게 만드는 설정이 모여 있습니다. 위에서부터 차례로 시도해 보세요.',
+  realismGuideStepPreset: '렌더링 프리셋으로 시간대와 밝기 분위기를 선택할 수 있습니다.',
+  realismGuideStepInstallation:
+    '설치면과 접지 그림자로 벽면·창면·자립형 중 어디에 설치할지 반영할 수 있습니다.',
+  realismGuideStepEnvironment:
+    '공간 사진에서 색상을 샘플링하면 그 공간의 색감에 어울리는 환경 블렌드를 만들 수 있습니다.',
+  realismGuideStepOcclusion:
+    '전경 오클루전으로 기둥이나 집기 앞에 사이니지를 자연스럽게 가릴 수 있습니다.',
+  realismGuideDismissButton: '확인했습니다',
 };

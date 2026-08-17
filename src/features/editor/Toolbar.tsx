@@ -55,6 +55,7 @@ import {
 } from '../../types/editor';
 import { ACCEPTED_VIDEO_TYPES } from '../../lib/videoValidation';
 import { PortableBuilderModal } from './PortableBuilderModal';
+import { RealismGuideCard } from './RealismGuideCard';
 import type { ImageValidationError } from '../../lib/fileValidation';
 import type {
   ContactShadowSettings,
@@ -753,9 +754,15 @@ function ContentFields({
 function AppearanceSection() {
   const { messages } = useLocale();
   const selected = useEditorStore(selectSelectedObject);
+  const realismGuideDismissed = useUiStore((state) => state.realismGuideDismissed);
+  const showRealismGuide =
+    !realismGuideDismissed &&
+    !!selected &&
+    (selected.kind === 'display' || selected.kind === 'portable');
 
   return (
     <ToolbarSection heading={messages.toolbarAppearanceSectionHeading}>
+      {showRealismGuide && <RealismGuideCard />}
       {!selected ? (
         <p className="toolbar-notice">{messages.toolbarAppearanceEmptyHint}</p>
       ) : selected.kind !== 'display' && selected.kind !== 'portable' ? (

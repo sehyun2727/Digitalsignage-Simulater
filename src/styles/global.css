@@ -509,6 +509,46 @@ a {
   flex-shrink: 0;
 }
 
+.realism-guide-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background-color: var(--color-bg);
+}
+
+.realism-guide-card h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.realism-guide-card p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.realism-guide-card ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.realism-guide-card button {
+  align-self: flex-start;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background-color: var(--color-bg);
+  cursor: pointer;
+}
+
 .curvature-mode-group,
 .rendering-preset-group {
   display: flex;

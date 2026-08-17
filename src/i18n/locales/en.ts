@@ -253,4 +253,16 @@ export const en: Messages = {
     'The toolbar on the right always shows Space, Add signage, Selected signage, Content, Appearance, and Export. Start by uploading a space photo — it becomes the canvas and export size exactly. Work through the sections top to bottom to build a preview of your signage installation.',
   onboardingStartButton: 'Get started',
   onboardingDismissButton: 'Dismiss',
+
+  realismGuideTitle: 'Realism controls',
+  realismGuideDescription:
+    'This Appearance panel gathers the settings that make a placement look more like a real photo. Try them top to bottom.',
+  realismGuideStepPreset: 'Rendering preset sets the overall time-of-day and brightness mood.',
+  realismGuideStepInstallation:
+    'Installation surface and contact shadow reflect whether the signage sits on a wall, a window, or freestanding.',
+  realismGuideStepEnvironment:
+    'Sampling from the space photo creates an ambient color blend that matches the room.',
+  realismGuideStepOcclusion:
+    'Foreground occlusion lets a pillar or fixture naturally cover part of the signage.',
+  realismGuideDismissButton: 'Got it',
 };

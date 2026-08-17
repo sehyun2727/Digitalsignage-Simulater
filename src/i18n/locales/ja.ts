@@ -133,7 +133,8 @@ export const ja: Messages = {
   editorEnvironmentIntegrationResetButton: 'なじませをリセット',
   editorEnvironmentSampleButton: '空間写真からサンプリング',
   editorEnvironmentSampledSwatchLabel: 'サンプリングした環境色',
-  editorEnvironmentSampleNoSpaceHint: '環境色をサンプリングするには、先に空間写真を追加してください。',
+  editorEnvironmentSampleNoSpaceHint:
+    '環境色をサンプリングするには、先に空間写真を追加してください。',
 
   editorPerspectiveFitButton: '空間に合わせて配置（パース）',
   editorPerspectiveUseRectButton: '通常配置に戻す',
@@ -257,4 +258,15 @@ export const ja: Messages = {
     '右側のツールバーには「空間」「サイネージを追加」「選択中のサイネージ」「コンテンツ」「外観」「書き出し」が常時表示されています。まず空間写真をアップロードすると、その写真がそのままキャンバスと書き出しサイズになります。上から順に操作すると、サイネージの設置イメージを簡単に作成できます。',
   onboardingStartButton: 'はじめる',
   onboardingDismissButton: '閉じる',
+
+  realismGuideTitle: 'リアルさを高める設定',
+  realismGuideDescription:
+    'この「外観」パネルには、設置イメージをより実写に近づけるための設定がまとまっています。上から順に試してみましょう。',
+  realismGuideStepPreset: 'レンダリングプリセットで、時間帯や明るさの雰囲気を選べます。',
+  realismGuideStepInstallation:
+    '設置面と接地シャドウで、壁面・窓面・自立式のどれに設置するかを反映できます。',
+  realismGuideStepEnvironment:
+    '空間写真からサンプリングすると、その場の色味に馴染む環境ブレンドを作れます。',
+  realismGuideStepOcclusion: '前景オクルージョンで、柱や什器の手前にサイネージを自然に隠せます。',
+  realismGuideDismissButton: '分かりました',
 };
