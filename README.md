@@ -13,7 +13,7 @@
 
 ## 상태
 
-**현재 상태: Sprint 4.3 완료 — Sprint 0~4.3이 통합되어 배포 가능한 상태입니다 (Sprint 3.2: 캔버스 객체 재선택 결함 수정, Sprint 4.1: 통합 툴바 에디터 UI, Sprint 4.2: 사진 우선(photo-first) 문서 모델·LED/LCD/透過LED/포터블 4종 신호기·곡률(curvature) 제어, Sprint 4.3: 4점 원근 배치·환경 통합(그림자/톤 블렌딩)·동영상 콘텐츠 및 내보내기 포함)**
+**현재 상태: Sprint 4.5 완료 — Sprint 0~4.5가 통합되어 배포 가능한 상태입니다 (Sprint 3.2: 캔버스 객체 재선택 결함 수정, Sprint 4.1: 통합 툴바 에디터 UI, Sprint 4.2: 사진 우선(photo-first) 문서 모델·LED/LCD/透過LED/포터블 4종 신호기·곡률(curvature) 제어, Sprint 4.3: 4점 원근 배치·환경 통합(그림자/톤 블렌딩)·동영상 콘텐츠 및 내보내기, Sprint 4.4: 비-AI 포토리얼리스틱 렌더링 코어, Sprint 4.5: 전경 오클루전 마스크·설치면 구분·환경색 샘플링·판매 리뷰 모드·골든 이미지 시각 회귀 테스트 포함)**
 
 Sprint 0에서 구현된 것:
 
@@ -265,6 +265,56 @@ Sprint 4.4에서 구현되지 않은 것 (범위 밖):
 - 실제 물리 기반 조명/그림자 시뮬레이션 — 그림자·환경 통합·곡률은 모두 판매 시뮬레이터 용도의 시각적
   근사이며, 서로 간의 상호작용까지 검증하지는 않습니다.
 
+Sprint 4.5에서 구현된 것 (장면 통합·오클루전·판매용 시각 품질 QA):
+
+- **전경 오클루전 마스크**: 신호기 화면 영역 일부가 실제로는 기둥·화분·문틀처럼 카메라 앞에 있는
+  물체에 가려져야 할 때, 화면 앞에 다각형(3점 이상)을 직접 그려 그 영역만 원본 공간 사진 픽셀로
+  되돌릴 수 있습니다. 각도(feather)와 불투명도를 조절할 수 있고, 마스크별로 켜기/끄기·삭제가
+  가능하며, 그리는 도중에는 실행 취소 히스토리에 아무것도 기록되지 않고 적용(適用)을 눌러야 정확히
+  한 개의 항목이 생깁니다. 자세한 배경은
+  [`docs/adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md`](docs/adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md)
+  참고.
+- **설치면(installationMode) 구분**: 각 디스플레이·포터블 제품이 벽걸이(壁)/창면(窓, 透過)/독립형
+  (自立) 중 어떤 방식으로 설치되어 있는지 명시적으로 선택할 수 있습니다. 창면으로 설정하면 화면
+  바로 아래에 옅은 유리 반사가 함께 렌더링됩니다.
+- **환경색 샘플링**: 배경 톤에 맞춰 채도/대비를 낮추는 "환경 통합" 블렌딩이 이제 고정된 회색 대신,
+  "空間写真からサンプリング" 버튼으로 실제 공간 사진의 평균 색조를 읽어와 사용할 수 있습니다(16×16로
+  축소해 브라우저 안에서만 계산 — 서버 전송 없음). 샘플링한 색은 프리셋을 바꿔도 유지되며, "なじませを
+  リセット" 버튼으로만 초기화됩니다.
+- **접지 그림자 확장**: 원근(パース) 배치된 객체도 사각형 배치와 마찬가지로 원근 사각형에 맞춰
+  그림자를 그대로 유지하도록 수정했고, 확산(spread)·깊이(depth)·색조(tint) 조절 슬라이더를
+  추가해 벽걸이형과 독립형이 서로 다른 부착 느낌으로 보이도록 했습니다.
+- **발광(glow) 표시 결함 수정 및 창면 반사**: 발광 슬라이더를 올려도 실제로는 아무 변화가 없던
+  결함(화면 영역에 클리핑된 그룹 안에 그림자가 붙어 있어 블러가 클리핑 경계를 넘지 못했던 문제)을
+  수정해, 이제 화면 가장자리 밖으로 옅게 번지는 발광 효과가 실제로 보입니다. 창면 설치일 때만
+  화면 아래에 옅은 거울 반사가 함께 렌더링됩니다.
+- **판매 리뷰 모드**: 헤더의 토글 버튼 하나로 툴바·실행 취소/다시 실행·키보드 단축키를 모두 숨기고
+  캔버스를 클릭 불가능하게 만들어, 영업 담당자가 완성된 장면을 고객에게 보여줄 때 실수로 객체를
+  이동/삭제할 위험 없이 전달할 수 있습니다. 원본/결과 비교 토글과 내보내기는 리뷰 모드 중에도 계속
+  사용할 수 있으며, 문서 자체는 전혀 변경되지 않습니다.
+- **외관 패널 첫 사용 안내 카드**: 신호기를 처음 선택했을 때, 렌더링 프리셋·설치면/접지 그림자·환경색
+  샘플링·오클루전이 패널에 등장하는 순서대로 간단히 설명하는 닫을 수 있는 카드가 한 번만 표시됩니다.
+  기존 온보딩 카드와 동일하게 배경을 잠그지 않는 `role="note"` 카드이며, 닫음 여부는 `localStorage`에
+  저장됩니다.
+- **골든 이미지(스크린샷 diff) 시각 회귀 테스트**: `npm run qa:visual`로 벽걸이 LED·독립형 포터블·
+  4점 원근 배치 3가지 대표 장면을 실제 Chromium으로 렌더링해 커밋된 기준 이미지와 픽셀 단위로
+  비교합니다. 기준 이미지는 리눅스(CI와 동일한 `ubuntu-latest`) 환경에서 생성해야 하므로, Windows
+  개발 환경에서 직접 실행하면 폰트/안티에일리어싱 차이로 오탐이 발생합니다 — 정확한 재생성 절차는
+  [`docs/quality-runbook.md`](docs/quality-runbook.md) 참고. Sprint 4.4에서 보류했던 항목입니다
+  (자세한 배경은 위 ADR 0009 및 새 ADR 0010 참고).
+- **CI에 E2E 테스트 추가**: GitHub Actions가 이제 프로덕션 빌드 이후 Playwright Chromium을 설치해
+  `npm run test:e2e`(골든 이미지 시각 QA 포함)를 실행하고, 실패 시 리포트를 아티팩트로 업로드합니다.
+  이전에는 CI가 단위 테스트/빌드까지만 검증하고 e2e는 전혀 실행하지 않았습니다.
+
+Sprint 4.5에서 구현되지 않은 것 (범위 밖):
+
+- 오클루전 마스크는 활성/비활성·페더·불투명도만 조절할 수 있습니다 — 마스크별 블렌드 모드나 애니메이션은
+  지원하지 않습니다.
+- 설치면(installationMode)은 그림자/반사 기본값에만 영향을 주며, 그 밖의 재질·곡률 로직은 변경하지
+  않습니다.
+- 골든 이미지 비교 대상은 의도적으로 3개 장면으로 제한했습니다 — 일반적인 스크린샷 테스트 저장소로
+  확장하지 않았습니다.
+
 ## 기술 스택
 
 - React 19 + TypeScript + Vite
@@ -302,8 +352,10 @@ npm run format:check     # Prettier 검사만 수행
 npm run typecheck        # TypeScript 검사
 npm run test              # Vitest (watch)
 npm run test:run          # Vitest (단일 실행, CI에서 사용)
-npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드, 공간 배경/디스플레이 콘텐츠·소재, 포터블 제품, 4점 원근 배치/透過LED/동영상, 모바일 뷰포트, 온보딩/비교 토글, 재선택)
+npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드, 공간 배경/디스플레이 콘텐츠·소재, 포터블 제품, 4점 원근 배치/透過LED/동영상, 모바일 뷰포트, 온보딩/비교 토글, 재선택, 오클루전 마스크, 환경색 샘플링, 발광/반사, 판매 리뷰 모드, 골든 이미지 시각 QA)
                            # E2E_PORT 환경변수로 미리보기 서버 포트를 바꿀 수 있습니다(기본값 4173). 예: E2E_PORT=4174 npm run test:e2e
+npm run qa:visual          # 골든 이미지 시각 회귀 테스트만 실행 (docs/quality-runbook.md 참고 — 기준 이미지는 리눅스 전용)
+npm run qa:visual:update   # 골든 이미지 기준 스냅샷을 갱신 (반드시 Linux/Docker 환경에서 실행)
 ```
 
 ## Docker 실행
@@ -403,7 +455,9 @@ Sprint 4.2 기준으로 `main`은 Sprint 0~4.2를 모두 포함하며 위 설정
 │   ├── features/editor/ # 에디터 UI: EditorLayout(헤더+워크스페이스+상태 바), Toolbar(6섹션 통합 툴바),
 │   │                     # EditorCanvas, SignageDisplayView, SpaceBackgroundView, PortableBuilderModal
 │   │                     # (포터블 제품 마법사), PortableProductView, PerspectiveEditOverlay(원근 배치
-│   │                     # 편집 오버레이), PerspectiveScreenView(원근 왜곡 렌더링), OnboardingOverlay 등
+│   │                     # 편집 오버레이), PerspectiveScreenView(원근 왜곡 렌더링), OnboardingOverlay,
+│   │                     # OcclusionEditOverlay(오클루전 마스크 편집 오버레이), OcclusionMaskLayer,
+│   │                     # ScreenReflection(창면 반사), RealismGuideCard(외관 패널 첫 사용 안내) 등
 │   ├── i18n/           # 일본어·한국어·영어 리소스, 감지/저장 로직
 │   ├── lib/            # 공통 유틸리티/상수 (파일 검증, 파일명 생성, 에셋 레지스트리, 콘텐츠 배치/프레임/소재 지오메트리,
 │   │                     # curvature.ts — 곡률 스트립 근사, imageSafety.ts — 디코딩 픽셀 안전 한도,
@@ -414,15 +468,23 @@ Sprint 4.2 기준으로 `main`은 Sprint 0~4.2를 모두 포함하며 위 설정
 │   │                     # 업로드 검증·내보내기 지원 감지·캔버스 녹화 파이프라인,
 │   │                     # renderingPresets.ts — 자연광/밝은 야외/야간 프리셋 값 계산,
 │   │                     # contentLuminance.ts — 발광 강도용 콘텐츠 평균 밝기 샘플링,
-│   │                     # konvaCacheSync.ts — 내보내기 해상도에 맞춘 Konva 캐시 비트맵 재생성 등)
-│   ├── store/          # Zustand 에디터 스토어 (문서 상태, 히스토리, 원근 배치 드래프트 수명주기, 에셋 스윕 구독)
+│   │                     # konvaCacheSync.ts — 내보내기 해상도에 맞춘 Konva 캐시 비트맵 재생성,
+│   │                     # occlusion.ts — 오클루전 마스크 다각형 지오메트리/검증,
+│   │                     # spaceBackgroundFit.ts — 공간 사진 cover-fit 계산(배경/마스크 공유),
+│   │                     # realismGuideStorage.ts — 외관 패널 안내 카드 닫음 상태 저장 등)
+│   ├── store/          # Zustand 에디터 스토어 (editorStore.ts: 문서 상태, 히스토리, 원근/오클루전
+│   │                     # 드래프트 수명주기, 에셋 스윕 구독; uiStore.ts: 온보딩/안내 카드 닫음 상태,
+│   │                     # 판매 리뷰 모드 등 문서와 무관한 일시적 UI 상태)
 │   ├── styles/          # 전역 스타일
 │   ├── test/            # Vitest 환경 설정
 │   └── types/            # 공유 타입 (에디터 문서/객체 — PortableSignageObject, NormalizedQuad,
-│   │                     # ContactShadowSettings, EnvironmentIntegrationSettings 포함, i18n 메시지)
+│   │                     # ContactShadowSettings, EnvironmentIntegrationSettings, OcclusionMask,
+│   │                     # InstallationMode 포함, i18n 메시지)
 ├── tests/unit/           # Vitest + React Testing Library (portableRegion.test.ts 포함)
 ├── e2e/                   # Playwright e2e 테스트 (실제 Chromium — portable.spec.ts, perspective-video.spec.ts,
-│   │                     # mobile.spec.ts 포함)
+│   │                     # mobile.spec.ts, occlusion-mask.spec.ts, environment-sampling.spec.ts,
+│   │                     # glow-halo.spec.ts, screen-reflection.spec.ts, sales-review.spec.ts,
+│   │                     # visual-qa.spec.ts(골든 이미지) 포함)
 │   └── support/            # PNG/EXIF/픽셀 샘플링, 동영상 픽스처 생성 등 테스트 전용 헬퍼
 ├── docker/nginx.conf       # SPA fallback 설정
 ├── Dockerfile
@@ -436,7 +498,9 @@ Sprint 4.2 기준으로 `main`은 Sprint 0~4.2를 모두 포함하며 위 설정
 │   ├── adr/0007-photo-first-document-and-materials-sprint-4-2.md
 │   ├── adr/0008-perspective-environment-and-video-sprint-4-3.md
 │   ├── adr/0009-photorealistic-rendering-core.md
+│   ├── adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md
 │   ├── quality/sprint-4-4-baseline.md
+│   ├── quality-runbook.md
 │   └── runbooks/
 └── .github/workflows/ci.yml
 ```
@@ -474,6 +538,15 @@ Sprint 4.2 기준으로 `main`은 Sprint 0~4.2를 모두 포함하며 위 설정
   (자세한 배경은 `docs/adr/0004-custom-portable-template.md` 참고).
 - 편집 중인 문서(공간 사진·신호기 배치)는 세션 동안만 유지되며 새로고침하면 초기화됩니다 — 서버/localStorage
   영속화는 범위 밖입니다.
+- 오클루전 마스크는 켜기/끄기·페더·불투명도만 조절할 수 있는 다각형 하나뿐입니다 — 마스크별 블렌드 모드나
+  애니메이션은 지원하지 않습니다(자세한 배경은
+  `docs/adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md` 참고).
+- 좁은 모바일 뷰포트에서 가로로 긴 공간 사진을 사용하면, 오클루전 마스크 편집 오버레이의 안내 문구와
+  설정 패널이 캔버스 영역 대부분을 덮어 점을 찍을 공간이 거의 남지 않을 수 있습니다(위 ADR 0010의
+  Consequences 참고) — 세로 사진에서는 발생하지 않는 문제이며, 이번 스프린트에서는 오버레이 레이아웃
+  자체를 변경하지 않았습니다.
+- 골든 이미지 시각 회귀 테스트(`npm run qa:visual`)의 기준 이미지는 Linux 전용이며, Windows 개발
+  환경에서 직접 실행하면 오탐이 발생합니다 — 재생성 절차는 `docs/quality-runbook.md` 참고.
 - 라이선스 미정.
 
 ## 범위 관리

@@ -2,7 +2,7 @@
 
 ## Status
 
-Sprint 4.4 complete. The editor is **photo-first**: the uploaded space-background
+Sprint 4.5 complete. The editor is **photo-first**: the uploaded space-background
 photo alone defines the document's export resolution (orientation-corrected, never
 stretched or cropped, downscaled deterministically past a decoded-pixel safety limit)
 — there is no document/template picker. Four signage families are placeable once a
@@ -29,6 +29,17 @@ small sizes, a narrower LCD highlight band, frame-excluded environment blending,
 contact shadows enabled by default per installation plane, curvature strip-seam
 overlap, and Konva export-cache re-baking at export resolution) — see
 [ADR 0009](../adr/0009-photorealistic-rendering-core.md).
+Sprint 4.5 added an explicit per-object `installationMode` (wall/window/freestanding)
+and manual foreground occlusion masks (normalized N-gon polygons that restore the
+original space-photo pixels over part of a signage object, for real obstructions the
+camera would have captured in front of the display), user-triggered environment-color
+sampling from the space photo (replacing the fixed neutral-gray blend fallback),
+perspective-aware contact shadows with spread/depth/tint controls, a glow-halo
+clipping fix and a window-only glass reflection, a distraction-free sales review mode,
+a first-use guide card for the Appearance panel, and a golden-image visual QA pipeline
+(`npm run qa:visual`) run in CI on `ubuntu-latest` — see
+[ADR 0010](../adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md) and
+[the quality runbook](../quality-runbook.md).
 
 ## Runtime shape
 
@@ -69,6 +80,14 @@ Flat `src/` layout, per `CLAUDE.md` §4 (chosen over a monorepo `apps/` tree —
   `Konva.Animation` loop so video content and the video-export capture both see live
   frames), `OnboardingOverlay` — see
   [ADR 0008](../adr/0008-perspective-environment-and-video-sprint-4-3.md).
+  `OcclusionEditOverlay` (the HTML/pointer-event draft editor for foreground occlusion
+  masks, mutually exclusive with `PerspectiveEditOverlay`), `OcclusionMaskLayer`
+  (renders enabled masks as feathered, clip-masked cutouts restoring the original
+  space-photo pixels, shared between preview and export), `ScreenReflection` (the
+  window-installation-only glass reflection, reusing `ScreenComposition`),
+  `RealismGuideCard` (the dismissible first-use guide shown above the Appearance
+  panel's material/shadow/environment/occlusion controls) — see
+  [ADR 0010](../adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md).
 - `src/i18n/` — locale resources, detection, persistence, React context.
 - `src/lib/` — framework-agnostic constants/utilities: file validation, filename
   generation, the HULL contact URL, the runtime `assetRegistry`, the pure-geometry
@@ -89,23 +108,36 @@ Flat `src/` layout, per `CLAUDE.md` §4 (chosen over a monorepo `apps/` tree —
   image-luminance sampling that scales glow strength), and `konvaCacheSync` (re-bakes
   cached/filtered Konva bitmaps at export resolution immediately before a PNG snapshot)
   — see [ADR 0009](../adr/0009-photorealistic-rendering-core.md).
+  `occlusion` (normalized N-gon polygon geometry/validation for foreground occlusion
+  masks), `spaceBackgroundFit` (`computeCoverFit`, shared by `SpaceBackgroundView` and
+  `OcclusionMaskLayer` so the live background and mask restoration always agree on
+  pixel alignment), and `realismGuideStorage` (localStorage dismissal for the
+  `RealismGuideCard`, mirroring the onboarding-dismissal pattern) — see
+  [ADR 0010](../adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md).
 - `src/store/` — the Zustand editor store (`editorStore.ts`): photo-first document
   state (`getDocumentSize` derives width/height solely from the uploaded space photo),
   selection, undo/redo history, the reachability-based asset-sweep subscription, and
-  the perspective draft/apply/cancel/reset lifecycle.
+  the perspective and occlusion-mask draft/apply/cancel lifecycles.
+- `src/store/uiStore.ts` — transient, non-document UI state: onboarding/realism-guide
+  dismissal and `salesReviewMode` (hides the toolbar/undo-redo/shortcuts and disables
+  canvas interaction for client-facing review, without touching the document).
 - `src/styles/` — global stylesheet.
 - `src/types/` — shared domain types (i18n `Locale`/`Messages`, editor document/object
   types including `DisplaySignageObject`, `PortableSignageObject`, `SignageContent`
   (now `image` or `video`), `MaterialSettings`, `Curvature`, `NormalizedQuad`,
-  `PlacementMode`, `ContactShadowSettings`, `EnvironmentIntegrationSettings`).
+  `PlacementMode`, `ContactShadowSettings`, `EnvironmentIntegrationSettings`,
+  `OcclusionMask`, `InstallationMode`).
 - `src/test/` — Vitest environment setup.
 - `tests/unit/` — Vitest + React Testing Library unit/component tests.
 - `e2e/` — Playwright tests against a real Chromium build (smoke, editor, image upload,
   space-background/display content/material, portable product builder, perspective
   placement/transparent-LED/video flows, mobile viewport, onboarding, comparison
-  toggle, canvas reselection, drag-and-drop), plus `e2e/support/spaceBackground.ts`
-  (shared helper every spec uses to upload a space photo before exercising signage
-  controls) and `e2e/support/video.ts` (generates a small in-browser video fixture for
+  toggle, canvas reselection, drag-and-drop, foreground occlusion masks, environment
+  sampling, glow halo, window reflection, sales review mode, and the golden-image
+  visual QA suite — see [the quality runbook](../quality-runbook.md)), plus
+  `e2e/support/spaceBackground.ts` (shared helper every spec uses to upload a space
+  photo before exercising signage controls) and `e2e/support/video.ts` (generates a
+  small in-browser video fixture for
   video-content specs).
 - `docs/` — architecture notes, ADRs, runbooks.
 
@@ -130,6 +162,25 @@ model: `beginPerspectiveEdit`/`updatePerspectiveDraft`/`applyPerspectiveEdit`/
 edit entirely outside undo/redo history until Apply commits it as one entry; Cancel
 discards it with no history entry at all. See
 [ADR 0008](../adr/0008-perspective-environment-and-video-sprint-4-3.md).
+
+Foreground occlusion masks mirror that same draft-outside-history pattern:
+`beginOcclusionEdit`/`updateOcclusionEditDraft`/`applyOcclusionEdit`/
+`cancelOcclusionEdit` keep an in-progress `OcclusionMask` polygon edit off undo/redo
+history until Apply commits it as one entry. `sampleEnvironmentColor` stores the space
+photo's sampled ambient tone on `object.environmentIntegration.sampledColor`, which
+persists across rendering-preset switches and is cleared only by an explicit reset
+action. Every display/portable object also carries a persisted `installationMode`
+(`wall`/`window`/`freestanding`), seeded at creation and editable afterward, which
+gates window-only effects (the glass reflection) and per-plane shadow defaults. None
+of this required a document-format migration step: this project has no server or
+`localStorage` document persistence (a session's document lives only in memory), so
+every object-creation path simply agrees on the new fields' defaults rather than
+upgrading a previously-saved shape. See
+[ADR 0010](../adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md).
+
+`src/store/uiStore.ts` is a separate, non-document Zustand store for transient UI
+state — onboarding/realism-guide card dismissal and `salesReviewMode` — kept apart
+from `editorStore.ts` so toggling them never touches undo/redo history.
 
 ## Canvas rendering
 
@@ -170,11 +221,28 @@ Screen content can be a static image or an autoplay/loop/muted video
 (`SignageContent.kind`); video frames redraw the canvas continuously via a
 `Konva.Animation` loop (`useVideoPlaybackRedraw.ts`) so both on-screen playback and
 `captureStream`-based video export see live pixels. An opt-in contact shadow
-(silhouette-shaped, strength/blur/offset) and an opt-in environment-tone blend
+(silhouette-shaped, strength/blur/offset, plus Sprint 4.5's spread/depth/tint controls
+and perspective-quad-anchored geometry for objects in perspective placement mode) and
+an opt-in environment-tone blend
 (desaturates/reduces contrast/highlight strength on the rendered signage layer only,
-never the space photo) can be layered onto any display or portable object regardless
-of placement mode or curvature — see
+never the space photo, and can use a color sampled from the space photo instead of a
+fixed neutral gray as of Sprint 4.5) can be layered onto any display or portable
+object regardless of placement mode or curvature — see
 [ADR 0008](../adr/0008-perspective-environment-and-video-sprint-4-3.md).
+
+Glow (`materialSettings.glow`) renders as its own separate, unclipped halo shape using
+the same `.cache()` + `Konva.Filters.Blur` technique `ContactShadowView` uses for its
+ground shadow, so the blur can bleed past the screen's clip rect — it previously had
+no visible effect at any slider value because it was attached inside the clipped
+content group. A window-only glass reflection (`ScreenReflection.tsx`, gated on
+`installationMode === 'window'`) reuses `ScreenComposition` to render a mirrored,
+lowered-opacity duplicate of the screen anchored to its own bottom edge. Foreground
+occlusion masks (`OcclusionMaskLayer.tsx`) render above the composited object, in both
+preview and export, as feathered clip-masked cutouts that redraw the original
+space-photo pixels for any object with `occlusionMasks.length > 0` — modeling a
+real-world obstruction (a pillar, a plant) the camera would have captured in front of
+the display, drawn/edited via `OcclusionEditOverlay.tsx`. See
+[ADR 0010](../adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md).
 
 ## Video export
 
