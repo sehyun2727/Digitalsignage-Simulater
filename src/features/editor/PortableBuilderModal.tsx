@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useLocale } from '../../i18n/localeContext';
+import { useModalDialog } from './useModalDialog';
 import {
   detectHasAlpha,
   getRegisteredAsset,
@@ -45,9 +46,6 @@ interface PendingPhoto {
   previewUrl: string;
 }
 
-const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
 export function PortableBuilderModal({
   mode,
   editingObject,
@@ -72,10 +70,8 @@ export function PortableBuilderModal({
     pendingPhotoRef.current = pendingPhoto;
   }, [pendingPhoto]);
 
-  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const { dialogRef, titleId } = useModalDialog(onClose);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const previouslyFocusedRef = useRef<Element | null>(null);
-  const titleId = useId();
   const moveResizeHintId = useId();
 
   const wasCommittedRef = useRef(false);
@@ -84,52 +80,15 @@ export function PortableBuilderModal({
     onClose();
   };
 
-  // Focus trap, initial focus, Esc-to-close, and background scroll lock — this is the first
-  // modal dialog in the app, so all of this is built from scratch rather than reused.
+  // A pending photo that was uploaded but never committed to the document (cancel, or the
+  // component unmounting some other way) is unreachable from any document/history snapshot, so
+  // the reachability-based sweep in editorStore.ts would never revoke it on its own.
   useEffect(() => {
-    previouslyFocusedRef.current = window.document.activeElement;
-    const dialog = dialogRef.current;
-    const firstFocusable = dialog?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-    firstFocusable?.focus();
-
-    const originalOverflow = window.document.body.style.overflow;
-    window.document.body.style.overflow = 'hidden';
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-      if (event.key !== 'Tab' || !dialog) return;
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-      if (focusable.length === 0) return;
-      const first = focusable[0]!;
-      const last = focusable[focusable.length - 1]!;
-      if (event.shiftKey && window.document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && window.document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    window.document.addEventListener('keydown', handleKeyDown);
-
     return () => {
-      window.document.removeEventListener('keydown', handleKeyDown);
-      window.document.body.style.overflow = originalOverflow;
-      if (previouslyFocusedRef.current instanceof HTMLElement) {
-        previouslyFocusedRef.current.focus();
-      }
-      // A pending photo that was uploaded but never committed to the document (cancel, or the
-      // component unmounting some other way) is unreachable from any document/history snapshot,
-      // so the reachability-based sweep in editorStore.ts would never revoke it on its own.
       if (!wasCommittedRef.current && pendingPhotoRef.current) {
         releaseAsset(pendingPhotoRef.current.sourceId);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePhotoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {

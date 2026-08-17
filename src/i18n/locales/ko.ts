@@ -104,12 +104,14 @@ export const ko: Messages = {
   editorMaterialGridDensityLabel: '그리드 밀도 (고급 설정)',
   editorMaterialGlowLabel: '발광 강도 (고급 설정)',
   editorMaterialContrastLabel: '대비 (고급 설정)',
-  editorMaterialAdvancedToggleLabel: '고급 설정 보기',
   editorMaterialResetButton: '효과 초기화',
   editorMaterialPreviewNotice:
     '화면 질감·밝기·발광·대비는 시각적 참고용 표현이며 실제 제품 성능을 보장하지 않습니다.',
   editorTransparentLedDisclaimer:
     '투명 LED 표현은 간이 시각 시뮬레이션입니다. 실제 투과율·휘도 등 물리적 특성을 재현하지 않으며 제품 선정의 근거로 사용할 수 없습니다.',
+  editorAdvancedSettingsOpenButton: '세부 설정',
+  editorAdvancedSettingsTitle: '세부 설정',
+  editorAdvancedSettingsCloseButton: '닫기',
 
   editorCurvatureModeLabel: '곡면 유형',
   editorCurvatureFlat: '평면',

@@ -104,12 +104,14 @@ export const en: Messages = {
   editorMaterialGridDensityLabel: 'Grid density (advanced)',
   editorMaterialGlowLabel: 'Glow strength (advanced)',
   editorMaterialContrastLabel: 'Contrast (advanced)',
-  editorMaterialAdvancedToggleLabel: 'Show advanced settings',
   editorMaterialResetButton: 'Reset effects',
   editorMaterialPreviewNotice:
     'Screen texture, brightness, glow, and contrast are a visual reference only and do not guarantee real product performance.',
   editorTransparentLedDisclaimer:
     'The Transparent LED preview is a simplified visual simulation. It does not reproduce real transparency, brightness, or other physical properties and must not be used as the basis for product selection.',
+  editorAdvancedSettingsOpenButton: 'Advanced settings',
+  editorAdvancedSettingsTitle: 'Advanced settings',
+  editorAdvancedSettingsCloseButton: 'Close',
 
   editorCurvatureModeLabel: 'Curvature type',
   editorCurvatureFlat: 'Flat',

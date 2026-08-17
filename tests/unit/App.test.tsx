@@ -478,6 +478,7 @@ describe('App', () => {
       fireEvent.pointerUp(intensitySlider);
       expect(intensitySlider).toHaveValue('80');
 
+      await user.click(screen.getByRole('button', { name: ja.editorAdvancedSettingsOpenButton }));
       await user.click(screen.getByRole('button', { name: ja.editorMaterialResetButton }));
       // LCD's own Natural-preset baseline (see renderingPresets.ts), not a flat generic value.
       expect(intensitySlider).toHaveValue('18');

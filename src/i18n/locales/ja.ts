@@ -107,12 +107,14 @@ export const ja: Messages = {
   editorMaterialGridDensityLabel: 'グリッド密度（詳細設定）',
   editorMaterialGlowLabel: '発光の強さ（詳細設定）',
   editorMaterialContrastLabel: 'コントラスト（詳細設定）',
-  editorMaterialAdvancedToggleLabel: '詳細設定を表示',
   editorMaterialResetButton: '効果をリセット',
   editorMaterialPreviewNotice:
     '画面の質感・明るさ・発光・コントラストは視覚的な参考表現であり、実際の製品性能を保証するものではありません。',
   editorTransparentLedDisclaimer:
     '透過LEDの表現は簡易的な視覚シミュレーションです。実際の透過率・輝度・物理特性を再現するものではなく、製品選定の判断材料にはなりません。',
+  editorAdvancedSettingsOpenButton: '詳細設定',
+  editorAdvancedSettingsTitle: '詳細設定',
+  editorAdvancedSettingsCloseButton: '閉じる',
 
   editorCurvatureModeLabel: '曲面タイプ',
   editorCurvatureFlat: 'フラット',

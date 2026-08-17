@@ -101,10 +101,12 @@ export interface Messages {
   editorMaterialGridDensityLabel: string;
   editorMaterialGlowLabel: string;
   editorMaterialContrastLabel: string;
-  editorMaterialAdvancedToggleLabel: string;
   editorMaterialResetButton: string;
   editorMaterialPreviewNotice: string;
   editorTransparentLedDisclaimer: string;
+  editorAdvancedSettingsOpenButton: string;
+  editorAdvancedSettingsTitle: string;
+  editorAdvancedSettingsCloseButton: string;
 
   editorCurvatureModeLabel: string;
   editorCurvatureFlat: string;
