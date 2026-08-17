@@ -201,13 +201,13 @@ export interface Messages {
   portableScreenRegionResetButton: string;
   portableScreenRegionEditButton: string;
   portableScreenRegionMinSizeError: string;
+  portableReplacePhotoButton: string;
 
   portableCancelButton: string;
   portableBackButton: string;
   portableNextButton: string;
   portableAddButton: string;
   portableSaveButton: string;
-  portableReplacePhotoHint: string;
 
   toolbarAriaLabel: string;
   toolbarSpaceSectionHeading: string;

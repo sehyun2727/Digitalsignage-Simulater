@@ -111,6 +111,51 @@ test('walks the photo and drag-to-draw region steps to add a portable product, t
   await expect(editDialog).toBeHidden();
 });
 
+test('replaces a portable product photo, resetting its screen region, and undo restores the original photo', async ({
+  page,
+}) => {
+  await setup(page);
+
+  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  const createDialog = page.getByRole('dialog');
+  await uploadPortableProductPhoto(createDialog, '#1155ff');
+  await createDialog.getByRole('button', { name: '次へ' }).click();
+  await createDialog.getByRole('button', { name: '追加', exact: true }).click();
+  await expect(createDialog).toBeHidden();
+
+  await page.getByRole('button', { name: '製品写真を差し替え' }).click();
+  const replaceDialog = page.getByRole('dialog');
+  await expect(replaceDialog.getByRole('heading', { name: '製品写真を選択' })).toBeVisible();
+  await expect(replaceDialog.getByRole('button', { name: '次へ' })).toBeDisabled();
+
+  await uploadPortableProductPhoto(replaceDialog, '#ff5500');
+  await replaceDialog.getByRole('button', { name: '次へ' }).click();
+  await expect(replaceDialog.getByRole('heading', { name: '画面領域を指定' })).toBeVisible();
+  // A fresh photo resets to the default centered region, same as the create flow.
+  await expect(replaceDialog.getByRole('spinbutton', { name: '領域の幅' })).toHaveValue('0.6');
+
+  await replaceDialog.getByRole('button', { name: '保存' }).click();
+  await expect(replaceDialog).toBeHidden();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  const buffer = await fs.readFile((await (await downloadPromise).path())!);
+  // (700, 280) sits inside the product photo but outside the (default) screen region - see the
+  // uploadPortableProductPhoto doc comment for the placement math.
+  const [productPixel] = await samplePngPixels(page, buffer, [[700, 280]]);
+  expect(productPixel.r).toBeGreaterThan(200);
+  expect(productPixel.g).toBeGreaterThan(50);
+  expect(productPixel.b).toBeLessThan(50);
+
+  // Two history entries exist (create, then replace); one undo reverts the photo swap but keeps
+  // the object, and only the second undo removes it entirely.
+  await page.getByRole('button', { name: '元に戻す' }).click();
+  await expect(page.getByText(NO_SIGNAGE_HINT).first()).toBeHidden();
+
+  await page.getByRole('button', { name: '元に戻す' }).click();
+  await expect(page.getByText(NO_SIGNAGE_HINT).first()).toBeVisible();
+});
+
 test('rejects a screen region smaller than the minimum size and keeps the dialog open', async ({
   page,
 }) => {

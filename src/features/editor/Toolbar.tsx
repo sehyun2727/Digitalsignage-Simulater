@@ -424,6 +424,7 @@ function SelectedSignageFields({
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const [draft, setDraft] = useState<Draft>(() => toDraft(selected));
   const [regionEditorOpen, setRegionEditorOpen] = useState(false);
+  const [photoReplaceOpen, setPhotoReplaceOpen] = useState(false);
 
   const commit = (patch: Partial<SignageObject>) => {
     commitObjectChange(selected.id, patch);
@@ -548,10 +549,10 @@ function SelectedSignageFields({
           <button type="button" onClick={() => setRegionEditorOpen(true)}>
             {messages.portableScreenRegionEditButton}
           </button>
+          <button type="button" onClick={() => setPhotoReplaceOpen(true)}>
+            {messages.portableReplacePhotoButton}
+          </button>
         </div>
-      )}
-      {selected.kind === 'portable' && (
-        <p className="toolbar-notice">{messages.portableReplacePhotoHint}</p>
       )}
 
       {selected.kind === 'portable' && regionEditorOpen && (
@@ -559,6 +560,14 @@ function SelectedSignageFields({
           mode="edit-region"
           editingObject={selected}
           onClose={() => setRegionEditorOpen(false)}
+          onImageError={onImageError}
+        />
+      )}
+      {selected.kind === 'portable' && photoReplaceOpen && (
+        <PortableBuilderModal
+          mode="replace-photo"
+          editingObject={selected}
+          onClose={() => setPhotoReplaceOpen(false)}
           onImageError={onImageError}
         />
       )}

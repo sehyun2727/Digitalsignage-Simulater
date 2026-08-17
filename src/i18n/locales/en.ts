@@ -212,14 +212,13 @@ export const en: Messages = {
   portableScreenRegionEditButton: 'Edit screen region',
   portableScreenRegionMinSizeError:
     'The screen region is too small. Make it at least 5% of the photo in both width and height.',
+  portableReplacePhotoButton: 'Replace product photo',
 
   portableCancelButton: 'Cancel',
   portableBackButton: 'Back',
   portableNextButton: 'Next',
   portableAddButton: 'Add',
   portableSaveButton: 'Save',
-  portableReplacePhotoHint:
-    'To replace the photo, delete this product and add it again as a new portable product.',
 
   toolbarAriaLabel: 'Common actions',
   toolbarSpaceSectionHeading: 'Space',

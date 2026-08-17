@@ -213,14 +213,13 @@ export const ko: Messages = {
   portableScreenRegionEditButton: '화면 영역 편집',
   portableScreenRegionMinSizeError:
     '화면 영역이 너무 작습니다. 사진 가로·세로 각각 5% 이상으로 지정해 주세요.',
+  portableReplacePhotoButton: '제품 사진 교체',
 
   portableCancelButton: '취소',
   portableBackButton: '이전',
   portableNextButton: '다음',
   portableAddButton: '추가',
   portableSaveButton: '저장',
-  portableReplacePhotoHint:
-    '사진을 교체하려면 이 제품을 삭제한 후 새 포터블 제품으로 다시 추가해 주세요.',
 
   toolbarAriaLabel: '공통 작업',
   toolbarSpaceSectionHeading: '공간',

@@ -216,14 +216,13 @@ export const ja: Messages = {
   portableScreenRegionEditButton: '画面領域を編集',
   portableScreenRegionMinSizeError:
     '画面領域が小さすぎます。写真の縦横それぞれ5%以上を指定してください。',
+  portableReplacePhotoButton: '製品写真を差し替え',
 
   portableCancelButton: 'キャンセル',
   portableBackButton: '戻る',
   portableNextButton: '次へ',
   portableAddButton: '追加',
   portableSaveButton: '保存',
-  portableReplacePhotoHint:
-    '写真を差し替えるには、この製品を削除してから新しいポータブル製品として追加し直してください。',
 
   toolbarAriaLabel: '共通操作',
   toolbarSpaceSectionHeading: '空間',

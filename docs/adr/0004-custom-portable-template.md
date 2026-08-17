@@ -3,7 +3,8 @@
 ## Status
 
 Accepted — Sprint 3. Amended — Sprint 3.1 (direct pointer-driven move/resize; see the
-region-definition and minimum-size clamp decisions below).
+region-definition and minimum-size clamp decisions below). Amended — photo replacement
+(see the "no way to replace a photo" decision below, now reversed).
 
 ## Context
 
@@ -37,21 +38,27 @@ modal, and the properties panel together.
   "photo space vs. object space" conversion is needed at render time. This is also why
   there is no product-photo crop/reframe editor in this sprint: allowing the object to
   distort away from the photo's aspect ratio would break that direct mapping.
-- **The builder is a three-step-capable, two-mode modal (`PortableBuilderModal.tsx`)**:
+- **The builder is a three-step-capable, multi-mode modal (`PortableBuilderModal.tsx`)**:
   `mode="create"` walks photo-select → define-region → add; `mode="edit-region"` (opened
   from the properties panel's "画面領域を編集" button) re-enters directly on the
   define-region step against an existing object, skipping the photo step and hiding the
-  Back button, since replacing the photo itself is out of scope (see the next decision).
-  This is the first modal/dialog in the app, so focus trap, Esc-to-close,
+  Back button, since photo replacement is a separate mode (see below); `mode="replace-photo"`
+  (opened from "製品写真を差し替え") re-enters on the photo step and, once confirmed, commits
+  to the existing object instead of adding a new one. This is the first modal/dialog in the
+  app, so focus trap, Esc-to-close,
   focus-restore-on-close, and background-scroll lock are all built from scratch
   (`role="dialog"`, `aria-modal`, `aria-labelledby` via `useId()`) rather than reused from
   an existing pattern.
-- **There is no way to replace a portable object's photo after creation.** `CLAUDE.md`
-  explicitly excludes a product-photo crop editor from this sprint, and allowing photo
-  replacement in place would reopen exactly that problem (a new photo's screen region and
-  aspect ratio have no defined relationship to the old one). The properties panel instead
-  shows `portableReplacePhotoHint`, telling the user to delete the object and add a new
-  portable product if they want a different photo.
+- ~~There is no way to replace a portable object's photo after creation.~~ **Reversed.**
+  `CLAUDE.md` originally excluded a product-photo crop editor from Sprint 3, and allowing
+  photo replacement in place would have reopened exactly that problem (a new photo's
+  screen region and aspect ratio have no defined relationship to the old one). A later
+  sprint added `mode="replace-photo"` to `PortableBuilderModal.tsx`, which sidesteps the
+  problem the same way `mode="create"` already did: it re-enters on the photo step, and
+  selecting a new photo resets the region to `defaultScreenRegion()` (via the existing
+  `handlePhotoFileChange` reset, unchanged from Sprint 3) rather than trying to remap the
+  old region onto the new photo's aspect ratio. The properties panel's "画面領域を編集"
+  button now sits next to a "製品写真を差し替え" button.
 - **Region definition supports drag-to-draw on empty preview space
   (`normalizedRectFromPoints`), dragging inside the existing region box to move it
   (`moveNormalizedRect`), dragging one of its four corner handles to resize it

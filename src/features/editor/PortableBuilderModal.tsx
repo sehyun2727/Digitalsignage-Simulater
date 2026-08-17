@@ -31,8 +31,13 @@ type RegionInteraction =
   | { mode: 'resize'; handle: ResizeHandle };
 
 interface PortableBuilderModalProps {
-  /** 'create' walks photo-select then region steps; 'edit-region' re-enters on an existing object. */
-  mode: 'create' | 'edit-region';
+  /**
+   * 'create' walks photo-select then region steps; 'edit-region' re-enters on an existing
+   * object's region step only; 'replace-photo' re-enters on the photo step but still ends by
+   * committing to the existing object (with the region reset, since the new photo's aspect
+   * ratio may no longer fit the old region).
+   */
+  mode: 'create' | 'edit-region' | 'replace-photo';
   editingObject?: PortableSignageObject;
   onClose: () => void;
   onImageError: (error: ImageValidationError) => void;
@@ -258,6 +263,20 @@ export function PortableBuilderModal({
       return;
     }
 
+    if (mode === 'replace-photo' && editingObject) {
+      if (!pendingPhoto) return;
+      commitObjectChange(editingObject.id, {
+        productSourceId: pendingPhoto.sourceId,
+        productIntrinsicWidth: pendingPhoto.naturalWidth,
+        productIntrinsicHeight: pendingPhoto.naturalHeight,
+        productHasAlpha: pendingPhoto.hasAlpha,
+        screenRegion: region,
+      });
+      wasCommittedRef.current = true;
+      onClose();
+      return;
+    }
+
     if (!pendingPhoto) return;
     addPortable({
       productSourceId: pendingPhoto.sourceId,
@@ -432,7 +451,7 @@ export function PortableBuilderModal({
               <button type="button" onClick={handleCancel}>
                 {messages.portableCancelButton}
               </button>
-              {mode === 'create' && (
+              {(mode === 'create' || mode === 'replace-photo') && (
                 <button type="button" onClick={() => setStep('photo')}>
                   {messages.portableBackButton}
                 </button>
