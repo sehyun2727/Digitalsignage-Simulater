@@ -226,7 +226,7 @@ describe('canvas object hit-area (reselection fix)', () => {
   };
   const documentSize = { width: 1000, height: 500 };
 
-  it('suppresses the contact shadow for a perspective-placed display, since its rect geometry no longer matches the warped body', () => {
+  it('switches the contact shadow to quad-anchored perspective geometry for a perspective-placed display, since its rect geometry no longer matches the warped body', () => {
     const object: DisplaySignageObject = {
       id: 'obj-5',
       kind: 'display',
@@ -250,10 +250,20 @@ describe('canvas object hit-area (reselection fix)', () => {
 
     const tree = SignageDisplayView({ object, groupProps, documentSize, spaceBackground: null });
 
-    expect(findAllByType(tree, ContactShadowView)).toHaveLength(0);
+    const shadows = findAllByType(
+      tree,
+      ContactShadowView,
+    ) as ReactElement<Record<string, unknown>>[];
+    expect(shadows).toHaveLength(1);
+    expect(shadows[0]?.props.perspective).toEqual({
+      quad: perspectiveQuad,
+      documentWidth: documentSize.width,
+      documentHeight: documentSize.height,
+    });
+    expect(shadows[0]?.props.x).toBeUndefined();
   });
 
-  it('suppresses the contact shadow for a perspective-placed portable product', () => {
+  it('switches the contact shadow to quad-anchored perspective geometry for a perspective-placed portable product', () => {
     const object: PortableSignageObject = {
       id: 'obj-6',
       kind: 'portable',
@@ -281,7 +291,17 @@ describe('canvas object hit-area (reselection fix)', () => {
 
     const tree = PortableProductView({ object, groupProps, documentSize, spaceBackground: null });
 
-    expect(findAllByType(tree, ContactShadowView)).toHaveLength(0);
+    const shadows = findAllByType(
+      tree,
+      ContactShadowView,
+    ) as ReactElement<Record<string, unknown>>[];
+    expect(shadows).toHaveLength(1);
+    expect(shadows[0]?.props.perspective).toEqual({
+      quad: perspectiveQuad,
+      documentWidth: documentSize.width,
+      documentHeight: documentSize.height,
+    });
+    expect(shadows[0]?.props.x).toBeUndefined();
   });
 
   it('still renders the contact shadow for a rect-placed display with an applied perspective quad from a prior edit', () => {

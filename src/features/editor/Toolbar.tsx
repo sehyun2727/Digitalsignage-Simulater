@@ -16,6 +16,8 @@ import {
 import {
   clampContactShadowOffset,
   clampContactShadowSetting,
+  clampContactShadowSpread,
+  clampContactShadowTint,
   clampEnvironmentIntegration,
 } from '../../lib/environmentIntegration';
 import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
@@ -37,11 +39,15 @@ import {
   getDocumentSize,
   MAX_CONTENT_SCALE,
   MAX_CONTACT_SHADOW_SETTING,
+  MAX_CONTACT_SHADOW_SPREAD,
+  MAX_CONTACT_SHADOW_TINT,
   MAX_CURVATURE_AMOUNT,
   MAX_ENVIRONMENT_INTEGRATION,
   MAX_MATERIAL_SETTING,
   MIN_CONTENT_SCALE,
   MIN_CONTACT_SHADOW_SETTING,
+  MIN_CONTACT_SHADOW_SPREAD,
+  MIN_CONTACT_SHADOW_TINT,
   MIN_CURVATURE_AMOUNT,
   MIN_ENVIRONMENT_INTEGRATION,
   MIN_MATERIAL_SETTING,
@@ -813,6 +819,9 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
   const [shadowBlurDraft, setShadowBlurDraft] = useState(object.contactShadow.blur);
   const [shadowOffsetXDraft, setShadowOffsetXDraft] = useState(object.contactShadow.offsetX);
   const [shadowOffsetYDraft, setShadowOffsetYDraft] = useState(object.contactShadow.offsetY);
+  const [shadowSpreadDraft, setShadowSpreadDraft] = useState(object.contactShadow.spread);
+  const [shadowDepthDraft, setShadowDepthDraft] = useState(object.contactShadow.depth);
+  const [shadowTintDraft, setShadowTintDraft] = useState(object.contactShadow.tint);
   const [environmentStrengthDraft, setEnvironmentStrengthDraft] = useState(
     object.environmentIntegration.strength,
   );
@@ -889,6 +898,9 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
     setShadowBlurDraft(defaults.blur);
     setShadowOffsetXDraft(defaults.offsetX);
     setShadowOffsetYDraft(defaults.offsetY);
+    setShadowSpreadDraft(defaults.spread);
+    setShadowDepthDraft(defaults.depth);
+    setShadowTintDraft(defaults.tint);
   };
 
   const resetEnvironmentIntegration = () => {
@@ -910,6 +922,9 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
     setShadowBlurDraft(patch.contactShadow.blur);
     setShadowOffsetXDraft(patch.contactShadow.offsetX);
     setShadowOffsetYDraft(patch.contactShadow.offsetY);
+    setShadowSpreadDraft(patch.contactShadow.spread);
+    setShadowDepthDraft(patch.contactShadow.depth);
+    setShadowTintDraft(patch.contactShadow.tint);
     setEnvironmentStrengthDraft(patch.environmentIntegration.strength);
   };
 
@@ -1305,6 +1320,73 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                 }
               />
             </label>
+
+            {advancedOpen && (
+              <>
+                <label>
+                  <span>{messages.editorContactShadowSpreadLabel}</span>
+                  <input
+                    type="range"
+                    min={MIN_CONTACT_SHADOW_SPREAD}
+                    max={MAX_CONTACT_SHADOW_SPREAD}
+                    value={shadowSpreadDraft}
+                    onInput={(event) => {
+                      const spread = Number((event.target as HTMLInputElement).value);
+                      setShadowSpreadDraft(spread);
+                      previewContactShadow({ spread });
+                    }}
+                    onPointerUp={() =>
+                      commitContactShadow({ spread: clampContactShadowSpread(shadowSpreadDraft) })
+                    }
+                    onBlur={() =>
+                      commitContactShadow({ spread: clampContactShadowSpread(shadowSpreadDraft) })
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>{messages.editorContactShadowDepthLabel}</span>
+                  <input
+                    type="range"
+                    min={MIN_CONTACT_SHADOW_SPREAD}
+                    max={MAX_CONTACT_SHADOW_SPREAD}
+                    value={shadowDepthDraft}
+                    onInput={(event) => {
+                      const depth = Number((event.target as HTMLInputElement).value);
+                      setShadowDepthDraft(depth);
+                      previewContactShadow({ depth });
+                    }}
+                    onPointerUp={() =>
+                      commitContactShadow({ depth: clampContactShadowSpread(shadowDepthDraft) })
+                    }
+                    onBlur={() =>
+                      commitContactShadow({ depth: clampContactShadowSpread(shadowDepthDraft) })
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>{messages.editorContactShadowTintLabel}</span>
+                  <input
+                    type="range"
+                    min={MIN_CONTACT_SHADOW_TINT}
+                    max={MAX_CONTACT_SHADOW_TINT}
+                    value={shadowTintDraft}
+                    onInput={(event) => {
+                      const tint = Number((event.target as HTMLInputElement).value);
+                      setShadowTintDraft(tint);
+                      previewContactShadow({ tint });
+                    }}
+                    onPointerUp={() =>
+                      commitContactShadow({ tint: clampContactShadowTint(shadowTintDraft) })
+                    }
+                    onBlur={() =>
+                      commitContactShadow({ tint: clampContactShadowTint(shadowTintDraft) })
+                    }
+                  />
+                </label>
+              </>
+            )}
           </>
         )}
 

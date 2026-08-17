@@ -116,6 +116,9 @@ export interface Messages {
   editorContactShadowBlurLabel: string;
   editorContactShadowOffsetXLabel: string;
   editorContactShadowOffsetYLabel: string;
+  editorContactShadowSpreadLabel: string;
+  editorContactShadowDepthLabel: string;
+  editorContactShadowTintLabel: string;
   editorContactShadowResetButton: string;
   editorEnvironmentIntegrationLabel: string;
   editorEnvironmentIntegrationStrengthLabel: string;

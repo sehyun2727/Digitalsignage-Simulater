@@ -83,11 +83,19 @@ export function PortableProductView({
 
   return (
     <>
-      {/* See SignageDisplayView.tsx: the shadow's geometry comes from the object's flat
-          x/y/width/height/rotation rect, which is disconnected from the warped body's actual
-          on-screen position once placementMode is 'perspective', so it is suppressed rather than
-          drawn in the wrong place. */}
-      {!showPerspective && (
+      {/* See SignageDisplayView.tsx: once placementMode is 'perspective', the object's flat
+          x/y/width/height/rotation rect no longer describes the warped body's actual on-screen
+          position, so the shadow switches to the quad-anchored perspective variant. */}
+      {showPerspective && object.perspectiveQuad && documentSize ? (
+        <ContactShadowView
+          perspective={{
+            quad: object.perspectiveQuad,
+            documentWidth: documentSize.width,
+            documentHeight: documentSize.height,
+          }}
+          shadow={object.contactShadow}
+        />
+      ) : (
         <ContactShadowView
           x={object.x}
           y={object.y}

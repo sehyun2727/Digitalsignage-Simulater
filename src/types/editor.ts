@@ -203,6 +203,12 @@ export interface ContactShadowSettings {
   /** Fraction of the signage silhouette size the shadow is offset, roughly -1..1. */
   offsetX: number;
   offsetY: number;
+  /** 0-200 horizontal spread multiplier; 100 is neutral (matches the pre-4.5 fixed ratio). */
+  spread: number;
+  /** 0-200 vertical depth multiplier; 100 is neutral (mainly useful for freestanding ground shadows). */
+  depth: number;
+  /** -100 (cool/blue) .. 100 (warm/amber) shadow tint; 0 is neutral black. */
+  tint: number;
 }
 
 export const DEFAULT_CONTACT_SHADOW: ContactShadowSettings = {
@@ -211,9 +217,16 @@ export const DEFAULT_CONTACT_SHADOW: ContactShadowSettings = {
   blur: 50,
   offsetX: 0,
   offsetY: 0.2,
+  spread: 100,
+  depth: 100,
+  tint: 0,
 };
 export const MIN_CONTACT_SHADOW_SETTING = 0;
 export const MAX_CONTACT_SHADOW_SETTING = 100;
+export const MIN_CONTACT_SHADOW_SPREAD = 0;
+export const MAX_CONTACT_SHADOW_SPREAD = 200;
+export const MIN_CONTACT_SHADOW_TINT = -100;
+export const MAX_CONTACT_SHADOW_TINT = 100;
 
 /**
  * A single bounded control blending the rendered signage toward the space photo's tone (reduced

@@ -99,12 +99,20 @@ export function SignageDisplayView({
 
   return (
     <>
-      {/* The shadow's geometry is derived from the object's flat x/y/width/height/rotation rect
-          (see ContactShadowView), which is meaningless once placementMode is 'perspective' — the
-          visible body has moved to perspectiveQuad's own document-space corners instead (see the
-          comment above). Rendering it anyway would draw a shadow disconnected from where the
-          warped screen actually sits, so it is suppressed rather than shown in the wrong place. */}
-      {!showPerspective && (
+      {/* Once placementMode is 'perspective', the object's flat x/y/width/height/rotation rect no
+          longer describes where the visible body sits (it warped to perspectiveQuad's own
+          document-space corners — see the comment below), so the shadow switches to the
+          quad-anchored perspective variant instead of the rect one (spec section 11). */}
+      {showPerspective && object.perspectiveQuad && documentSize ? (
+        <ContactShadowView
+          perspective={{
+            quad: object.perspectiveQuad,
+            documentWidth: documentSize.width,
+            documentHeight: documentSize.height,
+          }}
+          shadow={object.contactShadow}
+        />
+      ) : (
         <ContactShadowView
           x={object.x}
           y={object.y}

@@ -1,10 +1,15 @@
 import {
   MAX_CONTACT_SHADOW_SETTING,
+  MAX_CONTACT_SHADOW_SPREAD,
+  MAX_CONTACT_SHADOW_TINT,
   MAX_ENVIRONMENT_INTEGRATION,
   MIN_CONTACT_SHADOW_SETTING,
+  MIN_CONTACT_SHADOW_SPREAD,
+  MIN_CONTACT_SHADOW_TINT,
   MIN_ENVIRONMENT_INTEGRATION,
 } from '../types/editor';
 import type { ContactShadowSettings, DisplayMaterial, InstallationMode } from '../types/editor';
+import type { NormalizedQuad } from './quadGeometry';
 import { normalizeMaterial } from './materialTexture';
 
 /** Contact shadow strength/blur share the same 0-100 range as material settings. */
@@ -16,6 +21,32 @@ const MAX_CONTACT_SHADOW_OFFSET = 1;
 
 export function clampContactShadowOffset(offset: number): number {
   return Math.min(MAX_CONTACT_SHADOW_OFFSET, Math.max(-MAX_CONTACT_SHADOW_OFFSET, offset));
+}
+
+export function clampContactShadowSpread(value: number): number {
+  return Math.min(MAX_CONTACT_SHADOW_SPREAD, Math.max(MIN_CONTACT_SHADOW_SPREAD, value));
+}
+
+export function clampContactShadowTint(value: number): number {
+  return Math.min(MAX_CONTACT_SHADOW_TINT, Math.max(MIN_CONTACT_SHADOW_TINT, value));
+}
+
+/**
+ * Shadow fill color for a -100 (cool/blue) .. 100 (warm/amber) tint setting: 0 stays neutral
+ * black (the pre-4.5 fixed fill), and each direction interpolates toward a restrained, desaturated
+ * hue rather than a saturated color so a "warm/cool" shadow never reads as a colored spotlight.
+ */
+export function contactShadowFillColor(tint: number): string {
+  const clamped = clampContactShadowTint(tint);
+  if (clamped === 0) return '#000000';
+  const magnitude = Math.abs(clamped) / 100;
+  const [r, g, b] =
+    clamped > 0
+      ? [26 * magnitude, 14 * magnitude, 0]
+      : [0, 14 * magnitude, 28 * magnitude];
+  const toHex = (channel: number) =>
+    Math.round(channel).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
 export function clampEnvironmentIntegration(strength: number): number {
@@ -47,29 +78,118 @@ export interface ContactShadowGeometry {
   radiusX: number;
   radiusY: number;
   opacity: number;
+  fill: string;
+  /** Additional rotation (degrees) on top of any rotation the caller already applies. */
+  rotationDeg: number;
+  /** Footprint size feeding `contactShadowBlurRadius`, so blur stays bounded to the object's own
+   * silhouette in both rect and perspective mode instead of the full document. */
+  footprintWidth: number;
+  footprintHeight: number;
 }
 
 const MAX_SHADOW_OPACITY = 0.6;
+/** Neutral (spread/depth = 100) horizontal/vertical radius ratios, unchanged from the pre-4.5 shadow. */
+const BASE_RADIUS_X_RATIO = 0.85;
+const BASE_RADIUS_Y_RATIO = 0.08;
 
 /**
- * Geometry/opacity for a squashed-ellipse ground-contact shadow beneath an object's own
- * (unwarped) bounding-box footprint — including in perspective placement mode, where warping the
- * shadow itself into the quad would add significant complexity for a visual-only effect that ADR
- * 0007 already treats as an approximation, not a physical simulation. Returns null when the
- * shadow would be invisible, so callers can skip rendering entirely.
+ * Geometry/opacity/fill for a squashed-ellipse ground-contact shadow beneath an object's own
+ * (unwarped) bounding-box footprint. Returns null when the shadow would be invisible, so callers
+ * can skip rendering entirely.
  */
 export function computeContactShadowGeometry(
   width: number,
   height: number,
-  shadow: { enabled: boolean; strength: number; blur: number; offsetX: number; offsetY: number },
+  shadow: {
+    enabled: boolean;
+    strength: number;
+    blur: number;
+    offsetX: number;
+    offsetY: number;
+    spread: number;
+    depth: number;
+    tint: number;
+  },
 ): ContactShadowGeometry | null {
   if (!shadow.enabled || shadow.strength <= 0 || width <= 0 || height <= 0) return null;
+  const spreadFactor = clampContactShadowSpread(shadow.spread) / 100;
+  const depthFactor = clampContactShadowSpread(shadow.depth) / 100;
   return {
     centerX: width / 2 + clampContactShadowOffset(shadow.offsetX) * width,
     centerY: height + clampContactShadowOffset(shadow.offsetY) * height,
-    radiusX: (width / 2) * 0.85,
-    radiusY: Math.max(6, height * 0.08),
+    radiusX: (width / 2) * BASE_RADIUS_X_RATIO * spreadFactor,
+    radiusY: Math.max(6, height * BASE_RADIUS_Y_RATIO * depthFactor),
     opacity: (clampContactShadowSetting(shadow.strength) / 100) * MAX_SHADOW_OPACITY,
+    fill: contactShadowFillColor(shadow.tint),
+    rotationDeg: 0,
+    footprintWidth: width,
+    footprintHeight: height,
+  };
+}
+
+/**
+ * Perspective-aligned variant of `computeContactShadowGeometry`: instead of the object's own
+ * unwarped bounding box, anchors the shadow ellipse to the perspective quad's bottom edge (in
+ * absolute document pixel coordinates) so a wall/floor display placed via four-point perspective
+ * (ADR 0008) still casts a shadow that sits under its actual warped footprint, rather than being
+ * suppressed outright. This is a documented visual approximation (spec section 11) — the ellipse
+ * itself is not re-projected into the quad's own perspective, only anchored and rotated to its
+ * bottom edge.
+ */
+export function computePerspectiveContactShadowGeometry(
+  quad: NormalizedQuad,
+  documentWidth: number,
+  documentHeight: number,
+  shadow: {
+    enabled: boolean;
+    strength: number;
+    blur: number;
+    offsetX: number;
+    offsetY: number;
+    spread: number;
+    depth: number;
+    tint: number;
+  },
+): ContactShadowGeometry | null {
+  if (!shadow.enabled || shadow.strength <= 0 || documentWidth <= 0 || documentHeight <= 0) {
+    return null;
+  }
+  const toPx = (point: { x: number; y: number }) => ({
+    x: point.x * documentWidth,
+    y: point.y * documentHeight,
+  });
+  const bottomLeft = toPx(quad.bottomLeft);
+  const bottomRight = toPx(quad.bottomRight);
+  const topLeft = toPx(quad.topLeft);
+  const topRight = toPx(quad.topRight);
+
+  const edgeDx = bottomRight.x - bottomLeft.x;
+  const edgeDy = bottomRight.y - bottomLeft.y;
+  const edgeLength = Math.hypot(edgeDx, edgeDy);
+  if (edgeLength <= 0) return null;
+
+  const quadHeight =
+    (Math.hypot(bottomLeft.x - topLeft.x, bottomLeft.y - topLeft.y) +
+      Math.hypot(bottomRight.x - topRight.x, bottomRight.y - topRight.y)) /
+    2;
+
+  const spreadFactor = clampContactShadowSpread(shadow.spread) / 100;
+  const depthFactor = clampContactShadowSpread(shadow.depth) / 100;
+  const rotationDeg = (Math.atan2(edgeDy, edgeDx) * 180) / Math.PI;
+  const midX = (bottomLeft.x + bottomRight.x) / 2;
+  const midY = (bottomLeft.y + bottomRight.y) / 2;
+  const offsetAlongNormalY = clampContactShadowOffset(shadow.offsetY) * quadHeight;
+
+  return {
+    centerX: midX + clampContactShadowOffset(shadow.offsetX) * edgeLength,
+    centerY: midY + offsetAlongNormalY,
+    radiusX: (edgeLength / 2) * BASE_RADIUS_X_RATIO * spreadFactor,
+    radiusY: Math.max(6, quadHeight * BASE_RADIUS_Y_RATIO * depthFactor),
+    opacity: (clampContactShadowSetting(shadow.strength) / 100) * MAX_SHADOW_OPACITY,
+    fill: contactShadowFillColor(shadow.tint),
+    rotationDeg,
+    footprintWidth: edgeLength,
+    footprintHeight: quadHeight,
   };
 }
 
@@ -99,7 +219,34 @@ export function resolveShadowMode(
 
 /** Default contact-shadow settings per installation plane, replacing the flat disabled-by-default. */
 export const SHADOW_MODE_BASE: Record<ShadowMode, ContactShadowSettings> = {
-  wall: { enabled: true, strength: 30, blur: 35, offsetX: 0, offsetY: 0.035 },
-  window: { enabled: true, strength: 18, blur: 30, offsetX: 0, offsetY: 0.03 },
-  freestanding: { enabled: true, strength: 35, blur: 40, offsetX: 0, offsetY: 0.06 },
+  wall: {
+    enabled: true,
+    strength: 30,
+    blur: 35,
+    offsetX: 0,
+    offsetY: 0.035,
+    spread: 100,
+    depth: 70,
+    tint: 0,
+  },
+  window: {
+    enabled: true,
+    strength: 18,
+    blur: 30,
+    offsetX: 0,
+    offsetY: 0.03,
+    spread: 90,
+    depth: 60,
+    tint: 0,
+  },
+  freestanding: {
+    enabled: true,
+    strength: 35,
+    blur: 40,
+    offsetX: 0,
+    offsetY: 0.06,
+    spread: 120,
+    depth: 110,
+    tint: 8,
+  },
 };
