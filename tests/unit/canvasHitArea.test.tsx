@@ -250,10 +250,9 @@ describe('canvas object hit-area (reselection fix)', () => {
 
     const tree = SignageDisplayView({ object, groupProps, documentSize, spaceBackground: null });
 
-    const shadows = findAllByType(
-      tree,
-      ContactShadowView,
-    ) as ReactElement<Record<string, unknown>>[];
+    const shadows = findAllByType(tree, ContactShadowView) as ReactElement<
+      Record<string, unknown>
+    >[];
     expect(shadows).toHaveLength(1);
     expect(shadows[0]?.props.perspective).toEqual({
       quad: perspectiveQuad,
@@ -291,10 +290,9 @@ describe('canvas object hit-area (reselection fix)', () => {
 
     const tree = PortableProductView({ object, groupProps, documentSize, spaceBackground: null });
 
-    const shadows = findAllByType(
-      tree,
-      ContactShadowView,
-    ) as ReactElement<Record<string, unknown>>[];
+    const shadows = findAllByType(tree, ContactShadowView) as ReactElement<
+      Record<string, unknown>
+    >[];
     expect(shadows).toHaveLength(1);
     expect(shadows[0]?.props.perspective).toEqual({
       quad: perspectiveQuad,

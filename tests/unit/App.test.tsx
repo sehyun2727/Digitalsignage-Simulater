@@ -495,7 +495,9 @@ describe('App', () => {
       expect(naturalButton).toHaveAttribute('aria-pressed', 'true');
       expect(nightButton).toHaveAttribute('aria-pressed', 'false');
 
-      const brightnessSlider = screen.getByRole('slider', { name: ja.editorMaterialBrightnessLabel });
+      const brightnessSlider = screen.getByRole('slider', {
+        name: ja.editorMaterialBrightnessLabel,
+      });
       const naturalBrightness = brightnessSlider.getAttribute('value');
 
       await user.click(nightButton);
@@ -503,7 +505,9 @@ describe('App', () => {
       expect(nightButton).toHaveAttribute('aria-pressed', 'true');
       expect(naturalButton).toHaveAttribute('aria-pressed', 'false');
       expect(brightnessSlider.getAttribute('value')).not.toBe(naturalBrightness);
-      expect(Number(brightnessSlider.getAttribute('value'))).toBeLessThan(Number(naturalBrightness));
+      expect(Number(brightnessSlider.getAttribute('value'))).toBeLessThan(
+        Number(naturalBrightness),
+      );
     });
 
     it('undoing an added display removes it and clears the properties panel', async () => {

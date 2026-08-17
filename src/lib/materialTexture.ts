@@ -37,7 +37,8 @@ const GRID_OPACITY_MIN_MULTIPLIER = 0.25;
 function sizeAwareGridMultiplier(screenSizePx: number): number {
   if (screenSizePx >= GRID_OPACITY_FULL_SIZE) return 1;
   if (screenSizePx <= GRID_OPACITY_MIN_SIZE) return GRID_OPACITY_MIN_MULTIPLIER;
-  const t = (screenSizePx - GRID_OPACITY_MIN_SIZE) / (GRID_OPACITY_FULL_SIZE - GRID_OPACITY_MIN_SIZE);
+  const t =
+    (screenSizePx - GRID_OPACITY_MIN_SIZE) / (GRID_OPACITY_FULL_SIZE - GRID_OPACITY_MIN_SIZE);
   return GRID_OPACITY_MIN_MULTIPLIER + t * (1 - GRID_OPACITY_MIN_MULTIPLIER);
 }
 

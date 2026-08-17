@@ -11,6 +11,7 @@ on:
         feature/sprint-3-custom-portable,
         feature/sprint-4-3-perspective-video,
         feature/sprint-4-4-photorealistic-rendering,
+        feature/sprint-4-5-scene-integration-qa,
       ]
 
 permissions:
@@ -47,6 +48,22 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests (Playwright, includes golden-image visual QA)
+        run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
 
   docker:
     name: Docker build

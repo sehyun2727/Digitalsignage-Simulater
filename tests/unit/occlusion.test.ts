@@ -141,7 +141,12 @@ describe('validateOcclusionPolygon / isOcclusionPolygonValid', () => {
   });
 
   it('rejects fewer than the minimum number of points', () => {
-    expect(validateOcclusionPolygon([{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.2 }])).toEqual({
+    expect(
+      validateOcclusionPolygon([
+        { x: 0.1, y: 0.1 },
+        { x: 0.2, y: 0.2 },
+      ]),
+    ).toEqual({
       valid: false,
       reason: 'too-few-points',
     });

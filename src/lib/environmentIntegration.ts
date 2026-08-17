@@ -41,11 +41,8 @@ export function contactShadowFillColor(tint: number): string {
   if (clamped === 0) return '#000000';
   const magnitude = Math.abs(clamped) / 100;
   const [r, g, b] =
-    clamped > 0
-      ? [26 * magnitude, 14 * magnitude, 0]
-      : [0, 14 * magnitude, 28 * magnitude];
-  const toHex = (channel: number) =>
-    Math.round(channel).toString(16).padStart(2, '0');
+    clamped > 0 ? [26 * magnitude, 14 * magnitude, 0] : [0, 14 * magnitude, 28 * magnitude];
+  const toHex = (channel: number) => Math.round(channel).toString(16).padStart(2, '0');
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
@@ -77,7 +74,9 @@ export function environmentBlendOpacity(strength: number): number {
  * working 2D context; see assetRegistry.ts's detectHasAlpha for the same split). */
 export function averageColorToHex(r: number, g: number, b: number): string {
   const toHex = (channel: number) =>
-    Math.round(Math.min(255, Math.max(0, channel))).toString(16).padStart(2, '0');
+    Math.round(Math.min(255, Math.max(0, channel)))
+      .toString(16)
+      .padStart(2, '0');
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 

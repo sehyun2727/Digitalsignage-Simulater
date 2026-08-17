@@ -78,7 +78,9 @@ describe('materialPatternOpacity', () => {
   });
 
   it('leaves LCD unaffected by screen size (it is a highlight band, not a pixel grid)', () => {
-    expect(materialPatternOpacity('lcd', 100, 20)).toBeCloseTo(materialPatternOpacity('lcd', 100, 200));
+    expect(materialPatternOpacity('lcd', 100, 20)).toBeCloseTo(
+      materialPatternOpacity('lcd', 100, 200),
+    );
   });
 
   it('defaults to full-size opacity when no screen size is given', () => {

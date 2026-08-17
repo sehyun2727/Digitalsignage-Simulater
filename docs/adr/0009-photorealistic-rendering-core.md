@@ -29,14 +29,14 @@ generation).
   and `getPresetEnvironmentIntegration` extend the same preset id to shadow strength and
   environment-blend strength, so one preset choice adjusts every layer together. `addDisplay`/
   `addPortable` (`editorStore.ts`) seed new objects from `resolvePresetPatch(..., DEFAULT_
-  RENDERING_PRESET)` instead of copying flat constants; the Toolbar's "Reset" actions now resolve
+RENDERING_PRESET)` instead of copying flat constants; the Toolbar's "Reset" actions now resolve
   to the `natural` preset per-material rather than one identical legacy default, and a new preset
   button group (`applyRenderingPreset` store action) lets a user re-seed all three layers at once.
   `detectActivePreset` is a pure, unpersisted reverse lookup ("does the object's current state
   exactly match a preset's resolved patch") used only to highlight the active button — it stops
   matching the moment a user hand-edits any slider, which is the intended behavior, not a bug.
 - **Glow is scaled by actual content luminance, not just silhouette alpha.** `src/lib/
-  contentLuminance.ts`'s `sampleMeanLuminance` reads a downscaled (24x24) canvas copy of image
+contentLuminance.ts`'s `sampleMeanLuminance` reads a downscaled (24x24) canvas copy of image
   content — mirroring the existing `detectHasAlpha` sampling precedent in `assetRegistry.ts` — and
   `glowLuminanceFactor` maps that into a `[0.15, 1]` multiplier applied to `materialSettings.glow`
   in `ScreenComposition.tsx`. Video content is deliberately **not** sampled (a canvas readback per
@@ -55,7 +55,7 @@ generation).
   `LCD_HIGHLIGHT_COLOR_STOPS` changed from a single 0→1 diagonal ramp to a five-stop band
   (transparent until 22%, sharp peak at 30%, transparent again by 42%), and its cap
   (`LCD_HIGHLIGHT_MAX_OPACITY`) rose from 0.15 to 0.5 since the band itself is now narrow — the
-  earlier low cap existed to keep a *full-width* wash from looking too strong, and no longer
+  earlier low cap existed to keep a _full-width_ wash from looking too strong, and no longer
   applies to a localized streak. **A real coordinate-space bug was found and fixed while
   re-verifying this against a correctly rebuilt app** (see Consequences): the gradient's
   `fillLinearGradientStartPoint`/`EndPoint` in `ScreenComposition.tsx` had been set to
@@ -67,7 +67,7 @@ generation).
   20% into the object). Fixed to `{x: 0, y: 0}`/`{x: screen.width, y: screen.height}`.
 - **Environment-integration blend is restricted to the screen region, not the whole object.**
   `SignageDisplayView.tsx`'s blend `Rect` now uses `screen.x/y/width/height` instead of `0/0/
-  object.width/object.height`, so the physical-looking frame/bezel stays out of the wash
+object.width/object.height`, so the physical-looking frame/bezel stays out of the wash
   (`PortableProductView.tsx` already scoped its blend to the screen region and needed no change).
   `MAX_ENVIRONMENT_BLEND_OPACITY` also dropped from 0.35 to 0.22 — even screen-scoped, the old cap
   read as too aggressive a desaturation at full strength.
@@ -76,24 +76,24 @@ generation).
   for Transparent-LED, `'freestanding'` for a portable product) and `SHADOW_MODE_BASE`, replacing
   the old single `DEFAULT_CONTACT_SHADOW` (`enabled: false`). A freshly added object now already
   has a plausible, plane-appropriate shadow — a wall display's is tight and close (`offsetY:
-  0.035`), a portable's is larger and more separated (`offsetY: 0.06`) — instead of requiring the
+0.035`), a portable's is larger and more separated (`offsetY: 0.06`) — instead of requiring the
   user to opt in before the default composition looks credible. Rendering presets further scale
   each mode's base `strength` (`PRESET_SHADOW_MULTIPLIER`: bright 1.2x, night 0.7x).
 - **Bezel thickness is capped, not just floored.** `SignageDisplayView.tsx`'s `bezelThickness`
   changed from `Math.max(4, min(w,h) * 0.04)` (unbounded at the top end) to `Math.min(18,
-  Math.max(4, ...))`, so a very large display's bezel can no longer grow arbitrarily thick.
+Math.max(4, ...))`, so a very large display's bezel can no longer grow arbitrarily thick.
 - **Curvature strip seams are hidden by a small interior clip-edge overlap, not by increasing
   strip count.** `curvature.ts`'s `computeCurvatureStrips` now returns both a strip's true
   (non-overlapping) `x`/`width` — still used unchanged for the bezel outline geometry
   (`computeCurvatureOutlinePoints`) — and a separate `clipX`/`clipWidth` widened by `STRIP_SEAM_
-  OVERLAP_PX / 2` (0.5px) at interior boundaries only, leaving the outermost strips' true screen
+OVERLAP_PX / 2` (0.5px) at interior boundaries only, leaving the outermost strips' true screen
   edges untouched. `ScreenComposition.tsx`'s per-strip `clipFunc` uses the widened rect, so
   adjacent strips' independently-clipped/transformed Konva Groups overlap by a sub-pixel amount
   instead of leaving a hairline anti-aliasing gap.
 - **Cached Konva bitmaps are re-baked at export resolution immediately before every PNG export,
   then restored to interactive-editing resolution immediately after.** Konva's `.cache()` bakes a
   filtered node's bitmap at `devicePixelRatio` by default, independent of a later `stage.
-  toDataURL({pixelRatio})` export call — so LED's non-neutral default contrast (52, see the
+toDataURL({pixelRatio})` export call — so LED's non-neutral default contrast (52, see the
   preset baselines above) or an active contact-shadow blur previously exported visibly blurrier
   than the live preview once export renders far above screen resolution (a large source photo
   shown small, per `EditorCanvas.tsx`'s `exportPixelRatio`). The new `src/lib/konvaCacheSync.ts`
@@ -104,7 +104,7 @@ generation).
 - **No golden-image/screenshot-diff pipeline was built.** Per the baseline report's explicit scope
   decision, a full "render N fixtures and diff pixels" harness (spec §22-23, `npm run qa:visual`)
   is a substantial separate piece of infrastructure and stayed out of scope for this pass. Instead:
-  deterministic *unit-level* helpers (`contentLuminance.ts`'s luminance sampling,
+  deterministic _unit-level_ helpers (`contentLuminance.ts`'s luminance sampling,
   `renderingPresets.ts`'s pure preset resolution — both fully unit-testable without a real canvas)
   plus targeted Playwright pixel assertions for the specific defects above (contact-shadow-enabled-
   by-default rendering in the export, rendering-preset brightness differences in the export, the

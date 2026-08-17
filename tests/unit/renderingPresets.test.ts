@@ -130,7 +130,13 @@ describe('detectActivePreset', () => {
     const patch = resolvePresetPatch('display', 'led', 'natural');
     const edited = { ...patch.materialSettings, intensity: 7 };
     expect(
-      detectActivePreset('display', 'led', edited, patch.contactShadow, patch.environmentIntegration),
+      detectActivePreset(
+        'display',
+        'led',
+        edited,
+        patch.contactShadow,
+        patch.environmentIntegration,
+      ),
     ).toBeNull();
   });
 });

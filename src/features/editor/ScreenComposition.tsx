@@ -172,7 +172,11 @@ export function ScreenComposition({
       ? computeContentLayout(screen, asset.naturalWidth, asset.naturalHeight, content)
       : null;
   const screenSizePx = Math.min(screen.width, screen.height);
-  const patternOpacity = materialPatternOpacity(normalized, materialSettings.intensity, screenSizePx);
+  const patternOpacity = materialPatternOpacity(
+    normalized,
+    materialSettings.intensity,
+    screenSizePx,
+  );
   const brightnessOverlay = getBrightnessOverlay(materialSettings.brightness);
   // Video content is deliberately not sampled (a canvas readback per animation frame would add
   // real per-frame cost for a visual-only approximation); its glow keeps the prior
