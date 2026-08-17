@@ -1,0 +1,217 @@
+import { useEffect, useRef } from 'react';
+import { useLocale } from '../../i18n/localeContext';
+import { documentToPreviewPoint, previewToDocumentPoint } from '../../lib/quadGeometry';
+import {
+  clampPoint01,
+  documentToNormalized,
+  normalizedToDocument,
+  validateOcclusionPolygon,
+} from '../../lib/occlusion';
+import type { DocumentSize, OcclusionInvalidReason, Point } from '../../lib/occlusion';
+import { useEditorStore } from '../../store/editorStore';
+import { MAX_OCCLUSION_POINTS, MIN_OCCLUSION_POINTS } from '../../types/editor';
+import type { Messages } from '../../types/i18n';
+
+interface OcclusionEditOverlayProps {
+  documentSize: DocumentSize;
+  fitScale: number;
+}
+
+type StringMessageKey = {
+  [K in keyof Messages]: Messages[K] extends string ? K : never;
+}[keyof Messages];
+
+const ERROR_MESSAGE_KEY: Record<OcclusionInvalidReason, StringMessageKey> = {
+  'too-few-points': 'editorOcclusionErrorTooFewPoints',
+  'too-many-points': 'editorOcclusionErrorTooManyPoints',
+  'invalid-values': 'editorOcclusionErrorInvalidValues',
+  'out-of-bounds': 'editorOcclusionErrorOutOfBounds',
+  'duplicate-points': 'editorOcclusionErrorDuplicatePoints',
+  'self-intersecting': 'editorOcclusionErrorSelfIntersecting',
+  'min-area': 'editorOcclusionErrorMinArea',
+};
+
+/** Keyboard nudge step for a point handle, in normalized (0-1) document fraction. */
+const NUDGE_STEP = 0.01;
+const NUDGE_STEP_LARGE = 0.05;
+
+/**
+ * HTML overlay for editing an arbitrary-point occlusion polygon, structurally mirroring
+ * PerspectiveEditOverlay.tsx (same preview<->document<->normalized coordinate conversions, same
+ * pointer-capture drag pattern) but generalized to a variable point count: clicking empty overlay
+ * space appends a new point, and each handle can be removed via Delete/Backspace when focused.
+ */
+export function OcclusionEditOverlay({ documentSize, fitScale }: OcclusionEditOverlayProps) {
+  const { messages } = useLocale();
+  const occlusionEditObjectId = useEditorStore((state) => state.occlusionEditObjectId);
+  const draftPoints = useEditorStore((state) => state.occlusionDraftPoints);
+  const draftFeather = useEditorStore((state) => state.occlusionDraftFeather);
+  const draftOpacity = useEditorStore((state) => state.occlusionDraftOpacity);
+  const updateOcclusionDraftPoints = useEditorStore((state) => state.updateOcclusionDraftPoints);
+  const setOcclusionDraftFeather = useEditorStore((state) => state.setOcclusionDraftFeather);
+  const setOcclusionDraftOpacity = useEditorStore((state) => state.setOcclusionDraftOpacity);
+  const applyOcclusionEdit = useEditorStore((state) => state.applyOcclusionEdit);
+  const cancelOcclusionEdit = useEditorStore((state) => state.cancelOcclusionEdit);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const activePointRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!occlusionEditObjectId) return;
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      cancelOcclusionEdit();
+    };
+    window.addEventListener('keydown', handleWindowKeyDown);
+    return () => window.removeEventListener('keydown', handleWindowKeyDown);
+  }, [occlusionEditObjectId, cancelOcclusionEdit]);
+
+  if (!occlusionEditObjectId) return null;
+
+  const validation = validateOcclusionPolygon(draftPoints);
+
+  const previewPointFor = (point: Point): Point =>
+    documentToPreviewPoint(normalizedToDocument(point, documentSize), fitScale);
+
+  const normalizedFromClient = (clientX: number, clientY: number): Point | null => {
+    const box = containerRef.current?.getBoundingClientRect();
+    if (!box) return null;
+    const previewPoint = { x: clientX - box.left, y: clientY - box.top };
+    const documentPoint = previewToDocumentPoint(previewPoint, fitScale);
+    return clampPoint01(documentToNormalized(documentPoint, documentSize));
+  };
+
+  const handleBackgroundClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    if (draftPoints.length >= MAX_OCCLUSION_POINTS) return;
+    const point = normalizedFromClient(event.clientX, event.clientY);
+    if (!point) return;
+    updateOcclusionDraftPoints([...draftPoints, point]);
+  };
+
+  const handlePointPointerDown = (index: number) => (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    activePointRef.current = index;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.currentTarget.focus();
+  };
+
+  const handlePointPointerMove = (index: number) => (event: React.PointerEvent<HTMLDivElement>) => {
+    if (activePointRef.current !== index) return;
+    const point = normalizedFromClient(event.clientX, event.clientY);
+    if (!point) return;
+    const next = [...draftPoints];
+    next[index] = point;
+    updateOcclusionDraftPoints(next);
+  };
+
+  const handlePointPointerUp = (index: number) => (event: React.PointerEvent<HTMLDivElement>) => {
+    if (activePointRef.current !== index) return;
+    activePointRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const removePoint = (index: number) => {
+    if (draftPoints.length <= MIN_OCCLUSION_POINTS) return;
+    updateOcclusionDraftPoints(draftPoints.filter((_, pointIndex) => pointIndex !== index));
+  };
+
+  const handlePointKeyDown = (index: number) => (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      event.preventDefault();
+      removePoint(index);
+      return;
+    }
+    const step = event.shiftKey ? NUDGE_STEP_LARGE : NUDGE_STEP;
+    let delta: Point | null = null;
+    if (event.key === 'ArrowLeft') delta = { x: -step, y: 0 };
+    else if (event.key === 'ArrowRight') delta = { x: step, y: 0 };
+    else if (event.key === 'ArrowUp') delta = { x: 0, y: -step };
+    else if (event.key === 'ArrowDown') delta = { x: 0, y: step };
+    if (!delta) return;
+    event.preventDefault();
+    const current = draftPoints[index]!;
+    const next = clampPoint01({ x: current.x + delta.x, y: current.y + delta.y });
+    const nextPoints = [...draftPoints];
+    nextPoints[index] = next;
+    updateOcclusionDraftPoints(nextPoints);
+  };
+
+  const outlinePoints = draftPoints
+    .map((point) => {
+      const preview = previewPointFor(point);
+      return `${preview.x},${preview.y}`;
+    })
+    .join(' ');
+
+  return (
+    <div className="occlusion-edit-overlay" ref={containerRef} onClick={handleBackgroundClick}>
+      <p className="occlusion-edit-hint">{messages.editorOcclusionHint}</p>
+      {draftPoints.length >= 2 && (
+        <svg className="occlusion-edit-outline" aria-hidden="true">
+          <polygon points={outlinePoints} />
+        </svg>
+      )}
+      {draftPoints.map((point, index) => {
+        const preview = previewPointFor(point);
+        return (
+          <div
+            key={index}
+            role="slider"
+            tabIndex={0}
+            className="occlusion-edit-handle"
+            style={{ left: `${preview.x}px`, top: `${preview.y}px` }}
+            aria-label={`${messages.editorOcclusionPointLabel} ${index + 1}`}
+            aria-valuetext={`${Math.round(point.x * 100)}%, ${Math.round(point.y * 100)}%`}
+            onPointerDown={handlePointPointerDown(index)}
+            onPointerMove={handlePointPointerMove(index)}
+            onPointerUp={handlePointPointerUp(index)}
+            onPointerCancel={handlePointPointerUp(index)}
+            onKeyDown={handlePointKeyDown(index)}
+          >
+            {index + 1}
+          </div>
+        );
+      })}
+      <div className="occlusion-edit-panel">
+        <label>
+          <span>{messages.editorOcclusionFeatherLabel}</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={draftFeather}
+            onChange={(event) => setOcclusionDraftFeather(Number(event.target.value))}
+          />
+        </label>
+        <label>
+          <span>{messages.editorOcclusionOpacityLabel}</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={draftOpacity}
+            onChange={(event) => setOcclusionDraftOpacity(Number(event.target.value))}
+          />
+        </label>
+        {!validation.valid && validation.reason && (
+          <p role="alert" className="editor-properties-error">
+            {messages[ERROR_MESSAGE_KEY[validation.reason]]}
+          </p>
+        )}
+        <div className="editor-properties-actions">
+          <button type="button" onClick={cancelOcclusionEdit}>
+            {messages.editorOcclusionCancelButton}
+          </button>
+          <button type="button" onClick={() => applyOcclusionEdit()} disabled={!validation.valid}>
+            {messages.editorOcclusionApplyButton}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

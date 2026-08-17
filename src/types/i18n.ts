@@ -138,6 +138,33 @@ export interface Messages {
   editorPerspectiveErrorMinEdge: string;
   editorPerspectiveErrorInvalidValues: string;
 
+  editorInstallationModeLabel: string;
+  editorInstallationModeWall: string;
+  editorInstallationModeWindow: string;
+  editorInstallationModeFreestanding: string;
+
+  editorOcclusionLabel: string;
+  editorOcclusionMaskItemLabel: string;
+  editorOcclusionEmptyHint: string;
+  editorOcclusionAddButton: string;
+  editorOcclusionEditButton: string;
+  editorOcclusionDeleteButton: string;
+  editorOcclusionEnableLabel: string;
+  editorOcclusionPointLabel: string;
+  editorOcclusionHint: string;
+  editorOcclusionFeatherLabel: string;
+  editorOcclusionOpacityLabel: string;
+  editorOcclusionApplyButton: string;
+  editorOcclusionCancelButton: string;
+  editorOcclusionNoSpaceHint: string;
+  editorOcclusionErrorTooFewPoints: string;
+  editorOcclusionErrorTooManyPoints: string;
+  editorOcclusionErrorInvalidValues: string;
+  editorOcclusionErrorOutOfBounds: string;
+  editorOcclusionErrorDuplicatePoints: string;
+  editorOcclusionErrorSelfIntersecting: string;
+  editorOcclusionErrorMinArea: string;
+
   portableSectionHeading: string;
   editorAddPortableButton: string;
   portableTypeLabel: string;

@@ -58,6 +58,7 @@ import type {
   DisplayMaterial,
   DisplaySignageObject,
   EnvironmentIntegrationSettings,
+  InstallationMode,
   MaterialSettings,
   PerspectiveCapableObject,
   PortableSignageObject,
@@ -795,6 +796,11 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const updateObjectTransient = useEditorStore((state) => state.updateObjectTransient);
   const applyRenderingPresetAction = useEditorStore((state) => state.applyRenderingPreset);
+  const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
+  const occlusionEditObjectId = useEditorStore((state) => state.occlusionEditObjectId);
+  const beginOcclusionEdit = useEditorStore((state) => state.beginOcclusionEdit);
+  const deleteOcclusionMask = useEditorStore((state) => state.deleteOcclusionMask);
+  const setOcclusionMaskEnabled = useEditorStore((state) => state.setOcclusionMaskEnabled);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [intensityDraft, setIntensityDraft] = useState(object.materialSettings.intensity);
   const [brightnessDraft, setBrightnessDraft] = useState(object.materialSettings.brightness);
@@ -1148,6 +1154,71 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
           {messages.editorCurvatureResetButton}
         </button>
       )}
+
+      <div className="toolbar-subsection">
+        <span className="toolbar-subsection-heading">{messages.editorInstallationModeLabel}</span>
+        <label>
+          <span>{messages.editorInstallationModeLabel}</span>
+          <select
+            value={object.installationMode}
+            onChange={(event) =>
+              commit({ installationMode: event.target.value as InstallationMode })
+            }
+          >
+            <option value="wall">{messages.editorInstallationModeWall}</option>
+            <option value="window">{messages.editorInstallationModeWindow}</option>
+            <option value="freestanding">{messages.editorInstallationModeFreestanding}</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="toolbar-subsection">
+        <span className="toolbar-subsection-heading">{messages.editorOcclusionLabel}</span>
+
+        {object.occlusionMasks.length === 0 ? (
+          <p className="toolbar-notice">{messages.editorOcclusionEmptyHint}</p>
+        ) : (
+          <ul className="toolbar-occlusion-list">
+            {object.occlusionMasks.map((mask, index) => (
+              <li key={mask.id}>
+                <label className="toolbar-checkbox-field">
+                  <input
+                    type="checkbox"
+                    checked={mask.enabled}
+                    onChange={(event) =>
+                      setOcclusionMaskEnabled(object.id, mask.id, event.target.checked)
+                    }
+                  />
+                  <span>
+                    {messages.editorOcclusionMaskItemLabel} {index + 1}
+                  </span>
+                </label>
+                <div className="toolbar-actions">
+                  <button type="button" onClick={() => beginOcclusionEdit(object.id, mask.id)}>
+                    {messages.editorOcclusionEditButton}
+                  </button>
+                  <button type="button" onClick={() => deleteOcclusionMask(object.id, mask.id)}>
+                    {messages.editorOcclusionDeleteButton}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="toolbar-actions">
+          <button
+            type="button"
+            onClick={() => beginOcclusionEdit(object.id)}
+            disabled={!spaceBackground || occlusionEditObjectId === object.id}
+          >
+            {messages.editorOcclusionAddButton}
+          </button>
+        </div>
+        {!spaceBackground && (
+          <p className="toolbar-notice">{messages.editorOcclusionNoSpaceHint}</p>
+        )}
+      </div>
 
       <div className="toolbar-subsection">
         <span className="toolbar-subsection-heading">{messages.editorContactShadowLabel}</span>
