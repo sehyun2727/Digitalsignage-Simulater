@@ -771,6 +771,38 @@ a {
     max-width: none;
     width: auto;
   }
+
+  /* A landscape (16:9) canvas fitted to a narrow mobile viewport is short - often under 220px
+     tall (e.g. 390px wide) - so the occlusion editor's hint bar and feather/opacity/actions panel,
+     sized for a normal desktop canvas, would together cover the entire canvas box and leave no
+     open area to tap a point. Pinning both to the viewport instead of the canvas's own (possibly
+     tiny) box, the same way .onboarding-card/.hull-cta already float independently of page
+     content on mobile, keeps them reachable without stealing any of the canvas's drawing area.
+
+     .occlusion-edit-overlay itself (not just its children) needs the raised z-index: it is
+     position: absolute with its own z-index, which makes it a stacking context, so its fixed
+     children's z-index only ranks them against each other and stays trapped below any
+     higher-stacked fixed sibling elsewhere in the page (e.g. .hull-cta's z-index: 5) no matter how
+     high a value is set here. */
+  .occlusion-edit-overlay {
+    z-index: 6;
+  }
+
+  .occlusion-edit-hint {
+    position: fixed;
+    top: max(0.75rem, env(safe-area-inset-top));
+    left: 0.75rem;
+    right: 0.75rem;
+  }
+
+  .occlusion-edit-panel {
+    position: fixed;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    left: 0.75rem;
+    right: 0.75rem;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
 }
 
 @media (max-width: 30rem) {

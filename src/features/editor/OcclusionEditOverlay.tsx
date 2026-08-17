@@ -67,6 +67,18 @@ export function OcclusionEditOverlay({ documentSize, fitScale }: OcclusionEditOv
     return () => window.removeEventListener('keydown', handleWindowKeyDown);
   }, [occlusionEditObjectId, cancelOcclusionEdit]);
 
+  // Editing is opened from the "詳細設定" settings modal, which on the mobile stacked layout
+  // (canvas above a long, page-scrolling toolbar - see the 48rem media query in global.css) is
+  // typically reached only after scrolling well past the canvas. The modal closes itself as soon
+  // as this overlay mounts (see Toolbar.tsx's setSettingsOpen(false) before beginOcclusionEdit),
+  // but that leaves the page scrolled to wherever the modal trigger was, with the canvas - and
+  // this overlay's own tap-to-add-point target - off-screen and no longer reachable without the
+  // user guessing to scroll back up manually.
+  useEffect(() => {
+    if (!occlusionEditObjectId) return;
+    containerRef.current?.scrollIntoView({ block: 'center' });
+  }, [occlusionEditObjectId]);
+
   if (!occlusionEditObjectId) return null;
 
   const validation = validateOcclusionPolygon(draftPoints);
