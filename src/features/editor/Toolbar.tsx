@@ -802,6 +802,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const updateObjectTransient = useEditorStore((state) => state.updateObjectTransient);
   const applyRenderingPresetAction = useEditorStore((state) => state.applyRenderingPreset);
+  const sampleEnvironmentColor = useEditorStore((state) => state.sampleEnvironmentColor);
   const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
   const occlusionEditObjectId = useEditorStore((state) => state.occlusionEditObjectId);
   const beginOcclusionEdit = useEditorStore((state) => state.beginOcclusionEdit);
@@ -1424,6 +1425,27 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
             }
           />
         </label>
+
+        <div className="toolbar-actions">
+          <button
+            type="button"
+            onClick={() => sampleEnvironmentColor(object.id)}
+            disabled={!spaceBackground}
+          >
+            {messages.editorEnvironmentSampleButton}
+          </button>
+          {object.environmentIntegration.sampledColor && (
+            <span
+              className="toolbar-color-swatch"
+              style={{ backgroundColor: object.environmentIntegration.sampledColor }}
+              aria-label={messages.editorEnvironmentSampledSwatchLabel}
+              role="img"
+            />
+          )}
+        </div>
+        {!spaceBackground && (
+          <p className="toolbar-notice">{messages.editorEnvironmentSampleNoSpaceHint}</p>
+        )}
 
         <button type="button" onClick={resetEnvironmentIntegration}>
           {messages.editorEnvironmentIntegrationResetButton}

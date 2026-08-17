@@ -72,6 +72,47 @@ export function environmentBlendOpacity(strength: number): number {
   return (clamped / 100) * MAX_ENVIRONMENT_BLEND_OPACITY;
 }
 
+/** Pure RGB-to-hex averaging step of environment sampling, split out from the canvas readback in
+ * `sampleAmbientColor` so the math itself is unit-testable without a real canvas (jsdom has no
+ * working 2D context; see assetRegistry.ts's detectHasAlpha for the same split). */
+export function averageColorToHex(r: number, g: number, b: number): string {
+  const toHex = (channel: number) =>
+    Math.round(Math.min(255, Math.max(0, channel))).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+/**
+ * Samples the space photo's overall ambient tone for the user-triggered "sample environment"
+ * action (sprint spec section 13/14): draws a small downscaled copy of the photo to an offscreen
+ * canvas and averages its pixels, entirely in-browser (no upload — see CLAUDE.md section 8).
+ * Returns null if canvas readback is unavailable rather than throwing, matching
+ * assetRegistry.ts's detectHasAlpha fallback policy.
+ */
+export function sampleAmbientColor(image: CanvasImageSource): string | null {
+  try {
+    const sampleSize = 16;
+    const canvas = document.createElement('canvas');
+    canvas.width = sampleSize;
+    canvas.height = sampleSize;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(image, 0, 0, sampleSize, sampleSize);
+    const { data } = ctx.getImageData(0, 0, sampleSize, sampleSize);
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    const pixelCount = data.length / 4;
+    for (let i = 0; i < data.length; i += 4) {
+      r += data[i]!;
+      g += data[i + 1]!;
+      b += data[i + 2]!;
+    }
+    return averageColorToHex(r / pixelCount, g / pixelCount, b / pixelCount);
+  } catch {
+    return null;
+  }
+}
+
 export interface ContactShadowGeometry {
   centerX: number;
   centerY: number;

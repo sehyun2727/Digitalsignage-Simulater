@@ -128,6 +128,9 @@ export const ko: Messages = {
   editorEnvironmentIntegrationLabel: '환경 어우러짐',
   editorEnvironmentIntegrationStrengthLabel: '어우러짐 강도',
   editorEnvironmentIntegrationResetButton: '어우러짐 초기화',
+  editorEnvironmentSampleButton: '공간 사진에서 샘플링',
+  editorEnvironmentSampledSwatchLabel: '샘플링된 환경 색상',
+  editorEnvironmentSampleNoSpaceHint: '환경 색상을 샘플링하려면 먼저 공간 사진을 추가하세요.',
 
   editorPerspectiveFitButton: '공간에 맞춰 배치 (원근)',
   editorPerspectiveUseRectButton: '일반 배치로 되돌리기',

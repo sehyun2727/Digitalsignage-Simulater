@@ -128,6 +128,9 @@ export const en: Messages = {
   editorEnvironmentIntegrationLabel: 'Environment blend',
   editorEnvironmentIntegrationStrengthLabel: 'Blend strength',
   editorEnvironmentIntegrationResetButton: 'Reset blend',
+  editorEnvironmentSampleButton: 'Sample from space photo',
+  editorEnvironmentSampledSwatchLabel: 'Sampled ambient color',
+  editorEnvironmentSampleNoSpaceHint: 'Add a space photo first to sample its ambient color.',
 
   editorPerspectiveFitButton: 'Fit to space (perspective)',
   editorPerspectiveUseRectButton: 'Switch to normal placement',

@@ -117,7 +117,10 @@ const PRESET_ENVIRONMENT_STRENGTH: Record<RenderingPresetId, number> = {
 export function getPresetEnvironmentIntegration(
   preset: RenderingPresetId,
 ): EnvironmentIntegrationSettings {
-  return { strength: clampEnvironmentIntegration(PRESET_ENVIRONMENT_STRENGTH[preset]) };
+  return {
+    strength: clampEnvironmentIntegration(PRESET_ENVIRONMENT_STRENGTH[preset]),
+    sampledColor: null,
+  };
 }
 
 export interface RenderingPresetPatch {

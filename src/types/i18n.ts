@@ -123,6 +123,9 @@ export interface Messages {
   editorEnvironmentIntegrationLabel: string;
   editorEnvironmentIntegrationStrengthLabel: string;
   editorEnvironmentIntegrationResetButton: string;
+  editorEnvironmentSampleButton: string;
+  editorEnvironmentSampledSwatchLabel: string;
+  editorEnvironmentSampleNoSpaceHint: string;
 
   editorPerspectiveFitButton: string;
   editorPerspectiveUseRectButton: string;

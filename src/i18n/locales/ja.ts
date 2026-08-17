@@ -131,6 +131,9 @@ export const ja: Messages = {
   editorEnvironmentIntegrationLabel: '環境なじませ',
   editorEnvironmentIntegrationStrengthLabel: 'なじませ強度',
   editorEnvironmentIntegrationResetButton: 'なじませをリセット',
+  editorEnvironmentSampleButton: '空間写真からサンプリング',
+  editorEnvironmentSampledSwatchLabel: 'サンプリングした環境色',
+  editorEnvironmentSampleNoSpaceHint: '環境色をサンプリングするには、先に空間写真を追加してください。',
 
   editorPerspectiveFitButton: '空間に合わせて配置（パース）',
   editorPerspectiveUseRectButton: '通常配置に戻す',

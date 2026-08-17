@@ -81,7 +81,7 @@ export function SignageDisplayView({
           y={screen.y}
           width={screen.width}
           height={screen.height}
-          fill={ENVIRONMENT_BLEND_COLOR}
+          fill={object.environmentIntegration.sampledColor ?? ENVIRONMENT_BLEND_COLOR}
           opacity={blendOpacity}
           listening={false}
         />

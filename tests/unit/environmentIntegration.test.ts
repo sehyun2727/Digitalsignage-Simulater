@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  averageColorToHex,
   clampContactShadowOffset,
   clampContactShadowSetting,
   clampContactShadowSpread,
@@ -61,6 +62,22 @@ describe('contactShadowFillColor', () => {
 
   it('clamps out-of-range tint before resolving a color', () => {
     expect(contactShadowFillColor(500)).toBe(contactShadowFillColor(100));
+  });
+});
+
+describe('averageColorToHex', () => {
+  it('formats rounded channels as a zero-padded hex color', () => {
+    expect(averageColorToHex(10, 20, 30)).toBe('#0a141e');
+    expect(averageColorToHex(0, 0, 0)).toBe('#000000');
+    expect(averageColorToHex(255, 255, 255)).toBe('#ffffff');
+  });
+
+  it('rounds fractional channel averages', () => {
+    expect(averageColorToHex(10.6, 10.4, 10.5)).toBe('#0b0a0b');
+  });
+
+  it('clamps out-of-range channels', () => {
+    expect(averageColorToHex(-10, 300, 128)).toBe('#00ff80');
   });
 });
 

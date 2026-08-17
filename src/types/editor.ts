@@ -236,9 +236,16 @@ export const MAX_CONTACT_SHADOW_TINT = 100;
 export interface EnvironmentIntegrationSettings {
   /** 0-100; 0 disables all blending. */
   strength: number;
+  /** Hex color sampled from the space photo by a user-triggered "sample environment" action
+   * (sprint spec section 13/14), used as the blend wash tone in place of the fixed neutral gray.
+   * Null until sampled, or after a reset/preset re-seed. */
+  sampledColor: string | null;
 }
 
-export const DEFAULT_ENVIRONMENT_INTEGRATION: EnvironmentIntegrationSettings = { strength: 0 };
+export const DEFAULT_ENVIRONMENT_INTEGRATION: EnvironmentIntegrationSettings = {
+  strength: 0,
+  sampledColor: null,
+};
 export const MIN_ENVIRONMENT_INTEGRATION = 0;
 export const MAX_ENVIRONMENT_INTEGRATION = 100;
 

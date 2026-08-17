@@ -702,6 +702,109 @@ describe('editorStore asset lifecycle', () => {
   });
 });
 
+describe('editorStore environment sampling', () => {
+  beforeEach(() => {
+    resetStore();
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(() => `blob:mock-${Math.random()}`);
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    vi.stubGlobal('Image', SucceedingMockImage as unknown as typeof Image);
+  });
+
+  afterEach(() => {
+    resetStore();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  // jsdom has no real 2D canvas backend, so sampleAmbientColor's canvas readback (via
+  // src/lib/environmentIntegration.ts) needs a stubbed getContext returning deterministic
+  // pixel data — matching how the production code averages r/g/b across the sampled canvas.
+  function stubCanvasSample(r: number, g: number, b: number) {
+    const size = 16;
+    const data = new Uint8ClampedArray(size * size * 4);
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+      data[i + 3] = 255;
+    }
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: () => {},
+      getImageData: () => ({ data }),
+    } as unknown as CanvasRenderingContext2D);
+  }
+
+  async function attachRegisteredSpaceBackground() {
+    const asset = await registerAsset(createFile('space.png'));
+    useEditorStore.getState().setSpaceBackground({
+      ...asset,
+      width: asset.naturalWidth,
+      height: asset.naturalHeight,
+      downscaled: false,
+    });
+  }
+
+  it('does nothing when there is no space background', async () => {
+    // Object-adding actions no-op without a space photo (see addSpaceBackground's comment
+    // above), so an object is created first, then the space photo is removed again to reach
+    // the "object exists, but no space photo" state this action must no-op for.
+    await attachRegisteredSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    useEditorStore.getState().removeSpaceBackground();
+    stubCanvasSample(10, 20, 30);
+    const pastLength = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().sampleEnvironmentColor(id);
+
+    expect(useEditorStore.getState().past.length).toBe(pastLength);
+  });
+
+  it('does nothing for an object kind without environment integration', async () => {
+    await attachRegisteredSpaceBackground();
+    useEditorStore.getState().addText();
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    stubCanvasSample(10, 20, 30);
+    const pastLength = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().sampleEnvironmentColor(id);
+
+    expect(useEditorStore.getState().past.length).toBe(pastLength);
+  });
+
+  it('samples the space photo and commits the averaged color as a single history entry', async () => {
+    await attachRegisteredSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    stubCanvasSample(10, 20, 30);
+    const pastLength = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().sampleEnvironmentColor(id);
+
+    const object = useEditorStore.getState().document.objects[0]!;
+    expect(object.kind === 'display' && object.environmentIntegration.sampledColor).toBe(
+      '#0a141e',
+    );
+    expect(useEditorStore.getState().past.length).toBe(pastLength + 1);
+
+    useEditorStore.getState().undo();
+    const undone = useEditorStore.getState().document.objects[0]!;
+    expect(undone.kind === 'display' && undone.environmentIntegration.sampledColor).toBeNull();
+  });
+
+  it('does nothing when canvas readback is unavailable', async () => {
+    await attachRegisteredSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    const pastLength = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().sampleEnvironmentColor(id);
+
+    expect(useEditorStore.getState().past.length).toBe(pastLength);
+  });
+});
+
 describe('editorStore perspective edit', () => {
   beforeEach(() => {
     resetStore();

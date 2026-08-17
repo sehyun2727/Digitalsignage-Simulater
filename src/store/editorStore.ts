@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { sweepUnusedAssets } from '../lib/assetRegistry';
-import { resolveShadowMode } from '../lib/environmentIntegration';
+import { getRegisteredAsset, sweepUnusedAssets } from '../lib/assetRegistry';
+import { resolveShadowMode, sampleAmbientColor } from '../lib/environmentIntegration';
 import { normalizeObjectGeometry } from '../lib/geometryNormalization';
 import { createId } from '../lib/id';
 import {
@@ -112,6 +112,14 @@ export interface EditorState {
    * object kinds without those fields or an unknown id.
    */
   applyRenderingPreset: (id: ElementId, preset: RenderingPresetId) => void;
+  /**
+   * User-triggered "sample environment" action (sprint spec section 13/14): reads the current
+   * space photo's decoded asset and stores its averaged ambient color on the object's
+   * `environmentIntegration.sampledColor`, as a single history entry. No-op when there is no
+   * space photo, the object kind doesn't support environment integration, or sampling fails
+   * (e.g. no canvas 2D context available).
+   */
+  sampleEnvironmentColor: (id: ElementId) => void;
   deleteSelected: () => void;
   undo: () => void;
   redo: () => void;
@@ -426,7 +434,32 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const target = document.objects.find((object) => object.id === id);
     if (!target || (target.kind !== 'display' && target.kind !== 'portable')) return;
     const patch = resolvePresetPatch(target.kind, target.material, preset);
-    get().commitObjectChange(id, patch);
+    // A preset changes blend strength/shadow/material starting points, but a user-sampled
+    // environment color (section 13/14) describes the actual space photo, not the lighting
+    // mood — switching presets should not silently discard it. Only the explicit "reset" action
+    // clears it.
+    get().commitObjectChange(id, {
+      ...patch,
+      environmentIntegration: {
+        ...patch.environmentIntegration,
+        sampledColor: target.environmentIntegration.sampledColor,
+      },
+    });
+  },
+
+  sampleEnvironmentColor: (id) => {
+    const { document } = get();
+    const target = document.objects.find((object) => object.id === id);
+    if (!target || (target.kind !== 'display' && target.kind !== 'portable')) return;
+    const { spaceBackground } = document;
+    if (!spaceBackground) return;
+    const asset = getRegisteredAsset(spaceBackground.sourceId);
+    if (!asset) return;
+    const sampledColor = sampleAmbientColor(asset.image);
+    if (!sampledColor) return;
+    get().commitObjectChange(id, {
+      environmentIntegration: { ...target.environmentIntegration, sampledColor },
+    });
   },
 
   deleteSelected: () => {
