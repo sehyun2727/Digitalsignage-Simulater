@@ -5,12 +5,12 @@ import { addSpaceBackground } from './support/spaceBackground.js';
 
 test.use({ locale: 'ja-JP' });
 
-test('adds a text element and exports a PNG at the space photo resolution', async ({ page }) => {
+test('adds a text element and exports a PNG at the canvas resolution', async ({ page }) => {
   await page.goto('/');
 
   await expect(
     page.getByText(
-      'まずは空間写真をアップロードしてください。写真の縦横比がそのまま書き出しサイズになります。',
+      'まずは空間写真をアップロードしてください。写真はキャンバスのサイズに合わせて自動的にフィットします。',
     ),
   ).toBeVisible();
 
@@ -57,11 +57,11 @@ test('rejects an unsupported image file type', async ({ page }) => {
   await expect(page.getByRole('status')).toHaveText('PNG、JPEG、WebP形式の画像のみ利用できます。');
 });
 
-test('exports at the exact resolution of the uploaded space photo (1920x1080)', async ({
+test('exports at the default landscape canvas resolution (1920x1080) regardless of photo size', async ({
   page,
 }) => {
   await page.goto('/');
-  await addSpaceBackground(page, { width: 1920, height: 1080 });
+  await addSpaceBackground(page, { width: 800, height: 600 });
 
   await page.getByRole('button', { name: 'テキストを追加' }).click();
 
@@ -75,9 +75,12 @@ test('exports at the exact resolution of the uploaded space photo (1920x1080)', 
   expect(dimensions).toEqual({ width: 1920, height: 1080 });
 });
 
-test('exports at the exact resolution of a portrait space photo (1080x1920)', async ({ page }) => {
+test('exports at the portrait canvas resolution (1080x1920) when that preset is selected', async ({
+  page,
+}) => {
   await page.goto('/');
   await addSpaceBackground(page, { width: 1080, height: 1920 });
+  await page.getByRole('button', { name: '縦長 (9:16)' }).click();
 
   await page.getByRole('button', { name: 'テキストを追加' }).click();
 

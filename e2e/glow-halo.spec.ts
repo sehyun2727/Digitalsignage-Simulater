@@ -25,10 +25,11 @@ test('the material glow halo bleeds past the screen edge into the bezel', async 
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 
-  await page.getByRole('checkbox', { name: '詳細設定を表示' }).check();
+  await page.getByRole('button', { name: '詳細設定' }).click();
   const glowSlider = page.getByRole('slider', { name: '発光の強さ（詳細設定）' });
   await glowSlider.focus();
   await glowSlider.press('End'); // max out glow for a maximally visible halo
+  await page.getByRole('button', { name: '閉じる' }).click();
 
   // The default LED object is 480x270 at document center (720,405)-(1200,675) with the
   // 'wall-led' frame's 2%-wide bezel margin (see DISPLAY_FRAME_TEMPLATES), so the screen's own
@@ -41,9 +42,11 @@ test('the material glow halo bleeds past the screen edge into the bezel', async 
   const glowOnBuffer = await fs.readFile((await (await glowOnDownload).path())!);
   const [withGlow] = await samplePngPixels(page, glowOnBuffer, [samplePoint]);
 
+  await page.getByRole('button', { name: '詳細設定' }).click();
   await glowSlider.focus();
   await glowSlider.press('Home'); // glow = 0
   await glowSlider.press('Tab');
+  await page.getByRole('button', { name: '閉じる' }).click();
 
   const glowOffDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'PNGで書き出す' }).click();

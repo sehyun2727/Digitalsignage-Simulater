@@ -34,7 +34,9 @@ test('a window-mounted display casts a faint reflection below itself', async ({ 
   const wallBuffer = await fs.readFile((await (await wallDownload).path())!);
   const [wallPixel] = await samplePngPixels(page, wallBuffer, [samplePoint]);
 
+  await page.getByRole('button', { name: '詳細設定' }).click();
   await page.getByRole('combobox', { name: '設置面' }).selectOption('window');
+  await page.getByRole('button', { name: '閉じる' }).click();
 
   const windowDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'PNGで書き出す' }).click();

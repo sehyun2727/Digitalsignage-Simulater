@@ -175,7 +175,9 @@ test('a newly added LED display has its contact shadow enabled by default and it
 
   // Regression check for the "shadow disabled by default" defect: a freshly added display must
   // already have a contact shadow, not require the user to opt in.
+  await page.getByRole('button', { name: '詳細設定' }).click();
   await expect(page.getByRole('checkbox', { name: '接地シャドウを有効にする' })).toBeChecked();
+  await page.getByRole('button', { name: '閉じる' }).click();
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'PNGで書き出す' }).click();

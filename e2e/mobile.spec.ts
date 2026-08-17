@@ -145,10 +145,11 @@ test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 
 }) => {
   await page.goto('/');
 
-  // A lighter-weight companion to the LED flow above: a portrait space photo drives a
-  // portrait export, and the LCD material is used instead of LED (no separate "template
-  // shape" concept exists any more — document size comes solely from the uploaded photo).
+  // A lighter-weight companion to the LED flow above: a portrait canvas preset drives a
+  // portrait export, and the LCD material is used instead of LED. Canvas size is an explicit
+  // preset, independent of the uploaded photo's orientation.
   await addSpaceBackground(page, 1080, 1920);
+  await page.getByRole('button', { name: '縦長 (9:16)' }).click();
 
   await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
@@ -393,15 +394,17 @@ test('mobile: draws a foreground occlusion mask via tap-to-add points at 390x844
   // Companion to the desktop point-precision coverage in e2e/occlusion-mask.spec.ts: confirms
   // the tap-to-add-a-point interaction (OcclusionEditOverlay.tsx's handleBackgroundClick) still
   // works through Playwright's touch-viewport emulation, and that the overlay itself introduces
-  // no horizontal overflow at this narrow width. Uses a portrait space photo (not the 1920x1080
-  // landscape most other specs use): on a landscape document, the fitted canvas box at 390px wide
-  // is only ~200px tall, and the overlay's own hint text + feather/opacity panel already fill
-  // nearly all of that, leaving no open area to tap - a portrait document is also the realistic
-  // orientation for this viewport (see the "mobile smoke" test above).
+  // no horizontal overflow at this narrow width. Selects the portrait canvas preset (not the
+  // 1920x1080 landscape most other specs use): on a landscape document, the fitted canvas box at
+  // 390px wide is only ~200px tall, and the overlay's own hint text + feather/opacity panel
+  // already fill nearly all of that, leaving no open area to tap - a portrait canvas is also the
+  // realistic orientation for this viewport (see the "mobile smoke" test above).
   await page.goto('/');
   await addSpaceBackground(page, 1080, 1920);
+  await page.getByRole('button', { name: '縦長 (9:16)' }).click();
   await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
-  await page.getByRole('checkbox', { name: '詳細設定を表示' }).check();
+  await page.getByRole('button', { name: '詳細設定' }).scrollIntoViewIfNeeded();
+  await page.getByRole('button', { name: '詳細設定' }).click();
 
   await page.getByRole('button', { name: 'マスクを追加' }).scrollIntoViewIfNeeded();
   await page.getByRole('button', { name: 'マスクを追加' }).click();
@@ -425,6 +428,9 @@ test('mobile: draws a foreground occlusion mask via tap-to-add points at 390x844
   await expect(applyButton).toBeEnabled();
   await applyButton.click();
 
+  // Applying closes the mask-edit overlay but not the settings modal it was opened from, which
+  // auto-closed when the mask draft started; reopen it to see the mask list entry.
+  await page.getByRole('button', { name: '詳細設定' }).click();
   await expect(page.getByText('マスク 1', { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });

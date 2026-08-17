@@ -470,13 +470,13 @@ test.describe('export composition (pixel verification)', () => {
     expect(brightness(withHighlight)).toBeGreaterThan(brightness(withoutHighlight));
   });
 
-  test('exports a portable product on a portrait space photo at its native 1080x1920 resolution', async ({
+  test('exports a portable product on a portrait canvas at its 1080x1920 resolution', async ({
     page,
   }) => {
     await page.goto('/');
-    // No separate "template" concept exists any more - a portrait-oriented space photo alone
-    // drives a portrait export.
     await addSpaceBackground(page, { width: 1080, height: 1920 });
+    // The canvas size is an explicit preset, independent of the uploaded photo's orientation.
+    await page.getByRole('button', { name: '縦長 (9:16)' }).click();
 
     await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
     const dialog = page.getByRole('dialog');
