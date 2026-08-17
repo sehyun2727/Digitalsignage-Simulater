@@ -26,6 +26,7 @@ import {
 } from '../lib/renderingPresets';
 import { getObjectScreenRect } from '../lib/screenHitTest';
 import type {
+  CanvasPresetId,
   DisplayMaterial,
   DisplaySignageObject,
   EditorDocument,
@@ -40,6 +41,7 @@ import type {
   TextSignageObject,
 } from '../types/editor';
 import {
+  CANVAS_PRESET_SIZES,
   createEmptyDocument,
   DEFAULT_CURVATURE,
   DEFAULT_OCCLUSION_FEATHER,
@@ -103,6 +105,9 @@ export interface EditorState {
     downscaled: boolean;
   }) => void;
   removeSpaceBackground: () => void;
+  /** Switches the fixed document/export frame to a different preset, re-mapping every existing
+   *  object's geometry (preserving normalized center/size) in the same history entry. */
+  setCanvasPreset: (preset: CanvasPresetId) => void;
   selectObject: (id: ElementId | null) => void;
   updateObjectTransient: (id: ElementId, patch: Partial<SignageObject>) => void;
   commitObjectChange: (id: ElementId, patch: Partial<SignageObject>) => void;
@@ -229,8 +234,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   addText: () => {
     const { document } = get();
+    if (!document.spaceBackground) return;
     const size = getDocumentSize(document);
-    if (!size) return;
     const newObject: TextSignageObject = {
       id: createId(),
       kind: 'text',
@@ -254,8 +259,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   addImage: ({ src, naturalWidth, naturalHeight }) => {
     const { document } = get();
+    if (!document.spaceBackground) return;
     const size = getDocumentSize(document);
-    if (!size) return;
     const maxWidth = size.width * 0.6;
     const scale = naturalWidth > maxWidth ? maxWidth / naturalWidth : 1;
     const width = naturalWidth * scale;
@@ -282,8 +287,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   addDisplay: (material) => {
     const { document } = get();
+    if (!document.spaceBackground) return;
     const size = getDocumentSize(document);
-    if (!size) return;
     const width = Math.min(480, size.width * 0.9);
     const height = Math.min(270, size.height * 0.9);
     const newObject: DisplaySignageObject = {
@@ -322,8 +327,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     screenRegion,
   }) => {
     const { document } = get();
+    if (!document.spaceBackground) return;
     const size = getDocumentSize(document);
-    if (!size) return;
     const { width, height } = computeDefaultPortableSize(
       { width: productIntrinsicWidth, height: productIntrinsicHeight },
       size,
@@ -360,11 +365,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  // Handles both the first space-photo upload and a later replace in one action: when a
-  // background already exists, every object's geometry is re-mapped to the new document size
-  // (preserving normalized center/size, see geometryNormalization.ts) in the *same* history
-  // entry as the background swap, so a single Undo restores both the old photo and the old
-  // object positions together instead of requiring two separate undo steps.
+  // Handles both the first space-photo upload and a later replace. The document/export frame is
+  // a fixed canvasPreset (ADR 0011) that does not change with the photo, so object geometry never
+  // needs re-mapping here — the photo is simply cover-fit into the existing frame at render time.
   setSpaceBackground: ({ sourceId, naturalWidth, naturalHeight, width, height, downscaled }) => {
     const { document } = get();
     const spaceBackground: SpaceBackground = {
@@ -375,32 +378,38 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       height,
       downscaled,
     };
-    const oldSize = getDocumentSize(document);
-    const newSize = { width, height };
-    const objects = oldSize
-      ? document.objects.map((object) => ({
-          ...object,
-          ...normalizeObjectGeometry(object, oldSize, newSize),
-        }))
-      : document.objects;
-
     set({
-      document: { ...document, spaceBackground, objects },
+      document: { ...document, spaceBackground },
       past: pushHistory(get().past, document),
       future: [],
     });
   },
 
-  // Returning to the empty state (rather than only clearing spaceBackground) avoids leaving
-  // signage objects positioned against a document size that no longer exists — there is no
-  // valid canvas without a space photo. A single history entry means Undo restores the photo
-  // and every object together.
+  // Only the photo is cleared; the canvas frame and every placed object stay put, since (unlike
+  // before ADR 0011) the canvas no longer depends on a space photo existing.
   removeSpaceBackground: () => {
     const { document } = get();
     if (!document.spaceBackground) return;
     set({
-      document: createEmptyDocument(),
-      selectedId: null,
+      document: { ...document, spaceBackground: null },
+      past: pushHistory(get().past, document),
+      future: [],
+    });
+  },
+
+  // A single history entry means Undo restores both the old frame size and the old object
+  // positions together instead of requiring two separate undo steps.
+  setCanvasPreset: (preset) => {
+    const { document } = get();
+    if (document.canvasPreset === preset) return;
+    const oldSize = getDocumentSize(document);
+    const newSize = CANVAS_PRESET_SIZES[preset];
+    const objects = document.objects.map((object) => ({
+      ...object,
+      ...normalizeObjectGeometry(object, oldSize, newSize),
+    }));
+    set({
+      document: { ...document, canvasPreset: preset, objects },
       past: pushHistory(get().past, document),
       future: [],
     });
@@ -529,7 +538,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const target = document.objects.find((object) => object.id === id);
     if (!target || !supportsPerspective(target)) return;
     const documentSize = getDocumentSize(document);
-    if (!documentSize) return;
 
     let initialQuad: NormalizedQuad | null = target.perspectiveQuad;
     if (!initialQuad) {

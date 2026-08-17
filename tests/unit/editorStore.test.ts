@@ -45,9 +45,9 @@ function resetStore() {
   });
 }
 
-// Document/export size is derived entirely from the space background photo (see ADR 0007), so
-// every object-adding action no-ops until one exists. Tests that need objects must call this
-// first.
+// The document/export canvas is a fixed size independent of any photo (see ADR 0011), but every
+// object-adding action still no-ops until a space background exists (an intentional product
+// requirement, not a canvas-size limitation). Tests that need objects must call this first.
 function addSpaceBackground(sourceId = 'src-1', width = 1000, height = 500) {
   useEditorStore.getState().setSpaceBackground({
     sourceId,
@@ -69,8 +69,39 @@ describe('editorStore', () => {
 
     expect(state.document.objects).toHaveLength(0);
     expect(state.document.spaceBackground).toBeNull();
+    expect(state.document.canvasPreset).toBe('landscape-16-9');
     expect(selectCanUndo(state)).toBe(false);
     expect(selectCanRedo(state)).toBe(false);
+  });
+
+  it('setCanvasPreset re-maps existing object geometry to the new frame as one history entry', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    // A 1920x1080 default frame: place the display's center at exactly 20%/20%
+    // (centerX = 0.2*1920 = 384, centerY = 0.2*1080 = 216, minus half the 100x100 size).
+    useEditorStore.getState().commitObjectChange(id, { x: 334, y: 166, width: 100, height: 100 });
+
+    useEditorStore.getState().setCanvasPreset('portrait-9-16');
+    const state = useEditorStore.getState();
+    expect(state.document.canvasPreset).toBe('portrait-9-16');
+    const display = state.document.objects[0]!;
+    // Center fraction (and size fraction) must be preserved at the new 1080x1920 frame.
+    expect((display.x + display.width / 2) / 1080).toBeCloseTo(0.2, 2);
+    expect((display.y + display.height / 2) / 1920).toBeCloseTo(0.2, 2);
+
+    useEditorStore.getState().undo();
+    const restored = useEditorStore.getState();
+    expect(restored.document.canvasPreset).toBe('landscape-16-9');
+    expect(restored.document.objects[0]).toMatchObject({ x: 334, y: 166, width: 100, height: 100 });
+  });
+
+  it('setCanvasPreset is a no-op when selecting the already-active preset', () => {
+    const pastLengthBefore = useEditorStore.getState().past.length;
+
+    useEditorStore.getState().setCanvasPreset('landscape-16-9');
+
+    expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
   });
 
   it('does not add objects before a space background exists', () => {
@@ -335,15 +366,17 @@ describe('editorStore', () => {
     expect(useEditorStore.getState().past.length).toBe(pastLengthBefore);
   });
 
-  it('removeSpaceBackground clears objects too, and a single undo restores both', () => {
+  it('removeSpaceBackground only clears the photo, leaving the canvas and objects in place', () => {
     addSpaceBackground();
+    useEditorStore.getState().setCanvasPreset('portrait-9-16');
     useEditorStore.getState().addText();
     expect(useEditorStore.getState().document.objects).toHaveLength(1);
 
     useEditorStore.getState().removeSpaceBackground();
     const cleared = useEditorStore.getState();
     expect(cleared.document.spaceBackground).toBeNull();
-    expect(cleared.document.objects).toHaveLength(0);
+    expect(cleared.document.canvasPreset).toBe('portrait-9-16');
+    expect(cleared.document.objects).toHaveLength(1);
 
     useEditorStore.getState().undo();
     const restored = useEditorStore.getState();
@@ -351,7 +384,7 @@ describe('editorStore', () => {
     expect(restored.document.objects).toHaveLength(1);
   });
 
-  it('replacing a space background re-normalizes existing object geometry to the new size', () => {
+  it('replacing a space background leaves existing object geometry untouched', () => {
     addSpaceBackground('src-1', 1000, 500);
     useEditorStore.getState().addDisplay('led');
     const id = useEditorStore.getState().document.objects[0]!.id;
@@ -366,13 +399,10 @@ describe('editorStore', () => {
       downscaled: false,
     });
 
+    // The document/export canvas is a fixed size independent of the photo (ADR 0011), so
+    // swapping photos must not remap any object geometry.
     const display = useEditorStore.getState().document.objects[0]!;
-    // Original center fraction was (100+100)/1000 = 0.2 horizontally and (50+50)/500 = 0.2
-    // vertically; that fraction (and the size fraction) must be preserved at the new size.
-    expect((display.x + display.width / 2) / 2000).toBeCloseTo(0.2);
-    expect((display.y + display.height / 2) / 1000).toBeCloseTo(0.2);
-    expect(display.width / 2000).toBeCloseTo(200 / 1000);
-    expect(display.height / 1000).toBeCloseTo(100 / 500);
+    expect(display).toMatchObject({ x: 100, y: 50, width: 200, height: 100 });
   });
 
   it('replacing a space background leaves an applied perspective quad untouched', () => {

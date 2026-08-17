@@ -26,7 +26,7 @@ export const en: Messages = {
   editorExportVideoErrorAnnouncement: 'Failed to export video.',
   editorContentVideoAutoplayHint: 'Video content plays automatically, loops, and is muted.',
   editorCanvasEmptyHint:
-    'Start by uploading a space photo. Its aspect ratio becomes the export size exactly.',
+    'Start by uploading a space photo. It is automatically fit to the canvas size.',
   editorCanvasNoSignageHint:
     'Place an LED, LCD, Transparent LED, or portable product from Add signage.',
   editorPropertiesTitle: 'Properties',
@@ -53,13 +53,17 @@ export const en: Messages = {
   editorExportedAnnouncement: 'Exported the PNG image.',
   editorExportErrorAnnouncement: 'Failed to export the PNG image. Please try again.',
 
+  editorCanvasPresetLabel: 'Canvas size',
+  editorCanvasPresetLandscapeLabel: 'Landscape (16:9)',
+  editorCanvasPresetPortraitLabel: 'Portrait (9:16)',
+
   editorSpaceBackgroundLabel: 'Space photo',
   editorAddSpaceBackgroundButton: 'Add space photo',
   editorReplaceSpaceBackgroundButton: 'Replace space photo',
   editorRemoveSpaceBackgroundButton: 'Remove space photo',
   toolbarSpaceEmptyHint:
-    "Uploading a space photo makes that photo's resolution and aspect ratio the canvas and export size. You cannot add signage until a space photo exists.",
-  editorSpaceBackgroundDimensionsLabel: 'Export size',
+    'Uploading a space photo fits it to the chosen canvas size automatically. You cannot add signage until a space photo exists.',
+  editorSpaceBackgroundDimensionsLabel: 'Photo resolution',
   editorSpaceBackgroundDownscaledNotice:
     'The image was too large and was automatically downscaled to a safe size.',
   editorSpaceBackgroundPrivacyNotice:

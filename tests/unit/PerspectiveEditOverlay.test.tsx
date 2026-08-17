@@ -53,15 +53,18 @@ function createImageFile(name = 'photo.png'): File {
   return new File([new Uint8Array([1, 2, 3])], name, { type: 'image/png' });
 }
 
+// The document/export canvas is now a fixed 1920x1080 default (ADR 0011), independent of the
+// 800x600 mocked photo above, so the overlay's pixel box must match that fixed size rather than
+// the photo's own dimensions.
 const OVERLAY_RECT: DOMRect = {
   x: 0,
   y: 0,
   left: 0,
   top: 0,
-  right: 800,
-  bottom: 600,
-  width: 800,
-  height: 600,
+  right: 1920,
+  bottom: 1080,
+  width: 1920,
+  height: 1080,
   toJSON() {
     return this;
   },
@@ -151,13 +154,14 @@ describe('PerspectiveEditOverlay (Fit to space)', () => {
     fireEvent.pointerMove(topLeftHandle, { clientX: 50, clientY: 40, pointerId: 1 });
     fireEvent.pointerUp(topLeftHandle, { clientX: 50, clientY: 40, pointerId: 1 });
 
-    // Document is 800x600 (space photo), fitScale is 1 in this mock, so preview px == document px.
+    // Document is 1920x1080 (default canvas preset), fitScale is 1 in this mock, so preview px
+    // == document px.
     expect(
       cornerFieldValue(ja.editorPerspectiveCornerTopLeft, ja.editorPositionXLabel),
-    ).toBeCloseTo(50 / 800, 2);
+    ).toBeCloseTo(50 / 1920, 2);
     expect(
       cornerFieldValue(ja.editorPerspectiveCornerTopLeft, ja.editorPositionYLabel),
-    ).toBeCloseTo(40 / 600, 2);
+    ).toBeCloseTo(40 / 1080, 2);
     // Still just a live draft — nothing committed to history yet.
     expect(useEditorStore.getState().past.length).toBe(pastBeforeEdit);
 
@@ -166,8 +170,8 @@ describe('PerspectiveEditOverlay (Fit to space)', () => {
     expect(useEditorStore.getState().past.length).toBe(pastBeforeEdit + 1);
     const object = firstDisplayObject();
     expect(object.placementMode).toBe('perspective');
-    expect(object.perspectiveQuad?.topLeft.x).toBeCloseTo(50 / 800, 2);
-    expect(object.perspectiveQuad?.topLeft.y).toBeCloseTo(40 / 600, 2);
+    expect(object.perspectiveQuad?.topLeft.x).toBeCloseTo(50 / 1920, 2);
+    expect(object.perspectiveQuad?.topLeft.y).toBeCloseTo(40 / 1080, 2);
     expect(
       screen.queryByRole('slider', { name: ja.editorPerspectiveCornerTopLeft }),
     ).not.toBeInTheDocument();
@@ -289,10 +293,13 @@ describe('PerspectiveEditOverlay (Fit to space)', () => {
     const pastBeforeEdit = useEditorStore.getState().past.length;
 
     // Drag the top-left corner far past the bottom-right corner, crossing the quad's own edges.
+    // The default display's bottomRight sits at document (1200, 675) on the 1920x1080 canvas, so
+    // (1872, 1044) — ~97.5%/96.7% of the frame, matching the original 800x600-relative intent —
+    // overshoots past it in both axes.
     const topLeftHandle = screen.getByRole('slider', { name: ja.editorPerspectiveCornerTopLeft });
-    fireEvent.pointerDown(topLeftHandle, { clientX: 160, clientY: 165, pointerId: 1 });
-    fireEvent.pointerMove(topLeftHandle, { clientX: 780, clientY: 580, pointerId: 1 });
-    fireEvent.pointerUp(topLeftHandle, { clientX: 780, clientY: 580, pointerId: 1 });
+    fireEvent.pointerDown(topLeftHandle, { clientX: 384, clientY: 297, pointerId: 1 });
+    fireEvent.pointerMove(topLeftHandle, { clientX: 1872, clientY: 1044, pointerId: 1 });
+    fireEvent.pointerUp(topLeftHandle, { clientX: 1872, clientY: 1044, pointerId: 1 });
 
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: ja.editorPerspectiveApplyButton })).toBeDisabled();

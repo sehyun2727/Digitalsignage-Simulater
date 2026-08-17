@@ -54,6 +54,10 @@ export interface Messages {
   editorExportedAnnouncement: string;
   editorExportErrorAnnouncement: string;
 
+  editorCanvasPresetLabel: string;
+  editorCanvasPresetLandscapeLabel: string;
+  editorCanvasPresetPortraitLabel: string;
+
   editorSpaceBackgroundLabel: string;
   editorAddSpaceBackgroundButton: string;
   editorReplaceSpaceBackgroundButton: string;

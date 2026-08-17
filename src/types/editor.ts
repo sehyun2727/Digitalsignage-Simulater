@@ -351,15 +351,16 @@ export function supportsPerspective(object: SignageObject): object is Perspectiv
 }
 
 /**
- * The uploaded space/site photo shown behind all objects. Sprint 4.2 makes this the *only*
- * source of document/export dimensions (see ADR 0007) — there is no more standalone document
- * template. `sourceId` keys into the same runtime asset registry as display content.
+ * The uploaded space/site photo shown behind all objects. `sourceId` keys into the same runtime
+ * asset registry as display content.
  *
- * `naturalWidth`/`naturalHeight` are the photo's own decoded pixel size, kept only so the Space
- * section can show the user the original resolution. `width`/`height` are the *effective*
- * document/export dimensions actually used for the canvas — identical to natural size unless
- * the decoded pixel count exceeded `MAX_DECODED_PIXELS` (src/lib/imageSafety.ts), in which case
- * they are a deterministically downscaled, aspect-ratio-preserving fallback.
+ * `naturalWidth`/`naturalHeight` are the photo's own decoded pixel size. `width`/`height` are the
+ * *effective* decoded dimensions — identical to natural size unless the decoded pixel count
+ * exceeded `MAX_DECODED_PIXELS` (src/lib/imageSafety.ts), in which case they are a deterministically
+ * downscaled, aspect-ratio-preserving fallback. Since the canvas/export frame is now a fixed
+ * `canvasPreset` (see ADR 0011) rather than following the photo, this is purely informational photo
+ * metadata — the photo itself is cover-fit into the frame via `computeCoverFit`, independent of
+ * these dimensions.
  */
 export interface SpaceBackground {
   sourceId: string;
@@ -370,22 +371,39 @@ export interface SpaceBackground {
   downscaled: boolean;
 }
 
+/**
+ * A fixed document/export frame size the user picks explicitly, independent of any uploaded space
+ * photo (ADR 0011 — replaces the Sprint 4.2/ADR 0007 approach of deriving document size from the
+ * photo's own pixel dimensions, which made the canvas awkwardly resize to whatever ratio the
+ * uploaded photo happened to have).
+ */
+export type CanvasPresetId = 'landscape-16-9' | 'portrait-9-16';
+
+export const CANVAS_PRESET_IDS: readonly CanvasPresetId[] = ['landscape-16-9', 'portrait-9-16'];
+
+export const CANVAS_PRESET_SIZES: Record<CanvasPresetId, { width: number; height: number }> = {
+  'landscape-16-9': { width: 1920, height: 1080 },
+  'portrait-9-16': { width: 1080, height: 1920 },
+};
+
+export const DEFAULT_CANVAS_PRESET: CanvasPresetId = 'landscape-16-9';
+
 export interface EditorDocument {
   spaceBackground: SpaceBackground | null;
+  canvasPreset: CanvasPresetId;
   objects: SignageObject[];
 }
 
 export function createEmptyDocument(): EditorDocument {
   return {
     spaceBackground: null,
+    canvasPreset: DEFAULT_CANVAS_PRESET,
     objects: [],
   };
 }
 
-/** The document/export size in effect right now, or null before any space photo exists. */
-export function getDocumentSize(
-  document: EditorDocument,
-): { width: number; height: number } | null {
-  if (!document.spaceBackground) return null;
-  return { width: document.spaceBackground.width, height: document.spaceBackground.height };
+/** The document/export size in effect right now — a fixed frame chosen via `canvasPreset`,
+ *  independent of whether a space photo has been uploaded (see ADR 0011). */
+export function getDocumentSize(document: EditorDocument): { width: number; height: number } {
+  return CANVAS_PRESET_SIZES[document.canvasPreset];
 }

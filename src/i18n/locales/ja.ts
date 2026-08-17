@@ -26,7 +26,7 @@ export const ja: Messages = {
   editorExportVideoErrorAnnouncement: '動画の書き出しに失敗しました。',
   editorContentVideoAutoplayHint: '動画は自動再生・ループ再生・ミュートで表示されます。',
   editorCanvasEmptyHint:
-    'まずは空間写真をアップロードしてください。写真の縦横比がそのまま書き出しサイズになります。',
+    'まずは空間写真をアップロードしてください。写真はキャンバスのサイズに合わせて自動的にフィットします。',
   editorCanvasNoSignageHint:
     '「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。',
   editorPropertiesTitle: 'プロパティ',
@@ -55,13 +55,17 @@ export const ja: Messages = {
   editorExportedAnnouncement: 'PNG画像を書き出しました。',
   editorExportErrorAnnouncement: 'PNG画像の書き出しに失敗しました。もう一度お試しください。',
 
+  editorCanvasPresetLabel: 'キャンバスサイズ',
+  editorCanvasPresetLandscapeLabel: '横長 (16:9)',
+  editorCanvasPresetPortraitLabel: '縦長 (9:16)',
+
   editorSpaceBackgroundLabel: '空間写真',
   editorAddSpaceBackgroundButton: '空間写真を追加',
   editorReplaceSpaceBackgroundButton: '空間写真を差し替える',
   editorRemoveSpaceBackgroundButton: '空間写真を削除',
   toolbarSpaceEmptyHint:
-    '空間写真をアップロードすると、その写真の解像度・縦横比がそのままキャンバスと書き出しサイズになります。まだ写真がなければ、サイネージを追加できません。',
-  editorSpaceBackgroundDimensionsLabel: '書き出しサイズ',
+    '空間写真をアップロードすると、選択したキャンバスサイズに合わせて自動的にフィットします。まだ写真がなければ、サイネージを追加できません。',
+  editorSpaceBackgroundDimensionsLabel: '画像の解像度',
   editorSpaceBackgroundDownscaledNotice:
     '画像が大きすぎるため、安全な範囲まで自動的に縮小しました。',
   editorSpaceBackgroundPrivacyNotice:

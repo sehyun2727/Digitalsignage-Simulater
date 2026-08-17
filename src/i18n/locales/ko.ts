@@ -26,7 +26,7 @@ export const ko: Messages = {
   editorExportVideoErrorAnnouncement: '동영상을 내보내지 못했습니다.',
   editorContentVideoAutoplayHint: '동영상은 자동 재생, 반복 재생, 음소거 상태로 표시됩니다.',
   editorCanvasEmptyHint:
-    '먼저 공간 사진을 업로드해 주세요. 사진의 가로세로 비율이 그대로 내보내기 크기가 됩니다.',
+    '먼저 공간 사진을 업로드해 주세요. 사진은 캔버스 크기에 맞게 자동으로 채워집니다.',
   editorCanvasNoSignageHint:
     '"사이니지 추가" 섹션에서 LED·LCD·투명 LED·포터블 제품을 배치해 보세요.',
   editorPropertiesTitle: '속성',
@@ -55,13 +55,17 @@ export const ko: Messages = {
   editorExportedAnnouncement: 'PNG 이미지를 내보냈습니다.',
   editorExportErrorAnnouncement: 'PNG 이미지 내보내기에 실패했습니다. 다시 시도해 주세요.',
 
+  editorCanvasPresetLabel: '캔버스 크기',
+  editorCanvasPresetLandscapeLabel: '가로형 (16:9)',
+  editorCanvasPresetPortraitLabel: '세로형 (9:16)',
+
   editorSpaceBackgroundLabel: '공간 사진',
   editorAddSpaceBackgroundButton: '공간 사진 추가',
   editorReplaceSpaceBackgroundButton: '공간 사진 교체',
   editorRemoveSpaceBackgroundButton: '공간 사진 삭제',
   toolbarSpaceEmptyHint:
-    '공간 사진을 업로드하면 그 사진의 해상도·가로세로 비율이 그대로 캔버스와 내보내기 크기가 됩니다. 사진이 없으면 사이니지를 추가할 수 없습니다.',
-  editorSpaceBackgroundDimensionsLabel: '내보내기 크기',
+    '공간 사진을 업로드하면 선택한 캔버스 크기에 맞게 자동으로 채워집니다. 사진이 없으면 사이니지를 추가할 수 없습니다.',
+  editorSpaceBackgroundDimensionsLabel: '이미지 해상도',
   editorSpaceBackgroundDownscaledNotice: '이미지가 너무 커서 안전한 크기로 자동 축소되었습니다.',
   editorSpaceBackgroundPrivacyNotice: '사진은 브라우저에서만 처리되며 서버로 전송되지 않습니다.',
 
