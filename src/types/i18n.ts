@@ -247,4 +247,8 @@ export interface Messages {
   realismGuideStepEnvironment: string;
   realismGuideStepOcclusion: string;
   realismGuideDismissButton: string;
+
+  salesReviewEnterButton: string;
+  salesReviewExitButton: string;
+  salesReviewModeHint: string;
 }

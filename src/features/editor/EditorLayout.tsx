@@ -34,6 +34,8 @@ export function EditorLayout() {
   const selectObject = useEditorStore((state) => state.selectObject);
   const comparisonMode = useUiStore((state) => state.comparisonMode);
   const setComparisonMode = useUiStore((state) => state.setComparisonMode);
+  const salesReviewMode = useUiStore((state) => state.salesReviewMode);
+  const setSalesReviewMode = useUiStore((state) => state.setSalesReviewMode);
   const onboardingDismissed = useUiStore((state) => state.onboardingDismissed);
   const canvasRef = useRef<EditorCanvasHandle>(null);
   const [announcement, setAnnouncement] = useState('');
@@ -45,7 +47,7 @@ export function EditorLayout() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (isEditableTarget(event.target)) return;
+      if (isEditableTarget(event.target) || salesReviewMode) return;
 
       if (
         (event.key === 'Delete' || event.key === 'Backspace') &&
@@ -74,7 +76,7 @@ export function EditorLayout() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [deleteSelected, undo, redo]);
+  }, [deleteSelected, undo, redo, salesReviewMode]);
 
   const handleImageError = useCallback(
     (error: ImageValidationError) => {
@@ -181,6 +183,17 @@ export function EditorLayout() {
     if (next) selectObject(null);
   }, [comparisonMode, setComparisonMode, selectObject]);
 
+  // A distraction-free, non-editable presentation view (sprint spec section 17): the toolbar is
+  // hidden and the canvas itself becomes unclickable (see the `.editor-canvas-wrapper--review`
+  // CSS rule), so a salesperson can hand the screen to a client without risking an accidental
+  // move/resize/delete. Clearing the selection on entry also clears the Transformer's handles,
+  // the same way handleQuickCompareToggle already does for comparison mode.
+  const handleSalesReviewToggle = useCallback(() => {
+    const next = !salesReviewMode;
+    setSalesReviewMode(next);
+    if (next) selectObject(null);
+  }, [salesReviewMode, setSalesReviewMode, selectObject]);
+
   const statusHint = useMemo(() => {
     if (!spaceBackground) return messages.statusBarHintNoSpace;
     const hasSignage = objects.some(
@@ -200,16 +213,23 @@ export function EditorLayout() {
       <header className="editor-header">
         <h1 className="editor-header-title">{messages.appTitle}</h1>
         <div className="editor-header-actions">
-          <button type="button" onClick={undo} disabled={!canUndo}>
-            {messages.editorUndoButton}
-          </button>
-          <button type="button" onClick={redo} disabled={!canRedo}>
-            {messages.editorRedoButton}
-          </button>
+          {!salesReviewMode && (
+            <>
+              <button type="button" onClick={undo} disabled={!canUndo}>
+                {messages.editorUndoButton}
+              </button>
+              <button type="button" onClick={redo} disabled={!canRedo}>
+                {messages.editorRedoButton}
+              </button>
+            </>
+          )}
           <button type="button" onClick={handleQuickCompareToggle}>
             {comparisonMode
               ? messages.headerCompareToResultButton
               : messages.headerCompareToOriginalButton}
+          </button>
+          <button type="button" onClick={handleSalesReviewToggle} aria-pressed={salesReviewMode}>
+            {salesReviewMode ? messages.salesReviewExitButton : messages.salesReviewEnterButton}
           </button>
           <LanguageSelector />
           <button type="button" onClick={handleExport} disabled={!spaceBackground}>
@@ -231,13 +251,20 @@ export function EditorLayout() {
       {!videoExportSupported && (
         <p className="editor-header-notice">{messages.editorExportVideoUnsupportedHint}</p>
       )}
+      {salesReviewMode && <p className="editor-header-notice">{messages.salesReviewModeHint}</p>}
 
       <div className="editor-workspace">
-        <div className="editor-canvas-wrapper">
-          {!spaceBackground && !comparisonMode && (
+        <div
+          className={
+            salesReviewMode
+              ? 'editor-canvas-wrapper editor-canvas-wrapper--review'
+              : 'editor-canvas-wrapper'
+          }
+        >
+          {!spaceBackground && !comparisonMode && !salesReviewMode && (
             <p className="editor-empty-hint">{messages.editorCanvasEmptyHint}</p>
           )}
-          {spaceBackground && objectCount === 0 && !comparisonMode && (
+          {spaceBackground && objectCount === 0 && !comparisonMode && !salesReviewMode && (
             <p className="editor-empty-hint">{messages.editorCanvasNoSignageHint}</p>
           )}
           <EditorCanvas
@@ -246,7 +273,9 @@ export function EditorLayout() {
             onContentError={handleContentError}
           />
         </div>
-        <Toolbar onImageError={handleImageError} onContentError={handleContentError} />
+        {!salesReviewMode && (
+          <Toolbar onImageError={handleImageError} onContentError={handleContentError} />
+        )}
       </div>
 
       <p className="editor-status-bar">{statusHint}</p>

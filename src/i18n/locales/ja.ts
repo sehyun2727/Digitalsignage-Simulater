@@ -269,4 +269,9 @@ export const ja: Messages = {
     '空間写真からサンプリングすると、その場の色味に馴染む環境ブレンドを作れます。',
   realismGuideStepOcclusion: '前景オクルージョンで、柱や什器の手前にサイネージを自然に隠せます。',
   realismGuideDismissButton: '分かりました',
+
+  salesReviewEnterButton: '営業レビューモード',
+  salesReviewExitButton: '編集に戻る',
+  salesReviewModeHint:
+    '編集操作を無効にした、お客様にそのままお見せできる表示です。「編集に戻る」を押すといつでも編集を再開できます。',
 };

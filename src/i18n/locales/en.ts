@@ -265,4 +265,9 @@ export const en: Messages = {
   realismGuideStepOcclusion:
     'Foreground occlusion lets a pillar or fixture naturally cover part of the signage.',
   realismGuideDismissButton: 'Got it',
+
+  salesReviewEnterButton: 'Sales review mode',
+  salesReviewExitButton: 'Back to editing',
+  salesReviewModeHint:
+    'A clean, non-editable view you can show a client as-is. Select "Back to editing" any time to resume editing.',
 };

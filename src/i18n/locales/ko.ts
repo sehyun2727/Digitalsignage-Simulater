@@ -265,4 +265,9 @@ export const ko: Messages = {
   realismGuideStepOcclusion:
     '전경 오클루전으로 기둥이나 집기 앞에 사이니지를 자연스럽게 가릴 수 있습니다.',
   realismGuideDismissButton: '확인했습니다',
+
+  salesReviewEnterButton: '영업 리뷰 모드',
+  salesReviewExitButton: '편집으로 돌아가기',
+  salesReviewModeHint:
+    '편집 기능을 비활성화한, 고객에게 그대로 보여줄 수 있는 화면입니다. "편집으로 돌아가기"를 누르면 언제든 편집을 다시 시작할 수 있습니다.',
 };

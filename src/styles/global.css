@@ -193,6 +193,13 @@ a {
   touch-action: none;
 }
 
+/* Sales review mode (sprint spec section 17): blocks every pointer/touch/drag interaction with
+   the canvas, including Konva's own native-DOM listeners which no React prop can reach from
+   here, so the composed scene can be handed to a client without risking an accidental edit. */
+.editor-canvas-wrapper--review .editor-canvas-container {
+  pointer-events: none;
+}
+
 .perspective-edit-overlay {
   position: absolute;
   inset: 0;
