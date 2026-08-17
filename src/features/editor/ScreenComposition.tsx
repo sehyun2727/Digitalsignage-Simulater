@@ -93,6 +93,61 @@ function ContrastGroup({
 }
 
 /**
+ * The material glow (LED/OLED panel ambient light) as a soft-edged halo around the screen's own
+ * rect, blurred via Konva.Filters.Blur with a padded cache rect the same way ContactShadowView
+ * blurs its ground shadow. A shadow attached directly to the content image (the previous
+ * approach) never escaped the `body` Group's clipFunc below, which is clipped to the exact
+ * screen rect — canvas shadows are clipped like any other draw, so that glow was always fully
+ * invisible. Rendered as a sibling *before* (behind) the curvature strips/body, unaffected by
+ * their per-strip clipping, so the same halo works for both flat and curved screens.
+ */
+function ScreenGlowHalo({
+  screen,
+  glow,
+}: {
+  screen: RectShape;
+  glow: { blur: number; opacity: number; color: string } | null;
+}) {
+  const groupRef = useRef<Konva.Group | null>(null);
+
+  useEffect(() => {
+    const node = groupRef.current;
+    if (!node) return;
+    if (!glow) {
+      node.clearCache();
+      node.filters([]);
+    } else {
+      const pad = glow.blur * 2;
+      node.cache({
+        x: screen.x - pad,
+        y: screen.y - pad,
+        width: screen.width + pad * 2,
+        height: screen.height + pad * 2,
+      });
+      node.filters([Konva.Filters.Blur]);
+      node.blurRadius(glow.blur);
+    }
+    node.getLayer()?.batchDraw();
+  });
+
+  if (!glow) return null;
+
+  return (
+    <Group ref={groupRef} listening={false}>
+      <Rect
+        x={screen.x}
+        y={screen.y}
+        width={screen.width}
+        height={screen.height}
+        fill={glow.color}
+        opacity={glow.opacity}
+        listening={false}
+      />
+    </Group>
+  );
+}
+
+/**
  * Renders a display/portable object's screen: content image, per-material texture overlay,
  * brightness wash, and (for LED/Transparent LED) an optional strip-based curvature warp — the
  * single rendering recipe shared by SignageDisplayView and PortableProductView (see ADR 0007).
@@ -165,9 +220,6 @@ export function ScreenComposition({
           // black content stays transparent, bright content reads as illuminated (see
           // lib/materialTexture.ts transparentContentOpacity doc comment).
           globalCompositeOperation={isTransparentLed ? 'lighten' : 'source-over'}
-          shadowColor={glow?.color}
-          shadowBlur={glow?.blur}
-          shadowOpacity={glow?.opacity}
           listening={false}
         />
       )}
@@ -224,6 +276,7 @@ export function ScreenComposition({
   if (strips.length === 0) {
     return (
       <Group ref={rootRef}>
+        <ScreenGlowHalo screen={screen} glow={glow} />
         <ContrastGroup contrastValue={contrastValue} redrawContinuously={isVideo}>
           {body}
         </ContrastGroup>
@@ -233,6 +286,7 @@ export function ScreenComposition({
 
   return (
     <Group ref={rootRef}>
+      <ScreenGlowHalo screen={screen} glow={glow} />
       <ContrastGroup contrastValue={contrastValue} redrawContinuously={isVideo}>
         {strips.map((strip) => (
           <Group

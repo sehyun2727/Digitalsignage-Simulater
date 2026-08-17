@@ -8,6 +8,7 @@ import { ContactShadowView } from './ContactShadowView';
 import { OcclusionMaskLayer } from './OcclusionMaskLayer';
 import { PerspectiveScreenView } from './PerspectiveScreenView';
 import { ScreenComposition } from './ScreenComposition';
+import { ScreenReflection } from './ScreenReflection';
 
 interface PortableProductViewProps {
   object: PortableSignageObject;
@@ -58,6 +59,14 @@ export function PortableProductView({
         materialSettings={object.materialSettings}
         curvature={object.curvature}
         content={object.content}
+      />
+      <ScreenReflection
+        screen={screen}
+        material={object.material}
+        materialSettings={object.materialSettings}
+        curvature={object.curvature}
+        content={object.content}
+        installationMode={object.installationMode}
       />
       {blendOpacity > 0 && (
         // Restricted to the screen region only (not the whole product photo): see
