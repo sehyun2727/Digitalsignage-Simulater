@@ -1,6 +1,6 @@
 import { Group, Line, Rect } from 'react-konva';
 import { computeCurvatureOutlinePoints, isCurvatureSupported } from '../../lib/curvature';
-import { getFrameDecorations, getScreenRect } from '../../lib/displayFrame';
+import { bezelFillForMaterial, getFrameDecorations, getScreenRect } from '../../lib/displayFrame';
 import { ENVIRONMENT_BLEND_COLOR, environmentBlendOpacity } from '../../lib/environmentIntegration';
 import { normalizeMaterial } from '../../lib/materialTexture';
 import type { DocumentSize } from '../../lib/quadGeometry';
@@ -20,8 +20,6 @@ interface SignageDisplayViewProps {
   spaceBackground: SpaceBackground | null;
 }
 
-const BEZEL_FILL = '#15181f';
-
 export function SignageDisplayView({
   object,
   groupProps,
@@ -29,7 +27,12 @@ export function SignageDisplayView({
   spaceBackground,
 }: SignageDisplayViewProps) {
   const screen = getScreenRect(object.frameId, object.width, object.height);
-  const decorations = getFrameDecorations(object.frameId, object.width, object.height);
+  const decorations = getFrameDecorations(
+    object.frameId,
+    object.width,
+    object.height,
+    object.material,
+  );
   const curvatureActive =
     isCurvatureSupported(normalizeMaterial(object.material)) && object.curvature.mode !== 'flat';
   const curvedOutline = curvatureActive
@@ -49,7 +52,7 @@ export function SignageDisplayView({
         <Line
           points={curvedOutline}
           closed
-          stroke={BEZEL_FILL}
+          stroke={bezelFillForMaterial(object.material)}
           strokeWidth={bezelThickness}
           listening={false}
         />
@@ -72,6 +75,7 @@ export function SignageDisplayView({
         materialSettings={object.materialSettings}
         curvature={object.curvature}
         content={object.content}
+        objectId={object.id}
       />
       <ScreenReflection
         screen={screen}
@@ -80,6 +84,7 @@ export function SignageDisplayView({
         curvature={object.curvature}
         content={object.content}
         installationMode={object.installationMode}
+        objectId={object.id}
       />
       {blendOpacity > 0 && (
         // Restricted to the screen region only (not the frame/bezel): blending the frame too

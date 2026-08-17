@@ -105,6 +105,81 @@ export const LCD_HIGHLIGHT_COLOR_STOPS = [
   'rgba(255,255,255,0)',
 ];
 
+/** Peak opacity of the per-object secondary highlight streak, see getLcdSecondaryHighlight. */
+export const LCD_SECONDARY_HIGHLIGHT_MAX_OPACITY = 0.22;
+
+export interface LcdHighlightVariant {
+  startPoint: { x: number; y: number };
+  endPoint: { x: number; y: number };
+  colorStops: (number | string)[];
+}
+
+/** A small deterministic hash, used only to derive stable cosmetic variation - never for
+ *  anything security- or identity-sensitive. */
+function hashString(value: string): number {
+  let hash = 5381;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 33 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+/**
+ * A second, fainter specular streak layered on top of the LCD material's fixed primary highlight
+ * band (LCD_HIGHLIGHT_COLOR_STOPS), so multiple same-sized LCD screens placed in one scene don't
+ * read as exact visual clones of each other - real ambient reflections land differently on every
+ * panel depending on its surroundings. Its diagonal and peak position are derived from a hash of
+ * the object's own id, so the same object always renders the same streak (stable across
+ * re-renders and undo/redo) while different objects differ from one another. This is an
+ * *additional* layer rather than a replacement for the primary band, so the primary band's fixed
+ * geometry (and anything that depends on it, e.g. e2e pixel assertions) is unaffected.
+ */
+export function getLcdSecondaryHighlight(
+  objectId: string,
+  width: number,
+  height: number,
+): LcdHighlightVariant {
+  const hash = hashString(objectId);
+  const useAntiDiagonal = (hash & 1) === 1;
+  // 0.55-0.75: the opposite half of the screen from the primary band's fixed 0.3 peak, so the
+  // two streaks read as distinct light sources instead of overlapping into one wide band.
+  const peak = 0.55 + ((hash >>> 1) % 21) / 100;
+  const bandHalfWidth = 0.06;
+
+  const [startPoint, endPoint] = useAntiDiagonal
+    ? [
+        { x: width, y: 0 },
+        { x: 0, y: height },
+      ]
+    : [
+        { x: 0, y: 0 },
+        { x: width, y: height },
+      ];
+
+  return {
+    startPoint,
+    endPoint,
+    colorStops: [
+      0,
+      'rgba(255,255,255,0)',
+      Math.max(0, peak - bandHalfWidth),
+      'rgba(255,255,255,0)',
+      peak,
+      'rgba(255,255,255,1)',
+      Math.min(1, peak + bandHalfWidth),
+      'rgba(255,255,255,0)',
+      1,
+      'rgba(255,255,255,0)',
+    ],
+  };
+}
+
+/** Opacity of the secondary highlight streak, scaled by the same intensity setting as the
+ *  primary band but capped lower so it always reads as the fainter of the two. */
+export function lcdSecondaryHighlightOpacity(intensity: number): number {
+  return (Math.min(100, Math.max(0, intensity)) / 100) * LCD_SECONDARY_HIGHLIGHT_MAX_OPACITY;
+}
+
 /**
  * Backing-rect opacity for the Transparent LED material: how much of whatever is already
  * painted underneath (the space background photo, drawn earlier in the same Konva Layer/canvas)

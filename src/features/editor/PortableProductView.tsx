@@ -59,6 +59,7 @@ export function PortableProductView({
         materialSettings={object.materialSettings}
         curvature={object.curvature}
         content={object.content}
+        objectId={object.id}
       />
       <ScreenReflection
         screen={screen}
@@ -67,6 +68,7 @@ export function PortableProductView({
         curvature={object.curvature}
         content={object.content}
         installationMode={object.installationMode}
+        objectId={object.id}
       />
       {blendOpacity > 0 && (
         // Restricted to the screen region only (not the whole product photo): see

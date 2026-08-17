@@ -17,6 +17,7 @@ interface ScreenReflectionProps {
   curvature: Curvature;
   content: SignageContent | null;
   installationMode: InstallationMode;
+  objectId: string;
 }
 
 const REFLECTION_OPACITY = 0.18;
@@ -39,6 +40,7 @@ export function ScreenReflection({
   curvature,
   content,
   installationMode,
+  objectId,
 }: ScreenReflectionProps) {
   if (installationMode !== 'window') return null;
 
@@ -60,6 +62,7 @@ export function ScreenReflection({
           materialSettings={materialSettings}
           curvature={curvature}
           content={content}
+          objectId={objectId}
         />
       </Group>
     </Group>

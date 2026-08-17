@@ -11,8 +11,10 @@ import {
   contrastFilterValue,
   getBrightnessOverlay,
   getGlowShadow,
+  getLcdSecondaryHighlight,
   getLedPatternCanvas,
   LCD_HIGHLIGHT_COLOR_STOPS,
+  lcdSecondaryHighlightOpacity,
   materialPatternOpacity,
   normalizeMaterial,
   transparentBackingOpacity,
@@ -33,6 +35,9 @@ interface ScreenCompositionProps {
   materialSettings: MaterialSettings;
   curvature: Curvature;
   content: SignageContent | null;
+  /** The owning object's own id, used only to derive a stable per-object LCD highlight
+   *  variant (see getLcdSecondaryHighlight) — never for security/identity purposes. */
+  objectId: string;
 }
 
 /**
@@ -161,6 +166,7 @@ export function ScreenComposition({
   materialSettings,
   curvature,
   content,
+  objectId,
 }: ScreenCompositionProps) {
   const normalized = normalizeMaterial(material);
   const isTransparentLed = normalized === 'transparent-led';
@@ -190,6 +196,11 @@ export function ScreenComposition({
       ? getGlowShadow(materialSettings.glow * glowLuminanceFactor(meanLuminance))
       : null;
   const contrastValue = contrastFilterValue(materialSettings.contrast);
+  const secondaryHighlight = useMemo(
+    () => getLcdSecondaryHighlight(objectId, screen.width, screen.height),
+    [objectId, screen.width, screen.height],
+  );
+  const secondaryHighlightOpacity = lcdSecondaryHighlightOpacity(materialSettings.intensity);
 
   const effectiveCurvature = isCurvatureSupported(normalized)
     ? curvature
@@ -258,6 +269,19 @@ export function ScreenComposition({
           fillLinearGradientEndPoint={{ x: screen.width, y: screen.height }}
           fillLinearGradientColorStops={LCD_HIGHLIGHT_COLOR_STOPS}
           opacity={patternOpacity}
+          listening={false}
+        />
+      )}
+      {normalized === 'lcd' && (
+        <Rect
+          x={screen.x}
+          y={screen.y}
+          width={screen.width}
+          height={screen.height}
+          fillLinearGradientStartPoint={secondaryHighlight.startPoint}
+          fillLinearGradientEndPoint={secondaryHighlight.endPoint}
+          fillLinearGradientColorStops={secondaryHighlight.colorStops}
+          opacity={secondaryHighlightOpacity}
           listening={false}
         />
       )}

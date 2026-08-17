@@ -3,8 +3,11 @@ import {
   contrastFilterValue,
   getBrightnessOverlay,
   getGlowShadow,
+  getLcdSecondaryHighlight,
   getLedPatternCanvas,
+  lcdSecondaryHighlightOpacity,
   LCD_HIGHLIGHT_MAX_OPACITY,
+  LCD_SECONDARY_HIGHLIGHT_MAX_OPACITY,
   LED_PATTERN_MAX_OPACITY,
   materialPatternOpacity,
   normalizeMaterial,
@@ -172,6 +175,71 @@ describe('getGlowShadow', () => {
   it('clamps out-of-range glow to the same result as the nearest bound', () => {
     expect(getGlowShadow(-20)).toBeNull();
     expect(getGlowShadow(150)).toEqual(getGlowShadow(100));
+  });
+});
+
+describe('getLcdSecondaryHighlight', () => {
+  it('is deterministic for the same object id', () => {
+    const a = getLcdSecondaryHighlight('obj-1', 200, 100);
+    const b = getLcdSecondaryHighlight('obj-1', 200, 100);
+    expect(a).toEqual(b);
+  });
+
+  it('varies its diagonal/peak across different object ids', () => {
+    const ids = ['obj-1', 'obj-2', 'obj-3', 'obj-4', 'obj-5', 'obj-6'];
+    const variants = ids.map((id) => getLcdSecondaryHighlight(id, 200, 100));
+    const serialized = variants.map((v) =>
+      JSON.stringify([v.startPoint, v.endPoint, v.colorStops]),
+    );
+    expect(new Set(serialized).size).toBeGreaterThan(1);
+  });
+
+  it('always uses one of the two screen-corner-to-corner diagonals', () => {
+    const width = 200;
+    const height = 100;
+    for (const id of ['obj-1', 'obj-2', 'obj-3', 'obj-4']) {
+      const { startPoint, endPoint } = getLcdSecondaryHighlight(id, width, height);
+      const isMainDiagonal =
+        startPoint.x === 0 && startPoint.y === 0 && endPoint.x === width && endPoint.y === height;
+      const isAntiDiagonal =
+        startPoint.x === width && startPoint.y === 0 && endPoint.x === 0 && endPoint.y === height;
+      expect(isMainDiagonal || isAntiDiagonal).toBe(true);
+    }
+  });
+
+  it('keeps its peak color stop, and every stop position, within the opposite half of the primary band (0.55-0.76) and the valid 0-1 range', () => {
+    for (const id of ['obj-1', 'obj-2', 'obj-3', 'obj-4', 'obj-5']) {
+      const { colorStops } = getLcdSecondaryHighlight(id, 200, 100);
+      const positions = colorStops.filter((_, index) => index % 2 === 0) as number[];
+      for (const position of positions) {
+        expect(position).toBeGreaterThanOrEqual(0);
+        expect(position).toBeLessThanOrEqual(1);
+      }
+      // The peak is the stop with full white opacity (colorStops[4]).
+      const peak = positions[2];
+      expect(peak).toBeGreaterThanOrEqual(0.55);
+      expect(peak).toBeLessThanOrEqual(0.76);
+      // Positions must be non-decreasing for a valid Konva gradient.
+      for (let i = 1; i < positions.length; i += 1) {
+        expect(positions[i]!).toBeGreaterThanOrEqual(positions[i - 1]!);
+      }
+    }
+  });
+});
+
+describe('lcdSecondaryHighlightOpacity', () => {
+  it('is zero at zero intensity and caps at LCD_SECONDARY_HIGHLIGHT_MAX_OPACITY at 100', () => {
+    expect(lcdSecondaryHighlightOpacity(0)).toBe(0);
+    expect(lcdSecondaryHighlightOpacity(100)).toBeCloseTo(LCD_SECONDARY_HIGHLIGHT_MAX_OPACITY);
+  });
+
+  it('stays lower than the primary band ceiling at full intensity', () => {
+    expect(lcdSecondaryHighlightOpacity(100)).toBeLessThan(LCD_HIGHLIGHT_MAX_OPACITY);
+  });
+
+  it('clamps out-of-range input to the same result as the nearest bound', () => {
+    expect(lcdSecondaryHighlightOpacity(-20)).toBe(lcdSecondaryHighlightOpacity(0));
+    expect(lcdSecondaryHighlightOpacity(150)).toBe(lcdSecondaryHighlightOpacity(100));
   });
 });
 
