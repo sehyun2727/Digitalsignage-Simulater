@@ -34,6 +34,7 @@ import {
 import { selectSelectedObject, useEditorStore } from '../../store/editorStore';
 import { useUiStore } from '../../store/uiStore';
 import {
+  CANVAS_PRESET_IDS,
   CURRENT_DISPLAY_MATERIALS,
   DEFAULT_CURVATURE,
   getDocumentSize,
@@ -54,10 +55,12 @@ import {
   supportsPerspective,
 } from '../../types/editor';
 import { ACCEPTED_VIDEO_TYPES } from '../../lib/videoValidation';
+import { AdvancedSettingsModal } from './AdvancedSettingsModal';
 import { PortableBuilderModal } from './PortableBuilderModal';
 import { RealismGuideCard } from './RealismGuideCard';
 import type { ImageValidationError } from '../../lib/fileValidation';
 import type {
+  CanvasPresetId,
   ContactShadowSettings,
   ContentFit,
   ContentKind,
@@ -81,8 +84,9 @@ interface ToolbarProps {
  * The single always-visible right-side toolbar (Sprint 4.1 correction, Sprint 4.2 photo-first
  * rework). Six fixed sections in a fixed order — Space, Add signage, Selected signage, Content,
  * Appearance, Export — so nothing here is mounted/unmounted based on navigation, and every
- * control stays reachable at all times. The Space section's uploaded photo is the sole source of
- * document/export size (see ADR 0007); every other section is gated on that photo existing.
+ * control stays reachable at all times. The document/export size is a fixed canvasPreset chosen
+ * in the Space section, independent of the uploaded photo (see ADR 0011); every other section is
+ * still gated on the photo existing, unchanged from before.
  */
 export function Toolbar({ onImageError, onContentError }: ToolbarProps) {
   const { messages } = useLocale();
@@ -147,8 +151,10 @@ function SpaceBackgroundThumbnail({ sourceId }: { sourceId: string }) {
 function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationError) => void }) {
   const { messages } = useLocale();
   const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
+  const canvasPreset = useEditorStore((state) => state.document.canvasPreset);
   const setSpaceBackground = useEditorStore((state) => state.setSpaceBackground);
   const removeSpaceBackground = useEditorStore((state) => state.removeSpaceBackground);
+  const setCanvasPreset = useEditorStore((state) => state.setCanvasPreset);
   const spaceBackgroundInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleSpaceBackgroundChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,6 +182,27 @@ function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationE
 
   return (
     <ToolbarSection heading={messages.toolbarSpaceSectionHeading}>
+      <div
+        className="canvas-preset-group"
+        role="group"
+        aria-label={messages.editorCanvasPresetLabel}
+      >
+        <span>{messages.editorCanvasPresetLabel}</span>
+        <div className="toolbar-actions">
+          {CANVAS_PRESET_IDS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className={canvasPreset === preset ? 'is-active' : undefined}
+              aria-pressed={canvasPreset === preset}
+              onClick={() => setCanvasPreset(preset)}
+            >
+              {canvasPresetLabel(preset, messages)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {!spaceBackground && <p className="toolbar-notice">{messages.toolbarSpaceEmptyHint}</p>}
 
       {spaceBackground && (
@@ -226,7 +253,7 @@ function AddSignageSection({
   const addDisplay = useEditorStore((state) => state.addDisplay);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
-  const canAddSignage = getDocumentSize(document) !== null;
+  const canAddSignage = document.spaceBackground !== null;
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -804,6 +831,14 @@ function renderingPresetLabel(
   return messages.editorRenderingPresetNatural;
 }
 
+function canvasPresetLabel(
+  preset: CanvasPresetId,
+  messages: ReturnType<typeof useLocale>['messages'],
+): string {
+  if (preset === 'portrait-9-16') return messages.editorCanvasPresetPortraitLabel;
+  return messages.editorCanvasPresetLandscapeLabel;
+}
+
 function AppearanceFields({ object }: { object: DisplaySignageObject | PortableSignageObject }) {
   const { messages } = useLocale();
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
@@ -815,7 +850,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
   const beginOcclusionEdit = useEditorStore((state) => state.beginOcclusionEdit);
   const deleteOcclusionMask = useEditorStore((state) => state.deleteOcclusionMask);
   const setOcclusionMaskEnabled = useEditorStore((state) => state.setOcclusionMaskEnabled);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [intensityDraft, setIntensityDraft] = useState(object.materialSettings.intensity);
   const [brightnessDraft, setBrightnessDraft] = useState(object.materialSettings.brightness);
   const [transparencyDraft, setTransparencyDraft] = useState(object.materialSettings.transparency);
@@ -1041,17 +1076,16 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
         <p className="toolbar-notice">{messages.editorTransparentLedDisclaimer}</p>
       )}
 
-      <label className="toolbar-checkbox-field">
-        <input
-          type="checkbox"
-          checked={advancedOpen}
-          onChange={(event) => setAdvancedOpen(event.target.checked)}
-        />
-        <span>{messages.editorMaterialAdvancedToggleLabel}</span>
-      </label>
+      <p className="toolbar-notice">{messages.editorMaterialPreviewNotice}</p>
 
-      {advancedOpen && (
-        <>
+      <div className="editor-properties-actions">
+        <button type="button" onClick={() => setSettingsOpen(true)}>
+          {messages.editorAdvancedSettingsOpenButton}
+        </button>
+      </div>
+
+      {settingsOpen && (
+        <AdvancedSettingsModal onClose={() => setSettingsOpen(false)}>
           {supportsGridAndGlow && (
             <label>
               <span>{messages.editorMaterialGridDensityLabel}</span>
@@ -1116,221 +1150,232 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
               }
             />
           </label>
-        </>
-      )}
 
-      <button type="button" onClick={resetMaterial}>
-        {messages.editorMaterialResetButton}
-      </button>
+          <button type="button" onClick={resetMaterial}>
+            {messages.editorMaterialResetButton}
+          </button>
 
-      <p className="toolbar-notice">{messages.editorMaterialPreviewNotice}</p>
-
-      <div
-        className="curvature-mode-group"
-        role="group"
-        aria-label={messages.editorCurvatureModeLabel}
-      >
-        <span>{messages.editorCurvatureModeLabel}</span>
-        <div className="toolbar-actions">
-          {CURVATURE_MODES.map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              disabled={!curvatureSupported}
-              className={object.curvature.mode === mode ? 'is-active' : undefined}
-              aria-pressed={object.curvature.mode === mode}
-              onClick={() => commitCurvature({ mode })}
-            >
-              {curvatureModeLabel(mode, messages)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {!curvatureSupported && (
-        <p className="toolbar-notice">{messages.editorCurvatureUnsupportedHint}</p>
-      )}
-
-      {curvatureSupported && object.curvature.mode !== 'flat' && (
-        <label>
-          <span>{messages.editorCurvatureAmountLabel}</span>
-          <input
-            type="range"
-            min={MIN_CURVATURE_AMOUNT}
-            max={MAX_CURVATURE_AMOUNT}
-            value={curvatureAmountDraft}
-            onInput={(event) => {
-              const amount = Number((event.target as HTMLInputElement).value);
-              setCurvatureAmountDraft(amount);
-              updateObjectTransient(object.id, { curvature: { ...object.curvature, amount } });
-            }}
-            onPointerUp={() =>
-              commitCurvature({ amount: clampCurvatureAmount(curvatureAmountDraft) })
-            }
-            onBlur={() => commitCurvature({ amount: clampCurvatureAmount(curvatureAmountDraft) })}
-          />
-        </label>
-      )}
-
-      {curvatureSupported && (
-        <button type="button" onClick={resetCurvature}>
-          {messages.editorCurvatureResetButton}
-        </button>
-      )}
-
-      <div className="toolbar-subsection">
-        <span className="toolbar-subsection-heading">{messages.editorInstallationModeLabel}</span>
-        <label>
-          <span>{messages.editorInstallationModeLabel}</span>
-          <select
-            value={object.installationMode}
-            onChange={(event) =>
-              commit({ installationMode: event.target.value as InstallationMode })
-            }
+          <div
+            className="curvature-mode-group"
+            role="group"
+            aria-label={messages.editorCurvatureModeLabel}
           >
-            <option value="wall">{messages.editorInstallationModeWall}</option>
-            <option value="window">{messages.editorInstallationModeWindow}</option>
-            <option value="freestanding">{messages.editorInstallationModeFreestanding}</option>
-          </select>
-        </label>
-      </div>
+            <span>{messages.editorCurvatureModeLabel}</span>
+            <div className="toolbar-actions">
+              {CURVATURE_MODES.map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  disabled={!curvatureSupported}
+                  className={object.curvature.mode === mode ? 'is-active' : undefined}
+                  aria-pressed={object.curvature.mode === mode}
+                  onClick={() => commitCurvature({ mode })}
+                >
+                  {curvatureModeLabel(mode, messages)}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      <div className="toolbar-subsection">
-        <span className="toolbar-subsection-heading">{messages.editorOcclusionLabel}</span>
+          {!curvatureSupported && (
+            <p className="toolbar-notice">{messages.editorCurvatureUnsupportedHint}</p>
+          )}
 
-        {object.occlusionMasks.length === 0 ? (
-          <p className="toolbar-notice">{messages.editorOcclusionEmptyHint}</p>
-        ) : (
-          <ul className="toolbar-occlusion-list">
-            {object.occlusionMasks.map((mask, index) => (
-              <li key={mask.id}>
-                <label className="toolbar-checkbox-field">
+          {curvatureSupported && object.curvature.mode !== 'flat' && (
+            <label>
+              <span>{messages.editorCurvatureAmountLabel}</span>
+              <input
+                type="range"
+                min={MIN_CURVATURE_AMOUNT}
+                max={MAX_CURVATURE_AMOUNT}
+                value={curvatureAmountDraft}
+                onInput={(event) => {
+                  const amount = Number((event.target as HTMLInputElement).value);
+                  setCurvatureAmountDraft(amount);
+                  updateObjectTransient(object.id, { curvature: { ...object.curvature, amount } });
+                }}
+                onPointerUp={() =>
+                  commitCurvature({ amount: clampCurvatureAmount(curvatureAmountDraft) })
+                }
+                onBlur={() =>
+                  commitCurvature({ amount: clampCurvatureAmount(curvatureAmountDraft) })
+                }
+              />
+            </label>
+          )}
+
+          {curvatureSupported && (
+            <button type="button" onClick={resetCurvature}>
+              {messages.editorCurvatureResetButton}
+            </button>
+          )}
+
+          <div className="toolbar-subsection">
+            <span className="toolbar-subsection-heading">
+              {messages.editorInstallationModeLabel}
+            </span>
+            <label>
+              <span>{messages.editorInstallationModeLabel}</span>
+              <select
+                value={object.installationMode}
+                onChange={(event) =>
+                  commit({ installationMode: event.target.value as InstallationMode })
+                }
+              >
+                <option value="wall">{messages.editorInstallationModeWall}</option>
+                <option value="window">{messages.editorInstallationModeWindow}</option>
+                <option value="freestanding">{messages.editorInstallationModeFreestanding}</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="toolbar-subsection">
+            <span className="toolbar-subsection-heading">{messages.editorOcclusionLabel}</span>
+
+            {object.occlusionMasks.length === 0 ? (
+              <p className="toolbar-notice">{messages.editorOcclusionEmptyHint}</p>
+            ) : (
+              <ul className="toolbar-occlusion-list">
+                {object.occlusionMasks.map((mask, index) => (
+                  <li key={mask.id}>
+                    <label className="toolbar-checkbox-field">
+                      <input
+                        type="checkbox"
+                        checked={mask.enabled}
+                        onChange={(event) =>
+                          setOcclusionMaskEnabled(object.id, mask.id, event.target.checked)
+                        }
+                      />
+                      <span>
+                        {messages.editorOcclusionMaskItemLabel} {index + 1}
+                      </span>
+                    </label>
+                    <div className="toolbar-actions">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSettingsOpen(false);
+                          beginOcclusionEdit(object.id, mask.id);
+                        }}
+                      >
+                        {messages.editorOcclusionEditButton}
+                      </button>
+                      <button type="button" onClick={() => deleteOcclusionMask(object.id, mask.id)}>
+                        {messages.editorOcclusionDeleteButton}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="toolbar-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  setSettingsOpen(false);
+                  beginOcclusionEdit(object.id);
+                }}
+                disabled={!spaceBackground || occlusionEditObjectId === object.id}
+              >
+                {messages.editorOcclusionAddButton}
+              </button>
+            </div>
+            {!spaceBackground && (
+              <p className="toolbar-notice">{messages.editorOcclusionNoSpaceHint}</p>
+            )}
+          </div>
+
+          <div className="toolbar-subsection">
+            <span className="toolbar-subsection-heading">{messages.editorContactShadowLabel}</span>
+
+            <label className="toolbar-checkbox-field">
+              <input
+                type="checkbox"
+                checked={object.contactShadow.enabled}
+                onChange={(event) => commitContactShadow({ enabled: event.target.checked })}
+              />
+              <span>{messages.editorContactShadowEnableLabel}</span>
+            </label>
+
+            {object.contactShadow.enabled && (
+              <>
+                <label>
+                  <span>{messages.editorContactShadowStrengthLabel}</span>
                   <input
-                    type="checkbox"
-                    checked={mask.enabled}
-                    onChange={(event) =>
-                      setOcclusionMaskEnabled(object.id, mask.id, event.target.checked)
+                    type="range"
+                    min={MIN_CONTACT_SHADOW_SETTING}
+                    max={MAX_CONTACT_SHADOW_SETTING}
+                    value={shadowStrengthDraft}
+                    onInput={(event) => {
+                      const strength = Number((event.target as HTMLInputElement).value);
+                      setShadowStrengthDraft(strength);
+                      previewContactShadow({ strength });
+                    }}
+                    onPointerUp={() =>
+                      commitContactShadow({
+                        strength: clampContactShadowSetting(shadowStrengthDraft),
+                      })
+                    }
+                    onBlur={() =>
+                      commitContactShadow({
+                        strength: clampContactShadowSetting(shadowStrengthDraft),
+                      })
                     }
                   />
-                  <span>
-                    {messages.editorOcclusionMaskItemLabel} {index + 1}
-                  </span>
                 </label>
-                <div className="toolbar-actions">
-                  <button type="button" onClick={() => beginOcclusionEdit(object.id, mask.id)}>
-                    {messages.editorOcclusionEditButton}
-                  </button>
-                  <button type="button" onClick={() => deleteOcclusionMask(object.id, mask.id)}>
-                    {messages.editorOcclusionDeleteButton}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
 
-        <div className="toolbar-actions">
-          <button
-            type="button"
-            onClick={() => beginOcclusionEdit(object.id)}
-            disabled={!spaceBackground || occlusionEditObjectId === object.id}
-          >
-            {messages.editorOcclusionAddButton}
-          </button>
-        </div>
-        {!spaceBackground && (
-          <p className="toolbar-notice">{messages.editorOcclusionNoSpaceHint}</p>
-        )}
-      </div>
+                <label>
+                  <span>{messages.editorContactShadowBlurLabel}</span>
+                  <input
+                    type="range"
+                    min={MIN_CONTACT_SHADOW_SETTING}
+                    max={MAX_CONTACT_SHADOW_SETTING}
+                    value={shadowBlurDraft}
+                    onInput={(event) => {
+                      const blur = Number((event.target as HTMLInputElement).value);
+                      setShadowBlurDraft(blur);
+                      previewContactShadow({ blur });
+                    }}
+                    onPointerUp={() =>
+                      commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
+                    }
+                    onBlur={() =>
+                      commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
+                    }
+                  />
+                </label>
 
-      <div className="toolbar-subsection">
-        <span className="toolbar-subsection-heading">{messages.editorContactShadowLabel}</span>
+                <label>
+                  <span>{messages.editorContactShadowOffsetXLabel}</span>
+                  <input
+                    type="number"
+                    step={0.05}
+                    min={-1}
+                    max={1}
+                    value={shadowOffsetXDraft}
+                    onChange={(event) => setShadowOffsetXDraft(Number(event.target.value))}
+                    onBlur={() =>
+                      commitContactShadow({ offsetX: clampContactShadowOffset(shadowOffsetXDraft) })
+                    }
+                  />
+                </label>
 
-        <label className="toolbar-checkbox-field">
-          <input
-            type="checkbox"
-            checked={object.contactShadow.enabled}
-            onChange={(event) => commitContactShadow({ enabled: event.target.checked })}
-          />
-          <span>{messages.editorContactShadowEnableLabel}</span>
-        </label>
+                <label>
+                  <span>{messages.editorContactShadowOffsetYLabel}</span>
+                  <input
+                    type="number"
+                    step={0.05}
+                    min={-1}
+                    max={1}
+                    value={shadowOffsetYDraft}
+                    onChange={(event) => setShadowOffsetYDraft(Number(event.target.value))}
+                    onBlur={() =>
+                      commitContactShadow({ offsetY: clampContactShadowOffset(shadowOffsetYDraft) })
+                    }
+                  />
+                </label>
 
-        {object.contactShadow.enabled && (
-          <>
-            <label>
-              <span>{messages.editorContactShadowStrengthLabel}</span>
-              <input
-                type="range"
-                min={MIN_CONTACT_SHADOW_SETTING}
-                max={MAX_CONTACT_SHADOW_SETTING}
-                value={shadowStrengthDraft}
-                onInput={(event) => {
-                  const strength = Number((event.target as HTMLInputElement).value);
-                  setShadowStrengthDraft(strength);
-                  previewContactShadow({ strength });
-                }}
-                onPointerUp={() =>
-                  commitContactShadow({ strength: clampContactShadowSetting(shadowStrengthDraft) })
-                }
-                onBlur={() =>
-                  commitContactShadow({ strength: clampContactShadowSetting(shadowStrengthDraft) })
-                }
-              />
-            </label>
-
-            <label>
-              <span>{messages.editorContactShadowBlurLabel}</span>
-              <input
-                type="range"
-                min={MIN_CONTACT_SHADOW_SETTING}
-                max={MAX_CONTACT_SHADOW_SETTING}
-                value={shadowBlurDraft}
-                onInput={(event) => {
-                  const blur = Number((event.target as HTMLInputElement).value);
-                  setShadowBlurDraft(blur);
-                  previewContactShadow({ blur });
-                }}
-                onPointerUp={() =>
-                  commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
-                }
-                onBlur={() =>
-                  commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
-                }
-              />
-            </label>
-
-            <label>
-              <span>{messages.editorContactShadowOffsetXLabel}</span>
-              <input
-                type="number"
-                step={0.05}
-                min={-1}
-                max={1}
-                value={shadowOffsetXDraft}
-                onChange={(event) => setShadowOffsetXDraft(Number(event.target.value))}
-                onBlur={() =>
-                  commitContactShadow({ offsetX: clampContactShadowOffset(shadowOffsetXDraft) })
-                }
-              />
-            </label>
-
-            <label>
-              <span>{messages.editorContactShadowOffsetYLabel}</span>
-              <input
-                type="number"
-                step={0.05}
-                min={-1}
-                max={1}
-                value={shadowOffsetYDraft}
-                onChange={(event) => setShadowOffsetYDraft(Number(event.target.value))}
-                onBlur={() =>
-                  commitContactShadow({ offsetY: clampContactShadowOffset(shadowOffsetYDraft) })
-                }
-              />
-            </label>
-
-            {advancedOpen && (
-              <>
                 <label>
                   <span>{messages.editorContactShadowSpreadLabel}</span>
                   <input
@@ -1395,69 +1440,69 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                 </label>
               </>
             )}
-          </>
-        )}
 
-        <button type="button" onClick={resetContactShadow}>
-          {messages.editorContactShadowResetButton}
-        </button>
-      </div>
+            <button type="button" onClick={resetContactShadow}>
+              {messages.editorContactShadowResetButton}
+            </button>
+          </div>
 
-      <div className="toolbar-subsection">
-        <span className="toolbar-subsection-heading">
-          {messages.editorEnvironmentIntegrationLabel}
-        </span>
+          <div className="toolbar-subsection">
+            <span className="toolbar-subsection-heading">
+              {messages.editorEnvironmentIntegrationLabel}
+            </span>
 
-        <label>
-          <span>{messages.editorEnvironmentIntegrationStrengthLabel}</span>
-          <input
-            type="range"
-            min={MIN_ENVIRONMENT_INTEGRATION}
-            max={MAX_ENVIRONMENT_INTEGRATION}
-            value={environmentStrengthDraft}
-            onInput={(event) => {
-              const strength = Number((event.target as HTMLInputElement).value);
-              setEnvironmentStrengthDraft(strength);
-              previewEnvironmentIntegration({ strength });
-            }}
-            onPointerUp={() =>
-              commitEnvironmentIntegration({
-                strength: clampEnvironmentIntegration(environmentStrengthDraft),
-              })
-            }
-            onBlur={() =>
-              commitEnvironmentIntegration({
-                strength: clampEnvironmentIntegration(environmentStrengthDraft),
-              })
-            }
-          />
-        </label>
+            <label>
+              <span>{messages.editorEnvironmentIntegrationStrengthLabel}</span>
+              <input
+                type="range"
+                min={MIN_ENVIRONMENT_INTEGRATION}
+                max={MAX_ENVIRONMENT_INTEGRATION}
+                value={environmentStrengthDraft}
+                onInput={(event) => {
+                  const strength = Number((event.target as HTMLInputElement).value);
+                  setEnvironmentStrengthDraft(strength);
+                  previewEnvironmentIntegration({ strength });
+                }}
+                onPointerUp={() =>
+                  commitEnvironmentIntegration({
+                    strength: clampEnvironmentIntegration(environmentStrengthDraft),
+                  })
+                }
+                onBlur={() =>
+                  commitEnvironmentIntegration({
+                    strength: clampEnvironmentIntegration(environmentStrengthDraft),
+                  })
+                }
+              />
+            </label>
 
-        <div className="toolbar-actions">
-          <button
-            type="button"
-            onClick={() => sampleEnvironmentColor(object.id)}
-            disabled={!spaceBackground}
-          >
-            {messages.editorEnvironmentSampleButton}
-          </button>
-          {object.environmentIntegration.sampledColor && (
-            <span
-              className="toolbar-color-swatch"
-              style={{ backgroundColor: object.environmentIntegration.sampledColor }}
-              aria-label={messages.editorEnvironmentSampledSwatchLabel}
-              role="img"
-            />
-          )}
-        </div>
-        {!spaceBackground && (
-          <p className="toolbar-notice">{messages.editorEnvironmentSampleNoSpaceHint}</p>
-        )}
+            <div className="toolbar-actions">
+              <button
+                type="button"
+                onClick={() => sampleEnvironmentColor(object.id)}
+                disabled={!spaceBackground}
+              >
+                {messages.editorEnvironmentSampleButton}
+              </button>
+              {object.environmentIntegration.sampledColor && (
+                <span
+                  className="toolbar-color-swatch"
+                  style={{ backgroundColor: object.environmentIntegration.sampledColor }}
+                  aria-label={messages.editorEnvironmentSampledSwatchLabel}
+                  role="img"
+                />
+              )}
+            </div>
+            {!spaceBackground && (
+              <p className="toolbar-notice">{messages.editorEnvironmentSampleNoSpaceHint}</p>
+            )}
 
-        <button type="button" onClick={resetEnvironmentIntegration}>
-          {messages.editorEnvironmentIntegrationResetButton}
-        </button>
-      </div>
+            <button type="button" onClick={resetEnvironmentIntegration}>
+              {messages.editorEnvironmentIntegrationResetButton}
+            </button>
+          </div>
+        </AdvancedSettingsModal>
+      )}
     </>
   );
 }
@@ -1500,7 +1545,7 @@ function ExportSection() {
         <p className="toolbar-notice">{messages.comparisonOriginalNoSpaceHint}</p>
       )}
 
-      {size ? (
+      {spaceBackground ? (
         <p className="toolbar-notice">
           {messages.exportResolutionLabel}: {size.width} × {size.height} px
         </p>

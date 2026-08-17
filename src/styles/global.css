@@ -557,7 +557,8 @@ a {
 }
 
 .curvature-mode-group,
-.rendering-preset-group {
+.rendering-preset-group,
+.canvas-preset-group {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -565,7 +566,8 @@ a {
 }
 
 .curvature-mode-group button.is-active,
-.rendering-preset-group button.is-active {
+.rendering-preset-group button.is-active,
+.canvas-preset-group button.is-active {
   background-color: var(--color-accent);
   border-color: var(--color-accent);
   color: #fff;
@@ -806,6 +808,10 @@ a {
 .modal-dialog h2 {
   margin: 0;
   font-size: 1.1rem;
+}
+
+.advanced-settings-dialog {
+  max-width: 32rem;
 }
 
 .modal-dialog label {
