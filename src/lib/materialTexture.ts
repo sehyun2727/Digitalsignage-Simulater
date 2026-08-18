@@ -237,7 +237,7 @@ function densityBucket(density: number): number {
 }
 
 /**
- * A small repeating dot-grid tile used as an LED/Transparent LED pixel texture via Konva's
+ * A small repeating grid-line tile used as an LED/Transparent LED pixel texture via Konva's
  * fillPatternImage. Cached per density bucket and built once per bucket — this renders a
  * handful of pixels on a canvas that Konva then tiles, instead of creating one node per LED
  * pixel (which would not scale to real content sizes; see CLAUDE.md performance guidance).
@@ -248,17 +248,23 @@ export function getLedPatternCanvas(density = 50): HTMLCanvasElement {
   const cached = ledPatternCanvasCache.get(bucket);
   if (cached) return cached;
 
-  // Density 0 -> a coarse 10px tile (large, sparse-looking pixels); density 100 -> a tight 4px
-  // tile. The dot itself is always inset by 1px so the pattern reads as a grid at any size.
-  const size = Math.max(4, Math.round(10 - (bucket / 100) * 6));
+  // Density 0 -> a 5px tile; density 100 -> a tight 3px tile. Each cell draws only a constant
+  // 1px line along its right/bottom edge (the seam between LED diodes) and leaves the rest of
+  // the cell fully transparent (the diode itself, letting content show through) — unlike an
+  // earlier version that filled the whole tile and punched a shrinking hole in it, which
+  // inverted into scattered light dots on an almost-solid background once the hole neared 1px.
+  // Because the line stays 1px regardless of pitch, the interior:line ratio never collapses, so
+  // this reads as a clean, evenly spaced grid mesh at every density instead of getting dottier
+  // as it gets denser. 3px is the practical floor: any smaller and the interior disappears.
+  const size = Math.max(3, Math.round(5 - (bucket / 100) * 2));
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   if (ctx) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-    ctx.fillRect(0, 0, size, size);
-    ctx.clearRect(1, 1, size - 2, size - 2);
+    ctx.fillRect(size - 1, 0, 1, size);
+    ctx.fillRect(0, size - 1, size, 1);
   }
   ledPatternCanvasCache.set(bucket, canvas);
   return canvas;

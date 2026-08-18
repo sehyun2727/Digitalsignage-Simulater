@@ -35,7 +35,7 @@ locked in before wiring the Toolbar/PropertiesPanel/Canvas together.
   the pixel-sampling Playwright test in `e2e/content-material.spec.ts`).
 - **Material presets (Outdoor LED, LCD) are visual-only overlays**, not simulated physical
   material or color-accurate response. `getLedPatternCanvas()`/`materialPatternOpacity()`/
-  `getBrightnessOverlay()` in `src/lib/materialTexture.ts` render a small tiled dot-grid
+  `getBrightnessOverlay()` in `src/lib/materialTexture.ts` render a small tiled grid-line
   pattern (LED) or a diagonal highlight gradient (LCD) at an opacity driven by the
   `intensity` slider, plus a white/black wash driven by the `brightness` slider. The
   PropertiesPanel shows a fixed, translation-covered notice

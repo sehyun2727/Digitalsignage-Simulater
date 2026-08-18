@@ -115,8 +115,8 @@ describe('getLedPatternCanvas', () => {
   it('returns a small square canvas suitable for tiling', () => {
     const canvas = getLedPatternCanvas();
 
-    expect(canvas.width).toBe(7);
-    expect(canvas.height).toBe(7);
+    expect(canvas.width).toBe(4);
+    expect(canvas.height).toBe(4);
   });
 
   it('caches and reuses the same canvas instance across calls', () => {

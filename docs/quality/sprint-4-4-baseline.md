@@ -15,8 +15,8 @@ concrete code so the Sprint 4.4 fix can be verified against it directly.
    directly contradicting "content remains readable... bright regions contribute more glow, dark
    regions contribute little or none" (spec §14).
 2. **LED/Transparent LED grid opacity is flat, not screen-size-aware.** `materialPatternOpacity`
-   (`materialTexture.ts`) scales only with the `intensity` setting; the repeating dot tile from
-   `getLedPatternCanvas` (4-10px) is drawn at the same opacity regardless of the screen's rendered
+   (`materialTexture.ts`) scales only with the `intensity` setting; the repeating grid-line tile
+   from `getLedPatternCanvas` (3-5px, since Sprint 4.9) is drawn at the same opacity regardless of the screen's rendered
    pixel size, so a small display reads with the same grid density as a large one instead of fading
    out — contradicts "grid opacity decreases when screen is displayed small" (spec §8).
 3. **Transparent LED's default reads more opaque than "transparent."** `DEFAULT_MATERIAL_SETTINGS.
