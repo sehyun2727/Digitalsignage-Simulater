@@ -1,583 +1,426 @@
-# Signage Canvas (Digital Signage Simulator)
+# Digital Signage Simulator
 
-> 브라우저에서 간단한 디지털 사이니지 화면을 구성하고 이미지로 내보내기 위한 독립 개인 프로젝트입니다.
-> **Working title:** Signage Canvas / Digital Signage Simulator
+> 공간 사진 위에 디지털 사이니지를 설치한 모습을 빠르게 시뮬레이션하고,  
+> 영업·제안용 이미지로 내보낼 수 있는 브라우저 기반 디지털 사이니지 시뮬레이터
 
-## 서비스 요약
+[![CI](https://github.com/sehyun2727/Digitalsignage-Simulater/actions/workflows/ci.yml/badge.svg)](https://github.com/sehyun2727/Digitalsignage-Simulater/actions/workflows/ci.yml)
 
-- **日本語:** ブラウザ上でシンプルなデジタルサイネージ画面を作成し、画像として書き出すための個人プロジェクトです。
-- **English:** An independent personal project for creating simple digital-signage compositions in the browser and exporting them as images.
+**[Live Demo](https://digitalsignage-simulater.onrender.com)** ·
+**[Portfolio](https://jisa-internship-reflection.onrender.com)** ·
+**[Issues](https://github.com/sehyun2727/Digitalsignage-Simulater/issues)**
 
-> Signage Canvas는 공식 HULL 서비스가 아니며 HULL과 제휴·후원·운영 관계가 없습니다. HULL은 외부 CTA로만 표시됩니다.
-> CTA 링크: https://hull-inc.jp/ (Sprint 4.2부터 — 이전에는 https://hull-inc.jp/contact 였습니다)
+> **Independent personal project. Not an official HULL service.**  
+> HULL株式会社 인턴십 경험에서 출발한 개인 프로젝트입니다.
 
-## 상태
+![Digital Signage Simulator - Main Editor](./readme사진/editor-main.png)
 
-**v1 출시 버전 — `main`은 Sprint 0~4.5(+ LED 그리드/원근 렌더링 마감 수정)가 모두 통합된 상태입니다.**
-(Sprint 3.2: 캔버스 객체 재선택 결함 수정, Sprint 4.1: 통합 툴바 에디터 UI, Sprint 4.2: 사진 우선(photo-first) 문서 모델·LED/LCD/透過LED/포터블 4종 신호기·곡률(curvature) 제어, Sprint 4.3: 4점 원근 배치·환경 통합(그림자/톤 블렌딩)·동영상 콘텐츠 및 내보내기, Sprint 4.4: 비-AI 포토리얼리스틱 렌더링 코어, Sprint 4.5: 전경 오클루전 마스크·설치면 구분·환경색 샘플링·판매 리뷰 모드·골든 이미지 시각 회귀 테스트, 그리고 LED 소재 격자 질감을 더 촘촘하고 깔끔한 그리드로 재설계하고 4점 원근 배치에서 보이던 삼각형 이음새의 흰색 선 결함을 수정한 후속 픽스 포함)
+---
 
-v1은 핵심 편집·합성·내보내기 플로우가 안정적으로 동작하는 것을 기준으로 출시하는 버전입니다. 상품성(디자인 디테일, 세부 렌더링 품질) 관련 개선은 아래 [Known limitations](#known-limitations)에 남아 있으며 v2에서 계속 다룹니다. 새 이슈나 개선 요청은 v2 범위로 별도 승인 후 진행합니다.
+## From Sales Floor to Working Software
 
-Sprint 0에서 구현된 것:
+일본 **HULL株式会社** 인턴십 중 디지털 사이니지 영업 현장에 동행하며, 고객에게 제품의 장점만 설명하는 것보다 **“이 공간에 설치하면 실제로 어떻게 보이는가”를 빠르게 보여주는 것**이 중요하다는 점을 관찰했습니다.
 
-- Vite + React + TypeScript 앱 골격
-- 일본어 기본, 한국어·영어 i18n 구조 및 언어 전환
-- 독립 서비스 고지 및 HULL 외부 CTA 링크
-- Vitest + React Testing Library 단위/컴포넌트 테스트
-- Playwright 스모크 테스트
-- ESLint, Prettier, TypeScript strict 모드
-- GitHub Actions CI (format/lint/typecheck/test/build/docker build)
-- 프로덕션용 멀티스테이지 Dockerfile (Nginx, SPA fallback)
-- Render Static Site 배포 문서
+영업 자료를 준비하는 과정에서는 고객 공간 사진 위에 제품을 배치하고, 콘텐츠를 넣고, 설치 후 모습을 설명하기 위한 시안을 반복해서 만들어야 했습니다. 하지만 이미지 편집 도구만으로는 매번 위치·크기·원근·콘텐츠를 조절해야 했고, 제안 전 준비에도 시간이 필요했습니다.
 
-Sprint 1에서 구현된 것:
+이 반복 작업을 줄이고, 설치 전후 모습을 더 직관적으로 보여줄 수 있도록 만든 도구가 **Digital Signage Simulator**입니다.
 
-- Konva/react-konva 기반 캔버스 에디터 (`wall-led` 1920×1080, `stand-display` 1080×1920 템플릿)
-- 텍스트 요소 추가/편집(내용, 폰트 크기, 색상, 정렬), 이미지 요소 추가, 배경색 편집
-- 선택, 드래그 이동, Transformer를 통한 크기 조절·회전, 속성 패널을 통한 수치 입력
-- 실행 취소/다시 실행 (값이 실제로 바뀐 커밋만 히스토리에 쌓임 — no-op 커밋은 무시)
-- 키보드 단축키: `Delete`/`Backspace`(선택 삭제), `Ctrl/Cmd+Z`(실행 취소), `Ctrl/Cmd+Shift+Z` 또는 `Ctrl/Cmd+Y`(다시 실행). 입력 필드(input/textarea/select/contenteditable)에 포커스가 있을 때는 이 단축키들이 전역으로 발동하지 않습니다.
-- PNG 내보내기 — 화면 확대/축소와 무관하게 항상 템플릿 원본 해상도(1920×1080 / 1080×1920)로 내보내며, 선택 UI(Transformer 테두리·핸들)는 내보낸 이미지에 절대 포함되지 않습니다.
-- 이미지 업로드 검증: 허용 MIME 타입(`image/png`, `image/jpeg`, `image/webp`) 및 10MB 크기 제한, 디코딩 실패(손상된 파일·MIME 스푸핑) 시 접근성 있는 오류 안내와 Object URL 정리
-- EXIF Orientation은 브라우저(`Image()`)의 기본 디코딩 동작을 그대로 사용 — 별도 라이브러리를 추가하지 않았습니다.
-- 모바일 대응: 캔버스 영역에 `touch-action: none`을 적용해 드래그/리사이즈/회전 제스처가 페이지 스크롤/줌으로 가로채이지 않도록 함
+```text
+공간 사진 업로드
+      ↓
+디지털 사이니지 배치
+      ↓
+이미지 / 영상 콘텐츠 적용
+      ↓
+원근·재질·조명 보정
+      ↓
+제안 이미지 내보내기
+```
 
-Sprint 1에서 구현되지 않은 것 (범위 밖):
+인턴십 기간 중 결과물을 공유하며, **영업 시안 제작과 설치 후 모습을 설명하는 과정에서 활용 가능성이 있다**는 피드백을 받았습니다.
 
-- 비디오 삽입/내보내기 (별도 기술 스파이크 필요)
-- 계정, 서버 업로드, 결제, 분석, 워터마크
-- 캔버스 밖으로 벗어난 요소 위치를 자동으로 제한(clamp)하는 기능
+이 프로젝트는 단순한 이미지 편집기가 아니라, 현장에서 관찰한 반복 업무를 **브라우저에서 바로 사용할 수 있는 도구로 전환해 본 개인 프로젝트**입니다.
 
-Sprint 2에서 구현된 것:
+---
 
-- **공간 배경 사진**: 캔버스 전체를 덮는 배경 사진을 추가/삭제할 수 있습니다(`editorAddSpaceBackgroundButton`/
-  `editorRemoveSpaceBackgroundButton`). 템플릿을 전환하면 공간 배경은 초기화됩니다.
-- **디스플레이 객체 배치**: 벽걸이형 LED(`wall-led`, 기본 소재: 屋外LED)와 스탠드형 디스플레이(`stand-display`,
-  기본 소재: LCD)를 캔버스에 배치할 수 있습니다. 각 디스플레이는 베젤/스탠드 등 단순화된 프레임 장식과, 프레임별로
-  정의된 화면 영역(screen region)을 가집니다.
-- **화면 콘텐츠**: 디스플레이의 화면 영역에 이미지를 업로드해 표시할 수 있습니다. 표시 방식(전체 표시 Contain /
-  화면 채우기 Cover), 위치 오프셋(X/Y), 확대율을 조절할 수 있으며, 언제든 기본값으로 리셋하거나 콘텐츠를
-  교체·삭제할 수 있습니다. 콘텐츠는 화면 영역 밖(베젤 위)으로 절대 넘치지 않도록 캔버스 클리핑으로 강제됩니다.
-- **디스플레이 소재(재질) 프리셋**: 屋外LED/LCD 중 소재를 선택할 수 있고, 질감 강도(intensity)와 밝기
-  (brightness) 슬라이더로 시각적 프리뷰를 조절할 수 있습니다. 이는 순수하게 시각적인 참고 표현이며 실제 제품
-  성능을 보장하지 않는다는 안내 문구가 항상 함께 표시됩니다(자세한 배경은
-  [`docs/adr/0003-content-and-material-model.md`](docs/adr/0003-content-and-material-model.md) 참고).
-- **PNG 내보내기 확장**: 공간 배경, 디스플레이 프레임, 클리핑된 화면 콘텐츠, 소재 프리뷰가 모두 정확한 템플릿
-  해상도로 내보내기에 반영되며, Sprint 1과 동일하게 선택 UI는 내보낸 이미지에 포함되지 않습니다.
-- **에셋 수명 주기**: 업로드된 이미지(공간 배경/화면 콘텐츠)는 런타임 에셋 레지스트리에 등록되고, 문서 상태와
-  실행 취소/다시 실행 히스토리 전체에서 더 이상 참조되지 않을 때 자동으로 정리(Object URL 해제)됩니다.
+## Key Features
 
-Sprint 2에서 구현되지 않은 것 (범위 밖):
+### 1. Perspective Placement
 
-- 실제 제품과 유사한 프레임/소재 아트 — 현재는 단순화된 사각형 베젤과 시각적 프리뷰 오버레이입니다.
-- 디스플레이당 다중 콘텐츠 슬롯, 플레이리스트, 동영상 콘텐츠.
-- 모바일 뷰포트 전용 e2e 테스트(수동 반응형 확인만 수행).
+실제 공간 사진 위에 사이니지를 배치하고 설치면에 맞게 원근을 조정할 수 있습니다.
 
-Sprint 3에서 구현된 것:
+- 4점 원근 배치
+- 위치 / 크기 / 회전 조절
+- 화면 영역 및 콘텐츠 위치 조정
+- 벽면·쇼윈도 등 설치면에 맞춘 배치
 
-- **사용자 지정 포터블 제품**: 키오스크, 태블릿 스탠드, 차량 등 사용자가 보유한 제품 사진을 업로드해 캔버스에
-  배치할 수 있습니다(`ポータブル製品を追加` 버튼 → `PortableBuilderModal`). 사진 업로드 → 화면 영역 지정 →
-  추가의 3단계 마법사이며, 첫 단계는 앱 최초의 모달/다이얼로그로 포커스 트랩·Esc 닫기·닫은 후 포커스
-  복원·배경 스크롤 잠금을 자체 구현했습니다.
-- **화면 영역 지정**: 제품 사진 위에서 드래그로 직사각형을 그리거나, 기존 영역 안쪽을 드래그해 이동하거나,
-  네 모서리 핸들을 드래그해 반대쪽 모서리를 고정한 채 크기를 조절하거나, x/y/폭/높이를 숫자로 직접 입력해
-  화면 영역(0-1로 정규화된 사각형)을 지정합니다. 모든 드래그 상호작용은 Pointer Events 기반이라 마우스와
-  터치 모두에서 동일하게 동작하며, `background-size: contain`으로 인해 레터박스가 생기는 4:3 비율이 아닌
-  사진에서도 좌표가 정확히 매핑됩니다. 모서리 드래그가 반대쪽 모서리를 넘어가면 뒤집히거나 오류가 나는 대신
-  드래그 도중 실시간으로 사진 가로/세로 각각의 5%(최소 크기)에서 멈춥니다. 반면 숫자 입력으로 5% 미만을
-  지정하면 접근성 있는 오류로 거부됩니다(자동 보정하지 않음). 사진을 처음 업로드하면 가운데 60%×60%의
-  기본 영역이 미리 채워집니다. 드래그 도중에는 실행 취소/다시 실행 히스토리에 아무것도 기록되지 않으며,
-  저장을 눌러 실제로 값이 바뀐 경우에만 정확히 한 개의 히스토리 항목이 생성됩니다.
-- **화면 영역 재편집**: 배치된 포터블 객체는 속성 패널의 `画面領域を編集` 버튼으로 화면 영역만 다시 편집할 수
-  있습니다(사진 교체는 범위 밖 — 자세한 배경은
-  [`docs/adr/0004-custom-portable-template.md`](docs/adr/0004-custom-portable-template.md) 참고).
-- **가로세로 비율 고정**: 포터블 객체는 제품 사진의 원본 가로세로 비율로 항상 고정된 채로 이동·크기 조절(모서리
-  핸들만)·회전할 수 있습니다. 이 덕분에 화면 영역(사진 비율의 일부)을 객체의 현재 크기에 별도의 좌표 변환 없이
-  직접 매핑할 수 있습니다.
-- **콘텐츠/소재 재사용**: Sprint 2의 화면 콘텐츠(Contain/Cover, 오프셋, 확대율)와 소재(屋外LED/LCD, 질감 강도,
-  밝기) 시스템을 포터블 제품의 화면 영역에 그대로 적용합니다. 새 포터블 객체는 기본적으로 LCD 소재이며
-  콘텐츠는 비어 있습니다.
-- **투명 배경 안내**: 업로드한 사진에서 투명도(alpha)를 감지해 배경이 있는 사진보다 투명 PNG/WebP가 더
-  자연스럽게 합성된다는 안내 문구를 표시합니다 — 실제 배경 제거/마스킹은 수행하지 않는 순수 안내용입니다.
-- **PNG 내보내기 확장**: 포터블 제품의 사진과 화면 영역에 클리핑된 콘텐츠/소재가 정확한 템플릿 해상도로
-  내보내기에 반영됩니다.
+### 2. Scene Integration
 
-Sprint 3에서 구현되지 않은 것 (범위 밖):
+단순히 이미지를 겹치는 것을 넘어 주변 환경과 자연스럽게 섞이도록 합성 요소를 제공합니다.
 
-- 원근/4점/다각형 화면 영역 — 화면 영역은 항상 축에 정렬된 직사각형입니다.
-- 여러 각도의 제품 사진 생성, 배경 제거(자동/수동), 다중 화면 영역.
-- 포터블 객체 생성 후 사진 교체(제품 사진 크롭/재편집 에디터) — 다른 사진을 쓰려면 객체를 삭제하고 새로
-  추가해야 합니다.
+- 밝기 조절
+- LED glow
+- 그림자
+- 반사
+- 투명도
+- 환경색 적응
+- 오클루전 마스크
+- 곡률 표현
 
-Sprint 3.1에서 구현된 것 (Sprint 3의 화면 영역 상호작용/내보내기 검증 보강):
+### 3. Multiple Signage Types
 
-- **화면 영역 직접 이동/크기 조절**: 위 "화면 영역 지정" 항목에 설명된 대로, 기존 영역 박스를 드래그해 이동하고
-  모서리 핸들을 드래그해 크기를 조절하는 기능을 새로 연결했습니다(관련 지오메트리 함수는 Sprint 3에서 이미
-  단위 테스트로 검증되어 있었으나 UI에는 연결되어 있지 않았습니다 — 자세한 배경은
-  [`docs/adr/0004-custom-portable-template.md`](docs/adr/0004-custom-portable-template.md) 참고).
-- **내보내기 합성 픽셀 단위 검증**: 투명/불투명 제품 사진, 벽걸이(1920×1080)/스탠드형(1080×1920) 두 템플릿,
-  화면 영역 편집 전/후(실행 취소/다시 실행 포함) 조합을 실제 Chromium(Playwright)에서 내보낸 PNG의 실제
-  픽셀을 샘플링해 검증합니다(`e2e/portable.spec.ts`).
-- **에셋 수명 주기 및 히스토리 검증 보강**: 빌더를 취소했을 때 아직 문서에 커밋되지 않은 업로드 사진의
-  Object URL이 즉시 해제되는지(`tests/unit/App.test.tsx`), 포터블 객체를 삭제·실행 취소·다시 실행해도
-  히스토리에서 참조되는 동안 에셋이 유지되는지(`tests/unit/editorStore.test.ts`)를 검증합니다.
-- **모바일 터치 뷰포트 검증**: 390×844 뷰포트에서 화면 영역 이동/크기 조절 드래그가 정상 동작하는지 확인하는
-  e2e 테스트를 추가했습니다(`e2e/mobile.spec.ts`). Chromium의 터치 뷰포트 에뮬레이션을 사용하며 실제 기기
-  검증은 아닙니다.
+다양한 설치 형태를 기준으로 시뮬레이션할 수 있습니다.
 
-Sprint 3.2에서 구현된 것 (캔버스 객체 재선택 결함 수정 — P0 핫픽스):
+| 유형 | 활용 예시 |
+| --- | --- |
+| Wall LED | 매장 외벽, 건물 벽면, 대형 홍보 화면 |
+| LCD Display | 실내 메뉴판, 안내 화면, 로비 디스플레이 |
+| Transparent LED | 쇼윈도, 유리면 광고 |
+| Stand Display | 행사장, 매장 입구, 안내 디스플레이 |
+| Custom Portable Product | 실제 제품 이미지를 활용한 포터블 제품 시안 |
 
-- **재선택 불가 버그 수정**: 벽걸이 디스플레이, 스탠드형 디스플레이, 포터블 제품 객체를 선택 해제(빈 캔버스
-  클릭, 실행 취소/다시 실행)한 뒤 다시 클릭해도 선택되지 않던 문제를 수정했습니다. 원인은 각 객체를 감싸는
-  Konva `<Group>` 내부의 모든 하위 도형이 `listening={false}`로 설정되어 있어 클릭 이벤트가 Group까지
-  버블링되지 않았기 때문입니다. 각 Group의 첫 번째 자식으로 보이지 않는 히트 영역 `Rect`
-  (`fill="transparent"`, `listening`, 객체 전체 크기)를 추가해 해결했습니다. 투명 배경 제품 사진도 실제
-  알파 채널이 아닌 객체의 전체 직사각형 영역을 히트 대상으로 사용합니다(알파 인식 히트 테스트는 범위 밖).
-  자세한 배경은 [`docs/adr/0005-canvas-object-reselection-hotfix.md`](docs/adr/0005-canvas-object-reselection-hotfix.md)
-  참고.
-- **드래그 중 위치 튐 현상 수정**: 선택되지 않은 객체를 드래그로 이동할 때 선택 처리를 드래그 시작이 아닌
-  드래그 종료 시점으로 옮겨, 드래그 도중 스토어 상태 갱신으로 인해 이동 위치가 시작점으로 되돌아가던 문제를
-  함께 수정했습니다.
-- **회귀 테스트 보강**: `tests/unit/canvasHitArea.test.tsx`(히트 영역 단위 테스트), `e2e/reselection.spec.ts`
-  (재선택·겹친 객체·드래그 선택·실행 취소/다시 실행 시나리오, 실제 Chromium), `e2e/mobile.spec.ts`(모바일
-  탭 재선택 시나리오)를 추가했습니다.
+### 4. Image / Video Content
 
-Sprint 4.1에서 구현된 것 (통합 툴바 에디터 UI):
+사이니지 화면에 실제 콘텐츠를 적용해 설치 후 모습을 미리 확인할 수 있습니다.
 
-- **단일 통합 툴바**: 기존에 시도했던 5단계 가이드 플로우(공간 → 신호기 → 콘텐츠 → 효과 → 내보내기, 단계별
-  마운트/언마운트 패널)는 병합 전에 반려되어 완전히 제거되었습니다. 대신 화면 우측에 항상 표시되는 하나의
-  툴바가 고정된 순서의 6개 섹션 — 공간, 신호기 추가, 선택된 신호기, 콘텐츠, 외관, 내보내기 — 을 동시에
-  보여줍니다. 모든 컨트롤이 항상 접근 가능하며, "지금 어떤 단계에 있는지"라는 개념 자체가 없습니다. 자세한
-  배경(반려된 대안 포함)은
-  [`docs/adr/0006-guided-editor-sprint-4-1.md`](docs/adr/0006-guided-editor-sprint-4-1.md) 참고.
-- **헤더 / 워크스페이스 / 상태 바 레이아웃**: 상단 헤더(제품명, 실행 취소, 다시 실행, 간이 비교 토글, 언어
-  선택, 내보내기), 캔버스와 툴바가 나란히 놓인 워크스페이스, 하단의 간결한 상태 바로 구성됩니다. 접근성
-  이름 중복을 피하기 위해 실행 취소/다시 실행/내보내기는 헤더에만, 삭제는 툴바의 "선택된 신호기" 섹션에만,
-  결과/오리지널 비교 토글(고정 라벨)은 툴바의 "내보내기" 섹션에만 존재하도록 엄격히 분리했습니다. 헤더의
-  간이 비교 버튼은 같은 상태를 제어하지만 라벨이 서로 다른 별도의 컨트롤입니다.
-- **원본/결과 비교 토글**: 편집 결과 대신 업로드한 공간 사진만 보여주는 토글을 추가했습니다. 별도의
-  내보내기나 두 번째 캔버스 없이, 기존 캔버스에서 신호기 객체·Transformer·드래그 앤 드롭 렌더링만
-  일시적으로 억제하는 방식으로 구현했습니다. 내보내기는 화면에 오리지널 뷰가 표시된 상태여도 항상 합성된
-  결과물을 내보냅니다.
-- **비차단(non-blocking) 첫 방문 온보딩 카드**: 통합 툴바를 처음 한 번만 소개하는 작은 카드를 추가했습니다.
-  모달이 아닌 `role="note"` 카드로, 배경 잠금·포커스 트랩·Escape 닫기가 없어 카드가 떠 있는 동안에도 모든
-  툴바·캔버스 컨트롤을 그대로 사용할 수 있습니다. 닫힘 여부는 `localStorage`에 저장되어 이후 방문에서는
-  다시 표시되지 않습니다.
-- **HULL CTA 위치 변경**: 문서 하단 각주에 있던 HULL 문의 링크를 화면 우측 하단에 고정된 녹색 버튼으로
-  옮겼습니다. 링크의 URL·`target`·`rel`·접근성 이름은 변경하지 않았습니다.
-- **모바일 뷰포트 대응 개선**: `100dvh`(동적 뷰포트 높이) 지원 브라우저에서 모바일 주소창 표시/숨김에 따른
-  레이아웃 잘림을 방지하도록 `100vh` 대체값과 함께 적용했습니다. 이번 스프린트에서 추가로, 헤더 액션 영역과
-  신호기 추가 버튼 그리드가 좁은 화면(390px)에서 가로 스크롤을 유발하던 두 가지 결함과, 세로로 긴 템플릿
-  선택 시 캔버스가 헤더 영역까지 겹쳐 보이던 결함을 수정했습니다.
+- 이미지 콘텐츠
+- 영상 콘텐츠
+- 콘텐츠 드래그 / 크기 조절
+- 화면 내 콘텐츠 위치 조정
 
-Sprint 4.2에서 구현된 것 (사진 우선 문서 모델 및 소재/곡률 확장):
+### 5. Advanced Composition Controls
 
-- **사진 우선(photo-first) 문서 모델**: 더 이상 문서 템플릿을 먼저 선택하지 않습니다. 처음 업로드한 공간
-  사진이 그 자체로 문서가 되어, 사진의 방향 보정된 가로세로 비율 그대로(늘이거나 자르지 않고) 캔버스 크기와
-  PNG 내보내기 해상도를 결정합니다. 공간 사진이 없으면 문서 자체가 없는 상태이며, 신호기 추가 버튼은 모두
-  비활성화되어 사진을 먼저 추가하도록 안내합니다. 자세한 배경은
-  [`docs/adr/0007-photo-first-document-and-materials-sprint-4-2.md`](docs/adr/0007-photo-first-document-and-materials-sprint-4-2.md)
-  참고.
-- **디코딩 픽셀 안전 한도**: 매우 큰 사진을 업로드해도 디코딩 픽셀 수가 4,000만 픽셀(`MAX_DECODED_PIXELS`)을
-  넘지 않도록, 가로세로 비율을 유지한 채 동일한 배율로 결정론적으로 축소합니다.
-- **공간 사진 교체/삭제**: 공간 사진을 다른 사진으로 교체하거나 삭제할 수 있으며, 각각 실행 취소/다시 실행
-  히스토리에 정확히 한 개의 항목만 남깁니다. 교체 시 기존에 배치된 신호기 객체들의 위치·크기는 새 문서
-  크기에 비례하도록 자동으로 재배치됩니다(절대 좌표가 아닌 문서 대비 비율 기준).
-- **4종 신호기 패밀리**: LED, LCD, 透過(투과)LED 디스플레이와 기존의 사용자 지정 포터블 제품을 각각 독립된
-  버튼으로 추가합니다. 문서 크기(=공간 사진 해상도)와 완전히 분리되어 있어, 어떤 신호기를 선택해도 배치
-  가능한 위치와 크기는 동일한 로직을 따릅니다.
-- **소재 옵션 확장**: 질감 강도(intensity)·밝기(brightness) 2개뿐이던 소재 조절 슬라이더가 투과율
-  (transparency, 透過LED 전용)·그리드 밀도(gridDensity)·발광(glow)·대비(contrast)까지 6개로 늘었습니다.
-  소재별로 실제 적용되는 슬라이더만 외관 섹션에 표시됩니다(예: LCD는 그리드/발광 슬라이더가 없음).
-- **곡률(curvature) 제어**: LED와 透過LED 소재에 한해 평면(flat)/오목(concave)/볼록(convex) + 정도(0-100)
-  슬라이더를 제공합니다. 화면 영역을 여러 개의 세로 스트립으로 나누고 각 스트립을 포물선 형태로 상하
-  변위시키는 2차원 근사 표현이며, 실제 3D·원근 렌더링이 아닙니다(자세한 배경은 위 ADR 0007 참고).
-- **HULL CTA 링크 변경**: 문의 링크가 `https://hull-inc.jp/contact`에서 `https://hull-inc.jp/`로 변경되었고,
-  버튼 문구도 3개 언어 모두 갱신되었습니다. 화면 우측 하단 고정 녹색 버튼이라는 위치/방식은 Sprint 4.1과
-  동일합니다.
-- **PNG 파일명 단순화**: 더 이상 템플릿 ID가 없으므로 파일명에서 해당 구간이 사라졌습니다 —
-  `signage-canvas_{yyyyMMdd-HHmmss}.png`.
+기본 편집 흐름을 방해하지 않도록 세부 합성 기능은 고급 설정 영역에서 조절할 수 있습니다.
 
-Sprint 4.2에서 구현되지 않은 것 (범위 밖):
+![Digital Signage Simulator - Advanced Settings](./readme사진/advanced-settings.png)
 
-- 진짜 3D·원근 기반 곡률 렌더링 — 현재는 2차원 스트립 변위 근사입니다.
-- 문서(공간 사진·신호기 배치)의 서버 또는 `localStorage` 영속화 — 새로고침하면 편집 내용이 초기화됩니다
-  (Sprint 1부터 유지된 정책, 변경 없음).
-- 신호기 프레임(베젤/스탠드) 형상 자체의 확장 — 기존 단순화된 사각형 베젤 표현을 그대로 사용합니다.
+- Brightness
+- Glow
+- Shadow
+- Reflection
+- Opacity
+- Curvature
+- Environment blending
+- Occlusion mask
+- Material / installation presets
 
-Sprint 4.3에서 구현된 것 (4점 원근 배치, 환경 통합, 동영상):
+### 6. Export
 
-- **4점 원근(perspective) 배치**: 디스플레이·포터블 제품을 "空間に合わせて配置（パース）" 버튼으로 임의의
-  사각형(원근) 영역에 맞춰 배치할 수 있습니다. 네 모서리를 드래그하거나 숫자(X/Y좌표) 입력으로 정밀하게
-  조정하며, 자기교차·오목·화면 밖·최소 크기 미만 등의 잘못된 사각형은 적용(適用) 버튼이 비활성화되고
-  접근성 있는 오류 메시지로 안내됩니다. 원근 모드에서도 선택·드래그·크기 조절은 항상 객체의 원래 사각형
-  기준으로 동작하며(시각적으로 왜곡된 사각형 자체를 클릭 대상으로 삼지 않음), "通常配置に戻す" 버튼으로
-  언제든 일반 사각형 배치로 되돌릴 수 있습니다. 자세한 배경은
-  [`docs/adr/0008-perspective-environment-and-video-sprint-4-3.md`](docs/adr/0008-perspective-environment-and-video-sprint-4-3.md)
-  참고.
-- **환경 통합(그림자·톤 블렌딩)**: 신호기가 실제로 촬영된 장소에 설치된 것처럼 보이도록, 실루엣 형태의
-  접지 그림자(강도·흐림·오프셋 조절)와 배경 사진의 톤에 맞춰 채도/대비/하이라이트를 낮추는 블렌딩 강도를
-  각각 선택적으로 켤 수 있습니다. 두 기능 모두 순수 시각 효과이며 원본 공간 사진 자체는 절대 변경하지
-  않습니다.
-- **동영상 콘텐츠 및 내보내기**: 디스플레이·포터블 제품의 화면 콘텐츠로 정지 이미지 대신 동영상 파일을
-  업로드할 수 있습니다(자동 재생·반복 재생·음소거 고정, 별도 재생 컨트롤 없음). 브라우저가 지원하는 경우
-  "動画で書き出す" 버튼으로 캔버스를 그대로 녹화해 WebM 동영상으로 내보낼 수 있으며(서버 업로드 없이 전부
-  브라우저 내부에서 처리), 지원하지 않는 브라우저(예: 현재 Safari)에서는 버튼 자체가 나타나지 않고 대신
-  안내 문구가 표시됩니다. PNG 내보내기는 동영상 콘텐츠가 있어도 캔버스의 현재 프레임을 그대로 내보내는
-  기존 동작을 유지합니다.
+완성된 시안을 영업·제안 자료로 바로 활용할 수 있도록 내보낼 수 있습니다.
 
-Sprint 4.3에서 구현되지 않은 것 (범위 밖):
+- PNG 이미지 내보내기
+- 브라우저 지원 환경에서 WebM 영상 내보내기
+- 원본 캔버스 해상도 기반 출력
 
-- 원근 모드의 클릭 판정은 항상 객체의 원래 사각형 기준입니다 — 시각적으로 왜곡된 사각형 형태 자체를
-  클릭 히트 영역으로 사용하지 않습니다(자세한 배경은 위 ADR 0008 참고).
-- 동영상 재생 컨트롤(재생/정지/탐색) — 항상 자동 재생·반복·음소거로만 표시됩니다.
-- 디스플레이·포터블 제품당 다중 콘텐츠 슬롯이나 재생목록 — 화면 콘텐츠는 이미지 또는 동영상 1개뿐입니다.
-- 동영상 트랜스코딩·화질/비트레이트 조절 — 브라우저의 `MediaRecorder` 기본 인코딩을 그대로 사용합니다.
+---
 
-Sprint 4.4에서 구현된 것 (비-AI 포토리얼리스틱 렌더링 코어):
+## Core Workflow
 
-- **렌더링 프리셋(자연광/밝은 야외/야간)**: 신호기를 추가하면 더 이상 하나의 획일적인 기본값에서 시작하지
-  않고, 소재별로 튜닝된 "자연광" 프리셋 값에서 시작합니다. 외관 섹션의 프리셋 버튼 3개(자연광·밝은 야외·
-  야간)를 누르면 질감 강도·밝기·대비·발광 등 소재 슬라이더와 접지 그림자 강도, 환경 통합 강도까지 한 번에
-  재설정됩니다. 각 슬라이더는 이후에도 자유롭게 개별 조정할 수 있으며, "초기화" 버튼은 이제 하나의 고정값이
-  아니라 현재 소재의 "자연광" 프리셋 값으로 되돌립니다. 자세한 배경은
-  [`docs/adr/0009-photorealistic-rendering-core.md`](docs/adr/0009-photorealistic-rendering-core.md)
-  참고.
-- **콘텐츠 밝기 기반 발광(glow)**: 발광 효과가 더 이상 이미지의 실루엣(알파)에만 반응하지 않고, 실제 콘텐츠
-  이미지의 평균 밝기를 반영합니다 — 어둡거나 검은 이미지는 발광이 거의 없고, 밝은 이미지일수록 발광이
-  강해집니다. 동영상 콘텐츠는 매 프레임 픽셀을 읽지 않고 기존의 실루엣 기반 발광을 그대로 사용합니다.
-- **화면 크기에 따른 LED 그리드 감쇠**: LED·透過LED의 격자무늬 질감이 이제 렌더링되는 화면 크기가 작을수록
-  옅어집니다 — 작은 디스플레이에서 개별 픽셀이 눈에 띄게 도드라지던 문제를 완화합니다.
-- **LCD 반사광 재설계**: 화면 전체를 대각선으로 가로지르던 반사광 워시(wash)가, 화면의 약 22~42% 지점에만
-  나타나는 좁고 방향성 있는 하이라이트 띠로 바뀌었습니다. 이 과정에서 포터블 제품(기본 화면 영역이 객체
-  좌상단에서 20% 안쪽에서 시작)에 반사광이 엉뚱한 위치에 렌더링되던 실제 좌표 버그도 함께 발견해 수정했습니다.
-- **환경 통합 블렌딩 범위 축소**: 배경 톤에 맞춰 채도/대비를 낮추는 블렌딩이 이제 프레임(베젤)은 제외하고
-  화면 영역에만 적용되어, 강도를 높여도 프레임까지 탁하게 흐려지지 않습니다. 최대 강도도 낮췄습니다.
-- **접지 그림자 기본 활성화 및 설치 유형별 기본값**: 신호기를 새로 추가하면 더 이상 그림자가 꺼진 채로
-  시작하지 않습니다. 벽걸이형(좁고 가까운 그림자)·透過LED(옅은 그림자)·포터블(더 크고 분리된 그림자) 각각
-  설치 방식에 맞는 기본 그림자로 시작하며, 렌더링 프리셋에 따라 그림자 강도도 함께 조정됩니다.
-- **곡률 스트립 이음새 보정 및 내보내기 해상도 일치**: 곡률 적용 시 스트립 사이에 보이던 미세한 안티에일리어싱
-  틈을 내부 경계에서만 살짝 겹치도록 보정했습니다. 또한 대비(contrast)나 접지 그림자의 흐림 효과처럼 Konva
-  캐시 비트맵을 사용하는 레이어가 미리보기보다 내보낸 PNG에서 더 흐리게 보이던 문제를 수정해, 내보내기
-  해상도에서 다시 캐시를 구워낸 뒤 원래대로 복원하도록 했습니다.
+### 1. 공간 사진 업로드
 
-Sprint 4.4에서 구현되지 않은 것 (범위 밖):
+매장, 로비, 외벽, 쇼윈도 등 설치를 검토할 공간 사진을 업로드합니다.
 
-- 골든 이미지(스크린샷 diff) 기반 자동 시각 회귀 테스트 파이프라인 — 대신 결정론적 단위 테스트(휘도·프리셋
-  계산)와 픽셀 단위 Playwright 어설션으로 대체했습니다(자세한 배경은 위 ADR 0009 참고).
-- 실제 물리 기반 조명/그림자 시뮬레이션 — 그림자·환경 통합·곡률은 모두 판매 시뮬레이터 용도의 시각적
-  근사이며, 서로 간의 상호작용까지 검증하지는 않습니다.
+- `JPG`
+- `PNG`
+- `WebP`
 
-Sprint 4.5에서 구현된 것 (장면 통합·오클루전·판매용 시각 품질 QA):
+### 2. 사이니지 추가
 
-- **전경 오클루전 마스크**: 신호기 화면 영역 일부가 실제로는 기둥·화분·문틀처럼 카메라 앞에 있는
-  물체에 가려져야 할 때, 화면 앞에 다각형(3점 이상)을 직접 그려 그 영역만 원본 공간 사진 픽셀로
-  되돌릴 수 있습니다. 각도(feather)와 불투명도를 조절할 수 있고, 마스크별로 켜기/끄기·삭제가
-  가능하며, 그리는 도중에는 실행 취소 히스토리에 아무것도 기록되지 않고 적용(適用)을 눌러야 정확히
-  한 개의 항목이 생깁니다. 자세한 배경은
-  [`docs/adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md`](docs/adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md)
-  참고.
-- **설치면(installationMode) 구분**: 각 디스플레이·포터블 제품이 벽걸이(壁)/창면(窓, 透過)/독립형
-  (自立) 중 어떤 방식으로 설치되어 있는지 명시적으로 선택할 수 있습니다. 창면으로 설정하면 화면
-  바로 아래에 옅은 유리 반사가 함께 렌더링됩니다.
-- **환경색 샘플링**: 배경 톤에 맞춰 채도/대비를 낮추는 "환경 통합" 블렌딩이 이제 고정된 회색 대신,
-  "空間写真からサンプリング" 버튼으로 실제 공간 사진의 평균 색조를 읽어와 사용할 수 있습니다(16×16로
-  축소해 브라우저 안에서만 계산 — 서버 전송 없음). 샘플링한 색은 프리셋을 바꿔도 유지되며, "なじませを
-  リセット" 버튼으로만 초기화됩니다.
-- **접지 그림자 확장**: 원근(パース) 배치된 객체도 사각형 배치와 마찬가지로 원근 사각형에 맞춰
-  그림자를 그대로 유지하도록 수정했고, 확산(spread)·깊이(depth)·색조(tint) 조절 슬라이더를
-  추가해 벽걸이형과 독립형이 서로 다른 부착 느낌으로 보이도록 했습니다.
-- **발광(glow) 표시 결함 수정 및 창면 반사**: 발광 슬라이더를 올려도 실제로는 아무 변화가 없던
-  결함(화면 영역에 클리핑된 그룹 안에 그림자가 붙어 있어 블러가 클리핑 경계를 넘지 못했던 문제)을
-  수정해, 이제 화면 가장자리 밖으로 옅게 번지는 발광 효과가 실제로 보입니다. 창면 설치일 때만
-  화면 아래에 옅은 거울 반사가 함께 렌더링됩니다.
-- **판매 리뷰 모드**: 헤더의 토글 버튼 하나로 툴바·실행 취소/다시 실행·키보드 단축키를 모두 숨기고
-  캔버스를 클릭 불가능하게 만들어, 영업 담당자가 완성된 장면을 고객에게 보여줄 때 실수로 객체를
-  이동/삭제할 위험 없이 전달할 수 있습니다. 원본/결과 비교 토글과 내보내기는 리뷰 모드 중에도 계속
-  사용할 수 있으며, 문서 자체는 전혀 변경되지 않습니다.
-- **외관 패널 첫 사용 안내 카드**: 신호기를 처음 선택했을 때, 렌더링 프리셋·설치면/접지 그림자·환경색
-  샘플링·오클루전이 패널에 등장하는 순서대로 간단히 설명하는 닫을 수 있는 카드가 한 번만 표시됩니다.
-  기존 온보딩 카드와 동일하게 배경을 잠그지 않는 `role="note"` 카드이며, 닫음 여부는 `localStorage`에
-  저장됩니다.
-- **골든 이미지(스크린샷 diff) 시각 회귀 테스트**: `npm run qa:visual`로 벽걸이 LED·독립형 포터블·
-  4점 원근 배치 3가지 대표 장면을 실제 Chromium으로 렌더링해 커밋된 기준 이미지와 픽셀 단위로
-  비교합니다. 기준 이미지는 리눅스(CI와 동일한 `ubuntu-latest`) 환경에서 생성해야 하므로, Windows
-  개발 환경에서 직접 실행하면 폰트/안티에일리어싱 차이로 오탐이 발생합니다 — 정확한 재생성 절차는
-  [`docs/quality-runbook.md`](docs/quality-runbook.md) 참고. Sprint 4.4에서 보류했던 항목입니다
-  (자세한 배경은 위 ADR 0009 및 새 ADR 0010 참고).
-- **CI에 E2E 테스트 추가**: GitHub Actions가 이제 프로덕션 빌드 이후 Playwright Chromium을 설치해
-  `npm run test:e2e`(골든 이미지 시각 QA 포함)를 실행하고, 실패 시 리포트를 아티팩트로 업로드합니다.
-  이전에는 CI가 단위 테스트/빌드까지만 검증하고 e2e는 전혀 실행하지 않았습니다.
+공간에 맞는 디스플레이 유형을 선택해 추가합니다.
 
-Sprint 4.5에서 구현되지 않은 것 (범위 밖):
+### 3. 콘텐츠 적용
 
-- 오클루전 마스크는 활성/비활성·페더·불투명도만 조절할 수 있습니다 — 마스크별 블렌드 모드나 애니메이션은
-  지원하지 않습니다.
-- 설치면(installationMode)은 그림자/반사 기본값에만 영향을 주며, 그 밖의 재질·곡률 로직은 변경하지
-  않습니다.
-- 골든 이미지 비교 대상은 의도적으로 3개 장면으로 제한했습니다 — 일반적인 스크린샷 테스트 저장소로
-  확장하지 않았습니다.
+사이니지 화면에 이미지 또는 영상을 적용합니다.
 
-## 기술 스택
+### 4. 설치 환경에 맞게 조정
 
-- React 19 + TypeScript + Vite
-- Konva / react-konva (캔버스 렌더링, 선택/변형, PNG 내보내기)
-- Zustand (에디터 문서 상태, 실행 취소/다시 실행 히스토리)
-- Vitest + React Testing Library, Playwright(Chromium)
-- ESLint + Prettier
-- GitHub Actions, Docker(Nginx), Render Static Site
+위치와 크기를 조절하고 필요에 따라 원근, 그림자, 반사, glow, 환경색 등을 보정합니다.
 
-## Requirements
+### 5. 결과물 저장
 
-- Node.js 22.x
+완성된 시안을 PNG 또는 브라우저가 지원하는 경우 WebM으로 내보냅니다.
+
+---
+
+## Sales-oriented Editing Flow
+
+처음 사용하는 사람도 아래의 기본 흐름만 따라가면 시안을 만들 수 있도록 구성했습니다.
+
+```text
+1. 공간 사진 업로드
+2. 사이니지 추가
+3. 콘텐츠 적용
+4. PNG 저장
+```
+
+세부 합성 옵션은 기본 작업 흐름을 방해하지 않도록 고급 설정 영역으로 분리했습니다.
+
+---
+
+## Technical Highlights
+
+이 프로젝트에서 핵심적으로 다룬 기술적 문제는 단순한 UI 구현보다 **2D 이미지 위에 실제 공간의 설치감을 표현하는 것**이었습니다.
+
+### Rendering / Composition
+
+- React + TypeScript 기반 editor
+- React Konva / Konva canvas composition
+- 4-point perspective transformation
+- Shadow / reflection / glow 처리
+- 환경색 샘플링 및 블렌딩
+- Curvature 표현
+- Occlusion mask
+- Image / video compositing
+- PNG / WebM export
+
+### State Management
+
+- Zustand 기반 editor/document state
+- Undo / Redo
+- 콘텐츠 / 사이니지 / 레이어 상태 관리
+
+### Quality
+
+- Vitest unit tests
+- React Testing Library
+- Playwright E2E tests
+- Export 결과 검증
+- Visual QA scenarios
+- GitHub Actions CI
+
+---
+
+## Tech Stack
+
+### Frontend
+
+- **React**
+- **TypeScript**
+- **Vite**
+- **React Konva / Konva**
+- **Zustand**
+
+### Testing & Quality
+
+- **Vitest**
+- **React Testing Library**
+- **Playwright**
+- GitHub Actions CI
+- Visual QA
+
+### Deployment
+
+- Docker multi-stage build
+- Nginx
+- Render Static Site
+
+---
+
+## Architecture
+
+```text
+src/
+├── features/
+│   └── editor/             # 편집기 UI, 캔버스, 툴바, 고급 설정
+├── store/                  # Zustand document / editor state
+├── lib/                    # 렌더링, 파일 검증, export, asset 관리 유틸리티
+├── types/                  # TypeScript domain types
+├── i18n/                   # ja / ko / en locale resources
+├── styles/                 # global styles
+└── components/             # 공통 UI 컴포넌트
+
+e2e/
+├── fixtures/               # E2E / visual QA fixture
+├── support/                # Playwright helper
+└── *.spec.ts               # Editor, export, mobile, visual QA tests
+
+tests/
+└── unit/                   # Unit / component tests
+
+docs/
+├── quality-runbook.md      # QA 실행 가이드
+└── runbooks/               # Render 배포 관련 문서
+```
+
+---
+
+## Privacy
+
+사용자가 업로드한 공간 사진과 콘텐츠는 기본적으로 **브라우저 내부에서 처리**됩니다.
+
+- 별도 회원가입 없음
+- 별도 프로젝트 서버 저장 없음
+- 기본적인 작업 데이터의 서버 업로드 없이 브라우저 중심으로 처리
+- 워터마크 없음
+
+브라우저를 새로고침하거나 세션이 종료되면 작업 내용이 사라질 수 있으므로, 필요한 결과물은 PNG로 저장하는 것을 권장합니다.
+
+---
+
+## Supported Files
+
+| 구분 | 지원 형식 | 기본 제한 |
+| --- | --- | --- |
+| 공간 사진 | JPG, PNG, WebP | 최대 10MB |
+| 콘텐츠 이미지 | JPG, PNG, WebP | 최대 10MB |
+| 콘텐츠 영상 | MP4, WebM | 최대 80MB |
+
+> 브라우저와 파일 코덱에 따라 일부 영상은 불러오지 못할 수 있습니다.
+
+---
+
+## Browser Support
+
+### Recommended
+
+- Latest Chrome
+- Latest Microsoft Edge
+- Latest Safari
+- iOS Safari
+- Android Chrome
+
+### Export Notes
+
+| 기능 | 지원 범위 |
+| --- | --- |
+| PNG 내보내기 | 주요 최신 브라우저 지원 |
+| WebM 내보내기 | Chrome / Edge 권장 |
+| 영상 콘텐츠 | 브라우저의 지원 코덱에 따라 달라질 수 있음 |
+
+---
+
+## Local Development
+
+### Requirements
+
+- Node.js `22.x`
 - npm
 
-## 설치 및 로컬 실행
+### Install
 
 ```bash
 git clone https://github.com/sehyun2727/Digitalsignage-Simulater.git
 cd Digitalsignage-Simulater
 npm ci
+```
+
+### Run Development Server
+
+```bash
 npm run dev
 ```
 
-브라우저에서 Vite가 안내하는 로컬 주소(기본값 `http://localhost:5173`)를 엽니다.
-
-## Scripts
+### Production Build
 
 ```bash
-npm run dev            # 개발 서버
-npm run build           # 프로덕션 빌드 (dist/)
-npm run preview         # 빌드 결과 미리보기
-npm run lint             # ESLint
-npm run format           # Prettier로 포맷팅
-npm run format:check     # Prettier 검사만 수행
-npm run typecheck        # TypeScript 검사
-npm run test              # Vitest (watch)
-npm run test:run          # Vitest (단일 실행, CI에서 사용)
-npm run test:e2e          # Playwright e2e 테스트 (실제 Chromium — smoke, 에디터, 이미지 업로드, 공간 배경/디스플레이 콘텐츠·소재, 포터블 제품, 4점 원근 배치/透過LED/동영상, 모바일 뷰포트, 온보딩/비교 토글, 재선택, 오클루전 마스크, 환경색 샘플링, 발광/반사, 판매 리뷰 모드, 골든 이미지 시각 QA)
-                           # E2E_PORT 환경변수로 미리보기 서버 포트를 바꿀 수 있습니다(기본값 4173). 예: E2E_PORT=4174 npm run test:e2e
-npm run qa:visual          # 골든 이미지 시각 회귀 테스트만 실행 (docs/quality-runbook.md 참고 — 기준 이미지는 리눅스 전용)
-npm run qa:visual:update   # 골든 이미지 기준 스냅샷을 갱신 (반드시 Linux/Docker 환경에서 실행)
+npm run build
+npm run preview
 ```
 
-## Docker 실행
+---
+
+## Quality Checks
 
 ```bash
-docker build -t digital-signage-simulator:local .
-docker run --rm -p 8080:8080 digital-signage-simulator:local
+# Formatting
+npm run format:check
+
+# Lint
+npm run lint
+
+# TypeScript check
+npm run typecheck
+
+# Unit tests
+npm test
+
+# Production build
+npm run build
+
+# Playwright E2E tests
+npm run test:e2e
 ```
 
-`http://localhost:8080`에서 확인합니다. Nginx가 정적 빌드 결과를 서빙하며 SPA fallback이 설정되어 있습니다.
+Visual QA 관련 절차는 [`docs/quality-runbook.md`](./docs/quality-runbook.md)를 참고하세요.
 
-## Git workflow
+---
 
-1. 현재 Sprint 범위와 이슈를 확인합니다.
-2. 범위 밖 기능은 구현 전에 승인을 받습니다.
-3. 짧고 명확한 브랜치를 생성합니다: `feat/editor-text`, `fix/export-error`, `docs/sprint-1`, `chore/ci`
-4. 한 커밋에는 하나의 논리적 변경만 담습니다. Conventional Commit 스타일을 권장합니다.
-5. PR에는 변경 내용, 테스트 결과, UI 스크린샷 또는 녹화, 알려진 제한을 포함합니다.
-6. 병합 전 `format:check`, `lint`, `typecheck`, `test:run`, `build`를 실행합니다.
-7. `main`에 직접 커밋하지 않습니다.
+## Deployment
 
-## Localization
+프로젝트는 Render Static Site 배포를 기준으로 구성했습니다.
 
-- 저장 우선순위: 저장된 언어 선택(`localStorage`) → 지원되는 브라우저 언어 → 일본어(기본값).
-- 지원 언어 코드: `ja`(기본), `ko`, `en`.
-- 모든 화면 텍스트는 `src/i18n/locales/*.ts`의 번역 키를 통해 제공됩니다.
-- 무거운 i18n 라이브러리 대신 작은 타입 기반 구현을 사용합니다 (`docs/adr/0001-frontend-foundation.md` 참고).
+- Vite production build
+- Docker multi-stage build
+- Nginx static serving
+- SPA fallback
+- GitHub Actions quality gate
 
-## 개인정보 및 파일 처리 정책
+배포 전 점검 절차는 [`docs/runbooks/render-static-site.md`](./docs/runbooks/render-static-site.md)를 참고하세요.
 
-- MVP는 계정과 로그인을 요구하지 않습니다.
-- `localStorage`에는 언어 선택값만 저장하며, 그 외 사용자 데이터를 저장하지 않습니다.
-- 사용자가 선택한 이미지와 편집 데이터는 브라우저 안에서만 처리됩니다 — 서버로 업로드되지 않습니다.
-- 사용자의 파일을 서버로 업로드하거나 저장하는 기능은 현재 계획에 포함되어 있지 않습니다.
-- 파일 내용, 로컬 경로, object URL 등의 민감한 정보를 로그로 남기지 않습니다.
+---
 
-## 이미지 업로드 정책
+## Project Background
 
-- 허용 형식: `image/png`, `image/jpeg`, `image/webp`. 그 외 형식은 즉시 거부됩니다.
-- 최대 크기: 10MB.
-- MIME 타입이 허용 목록에 있어도 실제 바이트가 유효한 이미지가 아닐 수 있습니다(손상된 파일, 타입 스푸핑). 이 경우 `Image()` 디코딩이 실패하면 접근성 있는 오류 메시지를 보여주고, 생성했던 Object URL을 즉시 해제합니다.
-- EXIF Orientation은 브라우저의 기본 이미지 디코딩 동작을 그대로 따릅니다(최신 Chrome/Firefox/Safari/Edge는 `Image()`/`<img>` 디코딩 시 EXIF Orientation을 자동 적용하며 회전된 이미지의 `naturalWidth`/`naturalHeight`도 교체됩니다). 별도의 EXIF 라이브러리를 추가하지 않았습니다.
-- **Object URL 수명 주기:** 공간 사진, 디스플레이/포터블 화면 콘텐츠, 포터블 제품 사진은 모두
-  `assetRegistry`를 통해 등록되며, 문서/실행취소·다시실행 히스토리 전체에서 더 이상 참조되지 않는
-  Object URL을 스토어가 변경될 때마다(`editorStore.ts`의 구독 콜백) 자동으로 찾아 해제합니다
-  (`sweepUnusedAssets`) — 삭제·실행 취소 후에도 여전히 히스토리가 참조 중인 이미지 미리보기는 깨지지
-  않으면서, 더 이상 어떤 스냅샷에서도 참조되지 않는 시점에 안전하게 해제됩니다.
-- **알려진 제한 — "이미지 추가" 버튼의 Object URL:** 위 자동 해제 대상에서 유일하게 제외되는 경로는
-  툴바의 "이미지 추가" 버튼(`ImageSignageObject`)입니다. 이 경로는 `assetRegistry`를 거치지 않고
-  `URL.createObjectURL`을 직접 호출해 Object URL을 문서 상태(`src` 필드)에 그대로 저장합니다. 디코딩
-  실패 또는 해상도 초과로 캔버스에 추가되지 않은 경우에는 안전하게 즉시 해제되지만, 성공적으로 추가된
-  이미지의 Object URL은 삭제·실행 취소 이후에도 세션 동안 해제되지 않습니다. `assetRegistry`로
-  옮기려면 렌더링 경로(`CanvasObjectView`/`useHtmlImage`)와 문서 타입을 함께 변경해야 해 Sprint 4.9
-  범위를 벗어나는 것으로 판단해 의도적으로 남겨둔 제한입니다.
+이 프로젝트는 HULL株式会社 인턴십 기간 중 진행한 **독립 개인 프로젝트**입니다.
 
-## PNG 내보내기 정책
+- **Role:** Planning, UX direction, frontend development, testing, deployment
+- **Context:** Digital signage sales 동행 및 현장 관찰
+- **Problem:** 설치 후 모습을 전달하기 위한 시안 제작의 반복 작업
+- **Solution:** 공간 사진 기반의 브라우저 디지털 사이니지 시뮬레이터
+- **Outcome:** 영업 자료에서 before / after를 더 직관적으로 보여주기 위한 활용 가능성 확인
 
-- 내보내기는 화면 확대/축소(줌) 상태와 무관하게 항상 업로드된 공간 사진의 방향 보정된 원본 해상도로
-  생성됩니다(디코딩 픽셀 안전 한도로 축소된 경우 그 축소된 해상도 기준). 문서 크기를 별도로 선택하는 템플릿
-  개념은 더 이상 없습니다 — 자세한 배경은
-  [`docs/adr/0007-photo-first-document-and-materials-sprint-4-2.md`](docs/adr/0007-photo-first-document-and-materials-sprint-4-2.md)
-  참고.
-- Transformer의 선택 테두리·핸들은 내보내기 직전 동기적으로 숨겼다가 즉시 복원하는 방식으로 처리되어, 내보낸 PNG에는 절대 포함되지 않습니다.
-- 파일명 형식: `signage-canvas_{yyyyMMdd-HHmmss}.png` (예: `signage-canvas_20260813-143052.png`). 콜론(`:`) 등 파일 시스템에서 문제가 되는 문자는 포함되지 않습니다.
-- 내보내기에 실패하면(예: 캔버스가 준비되지 않음) 파일 다운로드를 생략하고 접근성 있는 오류 메시지를 보여줍니다.
+인턴십 전체 기록은 아래 포트폴리오에서 확인할 수 있습니다.
 
-## 동영상 업로드 및 내보내기 정책
+- [Internship Portfolio — From Code to Business](https://jisa-internship-reflection.onrender.com)
 
-- 화면 콘텐츠로 이미지 대신 동영상 파일을 업로드할 수 있습니다. 허용 형식: `video/mp4`, `video/webm`. 최대
-  크기: 80MB.
-- 컨테이너(MIME 타입)가 허용 목록에 있어도 브라우저가 실제 코덱을 재생할 수 없는 경우가 있어,
-  `HTMLVideoElement.canPlayType()`로 사전 검사 후 재생 불가능한 파일은 접근성 있는 오류로 거부합니다.
-- 업로드된 동영상은 항상 자동 재생·반복 재생·음소거로만 표시되며, 별도의 재생/정지/탐색 컨트롤은
-  제공하지 않습니다.
-- "動画で書き出す" 버튼은 브라우저가 `HTMLCanvasElement.captureStream`과 `MediaRecorder`(WebM, VP9 또는
-  VP8)를 모두 지원할 때만 나타납니다. 지원하지 않는 브라우저(예: 현재 Safari)에서는 버튼이 아예 표시되지
-  않고 안내 문구만 보여주며, PNG 내보내기는 영향받지 않고 계속 사용할 수 있습니다.
-- 동영상 내보내기는 캔버스에 표시된 동영상 콘텐츠 중 가장 긴 재생 시간(최대 15초로 제한)만큼, 동영상
-  콘텐츠가 전혀 없으면 6초 동안 캔버스 화면을 그대로 녹화해 WebM 파일로 저장합니다 — 서버 업로드 없이
-  전부 브라우저 내부에서 처리됩니다.
-- 파일명 형식: `signage-canvas_{yyyyMMdd-HHmmss}.webm`.
+---
 
-## HULL CTA 안내
+## Roadmap
 
-HULL은 Signage Canvas의 운영 주체가 아닙니다. 프로젝트 안에서 HULL을 언급할 경우, 외부 CTA 링크로만 명확하게 표시합니다.
+### V1 — Completed
 
-- CTA 링크: https://hull-inc.jp/ (새 탭에서 열림, `rel="noopener noreferrer"`)
+- [x] 브라우저 기반 사이니지 시뮬레이터
+- [x] 이미지·영상 콘텐츠 적용
+- [x] LED / LCD / 투과 LED / 포터블 제품
+- [x] 원근·그림자·반사·환경 적응
+- [x] PNG / WebM 내보내기
+- [x] 일본어 / 한국어 / 영어
+- [x] Unit / E2E / Visual QA
+- [x] Render 배포
 
-HULL의 상표, 로고, 서비스 설명을 공식 제휴처럼 사용하지 않습니다.
+### V2 — Planned
 
-## 배포 개요
+- [ ] 더 빠른 영업 시안 제작 플로우
+- [ ] 제품·공간·업종 중심 프리셋
+- [ ] 빠른 시안 모드와 정밀 편집 모드 분리
+- [ ] 고객용 전 / 후 비교 프리뷰
+- [ ] 제품 카탈로그 및 설치 목적 기반 추천
+- [ ] 공유 링크 및 제안서 출력 검토
+- [ ] 모바일 UX 개선
 
-초기 배포 대상은 Render **Static Site**입니다. 상세 설정은
-[`docs/runbooks/render-static-site.md`](docs/runbooks/render-static-site.md)를 참고하세요.
-v1 출시 시점 기준으로 `main`은 Sprint 0~4.5 및 후속 픽스를 모두 포함하며 위 설정으로 배포 가능하지만, 실제
-Render 배포는 아직 수행되지 않았습니다 — Render 계정/서비스 생성 권한이 이 작업 환경에 없어 설정만
-확인·문서화되어 있습니다.
+---
 
-실제로 배포를 진행할 때는 자동화된 검사 통과 여부, 수동 QA, 문서 최신성, 개인정보/보안, 롤백 계획을
-한 번에 확인할 수 있는
-[`docs/deployment-readiness-checklist.md`](docs/deployment-readiness-checklist.md)를 먼저 완료하세요.
+## Known Limitations
 
-앱은 백엔드 없이 동작하는 것을 목표로 합니다. 배포를 위해 불필요한 서버나 데이터베이스를 추가하지 않습니다.
+- 실제 설치 공간의 조명, 반사, 재질을 완전히 재현하지는 않습니다.
+- 결과물은 영업·기획 단계의 시각 시뮬레이션을 위한 것입니다.
+- 실제 설치 전에는 제품 규격, 밝기, 전력, 구조 안전성, 설치 환경을 별도로 검토해야 합니다.
+- 영상 내보내기는 브라우저 기능 지원 여부에 따라 제한될 수 있습니다.
+- 현재는 브라우저 세션 중심으로 동작하며, 프로젝트 클라우드 저장 기능은 제공하지 않습니다.
 
-## 프로젝트 구조
-
-```text
-.
-├── src/
-│   ├── app/            # 앱 루트 (App.tsx)
-│   ├── components/     # 공통 UI 컴포넌트
-│   ├── features/editor/ # 에디터 UI: EditorLayout(헤더+워크스페이스+상태 바), Toolbar(6섹션 통합 툴바),
-│   │                     # EditorCanvas, SignageDisplayView, SpaceBackgroundView, PortableBuilderModal
-│   │                     # (포터블 제품 마법사), PortableProductView, PerspectiveEditOverlay(원근 배치
-│   │                     # 편집 오버레이), PerspectiveScreenView(원근 왜곡 렌더링), OnboardingOverlay,
-│   │                     # OcclusionEditOverlay(오클루전 마스크 편집 오버레이), OcclusionMaskLayer,
-│   │                     # ScreenReflection(창면 반사), RealismGuideCard(외관 패널 첫 사용 안내) 등
-│   ├── i18n/           # 일본어·한국어·영어 리소스, 감지/저장 로직
-│   ├── lib/            # 공통 유틸리티/상수 (파일 검증, 파일명 생성, 에셋 레지스트리, 콘텐츠 배치/프레임/소재 지오메트리,
-│   │                     # curvature.ts — 곡률 스트립 근사, imageSafety.ts — 디코딩 픽셀 안전 한도,
-│   │                     # geometryNormalization.ts — 공간 사진 교체 시 객체 재배치,
-│   │                     # portableRegion.ts — 화면 영역 정규화 사각형 지오메트리,
-│   │                     # quadGeometry.ts — 4점 원근 사각형 지오메트리/검증,
-│   │                     # videoValidation.ts / videoExportCapability.ts / videoExport.ts — 동영상
-│   │                     # 업로드 검증·내보내기 지원 감지·캔버스 녹화 파이프라인,
-│   │                     # renderingPresets.ts — 자연광/밝은 야외/야간 프리셋 값 계산,
-│   │                     # contentLuminance.ts — 발광 강도용 콘텐츠 평균 밝기 샘플링,
-│   │                     # konvaCacheSync.ts — 내보내기 해상도에 맞춘 Konva 캐시 비트맵 재생성,
-│   │                     # occlusion.ts — 오클루전 마스크 다각형 지오메트리/검증,
-│   │                     # spaceBackgroundFit.ts — 공간 사진 cover-fit 계산(배경/마스크 공유),
-│   │                     # realismGuideStorage.ts — 외관 패널 안내 카드 닫음 상태 저장 등)
-│   ├── store/          # Zustand 에디터 스토어 (editorStore.ts: 문서 상태, 히스토리, 원근/오클루전
-│   │                     # 드래프트 수명주기, 에셋 스윕 구독; uiStore.ts: 온보딩/안내 카드 닫음 상태,
-│   │                     # 판매 리뷰 모드 등 문서와 무관한 일시적 UI 상태)
-│   ├── styles/          # 전역 스타일
-│   ├── test/            # Vitest 환경 설정
-│   └── types/            # 공유 타입 (에디터 문서/객체 — PortableSignageObject, NormalizedQuad,
-│   │                     # ContactShadowSettings, EnvironmentIntegrationSettings, OcclusionMask,
-│   │                     # InstallationMode 포함, i18n 메시지)
-├── tests/unit/           # Vitest + React Testing Library (portableRegion.test.ts 포함)
-├── e2e/                   # Playwright e2e 테스트 (실제 Chromium — portable.spec.ts, perspective-video.spec.ts,
-│   │                     # mobile.spec.ts, occlusion-mask.spec.ts, environment-sampling.spec.ts,
-│   │                     # glow-halo.spec.ts, screen-reflection.spec.ts, sales-review.spec.ts,
-│   │                     # visual-qa.spec.ts(골든 이미지) 포함)
-│   └── support/            # PNG/EXIF/픽셀 샘플링, 동영상 픽스처 생성 등 테스트 전용 헬퍼
-├── docker/nginx.conf       # SPA fallback 설정
-├── Dockerfile
-├── docs/
-│   ├── architecture/overview.md
-│   ├── adr/0001-frontend-foundation.md
-│   ├── adr/0003-content-and-material-model.md
-│   ├── adr/0004-custom-portable-template.md
-│   ├── adr/0005-canvas-object-reselection-hotfix.md
-│   ├── adr/0006-guided-editor-sprint-4-1.md
-│   ├── adr/0007-photo-first-document-and-materials-sprint-4-2.md
-│   ├── adr/0008-perspective-environment-and-video-sprint-4-3.md
-│   ├── adr/0009-photorealistic-rendering-core.md
-│   ├── adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md
-│   ├── deployment-readiness-checklist.md
-│   ├── quality/sprint-4-4-baseline.md
-│   ├── quality-runbook.md
-│   └── runbooks/
-└── .github/workflows/ci.yml
-```
-
-## Known limitations
-
-- 캔버스 밖으로 요소를 이동해도 위치가 자동으로 제한(clamp)되지 않습니다 — 의도적으로 변경하지 않은 기존 동작입니다.
-- "이미지 추가" 버튼으로 성공적으로 추가된 이미지의 Object URL은 세션 동안 해제되지 않습니다 (공간
-  사진·화면 콘텐츠·포터블 제품 사진은 `sweepUnusedAssets`로 자동 해제되며 이 제한에 해당하지 않습니다;
-  위 "이미지 업로드 정책"의 알려진 제한 참고).
-- 모바일 Safari에서 `<a download>`를 통한 PNG 다운로드는 브라우저/버전에 따라 동작이 다를 수 있으며, 이 환경에서 직접 검증하지 못했습니다.
-- 모바일 레이아웃은 기본 반응형 수준이며 폭넓은 기기 매트릭스에서 검증되지 않았습니다.
-- HULL CTA는 화면 우측 하단에 고정 위치로 표시됩니다 — 매우 좁은 모바일 화면에서 툴바 컨트롤과 겹칠 수
-  있는 실기기 충돌 검증은 아직 수행하지 않았습니다(자세한 내용은
-  `docs/adr/0006-guided-editor-sprint-4-1.md`의 Consequences 참고).
-- Render 실배포는 아직 수행되지 않았고 설정만 문서화되어 있습니다.
-- 디스플레이 프레임(베젤/스탠드)과 소재(LED/LCD/透過LED) 프리뷰는 단순화된 시각적 표현이며, 실제 제품 형상이나
-  성능을 재현하지 않습니다(자세한 내용은 `docs/adr/0003-content-and-material-model.md` 참고).
-- 곡률(curvature) 제어는 화면 영역을 여러 세로 스트립으로 나눠 포물선 형태로 변위시키는 2차원 근사이며,
-  실제 3D·원근 렌더링이 아닙니다(자세한 배경은
-  `docs/adr/0007-photo-first-document-and-materials-sprint-4-2.md` 참고).
-- 디스플레이·포터블 제품당 화면 콘텐츠는 이미지 또는 동영상 중 1개만 지원합니다 — 다중 콘텐츠 슬롯이나
-  재생목록은 범위 밖입니다.
-- 동영상은 항상 자동 재생·반복 재생·음소거로만 표시되며, 재생/정지/탐색 등의 컨트롤은 제공하지 않습니다.
-- 동영상 내보내기는 브라우저의 `MediaRecorder`가 지원하는 코덱(VP9/VP8, WebM 컨테이너)을 그대로 사용하며
-  별도의 화질/비트레이트 조절이나 트랜스코딩은 제공하지 않습니다. Safari 등 `captureStream`/
-  `MediaRecorder`를 지원하지 않는 브라우저에서는 동영상 내보내기 버튼 자체가 나타나지 않습니다(PNG
-  내보내기는 계속 사용할 수 있습니다).
-- 포터블 제품의 화면 영역은 사진 자체의 좌표계에 고정된 축 정렬 직사각형 하나뿐입니다 — 화면 영역 자체를
-  원근/4점/다각형으로 지정하거나 제품당 여러 화면 영역을 두는 기능은 지원하지 않습니다(단, 배치된 객체
-  전체를 4점 원근 사각형에 맞추는 기능은 위 Sprint 4.3 항목에서 지원합니다).
-- 4점 원근 배치 모드에서 클릭 판정(선택/드래그)은 항상 객체의 원래 사각형 기준이며, 시각적으로 왜곡된
-  사각형 형태 자체를 클릭 대상으로 사용하지 않습니다(자세한 배경은
-  `docs/adr/0008-perspective-environment-and-video-sprint-4-3.md` 참고).
-- 접지 그림자·환경 톤 블렌딩은 순수 시각 효과이며 실제 조명/그림자를 물리적으로 시뮬레이션하지 않습니다.
-- 포터블 객체는 생성 후 사진을 교체할 수 없습니다 — 다른 사진을 쓰려면 객체를 삭제하고 새로 추가해야 합니다
-  (자세한 배경은 `docs/adr/0004-custom-portable-template.md` 참고).
-- 편집 중인 문서(공간 사진·신호기 배치)는 세션 동안만 유지되며 새로고침하면 초기화됩니다 — 서버/localStorage
-  영속화는 범위 밖입니다.
-- 오클루전 마스크는 켜기/끄기·페더·불투명도만 조절할 수 있는 다각형 하나뿐입니다 — 마스크별 블렌드 모드나
-  애니메이션은 지원하지 않습니다(자세한 배경은
-  `docs/adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md` 참고).
-- 좁은 모바일 뷰포트에서 가로로 긴 공간 사진을 사용하면, 오클루전 마스크 편집 오버레이의 안내 문구와
-  설정 패널이 캔버스 영역 대부분을 덮어 점을 찍을 공간이 거의 남지 않을 수 있습니다(위 ADR 0010의
-  Consequences 참고) — 세로 사진에서는 발생하지 않는 문제이며, 이번 스프린트에서는 오버레이 레이아웃
-  자체를 변경하지 않았습니다.
-- 골든 이미지 시각 회귀 테스트(`npm run qa:visual`)의 기준 이미지는 Linux 전용이며, Windows 개발
-  환경에서 직접 실행하면 오탐이 발생합니다 — 재생성 절차는 `docs/quality-runbook.md` 참고.
-- 라이선스 미정.
-
-## 범위 관리
-
-이 프로젝트는 승인된 Sprint 범위를 벗어나 코딩하지 않는 것을 원칙으로 합니다. 필요해 보이는 기능이라도 먼저 이슈로 제안하고 승인을 받아야 합니다. 자세한 정책은 `CLAUDE.md`를 참고하세요.
-
-## Disclaimer
-
-이 저장소는 독립적인 개인 프로젝트입니다. 제공되는 기능과 배포 상태는 변경될 수 있으며, 특정 목적에 대한 적합성이나 무중단 동작을 보장하지 않습니다. HULL은 본 프로젝트의 공식 서비스가 아니며, 본 저장소는 HULL의 승인·후원·제휴를 의미하지 않습니다.
+---
 
 ## License
 
-라이선스는 아직 결정되지 않았습니다 (`License: TBD`). 라이선스가 확정되기 전에는 저장소의 코드와 자산을 재배포하거나 상업적으로 사용하는 조건을 임의로 해석하지 마세요.
+This project is an independent portfolio project.
+
+Repository code and assets are provided for portfolio and educational reference.  
+For commercial use, redistribution, or reuse of project assets, please contact the author.
+
+---
+
+## Author
+
+**Sung Sehyun**
+
+- GitHub: [@sehyun2727](https://github.com/sehyun2727)
+- Portfolio: [jisa-internship-reflection.onrender.com](https://jisa-internship-reflection.onrender.com)
