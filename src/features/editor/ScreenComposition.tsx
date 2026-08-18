@@ -26,6 +26,7 @@ import type {
   MaterialSettings,
   SignageContent,
 } from '../../types/editor';
+import { useVideoLuminance } from './useVideoLuminance';
 import { useVideoPlaybackRedraw } from './useVideoPlaybackRedraw';
 
 interface ScreenCompositionProps {
@@ -170,9 +171,10 @@ export function ScreenComposition({
 }: ScreenCompositionProps) {
   const normalized = normalizeMaterial(material);
   const isTransparentLed = normalized === 'transparent-led';
+  const isVideo = content?.kind === 'video';
   const asset = content ? getRegisteredAsset(content.sourceId) : undefined;
   const rootRef = useRef<Konva.Group | null>(null);
-  useVideoPlaybackRedraw(rootRef, content?.sourceId ?? null, content?.kind === 'video');
+  useVideoPlaybackRedraw(rootRef, content?.sourceId ?? null, isVideo);
   const contentLayout =
     asset && content
       ? computeContentLayout(screen, asset.naturalWidth, asset.naturalHeight, content)
@@ -184,13 +186,18 @@ export function ScreenComposition({
     screenSizePx,
   );
   const brightnessOverlay = getBrightnessOverlay(materialSettings.brightness);
-  // Video content is deliberately not sampled (a canvas readback per animation frame would add
-  // real per-frame cost for a visual-only approximation); its glow keeps the prior
-  // silhouette-only behavior via glowLuminanceFactor(null) === 1.
-  const meanLuminance = useMemo(() => {
+  const imageLuminance = useMemo(() => {
     if (!asset || !content || content.kind !== 'image') return null;
     return sampleMeanLuminance(asset.image as HTMLImageElement | HTMLCanvasElement);
   }, [asset, content]);
+  // LCD never glows regardless of luminance (see the `glow` computation below), and a glow
+  // slider at 0 has nothing to scale, so sampling is skipped in both cases rather than paying a
+  // throttled-but-still-nonzero readback cost for a value that would never be used.
+  const videoLuminance = useVideoLuminance(
+    isVideo ? content!.sourceId : null,
+    isVideo && normalized !== 'lcd' && materialSettings.glow > 0,
+  );
+  const meanLuminance = isVideo ? videoLuminance : imageLuminance;
   const glow =
     normalized !== 'lcd'
       ? getGlowShadow(materialSettings.glow * glowLuminanceFactor(meanLuminance))
@@ -298,8 +305,6 @@ export function ScreenComposition({
       )}
     </Group>
   );
-
-  const isVideo = content?.kind === 'video';
 
   if (strips.length === 0) {
     return (

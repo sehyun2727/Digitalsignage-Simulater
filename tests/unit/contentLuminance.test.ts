@@ -48,10 +48,16 @@ describe('sampleMeanLuminance', () => {
     // All pixels are alpha 0 (weight 0), so the sum/weight ratio falls back to 0 rather than NaN.
     expect(sampleMeanLuminance(image)).toBe(0);
   });
+
+  it('accepts an HTMLVideoElement the same way it accepts an image/canvas', () => {
+    stubCanvasContext([255, 255, 255]);
+    const video = document.createElement('video');
+    expect(sampleMeanLuminance(video)).toBeCloseTo(1, 2);
+  });
 });
 
 describe('glowLuminanceFactor', () => {
-  it('leaves silhouette-only glow unscaled (factor 1) when luminance is unknown (e.g. video)', () => {
+  it('leaves silhouette-only glow unscaled (factor 1) when no luminance sample is available yet', () => {
     expect(glowLuminanceFactor(null)).toBe(1);
   });
 

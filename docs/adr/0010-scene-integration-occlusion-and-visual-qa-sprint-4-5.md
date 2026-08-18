@@ -132,10 +132,14 @@ server persistence/upload, no watermark, no AI generation) remain unchanged.
   design review**: `OcclusionEditOverlay`'s own hint text plus its feather/opacity/apply/cancel panel
   can together cover nearly the entire canvas box on a short, heavily letterboxed landscape document
   at a narrow mobile viewport (e.g. a 1920x1080 document fitted into 390px width produces only a
-  ~207px-tall canvas), leaving no free area to tap a mask point. No code changed to fix this for
-  Sprint 4.5 (the test instead uses a portrait document, matching the realistic orientation for that
-  viewport) — this is recorded here as a known rough edge for a future sprint to address in the
-  overlay layout itself, not silently designed around.
+  ~207px-tall canvas), leaving no free area to tap a mask point. This was left unfixed at the time
+  the finding was first recorded here (the mobile test instead used a portrait document, matching
+  the realistic orientation for that viewport, to work around it) but was subsequently addressed
+  within the same sprint: the hint bar and panel now pin to the viewport (`position: fixed`, mirroring
+  the existing `.onboarding-card`/`.hull-cta` mobile pattern) instead of the canvas's own box, and the
+  overlay's stacking context is raised so those fixed elements aren't trapped below other fixed page
+  chrome. The portrait-document mobile test still stands as its own valid coverage; it was not
+  converted to a landscape document.
 - **The environment-sampling "disabled without a space photo" UI state is architecturally
   unreachable and was deliberately left untested.** The environment-sampling controls only render
   inside a selected object's properties panel, which requires an object to exist, which requires a
@@ -157,6 +161,6 @@ server persistence/upload, no watermark, no AI generation) remain unchanged.
 
 Revisit this ADR when: occlusion masks need anything beyond enable/disable/feather/opacity (e.g.
 per-mask blend modes or animated masks), `installationMode` grows a fourth value or starts affecting
-something beyond shadow/reflection defaults, the golden-image baseline corpus grows large enough
+something beyond shadow/reflection defaults, or the golden-image baseline corpus grows large enough
 that regenerating it becomes a workflow bottleneck (candidate fix: a scheduled CI job rather than a
-manual Docker step), or the mobile occlusion-overlay layout finding above is actually addressed.
+manual Docker step).
