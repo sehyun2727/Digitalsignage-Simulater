@@ -4,6 +4,10 @@ export const ko: Messages = {
   appTitle: 'Digital Signage Simulator',
   disclaimer:
     '본 서비스는 개인이 기획·운영하는 독립적인 디지털 사이니지 시뮬레이션 도구이며, HULL 주식회사의 공식 서비스가 아닙니다.',
+  editorCrashTitle: '문제가 발생했습니다',
+  editorCrashDescription:
+    '편집기에서 예기치 못한 오류가 발생했습니다. 지금까지의 편집 내용은 저장되지 않았을 수 있습니다. 페이지를 새로고침해 다시 시도해 주세요.',
+  editorCrashReloadButton: '새로고침',
   languageSelectorLabel: '언어',
   localeName: {
     ja: '日本語',
@@ -47,11 +51,16 @@ export const ko: Messages = {
   editorImageUploadErrorTooLarge: '이미지 크기는 10MB 이하여야 합니다.',
   editorImageUploadErrorDecodeFailed:
     '이미지를 불러오지 못했습니다. 파일이 손상되었을 수 있습니다.',
+  editorImageUploadErrorDimensionsTooLarge:
+    '이미지 해상도가 너무 큽니다. 가로/세로 6000px, 총 2400만 화소 이하의 이미지를 사용해 주세요.',
   editorVideoUploadErrorUnsupportedType: 'MP4, WebM 형식의 동영상만 사용할 수 있습니다.',
   editorVideoUploadErrorTooLarge: '동영상 크기는 80MB 이하여야 합니다.',
   editorVideoUploadErrorUnsupportedCodec: '이 브라우저에서는 동영상 코덱을 재생할 수 없습니다.',
   editorVideoUploadErrorDecodeFailed:
     '동영상을 불러오지 못했습니다. 파일이 손상되었을 수 있습니다.',
+  editorVideoUploadErrorDimensionsTooLarge:
+    '동영상 해상도가 너무 큽니다. 1920x1080(Full HD) 이하의 동영상을 사용해 주세요.',
+  editorVideoUploadErrorDurationTooLong: '동영상 길이는 30초 이하여야 합니다.',
   editorExportedAnnouncement: 'PNG 이미지를 내보냈습니다.',
   editorExportErrorAnnouncement: 'PNG 이미지 내보내기에 실패했습니다. 다시 시도해 주세요.',
 

@@ -38,7 +38,12 @@ export function EditorLayout() {
   const setSalesReviewMode = useUiStore((state) => state.setSalesReviewMode);
   const onboardingDismissed = useUiStore((state) => state.onboardingDismissed);
   const canvasRef = useRef<EditorCanvasHandle>(null);
-  const [announcement, setAnnouncement] = useState('');
+  const [announcement, setAnnouncementText] = useState('');
+  const [isAnnouncementError, setIsAnnouncementError] = useState(false);
+  const setAnnouncement = useCallback((text: string, isError = false) => {
+    setAnnouncementText(text);
+    setIsAnnouncementError(isError);
+  }, []);
   const [onboardingOpen, setOnboardingOpen] = useState(!onboardingDismissed);
   const [isExportingVideo, setIsExportingVideo] = useState(false);
   // Feature support does not change over the page's lifetime, so this is computed once rather
@@ -81,14 +86,16 @@ export function EditorLayout() {
   const handleImageError = useCallback(
     (error: ImageValidationError) => {
       if (error === 'unsupported-type') {
-        setAnnouncement(messages.editorImageUploadErrorUnsupportedType);
+        setAnnouncement(messages.editorImageUploadErrorUnsupportedType, true);
       } else if (error === 'too-large') {
-        setAnnouncement(messages.editorImageUploadErrorTooLarge);
+        setAnnouncement(messages.editorImageUploadErrorTooLarge, true);
+      } else if (error === 'dimensions-too-large') {
+        setAnnouncement(messages.editorImageUploadErrorDimensionsTooLarge, true);
       } else {
-        setAnnouncement(messages.editorImageUploadErrorDecodeFailed);
+        setAnnouncement(messages.editorImageUploadErrorDecodeFailed, true);
       }
     },
-    [messages],
+    [messages, setAnnouncement],
   );
 
   // Image and video validation errors share the same string values (e.g. 'too-large') for
@@ -101,16 +108,20 @@ export function EditorLayout() {
         return;
       }
       if (error === 'unsupported-type') {
-        setAnnouncement(messages.editorVideoUploadErrorUnsupportedType);
+        setAnnouncement(messages.editorVideoUploadErrorUnsupportedType, true);
       } else if (error === 'too-large') {
-        setAnnouncement(messages.editorVideoUploadErrorTooLarge);
+        setAnnouncement(messages.editorVideoUploadErrorTooLarge, true);
       } else if (error === 'unsupported-codec') {
-        setAnnouncement(messages.editorVideoUploadErrorUnsupportedCodec);
+        setAnnouncement(messages.editorVideoUploadErrorUnsupportedCodec, true);
+      } else if (error === 'dimensions-too-large') {
+        setAnnouncement(messages.editorVideoUploadErrorDimensionsTooLarge, true);
+      } else if (error === 'duration-too-long') {
+        setAnnouncement(messages.editorVideoUploadErrorDurationTooLong, true);
       } else {
-        setAnnouncement(messages.editorVideoUploadErrorDecodeFailed);
+        setAnnouncement(messages.editorVideoUploadErrorDecodeFailed, true);
       }
     },
-    [messages, handleImageError],
+    [messages, handleImageError, setAnnouncement],
   );
 
   const handleExport = useCallback(() => {
@@ -124,7 +135,7 @@ export function EditorLayout() {
     }
 
     if (!dataUrl) {
-      setAnnouncement(messages.editorExportErrorAnnouncement);
+      setAnnouncement(messages.editorExportErrorAnnouncement, true);
       return;
     }
 
@@ -135,14 +146,14 @@ export function EditorLayout() {
     link.click();
     link.remove();
     setAnnouncement(messages.editorExportedAnnouncement);
-  }, [messages]);
+  }, [messages, setAnnouncement]);
 
   const handleExportVideo = useCallback(async () => {
     if (!videoExportSupported || isExportingVideo) return;
 
     const canvas = canvasRef.current?.beginVideoExportCapture() ?? null;
     if (!canvas) {
-      setAnnouncement(messages.editorExportErrorAnnouncement);
+      setAnnouncement(messages.editorExportErrorAnnouncement, true);
       return;
     }
 
@@ -170,12 +181,12 @@ export function EditorLayout() {
       URL.revokeObjectURL(url);
       setAnnouncement(messages.editorExportedVideoAnnouncement);
     } catch {
-      setAnnouncement(messages.editorExportVideoErrorAnnouncement);
+      setAnnouncement(messages.editorExportVideoErrorAnnouncement, true);
     } finally {
       canvasRef.current?.endVideoExportCapture();
       setIsExportingVideo(false);
     }
-  }, [messages, objects, videoExportSupported, isExportingVideo]);
+  }, [messages, objects, videoExportSupported, isExportingVideo, setAnnouncement]);
 
   const handleQuickCompareToggle = useCallback(() => {
     const next = !comparisonMode;
@@ -280,7 +291,15 @@ export function EditorLayout() {
 
       <p className="editor-status-bar">{statusHint}</p>
 
-      <p role="status" aria-live="polite" className="visually-hidden">
+      <p
+        role="status"
+        aria-live="polite"
+        className={
+          isAnnouncementError
+            ? 'editor-announcement editor-announcement--error'
+            : 'editor-announcement'
+        }
+      >
         {announcement}
       </p>
 

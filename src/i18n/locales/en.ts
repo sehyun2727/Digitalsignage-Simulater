@@ -4,6 +4,10 @@ export const en: Messages = {
   appTitle: 'Digital Signage Simulator',
   disclaimer:
     'This service is an independently operated digital signage simulation tool and is not an official service of HULL Inc.',
+  editorCrashTitle: 'Something went wrong',
+  editorCrashDescription:
+    'The editor ran into an unexpected error. Your edits since the last export may not be saved. Please reload the page and try again.',
+  editorCrashReloadButton: 'Reload',
   languageSelectorLabel: 'Language',
   localeName: {
     ja: '日本語',
@@ -46,10 +50,15 @@ export const en: Messages = {
   editorImageUploadErrorUnsupportedType: 'Only PNG, JPEG, and WebP images are supported.',
   editorImageUploadErrorTooLarge: 'Image size must be 10MB or smaller.',
   editorImageUploadErrorDecodeFailed: 'Could not load the image. The file may be corrupted.',
+  editorImageUploadErrorDimensionsTooLarge:
+    'Image resolution is too large. Use an image no larger than 6000px per side and 24 megapixels total.',
   editorVideoUploadErrorUnsupportedType: 'Only MP4 and WebM videos are supported.',
   editorVideoUploadErrorTooLarge: 'Video size must be 80MB or smaller.',
   editorVideoUploadErrorUnsupportedCodec: 'This browser cannot play this video’s codec.',
   editorVideoUploadErrorDecodeFailed: 'Could not load the video. The file may be corrupted.',
+  editorVideoUploadErrorDimensionsTooLarge:
+    'Video resolution is too large. Use 1920x1080 (Full HD) or smaller.',
+  editorVideoUploadErrorDurationTooLong: 'Video length must be 30 seconds or shorter.',
   editorExportedAnnouncement: 'Exported the PNG image.',
   editorExportErrorAnnouncement: 'Failed to export the PNG image. Please try again.',
 

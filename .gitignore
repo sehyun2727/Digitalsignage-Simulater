@@ -11,6 +11,13 @@ playwright-report/
 test-results/
 blob-report/
 
+# Golden-image baselines must only ever be captured inside the Linux Docker container that
+# matches CI (see docs/quality-runbook.md) — running `npm run qa:visual` directly on a
+# non-Linux dev machine with --update-snapshots would otherwise write win32/darwin-suffixed
+# baseline PNGs that must never be committed alongside the real Linux ones.
+e2e/**/*-snapshots/*-win32.png
+e2e/**/*-snapshots/*-darwin.png
+
 # Logs
 *.log
 npm-debug.log*

@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MAX_VIDEO_BYTES,
+  MAX_VIDEO_DURATION_SECONDS,
+  MAX_VIDEO_HEIGHT,
+  MAX_VIDEO_WIDTH,
   canPlayVideoType,
+  validateVideoDimensions,
+  validateVideoDuration,
   validateVideoFile,
 } from '../../src/lib/videoValidation';
 
@@ -66,5 +71,37 @@ describe('canPlayVideoType', () => {
 
     vi.spyOn(HTMLVideoElement.prototype, 'canPlayType').mockReturnValue('');
     expect(canPlayVideoType('video/mp4')).toBe(false);
+  });
+});
+
+describe('validateVideoDimensions', () => {
+  it('accepts dimensions within the limit', () => {
+    expect(validateVideoDimensions(1280, 720)).toBeNull();
+  });
+
+  it('accepts dimensions exactly at the limit', () => {
+    expect(validateVideoDimensions(MAX_VIDEO_WIDTH, MAX_VIDEO_HEIGHT)).toBeNull();
+  });
+
+  it('rejects a width beyond the limit', () => {
+    expect(validateVideoDimensions(MAX_VIDEO_WIDTH + 1, 720)).toBe('dimensions-too-large');
+  });
+
+  it('rejects a height beyond the limit', () => {
+    expect(validateVideoDimensions(1280, MAX_VIDEO_HEIGHT + 1)).toBe('dimensions-too-large');
+  });
+});
+
+describe('validateVideoDuration', () => {
+  it('accepts a duration within the limit', () => {
+    expect(validateVideoDuration(10)).toBeNull();
+  });
+
+  it('accepts a duration exactly at the limit', () => {
+    expect(validateVideoDuration(MAX_VIDEO_DURATION_SECONDS)).toBeNull();
+  });
+
+  it('rejects a duration beyond the limit', () => {
+    expect(validateVideoDuration(MAX_VIDEO_DURATION_SECONDS + 1)).toBe('duration-too-long');
   });
 });

@@ -65,6 +65,43 @@ function stubVideoElement() {
   });
 }
 
+/**
+ * registerContentAsset's video duration check only runs when the decoded asset's `.image` is a
+ * genuine `instanceof HTMLVideoElement` (see src/lib/contentUpload.ts) — the plain-object
+ * SucceedingMockVideo stand-in above doesn't satisfy that, so exercising duration/dimension
+ * failures needs a real <video> element with its readonly getters shadowed on the instance.
+ * Also stubs canPlayType at the prototype level so validateVideoFile's pre-decode codec probe
+ * (which creates its own throwaway <video> element) passes regardless of which instance it gets.
+ */
+function stubRealVideoElementWith(overrides: {
+  videoWidth: number;
+  videoHeight: number;
+  duration?: number;
+}) {
+  vi.spyOn(HTMLVideoElement.prototype, 'canPlayType').mockReturnValue('probably');
+  const originalCreateElement = document.createElement.bind(document);
+  vi.spyOn(document, 'createElement').mockImplementation((tagName: string, options?: unknown) => {
+    if (tagName !== 'video')
+      return originalCreateElement(tagName, options as ElementCreationOptions);
+    const video = originalCreateElement('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'videoWidth', { value: overrides.videoWidth, configurable: true });
+    Object.defineProperty(video, 'videoHeight', {
+      value: overrides.videoHeight,
+      configurable: true,
+    });
+    if (overrides.duration !== undefined) {
+      Object.defineProperty(video, 'duration', { value: overrides.duration, configurable: true });
+    }
+    Object.defineProperty(video, 'src', {
+      set() {
+        queueMicrotask(() => video.onloadedmetadata?.(new Event('loadedmetadata')));
+      },
+      configurable: true,
+    });
+    return video;
+  });
+}
+
 const canvasMock = vi.hoisted(() => ({
   exportToDataUrl: (): string | null => 'data:image/png;base64,mock',
   beginVideoExportCapture: (): HTMLCanvasElement | null => document.createElement('canvas'),
@@ -310,6 +347,45 @@ describe('App', () => {
     expect(revokeSpy).toHaveBeenCalledWith('blob:mock-url');
   });
 
+  it('shows a visibly styled accessible error and revokes the object URL when an uploaded image decodes to an oversized bitmap', async () => {
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-oversized');
+
+    class OversizedImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      naturalWidth = 8000;
+      naturalHeight = 6000;
+      set src(_value: string) {
+        queueMicrotask(() => this.onload?.());
+      }
+    }
+
+    const user = userEvent.setup();
+    render(<App />);
+    await addSpaceBackground(user);
+    vi.stubGlobal('Image', OversizedImage as unknown as typeof Image);
+
+    const file = new File([new Uint8Array([1, 2, 3])], 'huge.png', { type: 'image/png' });
+    await user.upload(screen.getByLabelText(ja.editorAddImageButton), file);
+
+    const message = await screen.findByText(ja.editorImageUploadErrorDimensionsTooLarge);
+    expect(message).toHaveClass('editor-announcement--error');
+    expect(revokeSpy).toHaveBeenCalledWith('blob:mock-oversized');
+  });
+
+  it('does not style a successful announcement as an error', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await addSpaceBackground(user);
+
+    await user.click(screen.getByRole('button', { name: ja.editorExportButton }));
+
+    const message = await screen.findByText(ja.editorExportedAnnouncement);
+    expect(message).toHaveClass('editor-announcement');
+    expect(message).not.toHaveClass('editor-announcement--error');
+  });
+
   describe('Sprint 2: space background and display content/material', () => {
     it('adds a space background photo and can remove it again', async () => {
       vi.stubGlobal('Image', SucceedingImage as unknown as typeof Image);
@@ -463,6 +539,34 @@ describe('App', () => {
       expect(
         await screen.findByText(ja.editorVideoUploadErrorUnsupportedCodec),
       ).toBeInTheDocument();
+      expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
+    });
+
+    it('shows an accessible error when an uploaded video decodes to oversized dimensions', async () => {
+      stubRealVideoElementWith({ videoWidth: 3840, videoHeight: 2160 });
+      const user = userEvent.setup();
+      render(<App />);
+      await addSpaceBackground(user);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
+      await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createVideoFile());
+
+      expect(
+        await screen.findByText(ja.editorVideoUploadErrorDimensionsTooLarge),
+      ).toBeInTheDocument();
+      expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
+    });
+
+    it('shows an accessible error when an uploaded video is longer than the duration limit', async () => {
+      stubRealVideoElementWith({ videoWidth: 1280, videoHeight: 720, duration: 45 });
+      const user = userEvent.setup();
+      render(<App />);
+      await addSpaceBackground(user);
+
+      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
+      await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createVideoFile());
+
+      expect(await screen.findByText(ja.editorVideoUploadErrorDurationTooLong)).toBeInTheDocument();
       expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
     });
 

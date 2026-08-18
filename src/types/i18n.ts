@@ -11,6 +11,9 @@ export function isSupportedLocale(value: string): value is Locale {
 export interface Messages {
   appTitle: string;
   disclaimer: string;
+  editorCrashTitle: string;
+  editorCrashDescription: string;
+  editorCrashReloadButton: string;
   languageSelectorLabel: string;
   localeName: Record<Locale, string>;
   hullCtaLabel: string;
@@ -47,10 +50,13 @@ export interface Messages {
   editorImageUploadErrorUnsupportedType: string;
   editorImageUploadErrorTooLarge: string;
   editorImageUploadErrorDecodeFailed: string;
+  editorImageUploadErrorDimensionsTooLarge: string;
   editorVideoUploadErrorUnsupportedType: string;
   editorVideoUploadErrorTooLarge: string;
   editorVideoUploadErrorUnsupportedCodec: string;
   editorVideoUploadErrorDecodeFailed: string;
+  editorVideoUploadErrorDimensionsTooLarge: string;
+  editorVideoUploadErrorDurationTooLong: string;
   editorExportedAnnouncement: string;
   editorExportErrorAnnouncement: string;
 

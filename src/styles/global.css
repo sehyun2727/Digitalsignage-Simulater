@@ -419,6 +419,19 @@ a {
   color: var(--color-muted);
 }
 
+.editor-announcement {
+  flex-shrink: 0;
+  margin: 0;
+  min-height: 1.2rem;
+  padding: 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.editor-announcement--error {
+  color: #b3261e;
+}
+
 .toolbar {
   flex: 0 0 22rem;
   min-width: 0;
@@ -636,6 +649,38 @@ a {
 
 .onboarding-card-actions button {
   padding: 0.4rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background-color: var(--color-bg);
+  cursor: pointer;
+}
+
+.editor-crash-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 28rem;
+  margin: 2rem auto;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background-color: var(--color-bg);
+  text-align: center;
+}
+
+.editor-crash-card h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.editor-crash-card p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.editor-crash-card button {
+  align-self: center;
+  padding: 0.5rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: 0.25rem;
   background-color: var(--color-bg);

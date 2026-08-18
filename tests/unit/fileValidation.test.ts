@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_IMAGE_BYTES, validateImageFile } from '../../src/lib/fileValidation';
+import {
+  MAX_IMAGE_BYTES,
+  MAX_IMAGE_LONG_EDGE,
+  MAX_IMAGE_PIXELS,
+  validateImageDimensions,
+  validateImageFile,
+} from '../../src/lib/fileValidation';
 
 function createFile(type: string, size: number): File {
   const file = new File([new Uint8Array(size)], 'image', { type });
@@ -31,5 +37,30 @@ describe('validateImageFile', () => {
 
   it('accepts a file exactly at the size limit', () => {
     expect(validateImageFile(createFile('image/png', MAX_IMAGE_BYTES))).toBeNull();
+  });
+});
+
+describe('validateImageDimensions', () => {
+  it('accepts dimensions within both the long-edge and pixel-count limits', () => {
+    expect(validateImageDimensions(1920, 1080)).toBeNull();
+  });
+
+  it('accepts dimensions exactly at the long-edge limit', () => {
+    expect(validateImageDimensions(MAX_IMAGE_LONG_EDGE, 100)).toBeNull();
+    expect(validateImageDimensions(100, MAX_IMAGE_LONG_EDGE)).toBeNull();
+  });
+
+  it('rejects a width beyond the long-edge limit', () => {
+    expect(validateImageDimensions(MAX_IMAGE_LONG_EDGE + 1, 100)).toBe('dimensions-too-large');
+  });
+
+  it('rejects a height beyond the long-edge limit', () => {
+    expect(validateImageDimensions(100, MAX_IMAGE_LONG_EDGE + 1)).toBe('dimensions-too-large');
+  });
+
+  it('rejects dimensions under the long-edge limit but over the total pixel-count limit', () => {
+    const side = Math.ceil(Math.sqrt(MAX_IMAGE_PIXELS)) + 1;
+    expect(side).toBeLessThan(MAX_IMAGE_LONG_EDGE);
+    expect(validateImageDimensions(side, side)).toBe('dimensions-too-large');
   });
 });

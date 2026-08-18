@@ -3,6 +3,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import { Group, Layer, Rect, Stage, Transformer } from 'react-konva';
 import type { ContentValidationError } from '../../lib/contentUpload';
 import {
+  ContentDimensionError,
   contentKindForFile,
   registerContentAsset,
   validateContentFile,
@@ -259,8 +260,12 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
         },
       });
       selectObject(targetId);
-    } catch {
-      onContentError(contentKindForFile(file), 'decode-error');
+    } catch (error) {
+      if (error instanceof ContentDimensionError) {
+        onContentError(error.kind, error.error);
+      } else {
+        onContentError(contentKindForFile(file), 'decode-error');
+      }
     }
   };
 

@@ -4,6 +4,10 @@ export const ja: Messages = {
   appTitle: 'Digital Signage Simulator',
   disclaimer:
     '本サービスは個人が企画・運営する独立したデジタルサイネージシミュレーションツールであり、HULL株式会社の公式サービスではありません。',
+  editorCrashTitle: '問題が発生しました',
+  editorCrashDescription:
+    'エディタで予期しないエラーが発生しました。これまでの編集内容は保存されていない可能性があります。ページを再読み込みしてもう一度お試しください。',
+  editorCrashReloadButton: '再読み込み',
   languageSelectorLabel: '言語',
   localeName: {
     ja: '日本語',
@@ -47,11 +51,16 @@ export const ja: Messages = {
   editorImageUploadErrorTooLarge: '画像サイズは10MB以下にしてください。',
   editorImageUploadErrorDecodeFailed:
     '画像を読み込めませんでした。ファイルが破損している可能性があります。',
+  editorImageUploadErrorDimensionsTooLarge:
+    '画像の解像度が大きすぎます。縦横6000px、合計2400万画素以下の画像を使用してください。',
   editorVideoUploadErrorUnsupportedType: 'MP4、WebM形式の動画のみ利用できます。',
   editorVideoUploadErrorTooLarge: '動画サイズは80MB以下にしてください。',
   editorVideoUploadErrorUnsupportedCodec: 'このブラウザでは動画のコーデックを再生できません。',
   editorVideoUploadErrorDecodeFailed:
     '動画を読み込めませんでした。ファイルが破損している可能性があります。',
+  editorVideoUploadErrorDimensionsTooLarge:
+    '動画の解像度が大きすぎます。1920x1080(フルHD)以下の動画を使用してください。',
+  editorVideoUploadErrorDurationTooLong: '動画の長さは30秒以下にしてください。',
   editorExportedAnnouncement: 'PNG画像を書き出しました。',
   editorExportErrorAnnouncement: 'PNG画像の書き出しに失敗しました。もう一度お試しください。',
 

@@ -9,6 +9,7 @@ import {
 import { clampCurvatureAmount, isCurvatureSupported } from '../../lib/curvature';
 import type { ContentValidationError } from '../../lib/contentUpload';
 import {
+  ContentDimensionError,
   contentKindForFile,
   registerContentAsset,
   validateContentFile,
@@ -20,7 +21,11 @@ import {
   clampContactShadowTint,
   clampEnvironmentIntegration,
 } from '../../lib/environmentIntegration';
-import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
+import {
+  ACCEPTED_IMAGE_TYPES,
+  validateImageDimensions,
+  validateImageFile,
+} from '../../lib/fileValidation';
 import { normalizeMaterial } from '../../lib/materialTexture';
 import {
   detectActivePreset,
@@ -273,6 +278,12 @@ function AddSignageSection({
     const objectUrl = URL.createObjectURL(file);
     const image = new Image();
     image.onload = () => {
+      const dimensionError = validateImageDimensions(image.naturalWidth, image.naturalHeight);
+      if (dimensionError) {
+        URL.revokeObjectURL(objectUrl);
+        onImageError(dimensionError);
+        return;
+      }
       addImage({
         src: objectUrl,
         naturalWidth: image.naturalWidth,
@@ -675,8 +686,12 @@ function ContentFields({
       setOffsetXDraft(0);
       setOffsetYDraft(0);
       setScaleDraft(1);
-    } catch {
-      onContentError(contentKindForFile(file), 'decode-error');
+    } catch (error) {
+      if (error instanceof ContentDimensionError) {
+        onContentError(error.kind, error.error);
+      } else {
+        onContentError(contentKindForFile(file), 'decode-error');
+      }
     }
   };
 

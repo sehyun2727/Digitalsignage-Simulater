@@ -93,3 +93,52 @@ not to become a general screenshot-testing dumping ground. Before adding a scene
 targeted pixel-sample assertion in an existing spec would catch the same regression more cheaply.
 If a new scene is warranted, add it to `e2e/visual-qa.spec.ts` and generate its baseline using the
 Docker command above in the same PR.
+
+## Manual QA checklist (pre-release / pre-Render-deploy)
+
+Automated checks (`npm run lint`/`typecheck`/`test:run`/`test:e2e`/`build`, all Chromium-only via
+Playwright) do not cover real cross-browser rendering or touch input. Run this checklist by hand
+before a Render deploy or a release-labeled PR — it is deliberately short; do not expand it into a
+full manual regression suite for every PR.
+
+**Browsers** (desktop, latest stable unless noted):
+
+- [ ] Chrome — full flow below
+- [ ] Firefox — full flow below
+- [ ] Safari (macOS) — full flow below, and confirm the video-export button is correctly absent
+      (`captureStream`/`MediaRecorder` WebM support gap) and `editorExportVideoUnsupportedHint`
+      shows instead
+- [ ] Edge — spot-check the full flow (Chromium-based; lower risk of divergence from Chrome)
+
+**Core flow, per browser above:**
+
+- [ ] Upload a space photo (JPEG and PNG) — fits to the canvas, no console errors
+- [ ] Add an LED, LCD, Transparent LED, and portable product — each renders with a visible default
+      appearance
+- [ ] Upload screen content (image, then video if the browser supports it) — displays correctly;
+      an oversized/corrupted/wrong-type file shows the matching visible error message (not just a
+      blank failure)
+- [ ] Drag-and-drop a content file directly onto a display (not just the file-picker button)
+- [ ] Undo/redo across several steps — no crash, no stale preview image
+- [ ] Export PNG — downloads, opens, matches the on-screen composition (no selection handles baked
+      in)
+- [ ] Export video (where supported) — downloads and plays
+- [ ] Switch language (JA/KO/EN) — no untranslated keys or broken layout in any of the three
+
+**Mobile** (real device or browser device-emulation at minimum; a real iOS Safari + a real Android
+Chrome pass is preferred before a release, since `<a download>` and file-input behavior can differ
+from desktop and from emulation):
+
+- [ ] Layout has no horizontal overflow at a narrow viewport (e.g. 390px wide)
+- [ ] Upload space photo, add signage, upload content, export PNG — full flow completes
+- [ ] Toolbar controls remain reachable and tappable (not obscured by the fixed HULL CTA)
+
+**Accessibility spot-check:**
+
+- [ ] Tab through the toolbar and header controls — focus is visible at every stop
+- [ ] Trigger an upload error — the message is both visually shown near the top of the page (not
+      only announced) and picked up by a screen reader (VoiceOver/NVDA), per the visible
+      `role="status"` announcement described in `EditorLayout.tsx`
+
+Record the browser/OS versions actually tested and any deviations in the PR description — do not
+claim a checklist item passed if it was not run on that specific browser.

@@ -1,8 +1,17 @@
-import { registerAsset, registerVideoAsset } from './assetRegistry';
+import {
+  getRegisteredAsset,
+  registerAsset,
+  registerVideoAsset,
+  releaseAsset,
+} from './assetRegistry';
 import type { ImageValidationError } from './fileValidation';
-import { validateImageFile } from './fileValidation';
+import { validateImageDimensions, validateImageFile } from './fileValidation';
 import type { VideoValidationError } from './videoValidation';
-import { validateVideoFile } from './videoValidation';
+import {
+  validateVideoDimensions,
+  validateVideoDuration,
+  validateVideoFile,
+} from './videoValidation';
 import type { ContentKind } from '../types/editor';
 
 export type ContentValidationError = ImageValidationError | VideoValidationError;
@@ -33,10 +42,45 @@ export function validateContentFile(file: File): ContentValidationFailure | null
   return error ? { kind, error } : null;
 }
 
+/** Thrown by registerContentAsset when a post-decode check (dimensions/duration) fails, so
+ *  callers can show the specific reason instead of the generic 'decode-error' their existing
+ *  try/catch already falls back to for every other failure mode. */
+export class ContentDimensionError extends Error {
+  constructor(
+    public readonly kind: ContentKind,
+    public readonly error: ContentValidationError,
+  ) {
+    super(`content dimension validation failed: ${kind}/${error}`);
+  }
+}
+
 export async function registerContentAsset(
   file: File,
 ): Promise<{ sourceId: string; naturalWidth: number; naturalHeight: number; kind: ContentKind }> {
   const kind = contentKindForFile(file);
   const asset = kind === 'video' ? await registerVideoAsset(file) : await registerAsset(file);
+
+  if (kind === 'image') {
+    const dimensionError = validateImageDimensions(asset.naturalWidth, asset.naturalHeight);
+    if (dimensionError) {
+      releaseAsset(asset.sourceId);
+      throw new ContentDimensionError(kind, dimensionError);
+    }
+  } else {
+    const dimensionError = validateVideoDimensions(asset.naturalWidth, asset.naturalHeight);
+    if (dimensionError) {
+      releaseAsset(asset.sourceId);
+      throw new ContentDimensionError(kind, dimensionError);
+    }
+    const registered = getRegisteredAsset(asset.sourceId);
+    const duration =
+      registered && registered.image instanceof HTMLVideoElement ? registered.image.duration : NaN;
+    const durationError = Number.isFinite(duration) ? validateVideoDuration(duration) : null;
+    if (durationError) {
+      releaseAsset(asset.sourceId);
+      throw new ContentDimensionError(kind, durationError);
+    }
+  }
+
   return { ...asset, kind };
 }

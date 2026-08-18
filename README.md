@@ -398,7 +398,18 @@ docker run --rm -p 8080:8080 digital-signage-simulator:local
 - 최대 크기: 10MB.
 - MIME 타입이 허용 목록에 있어도 실제 바이트가 유효한 이미지가 아닐 수 있습니다(손상된 파일, 타입 스푸핑). 이 경우 `Image()` 디코딩이 실패하면 접근성 있는 오류 메시지를 보여주고, 생성했던 Object URL을 즉시 해제합니다.
 - EXIF Orientation은 브라우저의 기본 이미지 디코딩 동작을 그대로 따릅니다(최신 Chrome/Firefox/Safari/Edge는 `Image()`/`<img>` 디코딩 시 EXIF Orientation을 자동 적용하며 회전된 이미지의 `naturalWidth`/`naturalHeight`도 교체됩니다). 별도의 EXIF 라이브러리를 추가하지 않았습니다.
-- **알려진 제한 — Object URL 수명 주기:** 디코딩에 성공해 캔버스에 추가된 이미지의 Object URL은 세션 동안 해제하지 않습니다. 삭제/실행 취소 시점에 즉시 해제하면 실행 취소·다시 실행 히스토리가 여전히 참조 중인 이미지 미리보기가 깨질 수 있기 때문입니다(히스토리 스냅샷 전체에 대한 참조 카운팅은 Sprint 1 범위를 벗어나는 것으로 판단해 의도적으로 구현하지 않았습니다). 디코딩 실패로 캔버스에 추가되지 않은 파일의 Object URL만 안전하게 즉시 해제됩니다.
+- **Object URL 수명 주기:** 공간 사진, 디스플레이/포터블 화면 콘텐츠, 포터블 제품 사진은 모두
+  `assetRegistry`를 통해 등록되며, 문서/실행취소·다시실행 히스토리 전체에서 더 이상 참조되지 않는
+  Object URL을 스토어가 변경될 때마다(`editorStore.ts`의 구독 콜백) 자동으로 찾아 해제합니다
+  (`sweepUnusedAssets`) — 삭제·실행 취소 후에도 여전히 히스토리가 참조 중인 이미지 미리보기는 깨지지
+  않으면서, 더 이상 어떤 스냅샷에서도 참조되지 않는 시점에 안전하게 해제됩니다.
+- **알려진 제한 — "이미지 추가" 버튼의 Object URL:** 위 자동 해제 대상에서 유일하게 제외되는 경로는
+  툴바의 "이미지 추가" 버튼(`ImageSignageObject`)입니다. 이 경로는 `assetRegistry`를 거치지 않고
+  `URL.createObjectURL`을 직접 호출해 Object URL을 문서 상태(`src` 필드)에 그대로 저장합니다. 디코딩
+  실패 또는 해상도 초과로 캔버스에 추가되지 않은 경우에는 안전하게 즉시 해제되지만, 성공적으로 추가된
+  이미지의 Object URL은 삭제·실행 취소 이후에도 세션 동안 해제되지 않습니다. `assetRegistry`로
+  옮기려면 렌더링 경로(`CanvasObjectView`/`useHtmlImage`)와 문서 타입을 함께 변경해야 해 Sprint 4.9
+  범위를 벗어나는 것으로 판단해 의도적으로 남겨둔 제한입니다.
 
 ## PNG 내보내기 정책
 
@@ -442,6 +453,10 @@ HULL의 상표, 로고, 서비스 설명을 공식 제휴처럼 사용하지 않
 Sprint 4.2 기준으로 `main`은 Sprint 0~4.2를 모두 포함하며 위 설정으로 배포 가능하지만, 실제 Render 배포는
 아직 수행되지 않았습니다 — Render 계정/서비스 생성 권한이 이 작업 환경에 없어 설정만 확인·문서화되어
 있습니다.
+
+실제로 배포를 진행할 때는 자동화된 검사 통과 여부, 수동 QA, 문서 최신성, 개인정보/보안, 롤백 계획을
+한 번에 확인할 수 있는
+[`docs/deployment-readiness-checklist.md`](docs/deployment-readiness-checklist.md)를 먼저 완료하세요.
 
 앱은 백엔드 없이 동작하는 것을 목표로 합니다. 배포를 위해 불필요한 서버나 데이터베이스를 추가하지 않습니다.
 
@@ -499,6 +514,7 @@ Sprint 4.2 기준으로 `main`은 Sprint 0~4.2를 모두 포함하며 위 설정
 │   ├── adr/0008-perspective-environment-and-video-sprint-4-3.md
 │   ├── adr/0009-photorealistic-rendering-core.md
 │   ├── adr/0010-scene-integration-occlusion-and-visual-qa-sprint-4-5.md
+│   ├── deployment-readiness-checklist.md
 │   ├── quality/sprint-4-4-baseline.md
 │   ├── quality-runbook.md
 │   └── runbooks/
@@ -508,7 +524,9 @@ Sprint 4.2 기준으로 `main`은 Sprint 0~4.2를 모두 포함하며 위 설정
 ## Known limitations
 
 - 캔버스 밖으로 요소를 이동해도 위치가 자동으로 제한(clamp)되지 않습니다 — 의도적으로 변경하지 않은 기존 동작입니다.
-- 성공적으로 추가된 이미지의 Object URL은 세션 동안 해제되지 않습니다 (위 "이미지 업로드 정책"의 알려진 제한 참고).
+- "이미지 추가" 버튼으로 성공적으로 추가된 이미지의 Object URL은 세션 동안 해제되지 않습니다 (공간
+  사진·화면 콘텐츠·포터블 제품 사진은 `sweepUnusedAssets`로 자동 해제되며 이 제한에 해당하지 않습니다;
+  위 "이미지 업로드 정책"의 알려진 제한 참고).
 - 모바일 Safari에서 `<a download>`를 통한 PNG 다운로드는 브라우저/버전에 따라 동작이 다를 수 있으며, 이 환경에서 직접 검증하지 못했습니다.
 - 모바일 레이아웃은 기본 반응형 수준이며 폭넓은 기기 매트릭스에서 검증되지 않았습니다.
 - HULL CTA는 화면 우측 하단에 고정 위치로 표시됩니다 — 매우 좁은 모바일 화면에서 툴바 컨트롤과 겹칠 수

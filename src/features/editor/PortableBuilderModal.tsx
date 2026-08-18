@@ -7,7 +7,11 @@ import {
   registerAsset,
   releaseAsset,
 } from '../../lib/assetRegistry';
-import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
+import {
+  ACCEPTED_IMAGE_TYPES,
+  validateImageDimensions,
+  validateImageFile,
+} from '../../lib/fileValidation';
 import {
   clampNormalizedRect,
   computeContainRect,
@@ -109,6 +113,12 @@ export function PortableBuilderModal({
 
     try {
       const asset = await registerAsset(file);
+      const dimensionError = validateImageDimensions(asset.naturalWidth, asset.naturalHeight);
+      if (dimensionError) {
+        releaseAsset(asset.sourceId);
+        onImageError(dimensionError);
+        return;
+      }
       const registered = getRegisteredAsset(asset.sourceId);
       if (pendingPhoto) releaseAsset(pendingPhoto.sourceId);
       setPendingPhoto({

@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  ContentDimensionError,
   contentKindForFile,
   registerContentAsset,
   validateContentFile,
 } from '../../src/lib/contentUpload';
+import { MAX_IMAGE_LONG_EDGE } from '../../src/lib/fileValidation';
+import { MAX_VIDEO_DURATION_SECONDS, MAX_VIDEO_WIDTH } from '../../src/lib/videoValidation';
 
 class SucceedingMockImage {
   onload: (() => void) | null = null;
@@ -15,11 +18,22 @@ class SucceedingMockImage {
   }
 }
 
+class OversizedMockImage {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  naturalWidth = MAX_IMAGE_LONG_EDGE + 1;
+  naturalHeight = 600;
+  set src(_value: string) {
+    queueMicrotask(() => this.onload?.());
+  }
+}
+
 class SucceedingMockVideo {
   onloadedmetadata: (() => void) | null = null;
   onerror: (() => void) | null = null;
   videoWidth = 1280;
   videoHeight = 720;
+  duration = 10;
   muted = false;
   playsInline = false;
   preload = '';
@@ -28,11 +42,57 @@ class SucceedingMockVideo {
   }
 }
 
-function stubVideoElement() {
+class OversizedMockVideo {
+  onloadedmetadata: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  videoWidth = MAX_VIDEO_WIDTH + 1;
+  videoHeight = 720;
+  duration = 10;
+  muted = false;
+  playsInline = false;
+  preload = '';
+  set src(_value: string) {
+    queueMicrotask(() => this.onloadedmetadata?.());
+  }
+}
+
+function stubVideoElementWith(VideoClass: new () => unknown) {
   const originalCreateElement = document.createElement.bind(document);
   vi.spyOn(document, 'createElement').mockImplementation((tagName: string, options?: unknown) => {
-    if (tagName === 'video') return new SucceedingMockVideo() as unknown as HTMLVideoElement;
+    if (tagName === 'video') return new VideoClass() as unknown as HTMLVideoElement;
     return originalCreateElement(tagName, options as ElementCreationOptions);
+  });
+}
+
+function stubVideoElement() {
+  stubVideoElementWith(SucceedingMockVideo);
+}
+
+/**
+ * registerContentAsset's duration check reads `registered.image.duration` only when
+ * `registered.image instanceof HTMLVideoElement` — a plain mock object (as used by the other
+ * video stand-ins above) never satisfies that, so exercising the duration branch needs a real
+ * <video> element with its readonly dimension/duration getters shadowed on the instance.
+ */
+function stubOverlongVideoElement() {
+  const originalCreateElement = document.createElement.bind(document);
+  vi.spyOn(document, 'createElement').mockImplementation((tagName: string, options?: unknown) => {
+    if (tagName !== 'video')
+      return originalCreateElement(tagName, options as ElementCreationOptions);
+    const video = originalCreateElement('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'videoWidth', { value: 1280, configurable: true });
+    Object.defineProperty(video, 'videoHeight', { value: 720, configurable: true });
+    Object.defineProperty(video, 'duration', {
+      value: MAX_VIDEO_DURATION_SECONDS + 1,
+      configurable: true,
+    });
+    Object.defineProperty(video, 'src', {
+      set() {
+        queueMicrotask(() => video.onloadedmetadata?.(new Event('loadedmetadata')));
+      },
+      configurable: true,
+    });
+    return video;
   });
 }
 
@@ -118,5 +178,44 @@ describe('registerContentAsset', () => {
     stubVideoElement();
     const asset = await registerContentAsset(createVideoFile());
     expect(asset).toMatchObject({ kind: 'video', naturalWidth: 1280, naturalHeight: 720 });
+  });
+
+  it('rejects and releases an image whose decoded dimensions exceed the limit', async () => {
+    vi.stubGlobal('Image', OversizedMockImage as unknown as typeof Image);
+    let caught: unknown;
+    try {
+      await registerContentAsset(createImageFile());
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(ContentDimensionError);
+    expect(caught).toMatchObject({ kind: 'image', error: 'dimensions-too-large' });
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(`blob:mock-${objectUrlCounter}`);
+  });
+
+  it('rejects and releases a video whose decoded dimensions exceed the limit', async () => {
+    stubVideoElementWith(OversizedMockVideo);
+    let caught: unknown;
+    try {
+      await registerContentAsset(createVideoFile());
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(ContentDimensionError);
+    expect(caught).toMatchObject({ kind: 'video', error: 'dimensions-too-large' });
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(`blob:mock-${objectUrlCounter}`);
+  });
+
+  it('rejects and releases a video whose decoded duration exceeds the limit', async () => {
+    stubOverlongVideoElement();
+    let caught: unknown;
+    try {
+      await registerContentAsset(createVideoFile());
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(ContentDimensionError);
+    expect(caught).toMatchObject({ kind: 'video', error: 'duration-too-long' });
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(`blob:mock-${objectUrlCounter}`);
   });
 });
