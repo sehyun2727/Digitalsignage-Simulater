@@ -3,10 +3,7 @@
 > 공간 사진 위에 디지털 사이니지를 설치한 모습을 빠르게 시뮬레이션하고,  
 > 영업·제안용 이미지로 내보낼 수 있는 브라우저 기반 디지털 사이니지 시뮬레이터
 
-[![CI](https://github.com/sehyun2727/Digitalsignage-Simulater/actions/workflows/ci.yml/badge.svg)](https://github.com/sehyun2727/Digitalsignage-Simulater/actions/workflows/ci.yml)
-
 **[Live Demo](https://digitalsignage-simulater.onrender.com)** ·
-**[Portfolio](https://jisa-internship-reflection.onrender.com)** ·
 **[Issues](https://github.com/sehyun2727/Digitalsignage-Simulater/issues)**
 
 > **Independent personal project. Not an official HULL service.**  
