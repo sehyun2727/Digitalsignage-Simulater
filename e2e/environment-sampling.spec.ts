@@ -42,7 +42,7 @@ test('sampling the space photo tints the screen toward its ambient color as stre
 
   // Environment integration controls live behind the "詳細設定" modal; the export button sits
   // outside it, so the modal must be closed again before each export can be clicked.
-  await page.getByRole('button', { name: '詳細設定' }).click();
+  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
 
   const sampleButton = page.getByRole('button', { name: '空間写真からサンプリング' });
   await expect(sampleButton).toBeEnabled();
@@ -61,7 +61,7 @@ test('sampling the space photo tints the screen toward its ambient color as stre
   expect(afterSample.r).toBeGreaterThan(beforeSample.r);
   expect(afterSample.g).toBeLessThan(beforeSample.g);
 
-  await page.getByRole('button', { name: '詳細設定' }).click();
+  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   await page.getByRole('button', { name: 'なじませをリセット' }).click();
   await expect(strengthSlider).toHaveValue('15'); // back to the natural preset's default strength
   await page.getByRole('button', { name: '閉じる' }).click();

@@ -61,6 +61,18 @@ This is also covered by `npm run test:e2e` (which runs every spec under `e2e/`, 
 job, which runs on `ubuntu-latest` and therefore compares against the correct platform's baselines
 natively — no Docker step is needed in CI itself, only for local baseline regeneration.
 
+## Known issue: freestanding-portable scenario doesn't open the settings modal (tracked for Sprint 4.8)
+
+The `'freestanding portable product with a ground contact shadow'` test queries
+`page.getByRole('combobox', { name: '設置面' })` directly, but the installation-mode control lives
+inside `AdvancedSettingsModal` (moved there by the Sprint 4.5/4.6 settings-modal work, commits
+`65241bc`/`dd35f7c`, both landed _after_ this spec file was added in `73cd365`). The test never
+opens that modal first, so the combobox is unreachable and the test times out — on any platform,
+not just Windows. This predates Sprint 4.7 (the "V1 sales UX simplification" toolbar/onboarding
+work) and is unrelated to it; Sprint 4.7 only added `exact: true` and modal-open/close steps to
+other, already-passing specs that hit the same class of "control moved into a modal" issue. Fixing
+this scenario itself is scoped to Sprint 4.8 (real-photo golden-image QA stabilization).
+
 ## Adding a new golden scene
 
 Keep the set small and deliberately curated — this suite exists to catch _whole-scene_ regressions

@@ -25,7 +25,7 @@ test('the material glow halo bleeds past the screen edge into the bezel', async 
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 
-  await page.getByRole('button', { name: '詳細設定' }).click();
+  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   const glowSlider = page.getByRole('slider', { name: '発光の強さ（詳細設定）' });
   await glowSlider.focus();
   await glowSlider.press('End'); // max out glow for a maximally visible halo
@@ -42,7 +42,7 @@ test('the material glow halo bleeds past the screen edge into the bezel', async 
   const glowOnBuffer = await fs.readFile((await (await glowOnDownload).path())!);
   const [withGlow] = await samplePngPixels(page, glowOnBuffer, [samplePoint]);
 
-  await page.getByRole('button', { name: '詳細設定' }).click();
+  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   await glowSlider.focus();
   await glowSlider.press('Home'); // glow = 0
   await glowSlider.press('Tab');

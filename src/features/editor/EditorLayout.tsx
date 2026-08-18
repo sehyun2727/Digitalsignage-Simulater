@@ -284,7 +284,12 @@ export function EditorLayout() {
         {announcement}
       </p>
 
-      {onboardingOpen && <OnboardingOverlay onDismiss={() => setOnboardingOpen(false)} />}
+      {onboardingOpen && (
+        <OnboardingOverlay
+          onDismiss={() => setOnboardingOpen(false)}
+          onExportClick={handleExport}
+        />
+      )}
     </div>
   );
 }

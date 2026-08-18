@@ -389,6 +389,10 @@ describe('App', () => {
       await user.selectOptions(fitSelect, 'cover');
       expect(fitSelect).toHaveValue('cover');
 
+      await user.click(
+        screen.getByRole('button', { name: ja.editorContentAdvancedSettingsOpenButton }),
+      );
+
       const offsetXInput = screen.getByRole('spinbutton', { name: ja.editorContentOffsetXLabel });
       await user.clear(offsetXInput);
       await user.type(offsetXInput, '0.4');

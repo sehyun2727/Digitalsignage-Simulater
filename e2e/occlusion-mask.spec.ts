@@ -41,7 +41,7 @@ async function setup(page: Page): Promise<void> {
 }
 
 async function openSettings(page: Page): Promise<void> {
-  await page.getByRole('button', { name: '詳細設定' }).click();
+  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
 }
 
 async function closeSettings(page: Page): Promise<void> {

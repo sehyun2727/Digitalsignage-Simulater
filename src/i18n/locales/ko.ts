@@ -86,6 +86,7 @@ export const ko: Messages = {
   editorContentOffsetYLabel: '콘텐츠 위치 Y',
   editorContentScaleLabel: '콘텐츠 확대 비율',
   editorContentResetButton: '콘텐츠 배치 초기화',
+  editorContentAdvancedSettingsOpenButton: '콘텐츠 고급 설정',
 
   editorRenderingPresetLabel: '렌더링 프리셋',
   editorRenderingPresetNatural: '자연광',
@@ -256,8 +257,19 @@ export const ko: Messages = {
   onboardingTitle: '환영합니다',
   onboardingDescription:
     '오른쪽 툴바에는 "공간", "사이니지 추가", "선택한 사이니지", "콘텐츠", "외관", "내보내기"가 항상 표시됩니다. 먼저 공간 사진을 업로드하면 그 사진이 그대로 캔버스와 내보내기 크기가 됩니다. 위에서부터 순서대로 진행하면 사이니지 설치 이미지를 쉽게 만들 수 있습니다.',
-  onboardingStartButton: '시작하기',
   onboardingDismissButton: '닫기',
+  onboardingStep1Title: '1. 공간 사진 추가',
+  onboardingStep1Description: '설치 예정 장소의 사진을 업로드해 목업을 시작하세요.',
+  onboardingStep1CtaLabel: '공간 사진 업로드',
+  onboardingStep2Title: '2. 사이니지 추가',
+  onboardingStep2Description: '사진 위에 디스플레이 등 사이니지를 배치하세요.',
+  onboardingStep2CtaLabel: '사이니지 추가로 이동',
+  onboardingStep3Title: '3. 콘텐츠 적용',
+  onboardingStep3Description: '사이니지에 표시할 이미지나 영상을 업로드하세요.',
+  onboardingStep3CtaLabel: '콘텐츠 업로드로 이동',
+  onboardingStep4Title: '4. PNG로 저장',
+  onboardingStep4Description: '완성된 목업을 PNG로 내보내 공유하세요.',
+  onboardingStep4CtaLabel: '지금 PNG로 저장하기',
 
   realismGuideTitle: '리얼리티를 높이는 설정',
   realismGuideDescription:

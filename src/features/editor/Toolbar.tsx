@@ -220,7 +220,11 @@ function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationE
       <p className="toolbar-notice">{messages.editorSpaceBackgroundPrivacyNotice}</p>
 
       <div className="toolbar-actions">
-        <button type="button" onClick={() => spaceBackgroundInputRef.current?.click()}>
+        <button
+          type="button"
+          id="toolbar-space-upload-trigger"
+          onClick={() => spaceBackgroundInputRef.current?.click()}
+        >
           {addOrReplaceLabel}
         </button>
         {spaceBackground && (
@@ -290,7 +294,12 @@ function AddSignageSection({
       {!canAddSignage && <p className="toolbar-notice">{messages.toolbarAddSignageDisabledHint}</p>}
 
       <div className="toolbar-actions toolbar-actions-grid">
-        <button type="button" disabled={!canAddSignage} onClick={() => addDisplay('led')}>
+        <button
+          type="button"
+          id="toolbar-add-signage-trigger"
+          disabled={!canAddSignage}
+          onClick={() => addDisplay('led')}
+        >
           {messages.editorAddLedButton}
         </button>
         <button type="button" disabled={!canAddSignage} onClick={() => addDisplay('lcd')}>
@@ -636,6 +645,7 @@ function ContentFields({
   const [offsetXDraft, setOffsetXDraft] = useState(object.content?.offsetX ?? 0);
   const [offsetYDraft, setOffsetYDraft] = useState(object.content?.offsetY ?? 0);
   const [scaleDraft, setScaleDraft] = useState(object.content?.scale ?? 1);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const commit = (patch: Partial<SignageObject>) => commitObjectChange(object.id, patch);
 
@@ -701,75 +711,91 @@ function ContentFields({
             </select>
           </label>
 
-          <label>
-            <span>{messages.editorContentOffsetXLabel}</span>
-            <input
-              type="number"
-              step={0.05}
-              min={-1}
-              max={1}
-              value={offsetXDraft}
-              onChange={(event) => setOffsetXDraft(Number(event.target.value))}
-              onBlur={() => {
-                if (!object.content) return;
-                commit({
-                  content: { ...object.content, offsetX: clampContentOffset(offsetXDraft) },
-                });
-              }}
-            />
-          </label>
+          <div className="editor-properties-actions">
+            <button type="button" onClick={() => setSettingsOpen(true)}>
+              {messages.editorContentAdvancedSettingsOpenButton}
+            </button>
+          </div>
 
-          <label>
-            <span>{messages.editorContentOffsetYLabel}</span>
-            <input
-              type="number"
-              step={0.05}
-              min={-1}
-              max={1}
-              value={offsetYDraft}
-              onChange={(event) => setOffsetYDraft(Number(event.target.value))}
-              onBlur={() => {
-                if (!object.content) return;
-                commit({
-                  content: { ...object.content, offsetY: clampContentOffset(offsetYDraft) },
-                });
-              }}
-            />
-          </label>
+          {settingsOpen && (
+            <AdvancedSettingsModal onClose={() => setSettingsOpen(false)}>
+              <label>
+                <span>{messages.editorContentOffsetXLabel}</span>
+                <input
+                  type="number"
+                  step={0.05}
+                  min={-1}
+                  max={1}
+                  value={offsetXDraft}
+                  onChange={(event) => setOffsetXDraft(Number(event.target.value))}
+                  onBlur={() => {
+                    if (!object.content) return;
+                    commit({
+                      content: { ...object.content, offsetX: clampContentOffset(offsetXDraft) },
+                    });
+                  }}
+                />
+              </label>
 
-          <label>
-            <span>{messages.editorContentScaleLabel}</span>
-            <input
-              type="number"
-              step={0.1}
-              min={MIN_CONTENT_SCALE}
-              max={MAX_CONTENT_SCALE}
-              value={scaleDraft}
-              onChange={(event) => setScaleDraft(Number(event.target.value))}
-              onBlur={() => {
-                if (!object.content) return;
-                commit({ content: { ...object.content, scale: clampContentScale(scaleDraft) } });
-              }}
-            />
-          </label>
+              <label>
+                <span>{messages.editorContentOffsetYLabel}</span>
+                <input
+                  type="number"
+                  step={0.05}
+                  min={-1}
+                  max={1}
+                  value={offsetYDraft}
+                  onChange={(event) => setOffsetYDraft(Number(event.target.value))}
+                  onBlur={() => {
+                    if (!object.content) return;
+                    commit({
+                      content: { ...object.content, offsetY: clampContentOffset(offsetYDraft) },
+                    });
+                  }}
+                />
+              </label>
 
-          <button
-            type="button"
-            onClick={() => {
-              if (!object.content) return;
-              commit({ content: { ...object.content, offsetX: 0, offsetY: 0, scale: 1 } });
-              setOffsetXDraft(0);
-              setOffsetYDraft(0);
-              setScaleDraft(1);
-            }}
-          >
-            {messages.editorContentResetButton}
-          </button>
+              <label>
+                <span>{messages.editorContentScaleLabel}</span>
+                <input
+                  type="number"
+                  step={0.1}
+                  min={MIN_CONTENT_SCALE}
+                  max={MAX_CONTENT_SCALE}
+                  value={scaleDraft}
+                  onChange={(event) => setScaleDraft(Number(event.target.value))}
+                  onBlur={() => {
+                    if (!object.content) return;
+                    commit({
+                      content: { ...object.content, scale: clampContentScale(scaleDraft) },
+                    });
+                  }}
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!object.content) return;
+                  commit({ content: { ...object.content, offsetX: 0, offsetY: 0, scale: 1 } });
+                  setOffsetXDraft(0);
+                  setOffsetYDraft(0);
+                  setScaleDraft(1);
+                }}
+              >
+                {messages.editorContentResetButton}
+              </button>
+            </AdvancedSettingsModal>
+          )}
         </>
       ) : (
         <>
           <p className="toolbar-notice">{messages.editorContentNoneHint}</p>
-          <button type="button" onClick={() => contentInputRef.current?.click()}>
+          <button
+            type="button"
+            id="toolbar-content-upload-trigger"
+            onClick={() => contentInputRef.current?.click()}
+          >
             {messages.editorContentUploadButton}
           </button>
         </>
@@ -1059,29 +1085,6 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
       </label>
 
       {isTransparentLed && (
-        <label>
-          <span>{messages.editorMaterialTransparencyLabel}</span>
-          <input
-            type="range"
-            min={MIN_MATERIAL_SETTING}
-            max={MAX_MATERIAL_SETTING}
-            value={transparencyDraft}
-            onInput={(event) => {
-              const transparency = Number((event.target as HTMLInputElement).value);
-              setTransparencyDraft(transparency);
-              previewMaterialSettings({ transparency });
-            }}
-            onPointerUp={() =>
-              commitMaterialSettings({ transparency: clampMaterialSetting(transparencyDraft) })
-            }
-            onBlur={() =>
-              commitMaterialSettings({ transparency: clampMaterialSetting(transparencyDraft) })
-            }
-          />
-        </label>
-      )}
-
-      {isTransparentLed && (
         <p className="toolbar-notice">{messages.editorTransparentLedDisclaimer}</p>
       )}
 
@@ -1095,6 +1098,29 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
 
       {settingsOpen && (
         <AdvancedSettingsModal onClose={() => setSettingsOpen(false)}>
+          {isTransparentLed && (
+            <label>
+              <span>{messages.editorMaterialTransparencyLabel}</span>
+              <input
+                type="range"
+                min={MIN_MATERIAL_SETTING}
+                max={MAX_MATERIAL_SETTING}
+                value={transparencyDraft}
+                onInput={(event) => {
+                  const transparency = Number((event.target as HTMLInputElement).value);
+                  setTransparencyDraft(transparency);
+                  previewMaterialSettings({ transparency });
+                }}
+                onPointerUp={() =>
+                  commitMaterialSettings({ transparency: clampMaterialSetting(transparencyDraft) })
+                }
+                onBlur={() =>
+                  commitMaterialSettings({ transparency: clampMaterialSetting(transparencyDraft) })
+                }
+              />
+            </label>
+          )}
+
           {supportsGridAndGlow && (
             <label>
               <span>{messages.editorMaterialGridDensityLabel}</span>

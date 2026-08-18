@@ -59,6 +59,8 @@ test('uploads content into a display, edits fit/offset/scale, and resets placeme
   await fitSelect.selectOption('cover');
   await expect(fitSelect).toHaveValue('cover');
 
+  await page.getByRole('button', { name: 'コンテンツの詳細設定' }).click();
+
   const offsetX = page.getByRole('spinbutton', { name: 'コンテンツ位置X' });
   await offsetX.fill('0.4');
   await offsetX.blur();
@@ -175,7 +177,7 @@ test('a newly added LED display has its contact shadow enabled by default and it
 
   // Regression check for the "shadow disabled by default" defect: a freshly added display must
   // already have a contact shadow, not require the user to opt in.
-  await page.getByRole('button', { name: '詳細設定' }).click();
+  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   await expect(page.getByRole('checkbox', { name: '接地シャドウを有効にする' })).toBeChecked();
   await page.getByRole('button', { name: '閉じる' }).click();
 

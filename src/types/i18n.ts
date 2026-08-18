@@ -84,6 +84,7 @@ export interface Messages {
   editorContentOffsetYLabel: string;
   editorContentScaleLabel: string;
   editorContentResetButton: string;
+  editorContentAdvancedSettingsOpenButton: string;
 
   editorRenderingPresetLabel: string;
   editorRenderingPresetNatural: string;
@@ -243,8 +244,19 @@ export interface Messages {
 
   onboardingTitle: string;
   onboardingDescription: string;
-  onboardingStartButton: string;
   onboardingDismissButton: string;
+  onboardingStep1Title: string;
+  onboardingStep1Description: string;
+  onboardingStep1CtaLabel: string;
+  onboardingStep2Title: string;
+  onboardingStep2Description: string;
+  onboardingStep2CtaLabel: string;
+  onboardingStep3Title: string;
+  onboardingStep3Description: string;
+  onboardingStep3CtaLabel: string;
+  onboardingStep4Title: string;
+  onboardingStep4Description: string;
+  onboardingStep4CtaLabel: string;
 
   realismGuideTitle: string;
   realismGuideDescription: string;

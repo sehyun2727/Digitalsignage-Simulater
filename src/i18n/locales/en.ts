@@ -86,6 +86,7 @@ export const en: Messages = {
   editorContentOffsetYLabel: 'Content position Y',
   editorContentScaleLabel: 'Content zoom',
   editorContentResetButton: 'Reset content placement',
+  editorContentAdvancedSettingsOpenButton: 'Content advanced settings',
 
   editorRenderingPresetLabel: 'Rendering preset',
   editorRenderingPresetNatural: 'Natural',
@@ -256,8 +257,19 @@ export const en: Messages = {
   onboardingTitle: 'Welcome',
   onboardingDescription:
     'The toolbar on the right always shows Space, Add signage, Selected signage, Content, Appearance, and Export. Start by uploading a space photo — it becomes the canvas and export size exactly. Work through the sections top to bottom to build a preview of your signage installation.',
-  onboardingStartButton: 'Get started',
   onboardingDismissButton: 'Dismiss',
+  onboardingStep1Title: '1. Add a space photo',
+  onboardingStep1Description: 'Upload a photo of the installation site to start your mockup.',
+  onboardingStep1CtaLabel: 'Upload space photo',
+  onboardingStep2Title: '2. Add signage',
+  onboardingStep2Description: 'Place a display or other signage on the photo.',
+  onboardingStep2CtaLabel: 'Go to add signage',
+  onboardingStep3Title: '3. Apply content',
+  onboardingStep3Description: 'Upload the image or video to show on the signage.',
+  onboardingStep3CtaLabel: 'Go to content upload',
+  onboardingStep4Title: '4. Save as PNG',
+  onboardingStep4Description: 'Export the finished mockup as a PNG to share.',
+  onboardingStep4CtaLabel: 'Save as PNG now',
 
   realismGuideTitle: 'Realism controls',
   realismGuideDescription:

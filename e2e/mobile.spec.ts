@@ -329,11 +329,14 @@ test('mobile: adds a transparent LED display and blends more of the space backgr
   await intensitySlider.press('Home');
   await intensitySlider.press('Tab');
 
+  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
+
   const transparencySlider = page.getByRole('slider', { name: '透過度（背景の見え方）' });
   await transparencySlider.scrollIntoViewIfNeeded();
   await transparencySlider.focus();
   await transparencySlider.press('End');
   await transparencySlider.press('Tab');
+  await page.getByRole('button', { name: '閉じる' }).click();
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'PNGで書き出す' }).click();
@@ -403,8 +406,8 @@ test('mobile: draws a foreground occlusion mask via tap-to-add points at 390x844
   await addSpaceBackground(page, 1080, 1920);
   await page.getByRole('button', { name: '縦長 (9:16)' }).click();
   await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
-  await page.getByRole('button', { name: '詳細設定' }).scrollIntoViewIfNeeded();
-  await page.getByRole('button', { name: '詳細設定' }).click();
+  await page.getByRole('button', { name: '詳細設定', exact: true }).scrollIntoViewIfNeeded();
+  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
 
   await page.getByRole('button', { name: 'マスクを追加' }).scrollIntoViewIfNeeded();
   await page.getByRole('button', { name: 'マスクを追加' }).click();
@@ -430,7 +433,7 @@ test('mobile: draws a foreground occlusion mask via tap-to-add points at 390x844
 
   // Applying closes the mask-edit overlay but not the settings modal it was opened from, which
   // auto-closed when the mask draft started; reopen it to see the mask list entry.
-  await page.getByRole('button', { name: '詳細設定' }).click();
+  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   await expect(page.getByText('マスク 1', { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });

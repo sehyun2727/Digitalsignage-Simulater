@@ -89,6 +89,7 @@ export const ja: Messages = {
   editorContentOffsetYLabel: 'コンテンツ位置Y',
   editorContentScaleLabel: 'コンテンツ拡大率',
   editorContentResetButton: 'コンテンツ配置をリセット',
+  editorContentAdvancedSettingsOpenButton: 'コンテンツの詳細設定',
 
   editorRenderingPresetLabel: 'レンダリングプリセット',
   editorRenderingPresetNatural: 'ナチュラル',
@@ -261,8 +262,19 @@ export const ja: Messages = {
   onboardingTitle: 'ようこそ',
   onboardingDescription:
     '右側のツールバーには「空間」「サイネージを追加」「選択中のサイネージ」「コンテンツ」「外観」「書き出し」が常時表示されています。まず空間写真をアップロードすると、その写真がそのままキャンバスと書き出しサイズになります。上から順に操作すると、サイネージの設置イメージを簡単に作成できます。',
-  onboardingStartButton: 'はじめる',
   onboardingDismissButton: '閉じる',
+  onboardingStep1Title: '1. 空間写真を追加',
+  onboardingStep1Description: '設置予定の場所の写真をアップロードしてモックアップを始めましょう。',
+  onboardingStep1CtaLabel: '空間写真をアップロード',
+  onboardingStep2Title: '2. サイネージを追加',
+  onboardingStep2Description: '写真の上にディスプレイなどのサイネージを配置します。',
+  onboardingStep2CtaLabel: 'サイネージの追加へ',
+  onboardingStep3Title: '3. コンテンツを適用',
+  onboardingStep3Description: 'サイネージに表示する画像や動画をアップロードします。',
+  onboardingStep3CtaLabel: 'コンテンツのアップロードへ',
+  onboardingStep4Title: '4. PNGで保存',
+  onboardingStep4Description: '完成したモックアップをPNGとして書き出して共有しましょう。',
+  onboardingStep4CtaLabel: '今すぐPNGで保存',
 
   realismGuideTitle: 'リアルさを高める設定',
   realismGuideDescription:
