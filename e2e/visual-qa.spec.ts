@@ -1,5 +1,11 @@
+import fs from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
+import { readPngDimensions } from './support/png.js';
+import {
+  addScenePhotoBackground,
+  addSpaceBackground,
+  solidColorPng,
+} from './support/spaceBackground.js';
 
 test.use({ locale: 'ja-JP', viewport: { width: 1280, height: 800 } });
 
@@ -86,7 +92,15 @@ test.describe('golden-image visual QA', () => {
     await dialog.getByRole('button', { name: '追加', exact: true }).click();
     await expect(dialog).toBeHidden();
 
-    await page.getByRole('combobox', { name: '設置面' }).selectOption('freestanding');
+    // 設置面 (installation mode) lives inside the Appearance section's AdvancedSettingsModal —
+    // it must be opened first (see docs/quality-runbook.md's now-resolved "Known issue" entry for
+    // why this scenario previously timed out here).
+    await page.getByRole('button', { name: '詳細設定', exact: true }).click();
+    const settingsDialog = page.getByRole('dialog');
+    await expect(settingsDialog).toBeVisible();
+    await settingsDialog.getByRole('combobox', { name: '設置面' }).selectOption('freestanding');
+    await settingsDialog.getByRole('button', { name: '閉じる', exact: true }).click();
+    await expect(settingsDialog).toBeHidden();
 
     await addContent(page, '#ffcc00');
     await zeroMaterialIntensity(page);
@@ -116,5 +130,86 @@ test.describe('golden-image visual QA', () => {
     await expect(page.locator('.editor-canvas-container')).toHaveScreenshot(
       'perspective-display.png',
     );
+  });
+
+  test('bright interior photo with an LCD wall display on the Natural preset', async ({ page }) => {
+    await page.goto('/');
+    await addScenePhotoBackground(
+      page,
+      'bright-interior',
+      DOCUMENT_SIZE.width,
+      DOCUMENT_SIZE.height,
+    );
+    await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
+
+    await addContent(page, '#2563eb');
+    await zeroMaterialIntensity(page);
+
+    await deselect(page);
+    await expect(page.locator('.editor-canvas-container')).toHaveScreenshot(
+      'bright-interior-lcd.png',
+    );
+  });
+
+  test('dark interior photo with an LED wall display on the Night preset', async ({ page }) => {
+    await page.goto('/');
+    await addScenePhotoBackground(page, 'dark-interior', DOCUMENT_SIZE.width, DOCUMENT_SIZE.height);
+    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: '夜間', exact: true }).click();
+
+    await addContent(page, '#f97316');
+    await zeroMaterialIntensity(page);
+
+    await deselect(page);
+    await expect(page.locator('.editor-canvas-container')).toHaveScreenshot(
+      'dark-interior-led.png',
+    );
+  });
+
+  test('outdoor daylight photo with an LED display on the Bright preset', async ({ page }) => {
+    await page.goto('/');
+    await addScenePhotoBackground(
+      page,
+      'outdoor-daylight',
+      DOCUMENT_SIZE.width,
+      DOCUMENT_SIZE.height,
+    );
+    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: '明るい屋外', exact: true }).click();
+
+    await addContent(page, '#22c55e');
+    await zeroMaterialIntensity(page);
+
+    await deselect(page);
+    await expect(page.locator('.editor-canvas-container')).toHaveScreenshot(
+      'outdoor-daylight-led.png',
+    );
+  });
+});
+
+test.describe('golden-image PNG export validity', () => {
+  test('a real-photo scenario exports a well-formed, correctly sized PNG', async ({ page }) => {
+    await page.goto('/');
+    await addScenePhotoBackground(
+      page,
+      'bright-interior',
+      DOCUMENT_SIZE.width,
+      DOCUMENT_SIZE.height,
+    );
+    await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
+    await addContent(page, '#2563eb');
+    await zeroMaterialIntensity(page);
+    await deselect(page);
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+    const download = await downloadPromise;
+
+    expect(download.suggestedFilename()).toMatch(/\.png$/);
+    const path = await download.path();
+    expect(path).toBeTruthy();
+    const buffer = await fs.readFile(path!);
+    expect(buffer.byteLength).toBeGreaterThan(0);
+    expect(readPngDimensions(buffer)).toEqual(DOCUMENT_SIZE);
   });
 });

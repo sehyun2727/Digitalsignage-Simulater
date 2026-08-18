@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import { devices, expect, test } from '@playwright/test';
 import { readPngDimensions } from './support/png.js';
-import { solidColorPng } from './support/spaceBackground.js';
+import { addScenePhotoBackground, solidColorPng } from './support/spaceBackground.js';
 
 // Emulates a mobile Chromium viewport/touch profile (userAgent, isMobile, hasTouch,
 // deviceScaleFactor from Playwright's iPhone 13 device descriptor) at the exact
@@ -435,5 +435,44 @@ test('mobile: draws a foreground occlusion mask via tap-to-add points at 390x844
   // auto-closed when the mask draft started; reopen it to see the mask list entry.
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   await expect(page.getByText('マスク 1', { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
+test('mobile smoke: a real-photo-style scene renders, exports a PNG, and introduces no horizontal overflow at 390x844', async ({
+  page,
+}) => {
+  // Companion to the desktop real-photo-style golden-image scenarios in e2e/visual-qa.spec.ts:
+  // confirms the same procedurally-generated (non-solid-color) fixture also works through this
+  // narrow touch-viewport, rather than only ever being exercised against flat solid-color photos.
+  await page.goto('/');
+  await addScenePhotoBackground(page, 'bright-interior', 1920, 1080);
+  await expect(page.getByRole('button', { name: '空間写真を削除' })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
+  const content = await solidColorPng(page, '#2563eb');
+  await page
+    .getByLabel('コンテンツを追加')
+    .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
+  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+
+  const canvasBox = await page.locator('.editor-canvas-container').boundingBox();
+  expect(canvasBox).not.toBeNull();
+  expect(canvasBox!.width).toBeGreaterThan(0);
+  expect(canvasBox!.height).toBeGreaterThan(0);
+
+  const exportButton = page.getByRole('button', { name: 'PNGで書き出す' });
+  await exportButton.scrollIntoViewIfNeeded();
+  await expect(exportButton).toBeEnabled();
+
+  const downloadPromise = page.waitForEvent('download');
+  await exportButton.click();
+  const download = await downloadPromise;
+
+  const path = await download.path();
+  expect(path).toBeTruthy();
+  const buffer = await fs.readFile(path!);
+  expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
+
   await expectNoHorizontalOverflow(page);
 });
