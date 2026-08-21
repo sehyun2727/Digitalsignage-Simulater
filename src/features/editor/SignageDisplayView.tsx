@@ -1,9 +1,10 @@
+import type Konva from 'konva';
 import { Group, Line, Rect } from 'react-konva';
 import { computeCurvatureOutlinePoints, isCurvatureSupported } from '../../lib/curvature';
 import { bezelFillForMaterial, getFrameDecorations, getScreenRect } from '../../lib/displayFrame';
 import { ENVIRONMENT_BLEND_COLOR, environmentBlendOpacity } from '../../lib/environmentIntegration';
 import { normalizeMaterial } from '../../lib/materialTexture';
-import type { DocumentSize } from '../../lib/quadGeometry';
+import { normalizedQuadToDocument, type DocumentSize } from '../../lib/quadGeometry';
 import type { DisplaySignageObject, SpaceBackground } from '../../types/editor';
 import { ContactShadowView } from './ContactShadowView';
 import { OcclusionMaskLayer } from './OcclusionMaskLayer';
@@ -18,6 +19,31 @@ interface SignageDisplayViewProps {
   groupProps: Record<string, unknown>;
   documentSize: DocumentSize | null;
   spaceBackground: SpaceBackground | null;
+  /** Perspective-mode drag handler injected by CanvasObjectView (which reads the store action);
+   *  passed as a prop rather than pulled from `useEditorStore` here so this file stays a pure
+   *  render function usable in `canvasHitArea.test.tsx`-style plain-function tests that don't
+   *  set up a React runtime for hooks. Optional so callers that never enter perspective mode
+   *  (tests using only rect-mode objects) don't have to supply it. */
+  onPerspectiveQuadTranslate?: (id: string, deltaDocumentX: number, deltaDocumentY: number) => void;
+}
+
+/** Flattens a normalized (0-1) quad into an alternating x,y coordinate array in absolute
+ *  document pixels, as Konva.Line's `points` prop expects for its closed hit polygon. */
+function quadDocumentPointsFlat(
+  quad: import('../../types/editor').NormalizedQuad,
+  documentSize: DocumentSize,
+): number[] {
+  const doc = normalizedQuadToDocument(quad, documentSize);
+  return [
+    doc.topLeft.x,
+    doc.topLeft.y,
+    doc.topRight.x,
+    doc.topRight.y,
+    doc.bottomRight.x,
+    doc.bottomRight.y,
+    doc.bottomLeft.x,
+    doc.bottomLeft.y,
+  ];
 }
 
 export function SignageDisplayView({
@@ -25,6 +51,7 @@ export function SignageDisplayView({
   groupProps,
   documentSize,
   spaceBackground,
+  onPerspectiveQuadTranslate,
 }: SignageDisplayViewProps) {
   const screen = getScreenRect(object.frameId, object.width, object.height);
   const decorations = getFrameDecorations(
@@ -136,35 +163,73 @@ export function SignageDisplayView({
           shadow={object.contactShadow}
         />
       )}
-      <Group {...groupProps}>
-        {/* Every other descendant below is listening={false} (decoration, clip contents,
-            material overlays); Konva only bubbles click/tap/drag hits up to this Group from a
-            listening descendant, so without this rect nothing inside a display is reselectable
-            after being deselected. `fill="transparent"` (not an omitted fill) is required:
-            Konva's default hit function skips painting the hit canvas entirely for a shape with
-            no fill, so an undefined fill is invisible AND unclickable, whereas a defined
-            zero-alpha fill is invisible but still hit-tested as this rect's full bounding box —
-            the rectangular, non-alpha-aware hit-area policy this sprint uses for opaque and
-            transparent product photos alike. It paints nothing, so it never appears in
-            exported PNGs. */}
-        <Rect
+      {showPerspective && object.perspectiveQuad && documentSize ? (
+        // Perspective mode's visible body is warped to `perspectiveQuad`'s absolute document
+        // corners (see PerspectiveScreenView below), so the rect-based hit area that lives inside
+        // this object's own rotated Group no longer overlaps with what the user sees on screen.
+        // Instead, render an interactive Group at the document origin whose only child is a
+        // closed Line tracing the four quad corners in document space — that Line is where clicks
+        // are received and drags are captured, matching the visible warped shape exactly. The
+        // drag translates the whole quad (via `translatePerspectiveQuad`) rather than moving an
+        // x/y offset that would no longer make sense in this mode; Group is reset back to (0,0)
+        // after every drag so the next drag also measures a fresh (0,0)-relative delta.
+        <Group
+          id={object.id}
           x={0}
           y={0}
-          width={object.width}
-          height={object.height}
-          fill="transparent"
-          listening
-          perfectDrawEnabled={false}
-          name="display-hit-area"
-        />
-        {!showPerspective && body}
-      </Group>
+          draggable
+          onClick={groupProps.onClick as (() => void) | undefined}
+          onTap={groupProps.onTap as (() => void) | undefined}
+          onDragEnd={(event: Konva.KonvaEventObject<DragEvent>) => {
+            const dx = event.target.x();
+            const dy = event.target.y();
+            event.target.position({ x: 0, y: 0 });
+            (groupProps.onClick as (() => void) | undefined)?.();
+            if ((dx !== 0 || dy !== 0) && onPerspectiveQuadTranslate) {
+              onPerspectiveQuadTranslate(object.id, dx, dy);
+            }
+          }}
+        >
+          <Line
+            points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
+            closed
+            fill="transparent"
+            perfectDrawEnabled={false}
+            name="display-hit-area"
+          />
+        </Group>
+      ) : (
+        <Group {...groupProps}>
+          {/* Every other descendant below is listening={false} (decoration, clip contents,
+              material overlays); Konva only bubbles click/tap/drag hits up to this Group from a
+              listening descendant, so without this rect nothing inside a display is reselectable
+              after being deselected. `fill="transparent"` (not an omitted fill) is required:
+              Konva's default hit function skips painting the hit canvas entirely for a shape with
+              no fill, so an undefined fill is invisible AND unclickable, whereas a defined
+              zero-alpha fill is invisible but still hit-tested as this rect's full bounding box —
+              the rectangular, non-alpha-aware hit-area policy this sprint uses for opaque and
+              transparent product photos alike. It paints nothing, so it never appears in
+              exported PNGs. */}
+          <Rect
+            x={0}
+            y={0}
+            width={object.width}
+            height={object.height}
+            fill="transparent"
+            listening
+            perfectDrawEnabled={false}
+            name="display-hit-area"
+          />
+          {body}
+        </Group>
+      )}
       {showPerspective && object.perspectiveQuad && documentSize && (
         <PerspectiveScreenView
           width={object.width}
           height={object.height}
           quad={object.perspectiveQuad}
           documentSize={documentSize}
+          redrawContinuously={object.content?.kind === 'video'}
         >
           {body}
         </PerspectiveScreenView>

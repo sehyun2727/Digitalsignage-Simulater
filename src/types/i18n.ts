@@ -51,6 +51,7 @@ export interface Messages {
   editorImageUploadErrorTooLarge: string;
   editorImageUploadErrorDecodeFailed: string;
   editorImageUploadErrorDimensionsTooLarge: string;
+  editorContentDropNoTargetHint: string;
   editorVideoUploadErrorUnsupportedType: string;
   editorVideoUploadErrorTooLarge: string;
   editorVideoUploadErrorUnsupportedCodec: string;
@@ -86,6 +87,9 @@ export interface Messages {
   editorContentFitLabel: string;
   editorContentFitContain: string;
   editorContentFitCover: string;
+  editorContentRotationLabel: string;
+  editorContentRotationZero: string;
+  editorContentRotationNinety: string;
   editorContentOffsetXLabel: string;
   editorContentOffsetYLabel: string;
   editorContentScaleLabel: string;

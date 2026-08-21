@@ -19,7 +19,14 @@ export interface TextSignageObject extends BaseSignageObject {
 
 export interface ImageSignageObject extends BaseSignageObject {
   kind: 'image';
-  src: string;
+  /**
+   * Registered asset id (see src/lib/assetRegistry.ts), same lifecycle as space background /
+   * display content — the decoded image and its object URL are managed there and swept when no
+   * document/history snapshot still references this id. Replaces the earlier raw-object-URL
+   * `src` field, which leaked one URL per Add-Image / Delete cycle because the reachability
+   * sweep only tracks registry sourceIds.
+   */
+  sourceId: string;
   naturalWidth: number;
   naturalHeight: number;
 }
@@ -47,6 +54,17 @@ export interface SignageContent {
   offsetY: number;
   /** Multiplier on top of the fit-derived base size. 1 = the fit baseline, no zoom. */
   scale: number;
+  /**
+   * Rotation applied to the content itself (independent of the display object's own rotation),
+   * in 90-degree increments. Only 0 and 90 are supported — that is enough to solve the "portrait
+   * photo dropped into a landscape screen leaves black bars" case, which is the actual user
+   * complaint auto-rotation exists to fix. Default is computed at upload/drop time from the ratio
+   * of the target screen vs. the content's own natural dimensions, so a mismatched-orientation
+   * asset lands rotated by default; the user can still flip it back to 0 via the content controls.
+   * Optional so existing history snapshots created before this field existed keep parsing (treated
+   * as 0 = no rotation).
+   */
+  rotation?: 0 | 90;
 }
 
 export const MIN_CONTENT_SCALE = 1;

@@ -53,6 +53,8 @@ export const ko: Messages = {
     '이미지를 불러오지 못했습니다. 파일이 손상되었을 수 있습니다.',
   editorImageUploadErrorDimensionsTooLarge:
     '이미지 해상도가 너무 큽니다. 가로/세로 6000px, 총 2400만 화소 이하의 이미지를 사용해 주세요.',
+  editorContentDropNoTargetHint:
+    '파일을 콘텐츠로 사용하려면 디스플레이 또는 포터블 사이네지의 화면 영역에 드롭하세요.',
   editorVideoUploadErrorUnsupportedType: 'MP4, WebM 형식의 동영상만 사용할 수 있습니다.',
   editorVideoUploadErrorTooLarge: '동영상 크기는 80MB 이하여야 합니다.',
   editorVideoUploadErrorUnsupportedCodec: '이 브라우저에서는 동영상 코덱을 재생할 수 없습니다.',
@@ -91,6 +93,9 @@ export const ko: Messages = {
   editorContentFitLabel: '표시 방식',
   editorContentFitContain: '전체 표시 (Contain)',
   editorContentFitCover: '화면 꽉 채우기 (Cover)',
+  editorContentRotationLabel: '회전',
+  editorContentRotationZero: '0°',
+  editorContentRotationNinety: '90°',
   editorContentOffsetXLabel: '콘텐츠 위치 X',
   editorContentOffsetYLabel: '콘텐츠 위치 Y',
   editorContentScaleLabel: '콘텐츠 확대 비율',

@@ -32,6 +32,8 @@ export function EditorLayout() {
   const canUndo = useEditorStore(selectCanUndo);
   const canRedo = useEditorStore(selectCanRedo);
   const selectObject = useEditorStore((state) => state.selectObject);
+  const cancelPerspectiveEdit = useEditorStore((state) => state.cancelPerspectiveEdit);
+  const cancelOcclusionEdit = useEditorStore((state) => state.cancelOcclusionEdit);
   const comparisonMode = useUiStore((state) => state.comparisonMode);
   const setComparisonMode = useUiStore((state) => state.setComparisonMode);
   const salesReviewMode = useUiStore((state) => state.salesReviewMode);
@@ -188,11 +190,22 @@ export function EditorLayout() {
     }
   }, [messages, objects, videoExportSupported, isExportingVideo, setAnnouncement]);
 
+  const handleDropWithoutTarget = useCallback(() => {
+    setAnnouncement(messages.editorContentDropNoTargetHint, true);
+  }, [messages, setAnnouncement]);
+
   const handleQuickCompareToggle = useCallback(() => {
     const next = !comparisonMode;
     setComparisonMode(next);
-    if (next) selectObject(null);
-  }, [comparisonMode, setComparisonMode, selectObject]);
+    if (next) {
+      // Any open perspective/occlusion overlay is anchored to the composed view, not the
+      // comparison photo, so its handles would misalign against the space photo underneath and
+      // silently eat clicks — dismiss the edit session on entry rather than leaving stale UI.
+      selectObject(null);
+      cancelPerspectiveEdit();
+      cancelOcclusionEdit();
+    }
+  }, [comparisonMode, setComparisonMode, selectObject, cancelPerspectiveEdit, cancelOcclusionEdit]);
 
   // A distraction-free, non-editable presentation view (sprint spec section 17): the toolbar is
   // hidden and the canvas itself becomes unclickable (see the `.editor-canvas-wrapper--review`
@@ -202,8 +215,15 @@ export function EditorLayout() {
   const handleSalesReviewToggle = useCallback(() => {
     const next = !salesReviewMode;
     setSalesReviewMode(next);
-    if (next) selectObject(null);
-  }, [salesReviewMode, setSalesReviewMode, selectObject]);
+    if (next) {
+      // Sales review disables canvas pointer events entirely (see .editor-canvas-wrapper--review);
+      // an open perspective/occlusion overlay would remain visible but unresponsive, trapping the
+      // user with no way to Apply/Cancel until they exit sales review.
+      selectObject(null);
+      cancelPerspectiveEdit();
+      cancelOcclusionEdit();
+    }
+  }, [salesReviewMode, setSalesReviewMode, selectObject, cancelPerspectiveEdit, cancelOcclusionEdit]);
 
   const statusHint = useMemo(() => {
     if (!spaceBackground) return messages.statusBarHintNoSpace;
@@ -282,6 +302,7 @@ export function EditorLayout() {
             ref={canvasRef}
             comparisonMode={comparisonMode}
             onContentError={handleContentError}
+            onDropWithoutTarget={handleDropWithoutTarget}
           />
         </div>
         {!salesReviewMode && (

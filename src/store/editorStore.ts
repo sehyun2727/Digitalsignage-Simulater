@@ -11,7 +11,9 @@ import {
 } from '../lib/occlusion';
 import { computeDefaultPortableSize } from '../lib/portableRegion';
 import {
+  clampPoint01 as clampQuadPoint01,
   clampQuad01,
+  isQuadValid,
   quadsEqual,
   rectTransformToQuad,
   validateQuad,
@@ -87,7 +89,7 @@ export interface EditorState {
   occlusionDraftFeather: number;
   occlusionDraftOpacity: number;
   addText: () => void;
-  addImage: (payload: { src: string; naturalWidth: number; naturalHeight: number }) => void;
+  addImage: (payload: { sourceId: string; naturalWidth: number; naturalHeight: number }) => void;
   addDisplay: (material: DisplayMaterial) => void;
   addPortable: (payload: {
     productSourceId: string;
@@ -147,6 +149,15 @@ export interface EditorState {
   cancelPerspectiveEdit: () => void;
   /** Restores the draft quad to what it was when edit mode began. Stays in edit mode, no history. */
   resetPerspectiveEdit: () => void;
+  /**
+   * Translates every corner of an object's `perspectiveQuad` by (`deltaDocumentX`,
+   * `deltaDocumentY`) in absolute document pixels, clamping the shift so no corner escapes the
+   * document's 0..1 bounds (the requested shift is silently reduced along whichever axis would
+   * otherwise push a corner out). No-op when the target is not in perspective mode, has no quad,
+   * or the clamped shift collapses to zero. Committed as a single history entry so a drag can be
+   * undone in one step.
+   */
+  translatePerspectiveQuad: (id: ElementId, deltaDocumentX: number, deltaDocumentY: number) => void;
   /**
    * Enters foreground occlusion edit mode for `objectId`: seeds the draft polygon from an
    * existing mask when `maskId` is given (editing), or an empty point list when omitted (drawing
@@ -210,6 +221,7 @@ function hasObjectChange(target: SignageObject, patch: Partial<SignageObject>): 
 function collectAssetSourceIds(document: EditorDocument, into: Set<string>): void {
   if (document.spaceBackground) into.add(document.spaceBackground.sourceId);
   for (const object of document.objects) {
+    if (object.kind === 'image') into.add(object.sourceId);
     if (object.kind === 'display' && object.content) into.add(object.content.sourceId);
     if (object.kind === 'portable') {
       into.add(object.productSourceId);
@@ -257,7 +269,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  addImage: ({ src, naturalWidth, naturalHeight }) => {
+  addImage: ({ sourceId, naturalWidth, naturalHeight }) => {
     const { document } = get();
     if (!document.spaceBackground) return;
     const size = getDocumentSize(document);
@@ -273,7 +285,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       width,
       height,
       rotation: 0,
-      src,
+      sourceId,
       naturalWidth,
       naturalHeight,
     };
@@ -404,10 +416,45 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (document.canvasPreset === preset) return;
     const oldSize = getDocumentSize(document);
     const newSize = CANVAS_PRESET_SIZES[preset];
-    const objects = document.objects.map((object) => ({
-      ...object,
-      ...normalizeObjectGeometry(object, oldSize, newSize),
-    }));
+    // Perspective quads and occlusion mask polygons are stored as fractions of the *document*, so
+    // switching a fixed-preset frame's own aspect ratio would otherwise leave those normalized
+    // corners referencing a different absolute location on the space photo. Remap them along the
+    // same per-axis scale ratio the rect geometry uses so they stay in the same visual spot; drop
+    // (fall back to 'rect') any quad that fails validation after remap so we never render an
+    // invalid/self-intersecting shape.
+    const ratioX = oldSize.width / newSize.width;
+    const ratioY = oldSize.height / newSize.height;
+    const remapPoint = (point: NormalizedPoint): NormalizedPoint =>
+      clampQuadPoint01({ x: point.x * ratioX, y: point.y * ratioY });
+    const objects = document.objects.map((object) => {
+      const rectPatch = normalizeObjectGeometry(object, oldSize, newSize);
+      if (!supportsPerspective(object)) {
+        return { ...object, ...rectPatch };
+      }
+      const remappedQuad = object.perspectiveQuad
+        ? {
+            topLeft: remapPoint(object.perspectiveQuad.topLeft),
+            topRight: remapPoint(object.perspectiveQuad.topRight),
+            bottomRight: remapPoint(object.perspectiveQuad.bottomRight),
+            bottomLeft: remapPoint(object.perspectiveQuad.bottomLeft),
+          }
+        : null;
+      const quadStillValid = remappedQuad ? isQuadValid(remappedQuad) : true;
+      const remappedMasks = object.occlusionMasks.map((mask) => ({
+        ...mask,
+        points: mask.points.map(remapPoint),
+      }));
+      return {
+        ...object,
+        ...rectPatch,
+        perspectiveQuad: quadStillValid ? remappedQuad : null,
+        placementMode:
+          object.placementMode === 'perspective' && !quadStillValid
+            ? ('rect' as const)
+            : object.placementMode,
+        occlusionMasks: remappedMasks,
+      };
+    });
     set({
       document: { ...document, canvasPreset: preset, objects },
       past: pushHistory(get().past, document),
@@ -472,8 +519,24 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   deleteSelected: () => {
-    const { document, selectedId, past } = get();
+    const {
+      document,
+      selectedId,
+      past,
+      perspectiveEditId,
+      perspectiveDraftQuad,
+      perspectiveEditOriginalQuad,
+      occlusionEditObjectId,
+      occlusionEditMaskId,
+      occlusionDraftPoints,
+      occlusionDraftFeather,
+      occlusionDraftOpacity,
+    } = get();
     if (!selectedId) return;
+    // Only clear an in-progress perspective/occlusion draft when it belongs to the object being
+    // deleted; edits on a *different* selected object must survive a delete of an unrelated one.
+    const clearPerspective = perspectiveEditId === selectedId;
+    const clearOcclusion = occlusionEditObjectId === selectedId;
     set({
       document: {
         ...document,
@@ -482,14 +545,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedId: null,
       past: pushHistory(past, document),
       future: [],
-      perspectiveEditId: null,
-      perspectiveDraftQuad: null,
-      perspectiveEditOriginalQuad: null,
-      occlusionEditObjectId: null,
-      occlusionEditMaskId: null,
-      occlusionDraftPoints: [],
-      occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
-      occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
+      perspectiveEditId: clearPerspective ? null : perspectiveEditId,
+      perspectiveDraftQuad: clearPerspective ? null : perspectiveDraftQuad,
+      perspectiveEditOriginalQuad: clearPerspective ? null : perspectiveEditOriginalQuad,
+      occlusionEditObjectId: clearOcclusion ? null : occlusionEditObjectId,
+      occlusionEditMaskId: clearOcclusion ? null : occlusionEditMaskId,
+      occlusionDraftPoints: clearOcclusion ? [] : occlusionDraftPoints,
+      occlusionDraftFeather: clearOcclusion ? DEFAULT_OCCLUSION_FEATHER : occlusionDraftFeather,
+      occlusionDraftOpacity: clearOcclusion ? DEFAULT_OCCLUSION_OPACITY : occlusionDraftOpacity,
     });
   },
 
@@ -535,6 +598,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   beginPerspectiveEdit: (id) => {
     const { document } = get();
+    if (!document.spaceBackground) return;
     const target = document.objects.find((object) => object.id === id);
     if (!target || !supportsPerspective(target)) return;
     const documentSize = getDocumentSize(document);
@@ -616,6 +680,52 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { perspectiveEditId, perspectiveEditOriginalQuad } = get();
     if (!perspectiveEditId || !perspectiveEditOriginalQuad) return;
     set({ perspectiveDraftQuad: perspectiveEditOriginalQuad });
+  },
+
+  translatePerspectiveQuad: (id, deltaDocumentX, deltaDocumentY) => {
+    const { document, past } = get();
+    const target = document.objects.find((object) => object.id === id);
+    if (!target || !supportsPerspective(target)) return;
+    if (target.placementMode !== 'perspective' || !target.perspectiveQuad) return;
+    const documentSize = getDocumentSize(document);
+    if (documentSize.width <= 0 || documentSize.height <= 0) return;
+
+    const quad = target.perspectiveQuad;
+    const points = [quad.topLeft, quad.topRight, quad.bottomRight, quad.bottomLeft];
+    const minX = Math.min(...points.map((p) => p.x));
+    const maxX = Math.max(...points.map((p) => p.x));
+    const minY = Math.min(...points.map((p) => p.y));
+    const maxY = Math.max(...points.map((p) => p.y));
+
+    const requestedX = deltaDocumentX / documentSize.width;
+    const requestedY = deltaDocumentY / documentSize.height;
+    // Reduce (not reject) the shift to the largest translation that keeps every corner in [0,1]
+    // so a small overshoot at the edge feels like the drag "sticks" against the boundary rather
+    // than being silently ignored.
+    const clampedX = Math.max(-minX, Math.min(requestedX, 1 - maxX));
+    const clampedY = Math.max(-minY, Math.min(requestedY, 1 - maxY));
+    if (clampedX === 0 && clampedY === 0) return;
+
+    const shift = (p: NormalizedPoint): NormalizedPoint => ({
+      x: p.x + clampedX,
+      y: p.y + clampedY,
+    });
+    const nextQuad = {
+      topLeft: shift(quad.topLeft),
+      topRight: shift(quad.topRight),
+      bottomRight: shift(quad.bottomRight),
+      bottomLeft: shift(quad.bottomLeft),
+    };
+
+    const nextDocument: EditorDocument = {
+      ...document,
+      objects: patchObjects(document.objects, id, { perspectiveQuad: nextQuad }),
+    };
+    set({
+      document: nextDocument,
+      past: pushHistory(past, document),
+      future: [],
+    });
   },
 
   beginOcclusionEdit: (objectId, maskId) => {

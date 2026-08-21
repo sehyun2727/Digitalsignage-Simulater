@@ -1,8 +1,9 @@
 import type Konva from 'konva';
 import { useEffect, useRef } from 'react';
 import { Image as KonvaImage, Text as KonvaText } from 'react-konva';
+import { getRegisteredAsset } from '../../lib/assetRegistry';
 import type { DocumentSize } from '../../lib/quadGeometry';
-import { useHtmlImage } from '../../lib/useHtmlImage';
+import { useEditorStore } from '../../store/editorStore';
 import type { SignageObject, SpaceBackground } from '../../types/editor';
 import { PortableProductView } from './PortableProductView';
 import { SignageDisplayView } from './SignageDisplayView';
@@ -27,7 +28,12 @@ export function CanvasObjectView({
   spaceBackground,
 }: CanvasObjectViewProps) {
   const nodeRef = useRef<Konva.Node | null>(null);
-  const image = useHtmlImage(object.kind === 'image' ? object.src : null);
+  const translatePerspectiveQuad = useEditorStore((state) => state.translatePerspectiveQuad);
+  // Image signage now goes through the same asset registry as space background + display content
+  // (fixes the object-URL leak that used to accumulate on every Add-Image / Delete cycle) — the
+  // registered decoded HTMLImageElement is available synchronously here, no separate load hook.
+  const imageAsset =
+    object.kind === 'image' ? getRegisteredAsset(object.sourceId)?.image ?? null : null;
 
   useEffect(() => {
     return () => onRegisterNode(object.id, null);
@@ -107,6 +113,7 @@ export function CanvasObjectView({
         groupProps={commonProps}
         documentSize={documentSize}
         spaceBackground={spaceBackground}
+        onPerspectiveQuadTranslate={translatePerspectiveQuad}
       />
     );
   }
@@ -118,11 +125,12 @@ export function CanvasObjectView({
         groupProps={commonProps}
         documentSize={documentSize}
         spaceBackground={spaceBackground}
+        onPerspectiveQuadTranslate={translatePerspectiveQuad}
       />
     );
   }
 
-  if (!image) return null;
+  if (!imageAsset) return null;
 
-  return <KonvaImage {...commonProps} image={image} />;
+  return <KonvaImage {...commonProps} image={imageAsset} />;
 }

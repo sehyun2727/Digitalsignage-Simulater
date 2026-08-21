@@ -40,6 +40,7 @@ class SucceedingMockVideo {
   onerror: (() => void) | null = null;
   videoWidth = 1280;
   videoHeight = 720;
+  duration = 10;
   muted = false;
   playsInline = false;
   preload = '';

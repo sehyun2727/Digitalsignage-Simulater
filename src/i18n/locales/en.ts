@@ -52,6 +52,8 @@ export const en: Messages = {
   editorImageUploadErrorDecodeFailed: 'Could not load the image. The file may be corrupted.',
   editorImageUploadErrorDimensionsTooLarge:
     'Image resolution is too large. Use an image no larger than 6000px per side and 24 megapixels total.',
+  editorContentDropNoTargetHint:
+    'Drop files onto a display or portable signage’s screen area to use them as content.',
   editorVideoUploadErrorUnsupportedType: 'Only MP4 and WebM videos are supported.',
   editorVideoUploadErrorTooLarge: 'Video size must be 80MB or smaller.',
   editorVideoUploadErrorUnsupportedCodec: 'This browser cannot play this video’s codec.',
@@ -91,6 +93,9 @@ export const en: Messages = {
   editorContentFitLabel: 'Fit',
   editorContentFitContain: 'Show all (Contain)',
   editorContentFitCover: 'Fill screen (Cover)',
+  editorContentRotationLabel: 'Rotation',
+  editorContentRotationZero: '0°',
+  editorContentRotationNinety: '90°',
   editorContentOffsetXLabel: 'Content position X',
   editorContentOffsetYLabel: 'Content position Y',
   editorContentScaleLabel: 'Content zoom',

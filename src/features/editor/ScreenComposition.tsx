@@ -26,6 +26,7 @@ import type {
   MaterialSettings,
   SignageContent,
 } from '../../types/editor';
+import { useUiStore } from '../../store/uiStore';
 import { useVideoLuminance } from './useVideoLuminance';
 import { useVideoPlaybackRedraw } from './useVideoPlaybackRedraw';
 
@@ -174,10 +175,29 @@ export function ScreenComposition({
   const isVideo = content?.kind === 'video';
   const asset = content ? getRegisteredAsset(content.sourceId) : undefined;
   const rootRef = useRef<Konva.Group | null>(null);
-  useVideoPlaybackRedraw(rootRef, content?.sourceId ?? null, isVideo);
+  // Comparison mode hides the objects group entirely, so keeping the video decoding + Konva
+  // redraw loop running would burn CPU frames on invisible content — pause it while hidden.
+  const comparisonMode = useUiStore((state) => state.comparisonMode);
+  useVideoPlaybackRedraw(rootRef, content?.sourceId ?? null, isVideo, !comparisonMode);
+  // A rotation of 90 swaps the content's effective width/height as seen by the screen: layout
+  // is computed against the rotated shape so a portrait photo lands correctly rotated inside a
+  // landscape screen instead of leaving unused left/right space. The Konva image itself is drawn
+  // with an actual 90° rotation below (matching how the layout was computed).
+  const contentRotation = content?.rotation ?? 0;
+  const contentIsRotated = contentRotation === 90;
+  const layoutSourceWidth = asset
+    ? contentIsRotated
+      ? asset.naturalHeight
+      : asset.naturalWidth
+    : 0;
+  const layoutSourceHeight = asset
+    ? contentIsRotated
+      ? asset.naturalWidth
+      : asset.naturalHeight
+    : 0;
   const contentLayout =
     asset && content
-      ? computeContentLayout(screen, asset.naturalWidth, asset.naturalHeight, content)
+      ? computeContentLayout(screen, layoutSourceWidth, layoutSourceHeight, content)
       : null;
   const screenSizePx = Math.min(screen.width, screen.height);
   const patternOpacity = materialPatternOpacity(
@@ -230,12 +250,19 @@ export function ScreenComposition({
         listening={false}
       />
       {asset && contentLayout && (
+        // Konva shape rotation is around the shape's own (x, y) — so a shape at (X + H, Y) with
+        // rotation=90 and internal size (W, H) draws its rotated bounding box from (X, Y) to
+        // (X + H, Y + W). That is exactly the (layout.x, layout.y, layout.width, layout.height)
+        // rect we want to fill: pass the pre-swap natural dimensions for the shape's own width/
+        // height, then translate the (x, y) by the rotated bounding width so the rotated corners
+        // land on the layout rect. For unrotated content this collapses to the previous inline.
         <KonvaImage
           image={asset.image}
-          x={contentLayout.x}
+          x={contentIsRotated ? contentLayout.x + contentLayout.width : contentLayout.x}
           y={contentLayout.y}
-          width={contentLayout.width}
-          height={contentLayout.height}
+          width={contentIsRotated ? contentLayout.height : contentLayout.width}
+          height={contentIsRotated ? contentLayout.width : contentLayout.height}
+          rotation={contentRotation}
           opacity={isTransparentLed ? transparentContentOpacity(materialSettings.brightness) : 1}
           // 'lighten' takes the per-channel max of the content pixel and whatever is already
           // painted underneath (the backing rect above, and the space photo below that) — near-

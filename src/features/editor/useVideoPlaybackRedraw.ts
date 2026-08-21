@@ -17,9 +17,13 @@ export function useVideoPlaybackRedraw(
   rootRef: RefObject<Konva.Group | null>,
   sourceId: string | null,
   isVideo: boolean,
+  /** When false, the video is paused and the Konva.Animation redraw loop is not started. Used to
+   *  stop decoding/painting while the object is hidden (comparison mode, sales review), so an
+   *  off-screen video doesn't keep costing frames of CPU. */
+  active: boolean = true,
 ) {
   useEffect(() => {
-    if (!isVideo || !sourceId) return;
+    if (!isVideo || !sourceId || !active) return;
     const video = getRegisteredAsset(sourceId)?.image;
     if (!(video instanceof HTMLVideoElement)) return;
     const layer = rootRef.current?.getLayer();
@@ -38,5 +42,5 @@ export function useVideoPlaybackRedraw(
       animation.stop();
       video.pause();
     };
-  }, [rootRef, sourceId, isVideo]);
+  }, [rootRef, sourceId, isVideo, active]);
 }

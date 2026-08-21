@@ -5,7 +5,9 @@ import {
   clampContentOffset,
   clampContentScale,
   clampMaterialSetting,
+  computeAutoContentRotation,
 } from '../../lib/contentLayout';
+import { getObjectScreenRect } from '../../lib/screenHitTest';
 import { clampCurvatureAmount, isCurvatureSupported } from '../../lib/curvature';
 import type { ContentValidationError } from '../../lib/contentUpload';
 import {
@@ -21,11 +23,7 @@ import {
   clampContactShadowTint,
   clampEnvironmentIntegration,
 } from '../../lib/environmentIntegration';
-import {
-  ACCEPTED_IMAGE_TYPES,
-  validateImageDimensions,
-  validateImageFile,
-} from '../../lib/fileValidation';
+import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
 import { normalizeMaterial } from '../../lib/materialTexture';
 import {
   detectActivePreset,
@@ -260,11 +258,13 @@ function AddSignageSection({
   const addText = useEditorStore((state) => state.addText);
   const addImage = useEditorStore((state) => state.addImage);
   const addDisplay = useEditorStore((state) => state.addDisplay);
+  const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
+  const selectedObject = useEditorStore(selectSelectedObject);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
   const canAddSignage = document.spaceBackground !== null;
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
@@ -275,29 +275,52 @@ function AddSignageSection({
       return;
     }
 
-    const objectUrl = URL.createObjectURL(file);
-    const image = new Image();
-    image.onload = () => {
-      const dimensionError = validateImageDimensions(image.naturalWidth, image.naturalHeight);
-      if (dimensionError) {
-        URL.revokeObjectURL(objectUrl);
-        onImageError(dimensionError);
+    // Route through the shared asset registry (same lifecycle as space background + display
+    // content). Previously created a bare object URL and stored it directly on the image object,
+    // which the reachability sweep couldn't clean up on delete/undo — one leaked URL per cycle.
+    try {
+      const asset = await registerContentAsset(file);
+      // If the user has a display/portable signage currently selected, treat this Open as
+      // "assign this image as that signage's screen content" rather than adding a separate
+      // floating image on top of it — the drop-onto-signage flow the user already knows about,
+      // now available from the more discoverable Add Image button too. When nothing (or a text/
+      // image object) is selected, fall back to the original "add as a floating image element"
+      // behavior so this button stays useful for general images that aren't going into a screen.
+      if (selectedObject?.kind === 'display' || selectedObject?.kind === 'portable') {
+        const screenRect = getObjectScreenRect(selectedObject);
+        const rotation = screenRect
+          ? computeAutoContentRotation(
+              screenRect.width,
+              screenRect.height,
+              asset.naturalWidth,
+              asset.naturalHeight,
+            )
+          : 0;
+        commitObjectChange(selectedObject.id, {
+          content: {
+            kind: asset.kind,
+            sourceId: asset.sourceId,
+            fit: selectedObject.content?.fit ?? 'contain',
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1,
+            rotation,
+          },
+        });
         return;
       }
       addImage({
-        src: objectUrl,
-        naturalWidth: image.naturalWidth,
-        naturalHeight: image.naturalHeight,
+        sourceId: asset.sourceId,
+        naturalWidth: asset.naturalWidth,
+        naturalHeight: asset.naturalHeight,
       });
-    };
-    // A declared image/* MIME type does not guarantee the bytes are a valid, decodable image
-    // (corrupted file, spoofed type, etc.). Fail safely instead of leaving the user with no
-    // feedback and a leaked object URL.
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      onImageError('decode-error');
-    };
-    image.src = objectUrl;
+    } catch (err) {
+      if (err instanceof ContentDimensionError) {
+        onImageError(err.error as ImageValidationError);
+      } else {
+        onImageError('decode-error');
+      }
+    }
   };
 
   return (
@@ -445,6 +468,28 @@ function SelectedSignageFields({
   const [draft, setDraft] = useState<Draft>(() => toDraft(selected));
   const [regionEditorOpen, setRegionEditorOpen] = useState(false);
   const [photoReplaceOpen, setPhotoReplaceOpen] = useState(false);
+
+  // Reflect store-side changes (canvas drag/rotate/resize, undo, redo) back into the numeric
+  // inputs; without this the fields would keep showing pre-drag values after any interaction
+  // that didn't originate from typing in these inputs. Skip refresh while a field itself is
+  // focused so the user's own in-progress edit isn't clobbered mid-keystroke — the onBlur commit
+  // then flushes to store, which re-triggers this effect and syncs the untouched fields.
+  useEffect(() => {
+    if (document.activeElement?.tagName === 'INPUT') return;
+    if (document.activeElement?.tagName === 'TEXTAREA') return;
+    // Syncing external (Zustand) state into local UI state — React docs explicitly allow this
+    // exact case for effects. See react.dev "You Might Not Need an Effect" § "Adjusting some
+    // state when a prop changes": local state driven by props/store is the intended pattern.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDraft(toDraft(selected));
+  }, [
+    selected,
+    selected.x,
+    selected.y,
+    selected.width,
+    selected.height,
+    selected.rotation,
+  ]);
 
   const commit = (patch: Partial<SignageObject>) => {
     commitObjectChange(selected.id, patch);
@@ -673,6 +718,15 @@ function ContentFields({
 
     try {
       const asset = await registerContentAsset(file);
+      const screenRect = getObjectScreenRect(object);
+      const rotation = screenRect
+        ? computeAutoContentRotation(
+            screenRect.width,
+            screenRect.height,
+            asset.naturalWidth,
+            asset.naturalHeight,
+          )
+        : 0;
       commit({
         content: {
           kind: asset.kind,
@@ -681,6 +735,7 @@ function ContentFields({
           offsetX: 0,
           offsetY: 0,
           scale: 1,
+          rotation,
         },
       });
       setOffsetXDraft(0);
@@ -723,6 +778,21 @@ function ContentFields({
             >
               <option value="contain">{messages.editorContentFitContain}</option>
               <option value="cover">{messages.editorContentFitCover}</option>
+            </select>
+          </label>
+
+          <label>
+            <span>{messages.editorContentRotationLabel}</span>
+            <select
+              value={String(object.content.rotation ?? 0)}
+              onChange={(event) => {
+                if (!object.content) return;
+                const rotation = event.target.value === '90' ? 90 : 0;
+                commit({ content: { ...object.content, rotation } });
+              }}
+            >
+              <option value="0">{messages.editorContentRotationZero}</option>
+              <option value="90">{messages.editorContentRotationNinety}</option>
             </select>
           </label>
 
@@ -1564,11 +1634,17 @@ function ExportSection() {
   const comparisonMode = useUiStore((state) => state.comparisonMode);
   const setComparisonMode = useUiStore((state) => state.setComparisonMode);
   const selectObject = useEditorStore((state) => state.selectObject);
+  const cancelPerspectiveEdit = useEditorStore((state) => state.cancelPerspectiveEdit);
+  const cancelOcclusionEdit = useEditorStore((state) => state.cancelOcclusionEdit);
   const size = getDocumentSize(document);
 
   const setMode = (nextComparisonMode: boolean) => {
     setComparisonMode(nextComparisonMode);
-    if (nextComparisonMode) selectObject(null);
+    if (nextComparisonMode) {
+      selectObject(null);
+      cancelPerspectiveEdit();
+      cancelOcclusionEdit();
+    }
   };
 
   return (

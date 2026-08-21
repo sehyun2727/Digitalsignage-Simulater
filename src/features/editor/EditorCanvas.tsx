@@ -9,6 +9,7 @@ import {
   validateContentFile,
 } from '../../lib/contentUpload';
 import { findCachedNodes, recacheAtPixelRatio } from '../../lib/konvaCacheSync';
+import { computeAutoContentRotation } from '../../lib/contentLayout';
 import { findTopmostScreenHit, getObjectScreenRect } from '../../lib/screenHitTest';
 import type { Point } from '../../lib/screenHitTest';
 import { useEditorStore } from '../../store/editorStore';
@@ -32,13 +33,17 @@ export interface EditorCanvasHandle {
 
 interface EditorCanvasProps {
   onContentError: (kind: ContentKind, error: ContentValidationError) => void;
+  /** Called when a native OS file drop lands on the canvas but not inside any display/portable
+   *  object's screen region, so callers can announce why the drop was ignored instead of leaving
+   *  the user with no feedback. */
+  onDropWithoutTarget: () => void;
   /** When true, renders only the space background so the user can compare it against the
    *  composed result; signage objects, selection, and drag-and-drop are all suppressed. */
   comparisonMode?: boolean;
 }
 
 export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function EditorCanvas(
-  { onContentError, comparisonMode = false },
+  { onContentError, onDropWithoutTarget, comparisonMode = false },
   ref,
 ) {
   const document = useEditorStore((state) => state.document);
@@ -58,7 +63,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   const transformerRef = useRef<Konva.Transformer | null>(null);
   const objectsGroupRef = useRef<Konva.Group | null>(null);
   const nodesRef = useRef<Map<string, Konva.Node>>(new Map());
-  const capturedSelectionRef = useRef<Konva.Node[]>([]);
+  const captureRestoreRef = useRef<(() => void) | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(() => {
@@ -128,10 +133,20 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       const objectsGroup = objectsGroupRef.current;
       if (!layer) return null;
 
-      capturedSelectionRef.current = transformer?.nodes() ?? [];
+      // Capture the restore closure at begin time (comparisonMode, previous selection, node
+      // refs) so end doesn't rely on whatever imperative-handle instance happens to be current
+      // when the async recording resolves — otherwise a re-render mid-recording would swap in a
+      // new end handler that sees a different comparisonMode/selection than begin recorded.
+      const previousSelection = transformer?.nodes() ?? [];
+      const previousComparisonMode = comparisonMode;
       transformer?.nodes([]);
       objectsGroup?.visible(true);
       layer.draw();
+      captureRestoreRef.current = () => {
+        transformer?.nodes(previousSelection);
+        objectsGroup?.visible(!previousComparisonMode);
+        layer.draw();
+      };
 
       // Konva's SceneCanvas wraps the actual <canvas> element it paints into; unlike
       // stage.toCanvas()/toDataURL(), which rasterize a one-off snapshot, this is the live
@@ -140,15 +155,10 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       return layer.getCanvas()._canvas;
     },
     endVideoExportCapture: () => {
-      const layer = layerRef.current;
-      const transformer = transformerRef.current;
-      const objectsGroup = objectsGroupRef.current;
-      if (!layer) return;
-
-      if (capturedSelectionRef.current.length > 0) transformer?.nodes(capturedSelectionRef.current);
-      capturedSelectionRef.current = [];
-      objectsGroup?.visible(!comparisonMode);
-      layer.draw();
+      const restore = captureRestoreRef.current;
+      if (!restore) return;
+      captureRestoreRef.current = null;
+      restore();
     },
   }));
 
@@ -239,7 +249,13 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     const point = clientPointToDocumentPoint(event.clientX, event.clientY);
     const targetId = point && size ? findTopmostScreenHit(document.objects, point, size) : null;
     const file = event.dataTransfer.files[0];
-    if (!targetId || !file) return;
+    if (!file) return;
+    if (!targetId) {
+      // A real file was dropped but landed outside every display/portable screen region — tell
+      // the user why nothing happened rather than silently swallowing the drop.
+      onDropWithoutTarget();
+      return;
+    }
 
     const validation = validateContentFile(file);
     if (validation) {
@@ -249,6 +265,16 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
 
     try {
       const asset = await registerContentAsset(file);
+      const targetObject = document.objects.find((object) => object.id === targetId);
+      const targetScreen = targetObject ? getObjectScreenRect(targetObject) : null;
+      const rotation = targetScreen
+        ? computeAutoContentRotation(
+            targetScreen.width,
+            targetScreen.height,
+            asset.naturalWidth,
+            asset.naturalHeight,
+          )
+        : 0;
       commitObjectChange(targetId, {
         content: {
           kind: asset.kind,
@@ -257,6 +283,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
           offsetX: 0,
           offsetY: 0,
           scale: 1,
+          rotation,
         },
       });
       selectObject(targetId);

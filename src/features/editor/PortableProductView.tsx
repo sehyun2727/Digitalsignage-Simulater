@@ -1,9 +1,10 @@
-import { Group, Image as KonvaImage, Rect } from 'react-konva';
+import type Konva from 'konva';
+import { Group, Image as KonvaImage, Line, Rect } from 'react-konva';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
 import { resolveScreenRegionRect } from '../../lib/contentLayout';
 import { ENVIRONMENT_BLEND_COLOR, environmentBlendOpacity } from '../../lib/environmentIntegration';
-import type { DocumentSize } from '../../lib/quadGeometry';
-import type { PortableSignageObject, SpaceBackground } from '../../types/editor';
+import { normalizedQuadToDocument, type DocumentSize } from '../../lib/quadGeometry';
+import type { NormalizedQuad, PortableSignageObject, SpaceBackground } from '../../types/editor';
 import { ContactShadowView } from './ContactShadowView';
 import { OcclusionMaskLayer } from './OcclusionMaskLayer';
 import { PerspectiveScreenView } from './PerspectiveScreenView';
@@ -17,6 +18,25 @@ interface PortableProductViewProps {
   groupProps: Record<string, unknown>;
   documentSize: DocumentSize | null;
   spaceBackground: SpaceBackground | null;
+  /** See SignageDisplayView.tsx — perspective-mode drag handler is passed in as a prop rather
+   *  than sourced from the store here, so plain-function unit tests keep working. */
+  onPerspectiveQuadTranslate?: (id: string, deltaDocumentX: number, deltaDocumentY: number) => void;
+}
+
+/** See SignageDisplayView.tsx for the same helper — flattens the four quad corners into an
+ *  alternating x,y coordinate list in absolute document pixels for Konva.Line's points prop. */
+function quadDocumentPointsFlat(quad: NormalizedQuad, documentSize: DocumentSize): number[] {
+  const doc = normalizedQuadToDocument(quad, documentSize);
+  return [
+    doc.topLeft.x,
+    doc.topLeft.y,
+    doc.topRight.x,
+    doc.topRight.y,
+    doc.bottomRight.x,
+    doc.bottomRight.y,
+    doc.bottomLeft.x,
+    doc.bottomLeft.y,
+  ];
 }
 
 /**
@@ -32,6 +52,7 @@ export function PortableProductView({
   groupProps,
   documentSize,
   spaceBackground,
+  onPerspectiveQuadTranslate,
 }: PortableProductViewProps) {
   const productAsset = getRegisteredAsset(object.productSourceId);
   const screen = resolveScreenRegionRect(
@@ -116,36 +137,70 @@ export function PortableProductView({
           shadow={object.contactShadow}
         />
       )}
-      <Group {...groupProps}>
-        {/* Every other descendant below is listening={false} (product photo, clip contents,
-            material overlays); Konva only bubbles click/tap/drag hits up to this Group from a
-            listening descendant, so without this rect a portable object isn't reselectable
-            after being deselected. `fill="transparent"` (not an omitted fill) is required:
-            Konva's default hit function skips painting the hit canvas entirely for a shape with
-            no fill, so an undefined fill is invisible AND unclickable, whereas a defined
-            zero-alpha fill is invisible but still hit-tested as this rect's full bounding box.
-            This is also this sprint's documented transparent-photo hit policy: the hit target is
-            always the object's full rectangular bounds, never the product photo's actual alpha
-            channel — per CLAUDE.md/ADR 0004, alpha-aware hit testing is out of scope. It paints
-            nothing, so it never appears in exported PNGs. */}
-        <Rect
+      {showPerspective && object.perspectiveQuad && documentSize ? (
+        // See SignageDisplayView.tsx for the equivalent perspective-mode hit-area treatment:
+        // the visible body lives inside PerspectiveScreenView (warped to absolute quad corners),
+        // so the interactive Group here has to sit at the document origin and use a Line that
+        // traces the quad rather than a Rect at the object's original x/y — otherwise clicking
+        // the visibly warped product would land on a hit region that has drifted off screen.
+        <Group
+          id={object.id}
           x={0}
           y={0}
-          width={object.width}
-          height={object.height}
-          fill="transparent"
-          listening
-          perfectDrawEnabled={false}
-          name="portable-hit-area"
-        />
-        {!showPerspective && body}
-      </Group>
+          draggable
+          onClick={groupProps.onClick as (() => void) | undefined}
+          onTap={groupProps.onTap as (() => void) | undefined}
+          onDragEnd={(event: Konva.KonvaEventObject<DragEvent>) => {
+            const dx = event.target.x();
+            const dy = event.target.y();
+            event.target.position({ x: 0, y: 0 });
+            (groupProps.onClick as (() => void) | undefined)?.();
+            if ((dx !== 0 || dy !== 0) && onPerspectiveQuadTranslate) {
+              onPerspectiveQuadTranslate(object.id, dx, dy);
+            }
+          }}
+        >
+          <Line
+            points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
+            closed
+            fill="transparent"
+            perfectDrawEnabled={false}
+            name="portable-hit-area"
+          />
+        </Group>
+      ) : (
+        <Group {...groupProps}>
+          {/* Every other descendant below is listening={false} (product photo, clip contents,
+              material overlays); Konva only bubbles click/tap/drag hits up to this Group from a
+              listening descendant, so without this rect a portable object isn't reselectable
+              after being deselected. `fill="transparent"` (not an omitted fill) is required:
+              Konva's default hit function skips painting the hit canvas entirely for a shape with
+              no fill, so an undefined fill is invisible AND unclickable, whereas a defined
+              zero-alpha fill is invisible but still hit-tested as this rect's full bounding box.
+              This is also this sprint's documented transparent-photo hit policy: the hit target is
+              always the object's full rectangular bounds, never the product photo's actual alpha
+              channel — per CLAUDE.md/ADR 0004, alpha-aware hit testing is out of scope. It paints
+              nothing, so it never appears in exported PNGs. */}
+          <Rect
+            x={0}
+            y={0}
+            width={object.width}
+            height={object.height}
+            fill="transparent"
+            listening
+            perfectDrawEnabled={false}
+            name="portable-hit-area"
+          />
+          {body}
+        </Group>
+      )}
       {showPerspective && object.perspectiveQuad && documentSize && (
         <PerspectiveScreenView
           width={object.width}
           height={object.height}
           quad={object.perspectiveQuad}
           documentSize={documentSize}
+          redrawContinuously={object.content?.kind === 'video'}
         >
           {body}
         </PerspectiveScreenView>

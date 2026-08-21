@@ -73,9 +73,18 @@ export async function registerContentAsset(
       throw new ContentDimensionError(kind, dimensionError);
     }
     const registered = getRegisteredAsset(asset.sourceId);
-    const duration =
-      registered && registered.image instanceof HTMLVideoElement ? registered.image.duration : NaN;
-    const durationError = Number.isFinite(duration) ? validateVideoDuration(duration) : null;
+    // Duck-typed on `duration` rather than `instanceof HTMLVideoElement` so this branch also
+    // catches test-only mock video elements (see tests/unit/contentUpload.test.ts's
+    // SucceedingMockVideo) without special-casing them in production code.
+    const rawDuration = (registered?.image as { duration?: number } | undefined)?.duration;
+    // A non-finite duration (missing, NaN, Infinity — e.g. a fragmented or live-captured
+    // container whose duration header is absent) is treated as a validation failure: without a
+    // real duration, the 30-second cap can't be enforced and a multi-hour stream would
+    // otherwise register as content.
+    const durationError =
+      typeof rawDuration === 'number' && Number.isFinite(rawDuration)
+        ? validateVideoDuration(rawDuration)
+        : 'duration-too-long';
     if (durationError) {
       releaseAsset(asset.sourceId);
       throw new ContentDimensionError(kind, durationError);

@@ -53,6 +53,8 @@ export const ja: Messages = {
     '画像を読み込めませんでした。ファイルが破損している可能性があります。',
   editorImageUploadErrorDimensionsTooLarge:
     '画像の解像度が大きすぎます。縦横6000px、合計2400万画素以下の画像を使用してください。',
+  editorContentDropNoTargetHint:
+    'ファイルをコンテンツとして使用するには、ディスプレイまたはポータブルサイネージの画面領域にドロップしてください。',
   editorVideoUploadErrorUnsupportedType: 'MP4、WebM形式の動画のみ利用できます。',
   editorVideoUploadErrorTooLarge: '動画サイズは80MB以下にしてください。',
   editorVideoUploadErrorUnsupportedCodec: 'このブラウザでは動画のコーデックを再生できません。',
@@ -94,6 +96,9 @@ export const ja: Messages = {
   editorContentFitLabel: '表示方法',
   editorContentFitContain: '全体を表示 (Contain)',
   editorContentFitCover: '画面いっぱいに表示 (Cover)',
+  editorContentRotationLabel: '回転',
+  editorContentRotationZero: '0°',
+  editorContentRotationNinety: '90°',
   editorContentOffsetXLabel: 'コンテンツ位置X',
   editorContentOffsetYLabel: 'コンテンツ位置Y',
   editorContentScaleLabel: 'コンテンツ拡大率',

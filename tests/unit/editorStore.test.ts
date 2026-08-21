@@ -106,7 +106,7 @@ describe('editorStore', () => {
 
   it('does not add objects before a space background exists', () => {
     useEditorStore.getState().addText();
-    useEditorStore.getState().addImage({ src: 'blob:mock', naturalWidth: 100, naturalHeight: 100 });
+    useEditorStore.getState().addImage({ sourceId: 'src-image-mock-1', naturalWidth: 100, naturalHeight: 100 });
     useEditorStore.getState().addDisplay('led');
     useEditorStore.getState().addPortable({
       productSourceId: 'product-src-1',
@@ -136,7 +136,7 @@ describe('editorStore', () => {
     addSpaceBackground();
     useEditorStore
       .getState()
-      .addImage({ src: 'blob:mock', naturalWidth: 4000, naturalHeight: 2000 });
+      .addImage({ sourceId: 'src-image-mock-2', naturalWidth: 4000, naturalHeight: 2000 });
     const state = useEditorStore.getState();
     const image = state.document.objects[0];
 

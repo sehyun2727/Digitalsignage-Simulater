@@ -45,10 +45,35 @@ export function clampMaterialSetting(value: number): number {
 }
 
 /**
+ * Given the target screen and the content's natural dimensions, returns 90 when the content and
+ * the screen have opposite orientations (one portrait, one landscape) and 0 otherwise. Used at
+ * upload time to preseed `SignageContent.rotation` so a portrait photo dropped into a landscape
+ * signage doesn't render with left/right black bars by default — the actual complaint the auto
+ * rotation feature is here to fix. Square-ish cases (either dimension equal, or ratios both on
+ * the same side of 1) return 0, matching the "don't rotate unless it's clearly needed" intent.
+ */
+export function computeAutoContentRotation(
+  screenWidth: number,
+  screenHeight: number,
+  contentWidth: number,
+  contentHeight: number,
+): 0 | 90 {
+  if (screenWidth <= 0 || screenHeight <= 0 || contentWidth <= 0 || contentHeight <= 0) return 0;
+  const screenLandscape = screenWidth > screenHeight;
+  const contentLandscape = contentWidth > contentHeight;
+  return screenLandscape !== contentLandscape ? 90 : 0;
+}
+
+/**
  * Computes where a natural-size content image should be drawn within a screen rect for the
  * given fit mode, offset, and scale. The result may extend beyond `screen` (by design for
  * 'cover', and whenever scale/offset push it there for 'contain') — callers are expected to
  * clip to `screen` when rendering, they should not shrink the returned rect to fit.
+ *
+ * When the content is meant to be drawn rotated 90° (see `SignageContent.rotation`), pass its
+ * natural dimensions *pre-swapped* — the layout math still runs on the effective, rotated shape
+ * the user actually sees on screen, not the source pixel orientation. Applying the visual
+ * rotation is the renderer's job (see ScreenComposition.tsx).
  */
 export function computeContentLayout(
   screen: Rect,

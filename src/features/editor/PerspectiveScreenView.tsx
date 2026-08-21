@@ -1,4 +1,4 @@
-import type Konva from 'konva';
+import Konva from 'konva';
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Group, Shape } from 'react-konva';
@@ -15,6 +15,11 @@ interface PerspectiveScreenViewProps {
   height: number;
   quad: NormalizedQuad;
   documentSize: DocumentSize;
+  /** True when `children` contains a playing video: the source raster must then be re-baked every
+   *  animation frame instead of only on React re-renders, or the warped mesh keeps sampling one
+   *  frozen frame while the underlying video keeps playing (ContrastGroup solves the same problem
+   *  the same way — see ScreenComposition.tsx). */
+  redrawContinuously?: boolean;
 }
 
 /** Mesh subdivisions per axis for the piecewise-affine perspective warp (see quadGeometry.ts
@@ -46,6 +51,7 @@ export function PerspectiveScreenView({
   height,
   quad,
   documentSize,
+  redrawContinuously = false,
 }: PerspectiveScreenViewProps) {
   const sourceGroupRef = useRef<Konva.Group | null>(null);
   const shapeRef = useRef<Konva.Shape | null>(null);
@@ -82,6 +88,32 @@ export function PerspectiveScreenView({
     });
     shapeRef.current?.getLayer()?.batchDraw();
   });
+
+  // A React re-render triggers the effect above once, which is enough for a static image but not
+  // for a playing video: HTMLVideoElement frames advance without any React state change, so the
+  // source bitmap the mesh samples would stay frozen on whichever frame happened to be captured
+  // first. While `redrawContinuously` is on, drive a Konva.Animation that re-runs the same
+  // toCanvas() every frame — matching ContrastGroup's exact pattern in ScreenComposition.tsx.
+  useEffect(() => {
+    if (!redrawContinuously || width <= 0 || height <= 0) return;
+    const sourceNode = sourceGroupRef.current;
+    const layer = shapeRef.current?.getLayer();
+    if (!sourceNode || !layer) return;
+    const animation = new Konva.Animation(() => {
+      const stageScale = sourceNode.getStage()?.scaleX() || 1;
+      sourceCanvasRef.current = sourceNode.toCanvas({
+        x: offscreenX * stageScale,
+        y: 0,
+        width: width * stageScale,
+        height: height * stageScale,
+        pixelRatio: 1 / stageScale,
+      });
+    }, layer);
+    animation.start();
+    return () => {
+      animation.stop();
+    };
+  }, [redrawContinuously, width, height, offscreenX]);
 
   const documentQuad = normalizedQuadToDocument(quad, documentSize);
   const mesh = buildQuadMesh(documentQuad, MESH_SUBDIVISIONS);
