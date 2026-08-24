@@ -25,7 +25,16 @@ interface SignageDisplayViewProps {
    *  set up a React runtime for hooks. Optional so callers that never enter perspective mode
    *  (tests using only rect-mode objects) don't have to supply it. */
   onPerspectiveQuadTranslate?: (id: string, deltaDocumentX: number, deltaDocumentY: number) => void;
+  /** True when this object is currently selected. Only used in perspective mode, where the
+   *  shared Transformer can't attach a selection frame to the quad hit target — the hit-area
+   *  Line strokes itself in the selection color while selected so the user still gets clear
+   *  visual feedback that follows the actual warped quad shape. */
+  isSelected?: boolean;
 }
+
+const PERSPECTIVE_SELECTION_STROKE = '#2563eb';
+const PERSPECTIVE_SELECTION_STROKE_WIDTH = 2;
+const PERSPECTIVE_SELECTION_DASH: number[] = [8, 4];
 
 /** Flattens a normalized (0-1) quad into an alternating x,y coordinate array in absolute
  *  document pixels, as Konva.Line's `points` prop expects for its closed hit polygon. */
@@ -52,35 +61,63 @@ export function SignageDisplayView({
   documentSize,
   spaceBackground,
   onPerspectiveQuadTranslate,
+  isSelected = false,
 }: SignageDisplayViewProps) {
-  const screen = getScreenRect(object.frameId, object.width, object.height);
+  const normalized = normalizeMaterial(object.material);
+  const isTransparentLed = normalized === 'transparent-led';
+  // A see-through panel has no opaque bezel — the transparent screen fills the entire object
+  // rect. Locking the "screen" to the whole object here (instead of the frame template's inset
+  // screen region) is what makes the visible frame stroke, the composed screen content, the
+  // selection Transformer box, and the drop-target hit rect all line up. Any inset would leave
+  // a visible gap between the frame edge and the selection box, which is the "네모 크기가 다름"
+  // bug the see-through fix introduced.
+  const screen = isTransparentLed
+    ? { x: 0, y: 0, width: object.width, height: object.height }
+    : getScreenRect(object.frameId, object.width, object.height);
   const decorations = getFrameDecorations(
     object.frameId,
     object.width,
     object.height,
     object.material,
   );
-  const curvatureActive =
-    isCurvatureSupported(normalizeMaterial(object.material)) && object.curvature.mode !== 'flat';
-  const curvedOutline = curvatureActive
+  const curvatureActive = isCurvatureSupported(normalized) && object.curvature.mode !== 'flat';
+  const curvedScreenOutline = curvatureActive
     ? computeCurvatureOutlinePoints(screen, object.curvature)
     : null;
+  // A separate outline for the whole signage body (bezel silhouette): the previous curvature
+  // build only redrew the *screen* outline as a thin stroke and dropped the full-body bezel
+  // decoration entirely, which visually made the "signage frame" disappear the moment curvature
+  // was turned on — the user saw content stretch but no curved TV silhouette around it. Filling
+  // this outline with the bezel color reinstates the frame body and matches its silhouette to
+  // the screen's curve so the whole display reads as one curved object.
+  //
+  // Skipped entirely for a see-through / transparent-LED panel: filling a body silhouette
+  // behind the screen would block the space photo the whole point of "see-through" is to reveal.
+  // The frame silhouette for those is a thin stroke around the screen only (drawn further down).
+  const curvedBodyOutline =
+    curvatureActive && !isTransparentLed
+      ? computeCurvatureOutlinePoints(
+          { x: 0, y: 0, width: object.width, height: object.height },
+          object.curvature,
+        )
+      : null;
   const bezelThickness = Math.min(18, Math.max(4, Math.min(screen.width, screen.height) * 0.04));
+  // Transparent-LED frames read as a thin metal edge, not a chunky plastic/metal bezel, so
+  // the see-through screen border stays subtle and doesn't visually crop into the screen area.
+  const seeThroughFrameThickness = Math.max(1, bezelThickness / 3);
   const blendOpacity = environmentBlendOpacity(object.environmentIntegration.strength);
 
   const body = (
     <>
-      {curvedOutline ? (
-        // Curvature is a 2D visual approximation (see ADR 0007): the flat rectangular bezel
-        // would either clip the curved screen's bulge or leave an uneven flat-vs-curved gap, so
-        // the bezel itself is redrawn as a stroked outline that hugs the screen's own curved
-        // silhouette instead — a cheap way to make "frame treatment follows the curve" true
-        // without warping the frame's own geometry.
+      {curvedBodyOutline ? (
+        // Filled body silhouette that follows the curve (replaces the flat full-body bezel Rect
+        // getFrameDecorations returns for wall-led). Drawn BEFORE the ScreenComposition so its
+        // pixels sit behind the screen content, matching the "bezel around a screen" layer order
+        // the flat mode already uses.
         <Line
-          points={curvedOutline}
+          points={curvedBodyOutline}
           closed
-          stroke={bezelFillForMaterial(object.material)}
-          strokeWidth={bezelThickness}
+          fill={bezelFillForMaterial(object.material)}
           listening={false}
         />
       ) : (
@@ -104,6 +141,33 @@ export function SignageDisplayView({
         content={object.content}
         objectId={object.id}
       />
+      {curvedScreenOutline && !isTransparentLed && (
+        // Thin stroke around the *screen* curve, drawn on top of the composed screen and beneath
+        // any reflection/blend layers so the boundary between the (bezel-colored) body and the
+        // (content-carrying) screen stays readable at any curvature amount, matching how a real
+        // curved display has a visible frame lip.
+        <Line
+          points={curvedScreenOutline}
+          closed
+          stroke={bezelFillForMaterial(object.material)}
+          strokeWidth={Math.max(2, bezelThickness / 3)}
+          listening={false}
+        />
+      )}
+      {isTransparentLed && (
+        // See-through panel edge: a thin metallic ring around just the screen rect — enough to
+        // read as a physical frame silhouette without adding any filled area behind the screen
+        // that would block the space photo from showing through the transparent backing.
+        <Rect
+          x={screen.x}
+          y={screen.y}
+          width={screen.width}
+          height={screen.height}
+          stroke={bezelFillForMaterial(object.material)}
+          strokeWidth={seeThroughFrameThickness}
+          listening={false}
+        />
+      )}
       <ScreenReflection
         screen={screen}
         material={object.material}
@@ -113,10 +177,13 @@ export function SignageDisplayView({
         installationMode={object.installationMode}
         objectId={object.id}
       />
-      {blendOpacity > 0 && (
+      {blendOpacity > 0 && !isTransparentLed && (
         // Restricted to the screen region only (not the frame/bezel): blending the frame too
         // would desaturate/gray the physical-looking bezel along with the screen content, which
         // is the "muddy" failure mode baseline defect 5 calls out (spec section 6/16).
+        // Also skipped for transparent-LED: the space photo already shows through the semi-
+        // transparent backing, so adding a second wash overlay would only re-veil the very
+        // background the see-through material was meant to reveal.
         <Rect
           x={screen.x}
           y={screen.y}
@@ -197,6 +264,22 @@ export function SignageDisplayView({
             perfectDrawEnabled={false}
             name="display-hit-area"
           />
+          {isSelected && (
+            // Rendered as a separate sibling (not by stroking the hit-area Line above) so the
+            // export path can hide every `perspective-selection-outline` node in one query
+            // without also affecting hit testing. listening={false} keeps drag/click going to
+            // the hit-area sibling.
+            <Line
+              points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
+              closed
+              stroke={PERSPECTIVE_SELECTION_STROKE}
+              strokeWidth={PERSPECTIVE_SELECTION_STROKE_WIDTH}
+              dash={PERSPECTIVE_SELECTION_DASH}
+              listening={false}
+              perfectDrawEnabled={false}
+              name="perspective-selection-outline"
+            />
+          )}
         </Group>
       ) : (
         <Group {...groupProps}>

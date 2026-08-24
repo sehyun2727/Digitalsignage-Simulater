@@ -325,27 +325,18 @@ export interface DisplaySignageObject extends BaseSignageObject {
 }
 
 /**
- * A user's own portable product photo (e.g. a photo of a kiosk, tablet stand, or vehicle they
- * own) with a rectangular screen region marked on it, so the content/material system can
- * render simulated signage content inside that region. `screenRegion` is fraction-based
- * (0-1, relative to the *photo's own* pixel dimensions) rather than relative to the object's
- * bounding box like `DisplayFrameTemplate.screenRegion` — the two coincide in practice because
- * the object is always kept at the photo's own aspect ratio (see the transform aspect-lock in
- * CanvasObjectView.tsx), so `resolveScreenRegionRect` can consume this value unchanged.
- *
- * Deliberately flat (no nested `product: {...}` object) so every field stays exactly one level
- * deep, matching the shallow no-op comparison `hasObjectChange` in editorStore.ts performs
- * before committing a change — a nested screenRegion-only edit would otherwise always be
- * reported as "changed" even when no value actually differs.
+ * A stand-mounted portable digital signage, drawn as a fixed vector template (see
+ * src/lib/portableTemplate.ts and src/features/editor/PortableTemplateBody.tsx) rather than
+ * a user-uploaded product photo. `templateView` picks which of the three predefined viewing
+ * angles (front, angled 3/4, side) the body is drawn from — switching between them at edit
+ * time is a plain field change with no re-upload/re-region step, and every view fits into the
+ * same bounding-box aspect ratio so `x`/`y`/`width`/`height` don't have to change with it.
+ * The screen rect is derived from `templateView` (via `getPortableScreenRect`), so no
+ * per-object screen region is stored on the object itself.
  */
 export interface PortableSignageObject extends BaseSignageObject {
   kind: 'portable';
-  productSourceId: string;
-  productIntrinsicWidth: number;
-  productIntrinsicHeight: number;
-  /** Whether the source photo has transparency; null when detection could not run. */
-  productHasAlpha: boolean | null;
-  screenRegion: { x: number; y: number; width: number; height: number };
+  templateView: import('../lib/portableTemplate').PortableTemplateView;
   content: SignageContent | null;
   material: DisplayMaterial;
   materialSettings: MaterialSettings;
@@ -356,6 +347,13 @@ export interface PortableSignageObject extends BaseSignageObject {
   environmentIntegration: EnvironmentIntegrationSettings;
   installationMode: InstallationMode;
   occlusionMasks: OcclusionMask[];
+  /** Asset registry sourceId of a user-uploaded product photo. When non-null, the photo is
+   *  rendered in place of the fixed templateView vector template. */
+  productPhotoSourceId: string | null;
+  /** Four-point screen region within this object bounding box, as 0-1 fractions of
+   *  width/height. Only meaningful when productPhotoSourceId is set. When null (and a product
+   *  photo is active), the template view screen rect is used as a fallback. */
+  screenQuad: NormalizedQuad | null;
 }
 
 export type SignageObject =

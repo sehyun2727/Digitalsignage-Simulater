@@ -73,11 +73,7 @@ function portableObject(content: SignageContent | null): PortableSignageObject {
     width: 220,
     height: 420,
     rotation: 0,
-    productSourceId: 'product-1',
-    productIntrinsicWidth: 220,
-    productIntrinsicHeight: 420,
-    productHasAlpha: null,
-    screenRegion: { x: 0.1, y: 0.1, width: 0.8, height: 0.8 },
+    templateView: 'angled-right',
     content,
     material: 'lcd',
     materialSettings: DEFAULT_MATERIAL_SETTINGS,
@@ -88,6 +84,8 @@ function portableObject(content: SignageContent | null): PortableSignageObject {
     environmentIntegration: { ...DEFAULT_ENVIRONMENT_INTEGRATION },
     installationMode: 'freestanding',
     occlusionMasks: [],
+    productPhotoSourceId: null,
+    screenQuad: null,
   };
 }
 

@@ -39,3 +39,9 @@ Thumbs.db
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Local scratch / debug output (calibration debug PNGs, exploration snapshots, etc.)
+tmp/
+
+# Reference material for portable template calibration — kept locally, not shipped
+docodemo 사진/

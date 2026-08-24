@@ -21,7 +21,18 @@ export function useModalDialog(onClose: () => void) {
     firstFocusable?.focus();
 
     const originalOverflow = window.document.body.style.overflow;
+    const originalPosition = window.document.body.style.position;
+    const originalTop = window.document.body.style.top;
+    const originalWidth = window.document.body.style.width;
+    // iOS Safari ignores `overflow: hidden` on the body for rubber-band scroll.
+    // Locking the body to `position: fixed` (with the scroll offset captured as a
+    // negative `top`) prevents the page from scrolling behind the modal. The scroll
+    // position is restored on cleanup so the user returns to where they were.
+    const scrollY = window.scrollY;
     window.document.body.style.overflow = 'hidden';
+    window.document.body.style.position = 'fixed';
+    window.document.body.style.top = `-${scrollY}px`;
+    window.document.body.style.width = '100%';
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -47,6 +58,10 @@ export function useModalDialog(onClose: () => void) {
     return () => {
       window.document.removeEventListener('keydown', handleKeyDown);
       window.document.body.style.overflow = originalOverflow;
+      window.document.body.style.position = originalPosition;
+      window.document.body.style.top = originalTop;
+      window.document.body.style.width = originalWidth;
+      window.scrollTo(0, scrollY);
       if (previouslyFocusedRef.current instanceof HTMLElement) {
         previouslyFocusedRef.current.focus();
       }

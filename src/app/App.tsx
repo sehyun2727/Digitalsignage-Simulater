@@ -20,7 +20,12 @@ function AppShell() {
       </main>
 
       <footer className="app-footer">
-        <p className="disclaimer">{messages.disclaimer}</p>
+        {/* title exposes the full disclaimer text on hover in case the compact single-line
+         *  rendering ellipsizes it on narrow viewports. Text itself stays as-is (a legal
+         *  requirement per CLAUDE.md §1) — only its layout footprint is compressed. */}
+        <p className="disclaimer" title={messages.disclaimer}>
+          {messages.disclaimer}
+        </p>
       </footer>
 
       <HullCta />

@@ -1,6 +1,7 @@
-import { resolveScreenRegionRect } from './contentLayout';
 import type { Rect } from './contentLayout';
 import { getScreenRect } from './displayFrame';
+import { normalizeMaterial } from './materialTexture';
+import { getPortableScreenRect } from './portableTemplate';
 import { isPointInQuad, normalizedQuadToDocument } from './quadGeometry';
 import type { DocumentSize } from './quadGeometry';
 import { fromLocalPoint, toLocalPoint } from './rotationTransform';
@@ -27,13 +28,29 @@ export function rectContainsPoint(rect: Rect, point: Point): boolean {
  */
 export function getObjectScreenRect(object: SignageObject): Rect | null {
   if (object.kind === 'display') {
+    // See-through / transparent-LED panels have no opaque bezel — the whole object rect is the
+    // screen (see SignageDisplayView), so drops anywhere inside its bounds should count as
+    // hitting the screen (not just the frame template's inset region).
+    if (normalizeMaterial(object.material) === 'transparent-led') {
+      return { x: 0, y: 0, width: object.width, height: object.height };
+    }
     return getScreenRect(object.frameId, object.width, object.height);
   }
   if (object.kind === 'portable') {
-    return resolveScreenRegionRect(
-      { width: object.width, height: object.height },
-      { shape: 'rect', ...object.screenRegion },
-    );
+    // When the user has defined a custom screen quad on their product photo, derive the hit
+    // rect from the quad's bounding box so content-drop targeting lands on the warped screen.
+    // Without a quad (or with a user photo but no quad yet), fall back to the template rect.
+    if (object.screenQuad) {
+      const q = object.screenQuad;
+      const xs = [q.topLeft.x, q.topRight.x, q.bottomRight.x, q.bottomLeft.x];
+      const ys = [q.topLeft.y, q.topRight.y, q.bottomRight.y, q.bottomLeft.y];
+      const minX = Math.min(...xs) * object.width;
+      const minY = Math.min(...ys) * object.height;
+      const maxX = Math.max(...xs) * object.width;
+      const maxY = Math.max(...ys) * object.height;
+      return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    }
+    return getPortableScreenRect(object.templateView, object.width, object.height);
   }
   return null;
 }
@@ -60,6 +77,20 @@ export function isPointOnObjectScreen(
   ) {
     const quad = normalizedQuadToDocument(object.perspectiveQuad, documentSize);
     return isPointInQuad(point, quad);
+  }
+  // Portable with a custom screenQuad in rect mode: test against the actual quad polygon
+  // (not just its bounding box, which getObjectScreenRect returns) for accurate hit detection.
+  if (object.kind === 'portable' && object.screenQuad && object.placementMode !== 'perspective') {
+    const localPoint = toLocalPoint(point, object);
+    // Convert the normalized 0-1 quad to absolute object-local pixel coords for isPointInQuad.
+    const localQuad = {
+      topLeft: { x: object.screenQuad.topLeft.x * object.width, y: object.screenQuad.topLeft.y * object.height },
+      topRight: { x: object.screenQuad.topRight.x * object.width, y: object.screenQuad.topRight.y * object.height },
+      bottomRight: { x: object.screenQuad.bottomRight.x * object.width, y: object.screenQuad.bottomRight.y * object.height },
+      bottomLeft: { x: object.screenQuad.bottomLeft.x * object.width, y: object.screenQuad.bottomLeft.y * object.height },
+    };
+    // isPointInQuad works with any coordinate system since it only computes cross products.
+    return isPointInQuad(localPoint, localQuad);
   }
   const screenRect = getObjectScreenRect(object);
   if (!screenRect) return false;

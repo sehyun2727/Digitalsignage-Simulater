@@ -54,8 +54,12 @@ a {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: 1rem;
-  gap: 0.75rem;
+  /* Trimmed from the old 1rem × 4 padding + 0.75rem gap: the workspace was the largest thing
+   * on screen but was surrounded by ~50–70 px of chrome (shell padding, footer, per-region
+   * gaps) that never carried critical UI. Every rem shaved here goes straight into the
+   * canvas's available height, which is the point of the "expand downward" pass. */
+  padding: 0.5rem 0.75rem;
+  gap: 0.4rem;
   max-width: 120rem;
   width: 100%;
   margin: 0 auto;
@@ -100,7 +104,7 @@ a {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.4rem;
 }
 
 .editor-header {
@@ -110,7 +114,7 @@ a {
   gap: 1rem;
   flex-wrap: nowrap;
   border-bottom: 1px solid var(--color-border);
-  padding-bottom: 0.75rem;
+  padding-bottom: 0.4rem;
 }
 
 .editor-header-title {
@@ -144,6 +148,16 @@ a {
   cursor: not-allowed;
 }
 
+/* Compact square button for the arrow icon controls (reset / undo / redo). Wider than the
+ * per-icon width so the ↶/↷/⟳ glyphs stay visually centered instead of hugging the padding. */
+.editor-header-icon-button {
+  padding: 0.35rem 0.55rem;
+  font-size: 1.15rem;
+  line-height: 1;
+  min-width: 2.1rem;
+  text-align: center;
+}
+
 .comparison-toggle-group {
   display: flex;
   gap: 0.25rem;
@@ -161,6 +175,12 @@ a {
   display: flex;
   gap: 1rem;
   align-items: stretch;
+  /* The HULL CTA is `position: fixed` at bottom-right (z-index 5) and would otherwise cover
+   * the last ~5rem of the toolbar's scrollable content — reserving that vertical slack at
+   * the workspace level pushes both the canvas and the toolbar to end just above the CTA.
+   * The toolbar's own overflow-y: auto still lets the user scroll all settings into view;
+   * this only keeps the fixed CTA from occluding the bottom of that scroll area. */
+  padding-bottom: 5rem;
 }
 
 .editor-canvas-wrapper {
@@ -169,6 +189,10 @@ a {
   min-width: 0;
   min-height: 0;
   display: flex;
+  /* Small breathing room above the canvas so the top edge of the space photo doesn't sit
+   * flush against the header's bottom border. Applied only to the canvas wrapper (not the
+   * toolbar sibling) so the toolbar's own top alignment isn't affected. */
+  padding-top: 0.75rem;
   /* Plain `center` centers overflowing content in *both* directions, so a portrait
      template (e.g. Stand Display) taller than the available space pokes its top
      edge up past the wrapper's own box and under the header above it, letting a
@@ -235,16 +259,21 @@ a {
 
 .perspective-edit-handle {
   position: absolute;
-  width: 1.75rem;
-  height: 1.75rem;
-  margin-left: -0.875rem;
-  margin-top: -0.875rem;
+  /* 2.75rem = 44px: matches Apple's minimum touch target recommendation,
+     same as .occlusion-edit-handle — previously 1.75rem was too small to
+     reliably tap on iPhone. */
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-left: -1.375rem;
+  margin-top: -1.375rem;
   border-radius: 50%;
   background-color: #ffffff;
   border: 2px solid #2563eb;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
   cursor: grab;
   touch-action: none;
+  /* Sit above the hint text and polygon outline within the overlay stacking context. */
+  z-index: 1;
 }
 
 .perspective-edit-handle:focus-visible {
@@ -252,37 +281,10 @@ a {
   outline-offset: 2px;
 }
 
-.perspective-edit-panel {
-  position: absolute;
-  bottom: 0.75rem;
-  left: 0.75rem;
-  right: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
 .perspective-corner-fields {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  background-color: rgba(255, 255, 255, 0.92);
-  border-radius: 0.5rem;
-  padding: 0.5rem;
-}
-
-.perspective-edit-panel .editor-properties-actions {
-  display: flex;
-  gap: 0.5rem;
-  background-color: rgba(255, 255, 255, 0.92);
-  border-radius: 0.5rem;
-  padding: 0.5rem;
-}
-
-.perspective-edit-panel .editor-properties-error {
-  background-color: rgba(255, 255, 255, 0.92);
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.6rem;
 }
 
 .perspective-corner-fields fieldset {
@@ -348,6 +350,7 @@ a {
   cursor: grab;
   touch-action: none;
   user-select: none;
+  z-index: 1;
 }
 
 .occlusion-edit-handle:focus-visible {
@@ -409,27 +412,44 @@ a {
   color: var(--color-muted);
 }
 
-.editor-status-bar {
-  flex-shrink: 0;
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  font-size: 0.85rem;
+/* Status hint + polite announcement live inside the canvas wrapper as a bottom overlay now
+ * (see EditorLayout.tsx) so they no longer eat a fixed slice of below-canvas height. Pointer
+ * events pass through to the canvas underneath, so the overlay never blocks a drag. */
+.editor-canvas-status-overlay {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 1;
+  pointer-events: none;
+  font-size: 0.75rem;
   color: var(--color-muted);
 }
 
-.editor-announcement {
-  flex-shrink: 0;
-  margin: 0;
-  min-height: 1.2rem;
-  padding: 0 0.75rem;
-  font-size: 0.85rem;
-  color: var(--color-muted);
+.editor-canvas-status-hint {
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: rgba(255, 255, 255, 0.85);
 }
 
-.editor-announcement--error {
+.editor-canvas-status-announcement {
+  flex: 1 1 auto;
+  min-height: 1rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: transparent;
+}
+
+.editor-canvas-status-announcement:empty {
+  display: none;
+}
+
+.editor-canvas-status-announcement--error {
   color: #b3261e;
+  background-color: rgba(255, 255, 255, 0.92);
 }
 
 .toolbar {
@@ -688,18 +708,25 @@ a {
 }
 
 .app-footer {
-  margin-top: auto;
+  /* Compressed from the old 1rem-padded, border-topped block: the disclaimer is a legal
+   * requirement (CLAUDE.md §1) so it stays, but it doesn't need to eat ~50 px of below-canvas
+   * height. Single tiny line, no top border, minimal padding. */
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  border-top: 1px solid var(--color-border);
-  padding-top: 1rem;
+  padding-top: 0.15rem;
 }
 
 .disclaimer {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
+  line-height: 1.2;
   color: var(--color-muted);
   margin: 0;
+  /* Truncate rather than wrap so the disclaimer never re-flows into two lines and pushes the
+   * canvas up on narrow viewports. Full text remains available via the browser tooltip. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hull-cta {
@@ -809,6 +836,18 @@ a {
     grid-template-columns: 1fr;
   }
 
+  /* iOS Safari auto-zooms when a focused <input> or <select> has font-size < 16px.
+     The base toolbar and modal dialog styles use 0.95rem (~15.2px), which triggers
+     the zoom on every tap into a text field. Bumping to 1rem on mobile viewports
+     prevents the jarring zoom-in/zoom-out cycle without affecting desktop layout. */
+  .toolbar-section input,
+  .toolbar-section select,
+  .toolbar-section textarea,
+  .modal-dialog input[type='number'],
+  .modal-dialog select {
+    font-size: 1rem;
+  }
+
   .onboarding-card {
     left: 0.75rem;
     right: 0.75rem;
@@ -828,7 +867,8 @@ a {
      position: absolute with its own z-index, which makes it a stacking context, so its fixed
      children's z-index only ranks them against each other and stays trapped below any
      higher-stacked fixed sibling elsewhere in the page (e.g. .hull-cta's z-index: 5) no matter how
-     high a value is set here. */
+     high a value is set here. The panel and action buttons now live in the toolbar, so only the
+     overlay z-index and the hint pin are needed here. */
   .occlusion-edit-overlay {
     z-index: 6;
   }
@@ -839,15 +879,6 @@ a {
     left: 0.75rem;
     right: 0.75rem;
   }
-
-  .occlusion-edit-panel {
-    position: fixed;
-    bottom: max(0.75rem, env(safe-area-inset-bottom));
-    left: 0.75rem;
-    right: 0.75rem;
-    max-height: 60vh;
-    overflow-y: auto;
-  }
 }
 
 @media (max-width: 30rem) {
@@ -855,6 +886,73 @@ a {
     padding: 0.75rem;
   }
 }
+
+@media (max-width: 48rem) and (orientation: landscape) {
+  /* Landscape phones and small tablets: restore the desktop's fixed-height side-by-side shell.
+     In landscape the viewport height is only ~350–430 px, making the portrait mobile "scrollable
+     page with canvas above toolbar" layout impractical to use. Switching to a fixed shell with
+     the toolbar as a right-side panel matches the desktop experience at a compact width. */
+  html,
+  body,
+  #root {
+    height: 100%;
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  .app-shell {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    /* Tighter shell padding in landscape to maximize canvas + toolbar area */
+    padding: 0.35rem 0.5rem;
+  }
+
+  .editor-header {
+    flex-wrap: nowrap;
+  }
+
+  /* Allow the title to shrink so action buttons can stay in a single row */
+  .editor-header-title {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .editor-header-actions {
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    row-gap: 0;
+  }
+
+  .editor-workspace {
+    flex-direction: row;
+    align-items: stretch;
+    overflow: hidden;
+    /* Move bottom padding from the workspace to the toolbar so the canvas gains full height.
+       The toolbar handles its own scroll-past-CTA clearance with its own padding-bottom. */
+    padding-bottom: 0;
+  }
+
+  .editor-canvas-wrapper {
+    overflow: auto;
+  }
+
+  /* Narrower than the desktop's 22rem so there is enough room for the canvas */
+  .toolbar {
+    flex: 0 0 16rem;
+    overflow-y: auto;
+    max-height: none;
+    /* Prevent the fixed HULL CTA button (z-index: 5, bottom-right) from covering the
+       toolbar's last scrollable items */
+    padding-bottom: 4rem;
+  }
+
+  /* Restore two-column grid; the toolbar is wide enough to fit at 16rem */
+  .toolbar-actions-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 
 .modal-overlay {
   position: fixed;

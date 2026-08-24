@@ -371,7 +371,9 @@ describe('App', () => {
     await user.upload(screen.getByLabelText(ja.editorAddImageButton), file);
 
     const message = await screen.findByText(ja.editorImageUploadErrorDimensionsTooLarge);
-    expect(message).toHaveClass('editor-announcement--error');
+    // The status/announcement region moved into the canvas wrapper as a bottom overlay so it
+    // no longer wastes a fixed slice of below-canvas height; class names updated to match.
+    expect(message).toHaveClass('editor-canvas-status-announcement--error');
     expect(revokeSpy).toHaveBeenCalledWith('blob:mock-oversized');
   });
 
@@ -383,8 +385,8 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: ja.editorExportButton }));
 
     const message = await screen.findByText(ja.editorExportedAnnouncement);
-    expect(message).toHaveClass('editor-announcement');
-    expect(message).not.toHaveClass('editor-announcement--error');
+    expect(message).toHaveClass('editor-canvas-status-announcement');
+    expect(message).not.toHaveClass('editor-canvas-status-announcement--error');
   });
 
   describe('Sprint 2: space background and display content/material', () => {
@@ -674,233 +676,57 @@ describe('App', () => {
     });
   });
 
-  describe('Sprint 3: custom portable product template', () => {
-    // In Japanese, the photo-step dialog title and the "select photo" button/input share the
-    // exact same phrase, so a plain getByLabelText(ja.portableSelectPhotoButton) matches both
-    // the dialog (labelled via aria-labelledby) and the hidden file input. Disambiguate by
-    // picking the actual <input> out of the label matches.
-    function getPortablePhotoInput(): HTMLElement {
-      return screen
-        .getAllByLabelText(ja.portableSelectPhotoButton)
-        .find((element) => element.tagName === 'INPUT')!;
-    }
-
-    it('opens the portable builder as an accessible dialog on the photo step', async () => {
+  describe('Portable template signage', () => {
+    it('adds a portable directly without a wizard and selects it', async () => {
       const user = userEvent.setup();
       render(<App />);
       await addSpaceBackground(user);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
 
-      const dialog = screen.getByRole('dialog');
-      expect(dialog).toHaveAttribute('aria-modal', 'true');
-      const heading = screen.getByRole('heading', { name: ja.portableStepSelectPhotoTitle });
-      expect(dialog).toHaveAttribute('aria-labelledby', heading.id);
-      expect(screen.getByText(ja.portableBackgroundNotice)).toBeInTheDocument();
-      expect(screen.getByText(ja.portableRightsNotice)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: ja.portableNextButton })).toBeDisabled();
-    });
-
-    it('closes the portable builder without adding an object when cancelled', async () => {
-      const user = userEvent.setup();
-      render(<App />);
-      await addSpaceBackground(user);
-
-      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
-      await user.click(screen.getByRole('button', { name: ja.portableCancelButton }));
-
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(screen.getByText(ja.editorPropertiesEmptyHint)).toBeInTheDocument();
-    });
-
-    it('revokes the uploaded photo object URL when the builder is cancelled on the photo step', async () => {
-      const user = userEvent.setup();
-      render(<App />);
-      await addSpaceBackground(user);
-
-      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
-
-      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
-      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
-      await screen.findByRole('button', { name: ja.portableNextButton });
-
-      await user.click(screen.getByRole('button', { name: ja.portableCancelButton }));
-
-      // The photo was uploaded (and decoded/registered) but never committed to the document, so
-      // cancelling must release it immediately rather than leaving it decoded indefinitely.
-      expect(revokeSpy).toHaveBeenCalledWith('blob:mock-portable-photo');
-    });
-
-    it('revokes the uploaded photo object URL when the builder is cancelled on the region step', async () => {
-      const user = userEvent.setup();
-      render(<App />);
-      await addSpaceBackground(user);
-
-      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
-
-      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
-      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
-      await user.click(await screen.findByRole('button', { name: ja.portableNextButton }));
-
-      await user.click(screen.getByRole('button', { name: ja.portableCancelButton }));
-
-      expect(revokeSpy).toHaveBeenCalledWith('blob:mock-portable-photo');
-    });
-
-    it('revokes the previous photo object URL when a replacement photo is uploaded before adding', async () => {
-      const user = userEvent.setup();
-      render(<App />);
-      await addSpaceBackground(user);
-
-      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-      const createSpy = vi
-        .spyOn(URL, 'createObjectURL')
-        .mockReturnValueOnce('blob:mock-first')
-        .mockReturnValueOnce('blob:mock-second');
-
-      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
-      await user.upload(getPortablePhotoInput(), createImageFile('first.png'));
-      await screen.findByRole('button', { name: ja.portableNextButton });
-
-      await user.upload(getPortablePhotoInput(), createImageFile('second.png'));
-
-      expect(createSpy).toHaveBeenCalledTimes(2);
-      expect(revokeSpy).toHaveBeenCalledWith('blob:mock-first');
-      expect(revokeSpy).not.toHaveBeenCalledWith('blob:mock-second');
-    });
-
-    it('does not revoke the photo object URL once the product has been added to the document', async () => {
-      const user = userEvent.setup();
-      render(<App />);
-      await addSpaceBackground(user);
-
-      const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-portable-photo');
-
-      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
-      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
-      await user.click(await screen.findByRole('button', { name: ja.portableNextButton }));
-      await user.click(screen.getByRole('button', { name: ja.portableAddButton }));
-
-      expect(revokeSpy).not.toHaveBeenCalledWith('blob:mock-portable-photo');
-    });
-
-    it('shows an accessible error when an unsupported portable photo type is uploaded', async () => {
-      // applyAccept: false — a mismatched file's MIME type must be rejected by our own
-      // validateImageFile check, not silently filtered out by user-event's accept-attribute
-      // emulation before it ever reaches the component.
-      const user = userEvent.setup({ applyAccept: false });
-      render(<App />);
-      await addSpaceBackground(user);
-
-      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
-      const badFile = new File(['not an image'], 'notes.txt', { type: 'text/plain' });
-      await user.upload(getPortablePhotoInput(), badFile);
-
-      expect(await screen.findByText(ja.editorImageUploadErrorUnsupportedType)).toBeInTheDocument();
-    });
-
-    it('shows an accessible error when the portable photo fails to decode', async () => {
-      const user = userEvent.setup();
-      render(<App />);
-      await addSpaceBackground(user);
-      vi.stubGlobal('Image', FailingImage as unknown as typeof Image);
-
-      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
-      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
-
-      expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
-    });
-
-    it('walks photo then region steps, adds a portable object, and re-enters the region editor', async () => {
-      const user = userEvent.setup();
-      render(<App />);
-      await addSpaceBackground(user);
-
-      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
-      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
-
-      const nextButton = await screen.findByRole('button', { name: ja.portableNextButton });
-      expect(nextButton).toBeEnabled();
-      await user.click(nextButton);
-
-      expect(
-        screen.getByRole('heading', { name: ja.portableStepDefineRegionTitle }),
-      ).toBeInTheDocument();
-      expect(screen.getByText(ja.portableScreenRegionDragHint)).toBeInTheDocument();
-      expect(screen.getByRole('spinbutton', { name: ja.portableScreenRegionXLabel })).toHaveValue(
-        0.2,
-      );
-
-      await user.click(screen.getByRole('button', { name: ja.portableAddButton }));
-
+      // The old build wizard is gone — no modal, no photo upload step.
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-      expect(screen.getByText(ja.portableTypeValue)).toBeInTheDocument();
-
-      await user.click(screen.getByRole('button', { name: ja.portableScreenRegionEditButton }));
-
-      const editDialog = screen.getByRole('dialog');
-      expect(
-        screen.getByRole('heading', { name: ja.portableStepDefineRegionTitle }),
-      ).toBeInTheDocument();
-      // Re-entering edits an existing object's region directly; there is no photo step to redo.
-      expect(screen.queryByRole('button', { name: ja.portableBackButton })).not.toBeInTheDocument();
-
-      const widthInput = screen.getByRole('spinbutton', {
-        name: ja.portableScreenRegionWidthLabel,
-      });
-      await user.clear(widthInput);
-      await user.type(widthInput, '0.4');
-      await user.click(screen.getByRole('button', { name: ja.portableSaveButton }));
-
-      expect(editDialog).not.toBeInTheDocument();
+      const state = useEditorStore.getState();
+      expect(state.document.objects).toHaveLength(1);
+      const object = state.document.objects[0]!;
+      expect(object.kind).toBe('portable');
+      expect(state.selectedId).toBe(object.id);
+      if (object.kind === 'portable') {
+        // `angled-right` is the default view — matches the reference 3/4 product photo where
+        // the stand + wheel are visible on the left of the composition.
+        expect(object.templateView).toBe('angled-right');
+        // LCD is the material portable ships with — the "screen shows as an LCD screen" ask.
+        expect(object.material).toBe('lcd');
+      }
     });
 
-    it('rejects a screen region smaller than the minimum size with an accessible error', async () => {
+    it('lets the user switch between the three template views', async () => {
       const user = userEvent.setup();
       render(<App />);
       await addSpaceBackground(user);
 
       await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
-      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
-      await user.click(await screen.findByRole('button', { name: ja.portableNextButton }));
 
-      const widthInput = screen.getByRole('spinbutton', {
-        name: ja.portableScreenRegionWidthLabel,
+      const viewSelect = screen.getByRole('combobox', { name: ja.portableViewLabel });
+      expect(viewSelect).toHaveValue('angled-right');
+
+      await user.selectOptions(viewSelect, 'front');
+      expect(useEditorStore.getState().document.objects[0]).toMatchObject({
+        kind: 'portable',
+        templateView: 'front',
       });
-      await user.clear(widthInput);
-      await user.type(widthInput, '0.01');
-      await user.click(screen.getByRole('button', { name: ja.portableAddButton }));
 
-      expect(await screen.findByText(ja.portableScreenRegionMinSizeError)).toBeInTheDocument();
-      // The dialog stays open so the user can correct the region instead of losing their upload.
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      // `angled-left` renders the same angled.png source asset flipped via a scaleX={-1}
+      // wrapper in PortableTemplateBody — no separate left-facing photo is bundled.
+      await user.selectOptions(viewSelect, 'angled-left');
+      expect(useEditorStore.getState().document.objects[0]).toMatchObject({
+        kind: 'portable',
+        templateView: 'angled-left',
+      });
     });
 
-    it('resets the screen region back to its default', async () => {
-      const user = userEvent.setup();
-      render(<App />);
-      await addSpaceBackground(user);
-
-      await user.click(screen.getByRole('button', { name: ja.editorAddPortableButton }));
-      await user.upload(getPortablePhotoInput(), createImageFile('product.png'));
-      await user.click(await screen.findByRole('button', { name: ja.portableNextButton }));
-
-      const widthInput = screen.getByRole('spinbutton', {
-        name: ja.portableScreenRegionWidthLabel,
-      });
-      await user.clear(widthInput);
-      await user.type(widthInput, '0.9');
-      expect(widthInput).toHaveValue(0.9);
-
-      await user.click(screen.getByRole('button', { name: ja.portableScreenRegionResetButton }));
-      expect(widthInput).toHaveValue(0.6);
-    });
-
-    it('shows the portable section and CTA translated in Korean and English', async () => {
+    it('translates the Add Portable button in Korean and English', async () => {
       const user = userEvent.setup();
       render(<App />);
 

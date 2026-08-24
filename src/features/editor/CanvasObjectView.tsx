@@ -29,6 +29,14 @@ export function CanvasObjectView({
 }: CanvasObjectViewProps) {
   const nodeRef = useRef<Konva.Node | null>(null);
   const translatePerspectiveQuad = useEditorStore((state) => state.translatePerspectiveQuad);
+  // Perspective mode's hit target is a plain Line traced onto the quad's four corners (see
+  // SignageDisplayView / PortableProductView), not a Transformer-attached node — the shared
+  // Transformer therefore never renders a selection frame for it, which looked like the object
+  // "lost its selection box" the moment perspective was applied. Passing this flag into the two
+  // View components lets them stroke the same Line in a selection color when the object is
+  // selected, giving perspective-placed signage a selection outline that traces the actual
+  // warped shape (which a rectangular Transformer never could).
+  const isSelected = useEditorStore((state) => state.selectedId === object.id);
   // Image signage now goes through the same asset registry as space background + display content
   // (fixes the object-URL leak that used to accumulate on every Add-Image / Delete cycle) — the
   // registered decoded HTMLImageElement is available synchronously here, no separate load hook.
@@ -114,6 +122,7 @@ export function CanvasObjectView({
         documentSize={documentSize}
         spaceBackground={spaceBackground}
         onPerspectiveQuadTranslate={translatePerspectiveQuad}
+        isSelected={isSelected}
       />
     );
   }
@@ -126,6 +135,7 @@ export function CanvasObjectView({
         documentSize={documentSize}
         spaceBackground={spaceBackground}
         onPerspectiveQuadTranslate={translatePerspectiveQuad}
+        isSelected={isSelected}
       />
     );
   }

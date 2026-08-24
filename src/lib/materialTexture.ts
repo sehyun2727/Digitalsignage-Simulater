@@ -183,13 +183,17 @@ export function lcdSecondaryHighlightOpacity(intensity: number): number {
 /**
  * Backing-rect opacity for the Transparent LED material: how much of whatever is already
  * painted underneath (the space background photo, drawn earlier in the same Konva Layer/canvas)
- * shows through the screen's dark/off areas. 0 transparency reads close to an opaque LED
- * backing; 100 leaves only a faint tint so the background reads clearly (see ADR 0007).
+ * shows through the screen's dark/off areas. 0 transparency reads close to a lightly tinted
+ * LED backing; 100 leaves the backing almost fully clear so the background reads through
+ * strongly (see ADR 0007). The range is tuned so the default preset value (~78) always shows a
+ * clearly see-through screen — the previous higher `maxOpacity` (0.85) painted a nearly-solid
+ * dark rect even at the transparent end of the slider, which is the "no transparency at all"
+ * behavior the see-through rework fixes.
  */
 export function transparentBackingOpacity(transparency: number): number {
   const clamped = Math.min(100, Math.max(0, transparency));
-  const minOpacity = 0.08;
-  const maxOpacity = 0.85;
+  const minOpacity = 0.02;
+  const maxOpacity = 0.5;
   return maxOpacity - (clamped / 100) * (maxOpacity - minOpacity);
 }
 

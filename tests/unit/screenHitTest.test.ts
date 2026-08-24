@@ -7,7 +7,7 @@ import {
   toLocalPoint,
 } from '../../src/lib/screenHitTest';
 import { getScreenRect } from '../../src/lib/displayFrame';
-import { resolveScreenRegionRect } from '../../src/lib/contentLayout';
+import { getPortableScreenRect } from '../../src/lib/portableTemplate';
 import {
   DEFAULT_CONTACT_SHADOW,
   DEFAULT_CURVATURE,
@@ -47,11 +47,7 @@ const portable: PortableSignageObject = {
   width: 300,
   height: 200,
   rotation: 0,
-  productSourceId: 'source-1',
-  productIntrinsicWidth: 600,
-  productIntrinsicHeight: 400,
-  productHasAlpha: false,
-  screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+  templateView: 'angled-right',
   content: null,
   material: 'lcd',
   materialSettings: DEFAULT_MATERIAL_SETTINGS,
@@ -62,6 +58,8 @@ const portable: PortableSignageObject = {
   environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
   installationMode: 'freestanding',
   occlusionMasks: [],
+  productPhotoSourceId: null,
+  screenQuad: null,
 };
 
 const text: TextSignageObject = {
@@ -118,12 +116,9 @@ describe('getObjectScreenRect', () => {
     );
   });
 
-  it('matches resolveScreenRegionRect for a portable object', () => {
+  it('matches getPortableScreenRect for a portable object', () => {
     expect(getObjectScreenRect(portable)).toEqual(
-      resolveScreenRegionRect(
-        { width: portable.width, height: portable.height },
-        { shape: 'rect', ...portable.screenRegion },
-      ),
+      getPortableScreenRect(portable.templateView, portable.width, portable.height),
     );
   });
 

@@ -6,7 +6,12 @@ import { getRegisteredAsset } from '../../lib/assetRegistry';
 import { computeContentLayout } from '../../lib/contentLayout';
 import type { Rect as RectShape } from '../../lib/contentLayout';
 import { glowLuminanceFactor, sampleMeanLuminance } from '../../lib/contentLuminance';
-import { computeCurvatureStrips, isCurvatureSupported } from '../../lib/curvature';
+import {
+  computeCurvatureOutlinePoints,
+  computeCurvatureStrips,
+  isCurvatureSupported,
+  traceOutlinePath,
+} from '../../lib/curvature';
 import {
   contrastFilterValue,
   getBrightnessOverlay,
@@ -233,6 +238,14 @@ export function ScreenComposition({
     ? curvature
     : { mode: 'flat' as const, amount: 0 };
   const strips = computeCurvatureStrips(screen, effectiveCurvature);
+  // The strip transforms alone produce curved-looking content but leave the composed silhouette
+  // stepped at each strip boundary (adjacent strips' depths differ by up to the depth function's
+  // gradient across one strip width). Wrapping the whole strip set in one continuous
+  // curved clip path — sampled at higher density than the strip count itself — trims that step
+  // pattern down to the true smooth curve; the strips themselves still handle the per-column
+  // vertical stretch inside.
+  const curvatureClipPoints =
+    strips.length > 0 ? computeCurvatureOutlinePoints(screen, effectiveCurvature) : null;
 
   const body = (
     <Group clipFunc={(ctx) => ctx.rect(screen.x, screen.y, screen.width, screen.height)}>
@@ -348,16 +361,24 @@ export function ScreenComposition({
     <Group ref={rootRef}>
       <ScreenGlowHalo screen={screen} glow={glow} />
       <ContrastGroup contrastValue={contrastValue} redrawContinuously={isVideo}>
-        {strips.map((strip) => (
-          <Group
-            key={strip.index}
-            y={strip.groupY}
-            scaleY={strip.groupScaleY}
-            clipFunc={(ctx) => ctx.rect(strip.clipX, screen.y, strip.clipWidth, screen.height)}
-          >
-            {body}
-          </Group>
-        ))}
+        <Group
+          clipFunc={
+            curvatureClipPoints
+              ? (ctx) => traceOutlinePath(ctx, curvatureClipPoints)
+              : undefined
+          }
+        >
+          {strips.map((strip) => (
+            <Group
+              key={strip.index}
+              y={strip.groupY}
+              scaleY={strip.groupScaleY}
+              clipFunc={(ctx) => ctx.rect(strip.clipX, screen.y, strip.clipWidth, screen.height)}
+            >
+              {body}
+            </Group>
+          ))}
+        </Group>
       </ContrastGroup>
     </Group>
   );

@@ -23,6 +23,14 @@ import {
   clampContactShadowTint,
   clampEnvironmentIntegration,
 } from '../../lib/environmentIntegration';
+import { validateOcclusionPolygon } from '../../lib/occlusion';
+import type { OcclusionInvalidReason } from '../../lib/occlusion';
+import {
+  clampPoint01 as clampQuadPoint01,
+  QUAD_CORNER_ORDER,
+  validateQuad,
+} from '../../lib/quadGeometry';
+import type { QuadCorner, QuadInvalidReason } from '../../lib/quadGeometry';
 import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
 import { normalizeMaterial } from '../../lib/materialTexture';
 import {
@@ -58,8 +66,11 @@ import {
   supportsPerspective,
 } from '../../types/editor';
 import { ACCEPTED_VIDEO_TYPES } from '../../lib/videoValidation';
+import {
+  PORTABLE_TEMPLATE_VIEWS,
+  type PortableTemplateView,
+} from '../../lib/portableTemplate';
 import { AdvancedSettingsModal } from './AdvancedSettingsModal';
-import { PortableBuilderModal } from './PortableBuilderModal';
 import { RealismGuideCard } from './RealismGuideCard';
 import type { ImageValidationError } from '../../lib/fileValidation';
 import type {
@@ -97,9 +108,9 @@ export function Toolbar({ onImageError, onContentError }: ToolbarProps) {
   return (
     <div className="toolbar" aria-label={messages.toolbarAriaLabel}>
       <SpaceSection onImageError={onImageError} />
-      <AddSignageSection onImageError={onImageError} />
-      <SelectedSignageSection onImageError={onImageError} />
-      <ContentSection onContentError={onContentError} />
+      <AddSignageSection />
+      <SelectedSignageSection />
+      <ContentSection onContentError={onContentError} onImageError={onImageError} />
       <AppearanceSection />
       <ExportSection />
     </div>
@@ -248,7 +259,53 @@ function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationE
   );
 }
 
-function AddSignageSection({
+function AddSignageSection() {
+  const { messages } = useLocale();
+  const document = useEditorStore((state) => state.document);
+  const addDisplay = useEditorStore((state) => state.addDisplay);
+  const addPortable = useEditorStore((state) => state.addPortable);
+  const canAddSignage = document.spaceBackground !== null;
+
+  return (
+    <ToolbarSection heading={messages.toolbarAddSignageSectionHeading}>
+      {!canAddSignage && <p className="toolbar-notice">{messages.toolbarAddSignageDisabledHint}</p>}
+
+      <div className="toolbar-actions toolbar-actions-grid">
+        <button
+          type="button"
+          id="toolbar-add-signage-trigger"
+          disabled={!canAddSignage}
+          onClick={() => addDisplay('led')}
+        >
+          {messages.editorAddLedButton}
+        </button>
+        <button type="button" disabled={!canAddSignage} onClick={() => addDisplay('lcd')}>
+          {messages.editorAddLcdButton}
+        </button>
+        <button
+          type="button"
+          disabled={!canAddSignage}
+          onClick={() => addDisplay('transparent-led')}
+        >
+          {messages.editorAddTransparentLedButton}
+        </button>
+        {/* Portable is now a fixed vector template — click adds directly, no photo-upload
+            wizard needed. Its screen still receives content via the same drop-onto-signage /
+            Add Image flow every other signage kind uses. */}
+        <button type="button" disabled={!canAddSignage} onClick={() => addPortable()}>
+          {messages.editorAddPortableButton}
+        </button>
+      </div>
+    </ToolbarSection>
+  );
+}
+
+/** Add Text / Add Image controls that were previously mixed in with the signage-creation
+ *  buttons — moved next to the content controls so the same section handles every "put something
+ *  on / into the canvas" flow. Add Image still routes into a selected display/portable as its
+ *  screen content (the drop-into-signage flow) when one is selected, and falls back to adding a
+ *  floating image element otherwise; Add Text always adds a floating text element. */
+function AddCanvasElementControls({
   onImageError,
 }: {
   onImageError: (error: ImageValidationError) => void;
@@ -257,12 +314,10 @@ function AddSignageSection({
   const document = useEditorStore((state) => state.document);
   const addText = useEditorStore((state) => state.addText);
   const addImage = useEditorStore((state) => state.addImage);
-  const addDisplay = useEditorStore((state) => state.addDisplay);
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const selectedObject = useEditorStore(selectSelectedObject);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [builderOpen, setBuilderOpen] = useState(false);
-  const canAddSignage = document.spaceBackground !== null;
+  const canAddElement = document.spaceBackground !== null;
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -275,17 +330,10 @@ function AddSignageSection({
       return;
     }
 
-    // Route through the shared asset registry (same lifecycle as space background + display
-    // content). Previously created a bare object URL and stored it directly on the image object,
-    // which the reachability sweep couldn't clean up on delete/undo — one leaked URL per cycle.
     try {
       const asset = await registerContentAsset(file);
-      // If the user has a display/portable signage currently selected, treat this Open as
-      // "assign this image as that signage's screen content" rather than adding a separate
-      // floating image on top of it — the drop-onto-signage flow the user already knows about,
-      // now available from the more discoverable Add Image button too. When nothing (or a text/
-      // image object) is selected, fall back to the original "add as a floating image element"
-      // behavior so this button stays useful for general images that aren't going into a screen.
+      // Selected display/portable → assign as its screen content (matches drag-and-drop flow).
+      // Anything else selected (or nothing) → add as a floating image element on top.
       if (selectedObject?.kind === 'display' || selectedObject?.kind === 'portable') {
         const screenRect = getObjectScreenRect(selectedObject);
         const rotation = screenRect
@@ -324,40 +372,15 @@ function AddSignageSection({
   };
 
   return (
-    <ToolbarSection heading={messages.toolbarAddSignageSectionHeading}>
-      {!canAddSignage && <p className="toolbar-notice">{messages.toolbarAddSignageDisabledHint}</p>}
-
-      <div className="toolbar-actions toolbar-actions-grid">
-        <button
-          type="button"
-          id="toolbar-add-signage-trigger"
-          disabled={!canAddSignage}
-          onClick={() => addDisplay('led')}
-        >
-          {messages.editorAddLedButton}
-        </button>
-        <button type="button" disabled={!canAddSignage} onClick={() => addDisplay('lcd')}>
-          {messages.editorAddLcdButton}
-        </button>
-        <button
-          type="button"
-          disabled={!canAddSignage}
-          onClick={() => addDisplay('transparent-led')}
-        >
-          {messages.editorAddTransparentLedButton}
-        </button>
-        <button type="button" disabled={!canAddSignage} onClick={() => setBuilderOpen(true)}>
-          {messages.editorAddPortableButton}
-        </button>
-      </div>
-
+    <div className="toolbar-subsection">
+      <span className="toolbar-subsection-heading">{messages.toolbarAddElementSubheading}</span>
       <div className="toolbar-actions">
-        <button type="button" disabled={!canAddSignage} onClick={addText}>
+        <button type="button" disabled={!canAddElement} onClick={addText}>
           {messages.editorAddTextButton}
         </button>
         <button
           type="button"
-          disabled={!canAddSignage}
+          disabled={!canAddElement}
           onClick={() => fileInputRef.current?.click()}
         >
           {messages.editorAddImageButton}
@@ -371,15 +394,7 @@ function AddSignageSection({
         className="visually-hidden"
         aria-label={messages.editorAddImageButton}
       />
-
-      {builderOpen && (
-        <PortableBuilderModal
-          mode="create"
-          onClose={() => setBuilderOpen(false)}
-          onImageError={onImageError}
-        />
-      )}
-    </ToolbarSection>
+    </div>
   );
 }
 
@@ -433,11 +448,7 @@ function signageTypeLabel(
   }
 }
 
-function SelectedSignageSection({
-  onImageError,
-}: {
-  onImageError: (error: ImageValidationError) => void;
-}) {
+function SelectedSignageSection() {
   const { messages } = useLocale();
   const selected = useEditorStore(selectSelectedObject);
   const deleteSelected = useEditorStore((state) => state.deleteSelected);
@@ -447,7 +458,7 @@ function SelectedSignageSection({
       {!selected ? (
         <p className="toolbar-notice">{messages.editorPropertiesEmptyHint}</p>
       ) : (
-        <SelectedSignageFields key={selected.id} object={selected} onImageError={onImageError} />
+        <SelectedSignageFields key={selected.id} object={selected} />
       )}
       <button type="button" onClick={deleteSelected} disabled={!selected}>
         {messages.editorDeleteButton}
@@ -456,18 +467,10 @@ function SelectedSignageSection({
   );
 }
 
-function SelectedSignageFields({
-  object: selected,
-  onImageError,
-}: {
-  object: SignageObject;
-  onImageError: (error: ImageValidationError) => void;
-}) {
+function SelectedSignageFields({ object: selected }: { object: SignageObject }) {
   const { messages } = useLocale();
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const [draft, setDraft] = useState<Draft>(() => toDraft(selected));
-  const [regionEditorOpen, setRegionEditorOpen] = useState(false);
-  const [photoReplaceOpen, setPhotoReplaceOpen] = useState(false);
 
   // Reflect store-side changes (canvas drag/rotate/resize, undo, redo) back into the numeric
   // inputs; without this the fields would keep showing pre-drag values after any interaction
@@ -610,46 +613,152 @@ function SelectedSignageFields({
       {supportsPerspective(selected) && <PerspectiveFitControls object={selected} />}
 
       {selected.kind === 'portable' && (
-        <div className="toolbar-actions">
-          <button type="button" onClick={() => setRegionEditorOpen(true)}>
-            {messages.portableScreenRegionEditButton}
-          </button>
-          <button type="button" onClick={() => setPhotoReplaceOpen(true)}>
-            {messages.portableReplacePhotoButton}
-          </button>
-        </div>
+        <label>
+          <span>{messages.portableViewLabel}</span>
+          {/* One <option> per entry in PORTABLE_TEMPLATE_VIEWS so adding a new view slot
+              later is a change in one place, not two. Label lookup routes through
+              messages.portableViewOptions so all three locales stay type-checked. */}
+          <select
+            value={selected.templateView}
+            onChange={(event) =>
+              commit({ templateView: event.target.value as PortableTemplateView })
+            }
+          >
+            {PORTABLE_TEMPLATE_VIEWS.map((view) => (
+              <option key={view} value={view}>
+                {messages.portableViewOptions[view]}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
 
-      {selected.kind === 'portable' && regionEditorOpen && (
-        <PortableBuilderModal
-          mode="edit-region"
-          editingObject={selected}
-          onClose={() => setRegionEditorOpen(false)}
-          onImageError={onImageError}
-        />
-      )}
-      {selected.kind === 'portable' && photoReplaceOpen && (
-        <PortableBuilderModal
-          mode="replace-photo"
-          editingObject={selected}
-          onClose={() => setPhotoReplaceOpen(false)}
-          onImageError={onImageError}
-        />
-      )}
+      {/* PortableProductPhotoControls (developer-only: custom product photo + quad editor)
+          is intentionally hidden from the regular user flow. Re-enable here if needed. */}
     </>
   );
 }
 
-/** Entry points for perspective ("Fit to space") edit mode; while this object's own edit session
- *  is open, the corner-drag controls live in PerspectiveEditOverlay instead, so this renders
- *  nothing to avoid a second, conflicting "Fit to space" affordance on screen at the same time. */
+type StringMessageKey = {
+  [K in keyof ReturnType<typeof useLocale>['messages']]: ReturnType<
+    typeof useLocale
+  >['messages'][K] extends string
+    ? K
+    : never;
+}[keyof ReturnType<typeof useLocale>['messages']];
+
+const PERSPECTIVE_CORNER_LABEL_KEY: Record<QuadCorner, StringMessageKey> = {
+  topLeft: 'editorPerspectiveCornerTopLeft',
+  topRight: 'editorPerspectiveCornerTopRight',
+  bottomRight: 'editorPerspectiveCornerBottomRight',
+  bottomLeft: 'editorPerspectiveCornerBottomLeft',
+};
+
+const PERSPECTIVE_ERROR_KEY: Record<QuadInvalidReason, StringMessageKey> = {
+  'invalid-values': 'editorPerspectiveErrorInvalidValues',
+  'out-of-bounds': 'editorPerspectiveErrorOutOfBounds',
+  'self-intersecting': 'editorPerspectiveErrorSelfIntersecting',
+  concave: 'editorPerspectiveErrorConcave',
+  'min-area': 'editorPerspectiveErrorMinArea',
+  'min-edge': 'editorPerspectiveErrorMinEdge',
+};
+
+const OCCLUSION_ERROR_KEY: Record<OcclusionInvalidReason, StringMessageKey> = {
+  'too-few-points': 'editorOcclusionErrorTooFewPoints',
+  'too-many-points': 'editorOcclusionErrorTooManyPoints',
+  'invalid-values': 'editorOcclusionErrorInvalidValues',
+  'out-of-bounds': 'editorOcclusionErrorOutOfBounds',
+  'duplicate-points': 'editorOcclusionErrorDuplicatePoints',
+  'self-intersecting': 'editorOcclusionErrorSelfIntersecting',
+  'min-area': 'editorOcclusionErrorMinArea',
+};
+
+/**
+ * Entry points for perspective ("Fit to space") edit mode. While this object's edit session is
+ * open, the corner inputs and action buttons render inline in the toolbar (so they no longer
+ * cover the canvas on mobile); the corner drag handles remain in PerspectiveEditOverlay on the
+ * canvas.
+ */
 function PerspectiveFitControls({ object }: { object: PerspectiveCapableObject }) {
   const { messages } = useLocale();
   const perspectiveEditId = useEditorStore((state) => state.perspectiveEditId);
+  const draftQuad = useEditorStore((state) => state.perspectiveDraftQuad);
   const beginPerspectiveEdit = useEditorStore((state) => state.beginPerspectiveEdit);
+  const updatePerspectiveDraft = useEditorStore((state) => state.updatePerspectiveDraft);
+  const applyPerspectiveEdit = useEditorStore((state) => state.applyPerspectiveEdit);
+  const cancelPerspectiveEdit = useEditorStore((state) => state.cancelPerspectiveEdit);
+  const resetPerspectiveEdit = useEditorStore((state) => state.resetPerspectiveEdit);
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
 
-  if (perspectiveEditId === object.id) return null;
+  if (perspectiveEditId === object.id && draftQuad) {
+    const validation = validateQuad(draftQuad);
+    return (
+      <div className="toolbar-subsection">
+        <div className="perspective-corner-fields">
+          {QUAD_CORNER_ORDER.map((corner) => {
+            const point = draftQuad[corner];
+            return (
+              <fieldset key={corner}>
+                <legend>{messages[PERSPECTIVE_CORNER_LABEL_KEY[corner]]}</legend>
+                <label>
+                  <span>{messages.editorPositionXLabel}</span>
+                  <input
+                    type="number"
+                    step={0.01}
+                    min={0}
+                    max={1}
+                    value={Number(point.x.toFixed(2))}
+                    onChange={(event) => {
+                      if (!Number.isFinite(Number(event.target.value))) return;
+                      const next = clampQuadPoint01({
+                        ...point,
+                        x: Number(event.target.value),
+                      });
+                      updatePerspectiveDraft({ ...draftQuad, [corner]: next });
+                    }}
+                  />
+                </label>
+                <label>
+                  <span>{messages.editorPositionYLabel}</span>
+                  <input
+                    type="number"
+                    step={0.01}
+                    min={0}
+                    max={1}
+                    value={Number(point.y.toFixed(2))}
+                    onChange={(event) => {
+                      if (!Number.isFinite(Number(event.target.value))) return;
+                      const next = clampQuadPoint01({
+                        ...point,
+                        y: Number(event.target.value),
+                      });
+                      updatePerspectiveDraft({ ...draftQuad, [corner]: next });
+                    }}
+                  />
+                </label>
+              </fieldset>
+            );
+          })}
+        </div>
+        {!validation.valid && validation.reason && (
+          <p role="alert" className="editor-properties-error">
+            {messages[PERSPECTIVE_ERROR_KEY[validation.reason]]}
+          </p>
+        )}
+        <div className="editor-properties-actions">
+          <button type="button" onClick={resetPerspectiveEdit}>
+            {messages.editorPerspectiveResetButton}
+          </button>
+          <button type="button" onClick={cancelPerspectiveEdit}>
+            {messages.editorPerspectiveCancelButton}
+          </button>
+          <button type="button" onClick={() => applyPerspectiveEdit()} disabled={!validation.valid}>
+            {messages.editorPerspectiveApplyButton}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="toolbar-actions">
@@ -670,8 +779,10 @@ function PerspectiveFitControls({ object }: { object: PerspectiveCapableObject }
 
 function ContentSection({
   onContentError,
+  onImageError,
 }: {
   onContentError: (kind: ContentKind, error: ContentValidationError) => void;
+  onImageError: (error: ImageValidationError) => void;
 }) {
   const { messages } = useLocale();
   const selected = useEditorStore(selectSelectedObject);
@@ -679,6 +790,7 @@ function ContentSection({
 
   return (
     <ToolbarSection heading={messages.editorContentLabel}>
+      <AddCanvasElementControls onImageError={onImageError} />
       {!hasContentSupport ? (
         <p className="toolbar-notice">{messages.toolbarContentEmptyHint}</p>
       ) : (
@@ -968,8 +1080,15 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
   const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
   const occlusionEditObjectId = useEditorStore((state) => state.occlusionEditObjectId);
   const beginOcclusionEdit = useEditorStore((state) => state.beginOcclusionEdit);
+  const cancelOcclusionEdit = useEditorStore((state) => state.cancelOcclusionEdit);
+  const applyOcclusionEdit = useEditorStore((state) => state.applyOcclusionEdit);
   const deleteOcclusionMask = useEditorStore((state) => state.deleteOcclusionMask);
   const setOcclusionMaskEnabled = useEditorStore((state) => state.setOcclusionMaskEnabled);
+  const occlusionDraftPoints = useEditorStore((state) => state.occlusionDraftPoints);
+  const occlusionDraftFeather = useEditorStore((state) => state.occlusionDraftFeather);
+  const occlusionDraftOpacity = useEditorStore((state) => state.occlusionDraftOpacity);
+  const setOcclusionDraftFeather = useEditorStore((state) => state.setOcclusionDraftFeather);
+  const setOcclusionDraftOpacity = useEditorStore((state) => state.setOcclusionDraftOpacity);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [intensityDraft, setIntensityDraft] = useState(object.materialSettings.intensity);
   const [brightnessDraft, setBrightnessDraft] = useState(object.materialSettings.brightness);
@@ -1352,56 +1471,109 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
           <div className="toolbar-subsection">
             <span className="toolbar-subsection-heading">{messages.editorOcclusionLabel}</span>
 
-            {object.occlusionMasks.length === 0 ? (
-              <p className="toolbar-notice">{messages.editorOcclusionEmptyHint}</p>
-            ) : (
-              <ul className="toolbar-occlusion-list">
-                {object.occlusionMasks.map((mask, index) => (
-                  <li key={mask.id}>
-                    <label className="toolbar-checkbox-field">
+            {occlusionEditObjectId === object.id ? (
+              // Edit mode: feather/opacity sliders + Cancel/Apply inline in the toolbar
+              // so the canvas isn't covered by the floating panel on mobile.
+              (() => {
+                const validation = validateOcclusionPolygon(occlusionDraftPoints);
+                return (
+                  <>
+                    <label>
+                      <span>{messages.editorOcclusionFeatherLabel}</span>
                       <input
-                        type="checkbox"
-                        checked={mask.enabled}
-                        onChange={(event) =>
-                          setOcclusionMaskEnabled(object.id, mask.id, event.target.checked)
-                        }
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={occlusionDraftFeather}
+                        onChange={(event) => setOcclusionDraftFeather(Number(event.target.value))}
                       />
-                      <span>
-                        {messages.editorOcclusionMaskItemLabel} {index + 1}
-                      </span>
                     </label>
-                    <div className="toolbar-actions">
+                    <label>
+                      <span>{messages.editorOcclusionOpacityLabel}</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={occlusionDraftOpacity}
+                        onChange={(event) => setOcclusionDraftOpacity(Number(event.target.value))}
+                      />
+                    </label>
+                    {!validation.valid && validation.reason && (
+                      <p role="alert" className="editor-properties-error">
+                        {messages[OCCLUSION_ERROR_KEY[validation.reason]]}
+                      </p>
+                    )}
+                    <div className="editor-properties-actions">
+                      <button type="button" onClick={cancelOcclusionEdit}>
+                        {messages.editorOcclusionCancelButton}
+                      </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          setSettingsOpen(false);
-                          beginOcclusionEdit(object.id, mask.id);
-                        }}
+                        onClick={() => applyOcclusionEdit()}
+                        disabled={!validation.valid}
                       >
-                        {messages.editorOcclusionEditButton}
-                      </button>
-                      <button type="button" onClick={() => deleteOcclusionMask(object.id, mask.id)}>
-                        {messages.editorOcclusionDeleteButton}
+                        {messages.editorOcclusionApplyButton}
                       </button>
                     </div>
-                  </li>
-                ))}
-              </ul>
+                  </>
+                );
+              })()
+            ) : (
+              <>
+                {object.occlusionMasks.length === 0 ? (
+                  <p className="toolbar-notice">{messages.editorOcclusionEmptyHint}</p>
+                ) : (
+                  <ul className="toolbar-occlusion-list">
+                    {object.occlusionMasks.map((mask, index) => (
+                      <li key={mask.id}>
+                        <label className="toolbar-checkbox-field">
+                          <input
+                            type="checkbox"
+                            checked={mask.enabled}
+                            onChange={(event) =>
+                              setOcclusionMaskEnabled(object.id, mask.id, event.target.checked)
+                            }
+                          />
+                          <span>
+                            {messages.editorOcclusionMaskItemLabel} {index + 1}
+                          </span>
+                        </label>
+                        <div className="toolbar-actions">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSettingsOpen(false);
+                              beginOcclusionEdit(object.id, mask.id);
+                            }}
+                          >
+                            {messages.editorOcclusionEditButton}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteOcclusionMask(object.id, mask.id)}
+                          >
+                            {messages.editorOcclusionDeleteButton}
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="toolbar-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      beginOcclusionEdit(object.id);
+                    }}
+                    disabled={!spaceBackground}
+                  >
+                    {messages.editorOcclusionAddButton}
+                  </button>
+                </div>
+              </>
             )}
-
-            <div className="toolbar-actions">
-              <button
-                type="button"
-                onClick={() => {
-                  setSettingsOpen(false);
-                  beginOcclusionEdit(object.id);
-                }}
-                disabled={!spaceBackground || occlusionEditObjectId === object.id}
-              >
-                {messages.editorOcclusionAddButton}
-              </button>
-            </div>
-            {!spaceBackground && (
+            {!spaceBackground && occlusionEditObjectId !== object.id && (
               <p className="toolbar-notice">{messages.editorOcclusionNoSpaceHint}</p>
             )}
           </div>

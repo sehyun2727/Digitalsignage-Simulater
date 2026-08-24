@@ -232,13 +232,14 @@ describe('resolveShadowMode', () => {
     expect(resolveShadowMode('portable', 'transparent-led')).toBe('freestanding');
   });
 
-  it('resolves a display with transparent-led material to window', () => {
-    expect(resolveShadowMode('display', 'transparent-led')).toBe('window');
-  });
-
-  it('resolves every other display material to wall', () => {
+  it('resolves every display material — including transparent-led — to wall by default', () => {
+    // transparent-led used to auto-select 'window', which enabled a downward glass reflection
+    // (ScreenReflection) below the panel; that reflection then stretched the Transformer's
+    // selection box and looked like extra pixels leaking under the sig. Users can still opt in
+    // to 'window' explicitly via the installation-mode select.
     expect(resolveShadowMode('display', 'led')).toBe('wall');
     expect(resolveShadowMode('display', 'lcd')).toBe('wall');
+    expect(resolveShadowMode('display', 'transparent-led')).toBe('wall');
     expect(resolveShadowMode('display', undefined)).toBe('wall');
   });
 });

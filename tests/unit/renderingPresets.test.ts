@@ -62,16 +62,21 @@ describe('getPresetContactShadow', () => {
     expect(shadow.offsetY).toBeCloseTo(0.035);
   });
 
-  it('resolves a window-mode (fainter) shadow for a transparent-led display', () => {
+  it('resolves a wall-mode shadow for a transparent-led display too (see-through defaults to wall now)', () => {
+    // Previously transparent-led auto-selected the window installation mode, which added a
+    // downward ScreenReflection under the panel; that reflection stretched the Transformer's
+    // selection box and read as extra pixels beneath the sig. Users can still opt in to
+    // window mode via the installation-mode select.
     const wall = getPresetContactShadow('display', 'led', 'natural');
-    const window = getPresetContactShadow('display', 'transparent-led', 'natural');
-    expect(window.strength).toBeLessThan(wall.strength);
+    const seeThrough = getPresetContactShadow('display', 'transparent-led', 'natural');
+    expect(seeThrough.strength).toBe(wall.strength);
   });
 
   it('resolves a freestanding shadow for a portable object', () => {
     const freestanding = getPresetContactShadow('portable', 'lcd', 'natural');
     expect(freestanding.enabled).toBe(true);
-    expect(freestanding.offsetY).toBeGreaterThan(0.035);
+    // Negative offsetY pulls the shadow center up into the stand area for a natural ground contact.
+    expect(freestanding.offsetY).toBeLessThan(0);
   });
 
   it('makes the bright preset shadow stronger and the night preset fainter than natural', () => {

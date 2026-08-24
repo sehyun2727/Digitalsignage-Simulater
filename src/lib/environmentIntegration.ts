@@ -240,21 +240,32 @@ export function contactShadowBlurRadius(width: number, height: number, blur: num
 
 /**
  * Which installation plane an object's default shadow should imply: a wall-mounted panel casts a
- * tight, close shadow; a see-through transparent-LED "window" casts a faint one; a freestanding
- * portable device casts a larger, more separated one (spec section 13). Alias of the persisted
- * `InstallationMode` document field (src/types/editor.ts) — kept as a separate exported name here
- * since this module is the historical/shadow-specific home for the concept.
+ * tight, close shadow; a see-through / window installation adds a downward ScreenReflection to
+ * imply glass beneath the panel; a freestanding portable device casts a larger, more separated
+ * one (spec section 13). Alias of the persisted `InstallationMode` document field
+ * (src/types/editor.ts) — kept as a separate exported name here since this module is the
+ * historical/shadow-specific home for the concept.
  */
 export type ShadowMode = InstallationMode;
 
 /** Material/kind-derived default, used to seed a freshly created object and to migrate documents
- * saved before `installationMode` existed as an explicit, user-overridable field. */
+ * saved before `installationMode` existed as an explicit, user-overridable field.
+ *
+ * transparent-led used to default to 'window', which auto-added the downward glass reflection
+ * ScreenReflection paints below the screen; that reflection then stretched Konva's Transformer
+ * clientRect (and looked like extra pixels leaking under the sig), so the see-through material
+ * now defaults to 'wall' just like the other displays. Users who want the on-glass look can
+ * still opt in to 'window' via the "설치 방식" select. */
 export function resolveShadowMode(
   kind: 'display' | 'portable',
   material: DisplayMaterial | undefined,
 ): ShadowMode {
   if (kind === 'portable') return 'freestanding';
-  return normalizeMaterial(material) === 'transparent-led' ? 'window' : 'wall';
+  // The old transparent-led → 'window' branch is deliberately removed; see the doc comment.
+  // normalizeMaterial is kept as a defensive no-op call so tests exercising the legacy
+  // 'outdoor-led' value still take the same code path as 'led'.
+  normalizeMaterial(material);
+  return 'wall';
 }
 
 /** Default contact-shadow settings per installation plane, replacing the flat disabled-by-default. */
@@ -284,7 +295,7 @@ export const SHADOW_MODE_BASE: Record<ShadowMode, ContactShadowSettings> = {
     strength: 35,
     blur: 40,
     offsetX: 0,
-    offsetY: 0.06,
+    offsetY: -0.1,
     spread: 120,
     depth: 110,
     tint: 8,

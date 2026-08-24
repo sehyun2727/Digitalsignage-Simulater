@@ -18,6 +18,7 @@ import type { ContentKind, SignageObject } from '../../types/editor';
 import { CanvasObjectView } from './CanvasObjectView';
 import { OcclusionEditOverlay } from './OcclusionEditOverlay';
 import { PerspectiveEditOverlay } from './PerspectiveEditOverlay';
+import { ScreenQuadEditOverlay } from './ScreenQuadEditOverlay';
 import { SpaceBackgroundView } from './SpaceBackgroundView';
 
 export interface EditorCanvasHandle {
@@ -52,6 +53,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const perspectiveEditId = useEditorStore((state) => state.perspectiveEditId);
   const occlusionEditObjectId = useEditorStore((state) => state.occlusionEditObjectId);
+  const screenQuadEditId = useEditorStore((state) => state.screenQuadEditId);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const dropTargetObject = document.objects.find((object) => object.id === dropTargetId) ?? null;
   const dropTargetRect = dropTargetObject ? getObjectScreenRect(dropTargetObject) : null;
@@ -97,6 +99,12 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       const selectedNodes = transformer?.nodes() ?? [];
       transformer?.nodes([]);
       objectsGroup?.visible(true);
+      // Perspective-placed objects can't use the shared Transformer (their hit target is a quad
+      // Line, not a rectangular node), so their selection UI is a dashed sibling outline drawn
+      // inline (name="perspective-selection-outline"). Hide those the same way the Transformer's
+      // handles are hidden here, so exported PNGs never contain selection chrome.
+      const selectionOutlines = stage?.find('.perspective-selection-outline') ?? [];
+      selectionOutlines.forEach((node) => node.hide());
       layer?.draw();
 
       // Konva assigns the exported canvas's pixel dimensions via a raw `canvas.width =`/
@@ -123,12 +131,14 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
 
       if (selectedNodes.length > 0) transformer?.nodes(selectedNodes);
       objectsGroup?.visible(!comparisonMode);
+      selectionOutlines.forEach((node) => node.show());
       layer?.draw();
 
       return dataUrl;
     },
     beginVideoExportCapture: () => {
       const layer = layerRef.current;
+      const stage = stageRef.current;
       const transformer = transformerRef.current;
       const objectsGroup = objectsGroupRef.current;
       if (!layer) return null;
@@ -139,12 +149,15 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       // new end handler that sees a different comparisonMode/selection than begin recorded.
       const previousSelection = transformer?.nodes() ?? [];
       const previousComparisonMode = comparisonMode;
+      const selectionOutlines = stage?.find('.perspective-selection-outline') ?? [];
       transformer?.nodes([]);
       objectsGroup?.visible(true);
+      selectionOutlines.forEach((node) => node.hide());
       layer.draw();
       captureRestoreRef.current = () => {
         transformer?.nodes(previousSelection);
         objectsGroup?.visible(!previousComparisonMode);
+        selectionOutlines.forEach((node) => node.show());
         layer.draw();
       };
 
@@ -165,7 +178,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   useEffect(() => {
     const transformer = transformerRef.current;
     if (!transformer) return;
-    if (comparisonMode || !selectedId || perspectiveEditId || occlusionEditObjectId) {
+    if (comparisonMode || !selectedId || perspectiveEditId || occlusionEditObjectId || screenQuadEditId) {
       transformer.nodes([]);
       transformer.getLayer()?.batchDraw();
       return;
@@ -194,7 +207,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     );
     transformer.nodes(node ? [node] : []);
     transformer.getLayer()?.batchDraw();
-  }, [selectedId, document.objects, comparisonMode, perspectiveEditId, occlusionEditObjectId]);
+  }, [selectedId, document.objects, comparisonMode, perspectiveEditId, occlusionEditObjectId, screenQuadEditId]);
 
   const registerNode = (id: string, node: Konva.Node | null) => {
     if (node) {
@@ -316,6 +329,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
               !comparisonMode &&
               !perspectiveEditId &&
               !occlusionEditObjectId &&
+              !screenQuadEditId &&
               event.target === event.target.getStage()
             ) {
               selectObject(null);
@@ -326,6 +340,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
               !comparisonMode &&
               !perspectiveEditId &&
               !occlusionEditObjectId &&
+              !screenQuadEditId &&
               event.target === event.target.getStage()
             ) {
               selectObject(null);
@@ -343,7 +358,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
             <Group
               ref={objectsGroupRef}
               visible={!comparisonMode}
-              listening={!comparisonMode && !perspectiveEditId && !occlusionEditObjectId}
+              listening={!comparisonMode && !perspectiveEditId && !occlusionEditObjectId && !screenQuadEditId}
             >
               {document.objects.map((object) => (
                 <CanvasObjectView
@@ -392,6 +407,12 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       {!comparisonMode && size && occlusionEditObjectId && (
         <OcclusionEditOverlay documentSize={size} fitScale={fitScale} />
       )}
+      {!comparisonMode && screenQuadEditId && (() => {
+        const obj = document.objects.find((o) => o.id === screenQuadEditId);
+        return obj && obj.kind === 'portable' ? (
+          <ScreenQuadEditOverlay object={obj} fitScale={fitScale} />
+        ) : null;
+      })()}
     </div>
   );
 });

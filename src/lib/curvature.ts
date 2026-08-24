@@ -15,8 +15,20 @@ export function clampCurvatureAmount(amount: number): number {
   return Math.min(MAX_CURVATURE_AMOUNT, Math.max(MIN_CURVATURE_AMOUNT, amount));
 }
 
-/** Default number of vertical strips used to approximate curvature. */
-export const CURVATURE_SLICE_COUNT = 20;
+/** Default number of vertical strips used to approximate curvature. Each strip's top/bottom
+ *  edge is computed from its *center* x, so within a strip the top/bottom is flat — the visible
+ *  stepping between neighboring strips is the strip width times the depth function's local
+ *  gradient. Bumping this to 80 shrinks that per-strip step below 1 px at typical screen sizes,
+ *  so both the stretch inside the strip and the outer silhouette read as continuously smooth
+ *  rather than as visibly banded columns. */
+export const CURVATURE_SLICE_COUNT = 80;
+
+/** Number of samples per edge when tracing the curve as a polyline (silhouette outline or
+ *  outer clip path). Independent of `CURVATURE_SLICE_COUNT` because a smooth outline is cheap
+ *  (just points, not additional draw calls) while another strip triples per-frame work. Kept
+ *  a bit higher than the strip count so the outer clip has no visible facets even when the
+ *  strips inside it happen to align with a sub-pixel edge. */
+export const CURVATURE_OUTLINE_SAMPLES = 120;
 
 /** Maximum top/bottom edge displacement at the screen's center, as a fraction of screen height. */
 const MAX_CURVE_DEPTH_RATIO = 0.18;
@@ -101,29 +113,74 @@ export function computeCurvatureStrips(
 }
 
 /**
- * The curved top/bottom edge points (screen-local coordinates) used to draw a bezel outline
- * that visually follows the curvature instead of a flat rectangle sitting around a warped
- * screen. Returns `null` for flat/zero-amount curvature.
+ * Continuous per-x sample of the curvature's top/bottom edge — the smooth silhouette a strip's
+ * displacement approximates in stepped form. Sampling the depth function directly (instead of
+ * reusing per-strip constants like the previous implementation) removes the visible staircase
+ * along the outline; `sampleCount + 1` points are emitted per edge (endpoints included) so the
+ * closed loop still starts/ends exactly on the screen's left/right edges. Returns `null` for
+ * flat/zero-amount curvature. Suitable both as a bezel outline (draw as `Line` with a stroke)
+ * and as an outer clip path (feed into a `clipFunc` to trim strip content to the true curve).
  */
 export function computeCurvatureOutlinePoints(
   screen: Rect,
   curvature: Curvature,
-  sliceCount: number = CURVATURE_SLICE_COUNT,
+  sampleCount: number = CURVATURE_OUTLINE_SAMPLES,
 ): number[] | null {
-  const strips = computeCurvatureStrips(screen, curvature, sliceCount);
-  if (strips.length === 0) return null;
+  const amount = clampCurvatureAmount(curvature.amount);
+  if (curvature.mode === 'flat' || amount <= 0 || screen.width <= 0 || screen.height <= 0) {
+    return null;
+  }
+  const maxDepth = screen.height * MAX_CURVE_DEPTH_RATIO * (amount / 100);
+  // sign matches computeCurvatureStrips: convex = -1 (top moves up, bottom moves down —
+  // silhouette bulges outward), concave = +1 (top moves down, bottom moves up — silhouette
+  // recedes inward). The previous version applied `sign * -depth` on top / `sign * depth` on
+  // bottom, which inverted convex/concave for the outer clip only: strips still bulged outward
+  // correctly, but the clip was concave-shaped and cropped the bulge away.
+  const sign = curvature.mode === 'convex' ? -1 : 1;
+  const samples = Math.max(2, Math.floor(sampleCount));
 
-  const top: number[] = [];
-  for (const strip of strips) {
-    const topY = screen.y + strip.groupY;
-    top.push(strip.x, topY, strip.x + strip.width, topY);
+  const top: [number, number][] = [];
+  const bottom: [number, number][] = [];
+  for (let i = 0; i <= samples; i += 1) {
+    const u = i / samples;
+    const x = screen.x + u * screen.width;
+    const t = u * 2 - 1;
+    const depth = maxDepth * (1 - t * t);
+    const topOffset = sign * depth; // convex: -depth (up); concave: +depth (down)
+    const bottomOffset = -sign * depth; // convex: +depth (down); concave: -depth (up)
+    top.push([x, screen.y + topOffset]);
+    bottom.push([x, screen.y + screen.height + bottomOffset]);
   }
-  // Walked right-to-left so the polyline forms one continuous outline (top edge left-to-right,
-  // then bottom edge right-to-left) suitable for a single closed Konva Line.
-  const bottom: number[] = [];
-  for (const strip of [...strips].reverse()) {
-    const bottomY = screen.y + strip.groupY + screen.height * strip.groupScaleY;
-    bottom.push(strip.x + strip.width, bottomY, strip.x, bottomY);
+  // Walk the bottom right-to-left so the concatenation forms one continuous closed loop
+  // (top edge left-to-right, then bottom edge right-to-left), suitable for a single Konva Line.
+  const points: number[] = [];
+  for (const [x, y] of top) points.push(x, y);
+  for (let i = bottom.length - 1; i >= 0; i -= 1) points.push(bottom[i]![0], bottom[i]![1]);
+  return points;
+}
+
+/** Minimum surface a `clipFunc` uses to trace a polygonal path — matches both Konva's
+ *  `SceneContext` wrapper and a raw `CanvasRenderingContext2D`, so `traceOutlinePath` can be
+ *  fed to either without a cast. */
+export interface PolygonPathContext {
+  beginPath(): void;
+  moveTo(x: number, y: number): void;
+  lineTo(x: number, y: number): void;
+  closePath(): void;
+}
+
+/**
+ * Draws `points` (a flat [x0,y0,x1,y1,...] polygon, as produced by `computeCurvatureOutlinePoints`)
+ * as a `beginPath`/`moveTo`/`lineTo`/`closePath` sequence on the given 2D context — the primitive
+ * a Konva `clipFunc` needs. Reused for both the outer clip that trims each screen's strip content
+ * to its true curved silhouette and (elsewhere) the bezel body's own clipped shape.
+ */
+export function traceOutlinePath(ctx: PolygonPathContext, points: readonly number[]): void {
+  if (points.length < 4) return;
+  ctx.beginPath();
+  ctx.moveTo(points[0]!, points[1]!);
+  for (let i = 2; i < points.length; i += 2) {
+    ctx.lineTo(points[i]!, points[i + 1]!);
   }
-  return [...top, ...bottom];
+  ctx.closePath();
 }

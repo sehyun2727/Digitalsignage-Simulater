@@ -2,8 +2,9 @@ import Konva from 'konva';
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Group, Shape } from 'react-konva';
-import { buildQuadMesh, normalizedQuadToDocument, solveAffine } from '../../lib/quadGeometry';
-import type { DocumentSize, Point, QuadMeshCell } from '../../lib/quadGeometry';
+import { buildQuadMesh, normalizedQuadToDocument } from '../../lib/quadGeometry';
+import type { DocumentSize } from '../../lib/quadGeometry';
+import { drawWarpedMesh } from '../../lib/warpMesh';
 import type { NormalizedQuad } from '../../types/editor';
 
 interface PerspectiveScreenViewProps {
@@ -138,80 +139,3 @@ export function PerspectiveScreenView({
   );
 }
 
-/**
- * Draws `mesh` (unit-square source cells mapped into document-space destination cells) by
- * splitting each cell into two triangles and drawing each with the unique affine transform that
- * maps its three source corners (in `sourceCanvas` pixel space) onto its three destination
- * corners, clipped to the destination triangle so only that slice of the full-canvas
- * `ctx.drawImage` call is kept.
- */
-function drawWarpedMesh(
-  ctx: Konva.Context,
-  mesh: QuadMeshCell[],
-  sourceCanvas: HTMLCanvasElement,
-  width: number,
-  height: number,
-) {
-  const toSourcePixels = (point: Point): Point => ({ x: point.x * width, y: point.y * height });
-
-  for (const cell of mesh) {
-    const src = cell.src.map(toSourcePixels) as [Point, Point, Point, Point];
-    const dst = cell.dst;
-    drawTriangle(ctx, sourceCanvas, [src[0], src[1], src[3]], [dst[0], dst[1], dst[3]]);
-    drawTriangle(ctx, sourceCanvas, [src[1], src[2], src[3]], [dst[1], dst[2], dst[3]]);
-  }
-}
-
-/**
- * Each triangle is clipped and drawn independently, so anti-aliasing along a shared edge blends
- * only that triangle's own partial coverage against whatever was already on the canvas — two
- * neighboring triangles' partial-coverage edges don't sum to full opacity, leaving a faint
- * translucent seam that reveals the (often light/white) canvas background beneath, tiled into a
- * grid matching the mesh. Nudging each destination vertex outward from the triangle's own
- * centroid by a small fixed amount makes every triangle slightly overlap its neighbors instead of
- * exactly abutting them, closing that gap; the affine transform itself is computed from the true
- * (non-inflated) corners, so the extra sliver of drawn pixels still comes from the correct nearby
- * source region rather than distorting the warp.
- */
-const SEAM_OVERLAP_PX = 0.75;
-
-function inflateTriangle(points: [Point, Point, Point]): [Point, Point, Point] {
-  const centroidX = (points[0].x + points[1].x + points[2].x) / 3;
-  const centroidY = (points[0].y + points[1].y + points[2].y) / 3;
-  return points.map((point) => {
-    const dx = point.x - centroidX;
-    const dy = point.y - centroidY;
-    const length = Math.hypot(dx, dy) || 1;
-    return {
-      x: point.x + (dx / length) * SEAM_OVERLAP_PX,
-      y: point.y + (dy / length) * SEAM_OVERLAP_PX,
-    };
-  }) as [Point, Point, Point];
-}
-
-function drawTriangle(
-  ctx: Konva.Context,
-  sourceCanvas: HTMLCanvasElement,
-  src: [Point, Point, Point],
-  dst: [Point, Point, Point],
-) {
-  const affine = solveAffine(src, dst);
-  if (!affine) return;
-  // Guard against non-finite mesh corners (a near-degenerate quad can push a homography's `w`
-  // denominator close to zero for one interior cell even though the quad itself passed
-  // validateQuad) so a single bad cell can't throw mid-draw and abort the rest of the mesh.
-  if (dst.some((point) => !Number.isFinite(point.x) || !Number.isFinite(point.y))) return;
-
-  const clipDst = inflateTriangle(dst);
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(clipDst[0].x, clipDst[0].y);
-  ctx.lineTo(clipDst[1].x, clipDst[1].y);
-  ctx.lineTo(clipDst[2].x, clipDst[2].y);
-  ctx.closePath();
-  ctx.clip();
-  ctx.transform(affine.a, affine.b, affine.c, affine.d, affine.e, affine.f);
-  ctx.drawImage(sourceCanvas, 0, 0);
-  ctx.restore();
-}

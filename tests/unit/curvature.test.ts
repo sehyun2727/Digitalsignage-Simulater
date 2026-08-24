@@ -116,12 +116,25 @@ describe('computeCurvatureOutlinePoints', () => {
     const points = computeCurvatureOutlinePoints(screen, { mode: 'convex', amount: 50 }, 4);
 
     expect(points).not.toBeNull();
-    // 4 strips * 2 points/edge * 2 edges (top + bottom) * 2 coordinates (x,y) = 32 numbers.
-    expect(points).toHaveLength(32);
+    // Continuous per-x sample: (sampleCount + 1) points per edge × 2 edges × 2 coords = 20.
+    expect(points).toHaveLength(20);
   });
 
-  it('starts the outline at the screen origin for the leftmost strip', () => {
+  it('starts the outline at the screen origin (leftmost x)', () => {
     const points = computeCurvatureOutlinePoints(screen, { mode: 'convex', amount: 50 }, 4)!;
     expect(points[0]).toBeCloseTo(screen.x);
+  });
+
+  it('samples a smooth curve rather than a step per strip', () => {
+    // Adjacent sampled Y values on the top edge should differ by only a small fraction of the
+    // total depth — a stepped-per-strip outline would show one big jump between strip centers
+    // and zero difference within each strip; a continuous sample keeps every step small.
+    const points = computeCurvatureOutlinePoints(screen, { mode: 'convex', amount: 100 }, 32)!;
+    const topYs: number[] = [];
+    for (let i = 1; i < 32 * 2 + 2; i += 2) topYs.push(points[i]!);
+    const deltas = topYs.slice(1).map((y, i) => Math.abs(y - topYs[i]!));
+    const maxDepth = screen.height * 0.18;
+    // Every neighbor step is well under the total depth — no visible staircase.
+    for (const delta of deltas) expect(delta).toBeLessThan(maxDepth * 0.2);
   });
 });

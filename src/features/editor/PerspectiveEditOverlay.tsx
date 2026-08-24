@@ -8,9 +8,8 @@ import {
   previewToDocumentPoint,
   QUAD_CORNER_ORDER,
   quadPoints,
-  validateQuad,
 } from '../../lib/quadGeometry';
-import type { DocumentSize, Point, QuadCorner, QuadInvalidReason } from '../../lib/quadGeometry';
+import type { DocumentSize, Point, QuadCorner } from '../../lib/quadGeometry';
 import { useEditorStore } from '../../store/editorStore';
 import type { Messages } from '../../types/i18n';
 
@@ -33,43 +32,26 @@ const CORNER_LABEL_KEY: Record<QuadCorner, StringMessageKey> = {
   bottomLeft: 'editorPerspectiveCornerBottomLeft',
 };
 
-const ERROR_MESSAGE_KEY: Record<QuadInvalidReason, StringMessageKey> = {
-  'invalid-values': 'editorPerspectiveErrorInvalidValues',
-  'out-of-bounds': 'editorPerspectiveErrorOutOfBounds',
-  'self-intersecting': 'editorPerspectiveErrorSelfIntersecting',
-  concave: 'editorPerspectiveErrorConcave',
-  'min-area': 'editorPerspectiveErrorMinArea',
-  'min-edge': 'editorPerspectiveErrorMinEdge',
-};
-
 /** Keyboard nudge step for a corner handle, in normalized (0-1) document fraction. */
 const NUDGE_STEP = 0.01;
 const NUDGE_STEP_LARGE = 0.05;
 
 /**
  * HTML overlay (not Konva) rendered as a sibling of the Stage inside `.editor-canvas-container`,
- * absolutely positioned over it. documentToPreviewPoint/previewToDocumentPoint (quadGeometry.ts)
- * exist specifically for this: the Stage always fills its box at one uniform scale with no
- * letterboxing (EditorCanvas.tsx), so a plain HTML/pointer-event drag surface — the same pattern
- * PortableBuilderModal.tsx already uses for its screen-region editor — can track the Stage's
- * coordinate space with a single scalar conversion, without needing Konva-native shapes for the
- * drag handles.
+ * absolutely positioned over it. Renders only the visual polygon outline and draggable corner
+ * handles — the corner number inputs and action buttons live in the toolbar so they don't
+ * cover the canvas on mobile.
  */
 export function PerspectiveEditOverlay({ documentSize, fitScale }: PerspectiveEditOverlayProps) {
   const { messages } = useLocale();
   const perspectiveEditId = useEditorStore((state) => state.perspectiveEditId);
   const draftQuad = useEditorStore((state) => state.perspectiveDraftQuad);
   const updatePerspectiveDraft = useEditorStore((state) => state.updatePerspectiveDraft);
-  const applyPerspectiveEdit = useEditorStore((state) => state.applyPerspectiveEdit);
-  const cancelPerspectiveEdit = useEditorStore((state) => state.cancelPerspectiveEdit);
-  const resetPerspectiveEdit = useEditorStore((state) => state.resetPerspectiveEdit);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const activeCornerRef = useRef<QuadCorner | null>(null);
 
   if (!perspectiveEditId || !draftQuad) return null;
-
-  const validation = validateQuad(draftQuad);
 
   const previewPointForCorner = (corner: QuadCorner): Point => {
     const documentPoint = normalizedToDocument(draftQuad[corner], documentSize);
@@ -120,17 +102,6 @@ export function PerspectiveEditOverlay({ documentSize, fitScale }: PerspectiveEd
     updatePerspectiveDraft({ ...draftQuad, [corner]: next });
   };
 
-  const handleNumericFieldChange = (corner: QuadCorner, axis: 'x' | 'y', value: number) => {
-    if (!Number.isFinite(value)) return;
-    const current = draftQuad[corner];
-    const next = clampPoint01({ ...current, [axis]: value });
-    updatePerspectiveDraft({ ...draftQuad, [corner]: next });
-  };
-
-  const handleApply = () => {
-    applyPerspectiveEdit();
-  };
-
   const outlinePoints = quadPoints(draftQuad)
     .map((corner) => {
       const preview = documentToPreviewPoint(normalizedToDocument(corner, documentSize), fitScale);
@@ -164,64 +135,6 @@ export function PerspectiveEditOverlay({ documentSize, fitScale }: PerspectiveEd
           />
         );
       })}
-      {/* Grouped into one bottom-docked panel (rather than each piece positioning itself
-          absolutely) so the corner fields, validation alert, and action buttons stack in normal
-          flow and never overlap the top-docked hint text — they previously did at some viewport
-          widths, which silently ate clicks on Apply/Cancel/Reset in a real browser layout. */}
-      <div className="perspective-edit-panel">
-        <div className="perspective-corner-fields">
-          {QUAD_CORNER_ORDER.map((corner) => {
-            const point = draftQuad[corner];
-            return (
-              <fieldset key={corner}>
-                <legend>{messages[CORNER_LABEL_KEY[corner]]}</legend>
-                <label>
-                  <span>{messages.editorPositionXLabel}</span>
-                  <input
-                    type="number"
-                    step={0.01}
-                    min={0}
-                    max={1}
-                    value={Number(point.x.toFixed(2))}
-                    onChange={(event) =>
-                      handleNumericFieldChange(corner, 'x', Number(event.target.value))
-                    }
-                  />
-                </label>
-                <label>
-                  <span>{messages.editorPositionYLabel}</span>
-                  <input
-                    type="number"
-                    step={0.01}
-                    min={0}
-                    max={1}
-                    value={Number(point.y.toFixed(2))}
-                    onChange={(event) =>
-                      handleNumericFieldChange(corner, 'y', Number(event.target.value))
-                    }
-                  />
-                </label>
-              </fieldset>
-            );
-          })}
-        </div>
-        {!validation.valid && validation.reason && (
-          <p role="alert" className="editor-properties-error">
-            {messages[ERROR_MESSAGE_KEY[validation.reason]]}
-          </p>
-        )}
-        <div className="editor-properties-actions">
-          <button type="button" onClick={resetPerspectiveEdit}>
-            {messages.editorPerspectiveResetButton}
-          </button>
-          <button type="button" onClick={cancelPerspectiveEdit}>
-            {messages.editorPerspectiveCancelButton}
-          </button>
-          <button type="button" onClick={handleApply} disabled={!validation.valid}>
-            {messages.editorPerspectiveApplyButton}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

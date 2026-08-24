@@ -9,7 +9,12 @@ import {
   validateOcclusionPolygon,
   type OcclusionInvalidReason,
 } from '../lib/occlusion';
-import { computeDefaultPortableSize } from '../lib/portableRegion';
+import {
+  DEFAULT_PORTABLE_TEMPLATE_VIEW,
+  PORTABLE_PRESET_SCREEN_QUADS,
+  getDefaultPortableSize,
+  type PortableTemplateView,
+} from '../lib/portableTemplate';
 import {
   clampPoint01 as clampQuadPoint01,
   clampQuad01,
@@ -88,16 +93,18 @@ export interface EditorState {
   occlusionDraftPoints: NormalizedPoint[];
   occlusionDraftFeather: number;
   occlusionDraftOpacity: number;
+  /** Id of the portable object whose screen-quad the user is currently editing, if any. */
+  screenQuadEditId: ElementId | null;
+  /** Live in-progress screen quad while screenQuad edit mode is open; not yet committed. */
+  screenQuadDraftQuad: NormalizedQuad | null;
+  /** The quad screenQuadDraftQuad started from, restored by resetScreenQuadEdit. */
+  screenQuadEditOriginalQuad: NormalizedQuad | null;
   addText: () => void;
   addImage: (payload: { sourceId: string; naturalWidth: number; naturalHeight: number }) => void;
   addDisplay: (material: DisplayMaterial) => void;
-  addPortable: (payload: {
-    productSourceId: string;
-    productIntrinsicWidth: number;
-    productIntrinsicHeight: number;
-    productHasAlpha: boolean | null;
-    screenRegion: { x: number; y: number; width: number; height: number };
-  }) => void;
+  /** Creates a portable using the fixed vector template — no arguments, since the template's
+   *  shape and screen region are baked-in constants (see src/lib/portableTemplate.ts). */
+  addPortable: () => void;
   setSpaceBackground: (payload: {
     sourceId: string;
     naturalWidth: number;
@@ -130,6 +137,12 @@ export interface EditorState {
   deleteSelected: () => void;
   undo: () => void;
   redo: () => void;
+  /**
+   * Discards the entire document (space background + objects + undo/redo history) and returns
+   * the editor to its empty initial state. Any open perspective/occlusion edit sessions and the
+   * current selection are also cleared so no stale UI hangs off a deleted object.
+   */
+  resetDocument: () => void;
   /**
    * Enters "Fit to space" perspective edit mode for `id`: seeds the draft quad from the object's
    * existing `perspectiveQuad` if it has one (so re-entering restores the last-applied quad), or
@@ -180,6 +193,18 @@ export interface EditorState {
   /** Removes a mask outright, as a single history entry. */
   deleteOcclusionMask: (objectId: ElementId, maskId: ElementId) => void;
   setOcclusionMaskEnabled: (objectId: ElementId, maskId: ElementId, enabled: boolean) => void;
+  /** Stores a user-uploaded product photo sourceId on the portable object. */
+  setPortableProductPhoto: (id: ElementId, sourceId: string | null) => void;
+  /** Enters screen-quad edit mode for a portable object with a product photo. */
+  beginScreenQuadEdit: (id: ElementId) => void;
+  /** Updates the live draft quad (clamped to 0-1). No history. */
+  updateScreenQuadDraft: (quad: NormalizedQuad) => void;
+  /** Validates and commits the draft quad, then exits edit mode. */
+  applyScreenQuadEdit: () => void;
+  /** Exits edit mode without committing. Zero history entries. */
+  cancelScreenQuadEdit: () => void;
+  /** Restores the draft quad to the value when edit mode began. */
+  resetScreenQuadEdit: () => void;
 }
 
 function pushHistory(past: EditorDocument[], current: EditorDocument): EditorDocument[] {
@@ -223,10 +248,8 @@ function collectAssetSourceIds(document: EditorDocument, into: Set<string>): voi
   for (const object of document.objects) {
     if (object.kind === 'image') into.add(object.sourceId);
     if (object.kind === 'display' && object.content) into.add(object.content.sourceId);
-    if (object.kind === 'portable') {
-      into.add(object.productSourceId);
-      if (object.content) into.add(object.content.sourceId);
-    }
+    if (object.kind === 'portable' && object.content) into.add(object.content.sourceId);
+    if (object.kind === 'portable' && object.productPhotoSourceId) into.add(object.productPhotoSourceId);
   }
 }
 
@@ -243,6 +266,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   occlusionDraftPoints: [],
   occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
   occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
+  screenQuadEditId: null,
+  screenQuadDraftQuad: null,
+  screenQuadEditOriginalQuad: null,
 
   addText: () => {
     const { document } = get();
@@ -331,20 +357,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  addPortable: ({
-    productSourceId,
-    productIntrinsicWidth,
-    productIntrinsicHeight,
-    productHasAlpha,
-    screenRegion,
-  }) => {
+  addPortable: () => {
     const { document } = get();
     if (!document.spaceBackground) return;
     const size = getDocumentSize(document);
-    const { width, height } = computeDefaultPortableSize(
-      { width: productIntrinsicWidth, height: productIntrinsicHeight },
-      size,
-    );
+    const { width, height } = getDefaultPortableSize(size);
     const newObject: PortableSignageObject = {
       id: createId(),
       kind: 'portable',
@@ -353,11 +370,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       width,
       height,
       rotation: 0,
-      productSourceId,
-      productIntrinsicWidth,
-      productIntrinsicHeight,
-      productHasAlpha,
-      screenRegion,
+      templateView: DEFAULT_PORTABLE_TEMPLATE_VIEW,
       content: null,
       material: 'lcd',
       materialSettings: getPresetMaterialSettings('lcd', DEFAULT_RENDERING_PRESET),
@@ -368,6 +381,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       environmentIntegration: getPresetEnvironmentIntegration(DEFAULT_RENDERING_PRESET),
       installationMode: resolveShadowMode('portable', 'lcd'),
       occlusionMasks: [],
+      productPhotoSourceId: null,
+      screenQuad: PORTABLE_PRESET_SCREEN_QUADS[DEFAULT_PORTABLE_TEMPLATE_VIEW],
     };
     set({
       document: { ...document, objects: [...document.objects, newObject] },
@@ -474,9 +489,24 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const target = document.objects.find((object) => object.id === id);
     if (!target || !hasObjectChange(target, patch)) return;
 
+    // When templateView changes on a portable, auto-update screenQuad to the preset for the
+    // new view so the screen area stays calibrated without requiring a manual quad reset.
+    let finalPatch = patch;
+    if (
+      target.kind === 'portable' &&
+      'templateView' in patch &&
+      patch.templateView !== undefined
+    ) {
+      const newView = patch.templateView as PortableTemplateView;
+      const presetQuad = PORTABLE_PRESET_SCREEN_QUADS[newView];
+      if (presetQuad) {
+        finalPatch = { ...patch, screenQuad: presetQuad };
+      }
+    }
+
     const nextDocument: EditorDocument = {
       ...document,
-      objects: patchObjects(document.objects, id, patch),
+      objects: patchObjects(document.objects, id, finalPatch),
     };
     set({
       document: nextDocument,
@@ -531,12 +561,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       occlusionDraftPoints,
       occlusionDraftFeather,
       occlusionDraftOpacity,
+      screenQuadEditId,
     } = get();
     if (!selectedId) return;
-    // Only clear an in-progress perspective/occlusion draft when it belongs to the object being
-    // deleted; edits on a *different* selected object must survive a delete of an unrelated one.
+    // Only clear an in-progress perspective/occlusion/screenQuad draft when it belongs to the
+    // object being deleted; edits on a *different* selected object must survive.
     const clearPerspective = perspectiveEditId === selectedId;
     const clearOcclusion = occlusionEditObjectId === selectedId;
+    const clearScreenQuad = screenQuadEditId === selectedId;
     set({
       document: {
         ...document,
@@ -553,6 +585,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       occlusionDraftPoints: clearOcclusion ? [] : occlusionDraftPoints,
       occlusionDraftFeather: clearOcclusion ? DEFAULT_OCCLUSION_FEATHER : occlusionDraftFeather,
       occlusionDraftOpacity: clearOcclusion ? DEFAULT_OCCLUSION_OPACITY : occlusionDraftOpacity,
+      screenQuadEditId: clearScreenQuad ? null : screenQuadEditId,
+      screenQuadDraftQuad: clearScreenQuad ? null : get().screenQuadDraftQuad,
+      screenQuadEditOriginalQuad: clearScreenQuad ? null : get().screenQuadEditOriginalQuad,
     });
   },
 
@@ -573,6 +608,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       occlusionDraftPoints: [],
       occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
       occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
+      screenQuadEditId: null,
+      screenQuadDraftQuad: null,
+      screenQuadEditOriginalQuad: null,
     });
   },
 
@@ -593,6 +631,33 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       occlusionDraftPoints: [],
       occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
       occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
+      screenQuadEditId: null,
+      screenQuadDraftQuad: null,
+      screenQuadEditOriginalQuad: null,
+    });
+  },
+
+  // Discard everything. Not history-recoverable — the point of Reset is to *drop* history,
+  // otherwise Undo could immediately restore the whole document the user just chose to clear.
+  // The asset-registry sweep (subscribed at module bottom) handles releasing decoded images and
+  // video sources once the new empty document has no reachable sourceIds.
+  resetDocument: () => {
+    set({
+      document: createEmptyDocument(),
+      selectedId: null,
+      past: [],
+      future: [],
+      perspectiveEditId: null,
+      perspectiveDraftQuad: null,
+      perspectiveEditOriginalQuad: null,
+      occlusionEditObjectId: null,
+      occlusionEditMaskId: null,
+      occlusionDraftPoints: [],
+      occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
+      occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
+      screenQuadEditId: null,
+      screenQuadDraftQuad: null,
+      screenQuadEditOriginalQuad: null,
     });
   },
 
@@ -884,6 +949,56 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       } as Partial<SignageObject>),
     };
     set({ document: nextDocument, past: pushHistory(past, document), future: [] });
+  },
+
+  setPortableProductPhoto: (id, sourceId) => {
+    const { document } = get();
+    const target = document.objects.find((object) => object.id === id);
+    if (!target || target.kind !== 'portable') return;
+    get().commitObjectChange(id, { productPhotoSourceId: sourceId, screenQuad: null } as Partial<SignageObject>);
+  },
+
+  beginScreenQuadEdit: (id) => {
+    const { document } = get();
+    const target = document.objects.find((object) => object.id === id);
+    if (!target || target.kind !== 'portable' || !target.productPhotoSourceId) return;
+    // Seed the draft from any previously stored quad, or initialize to a centered inset rect.
+    const initialQuad: NormalizedQuad = target.screenQuad ?? {
+      topLeft: { x: 0.1, y: 0.1 },
+      topRight: { x: 0.9, y: 0.1 },
+      bottomRight: { x: 0.9, y: 0.9 },
+      bottomLeft: { x: 0.1, y: 0.9 },
+    };
+    set({
+      screenQuadEditId: id,
+      screenQuadDraftQuad: initialQuad,
+      screenQuadEditOriginalQuad: initialQuad,
+    });
+  },
+
+  updateScreenQuadDraft: (quad) => {
+    const { screenQuadEditId } = get();
+    if (!screenQuadEditId) return;
+    set({ screenQuadDraftQuad: clampQuad01(quad) });
+  },
+
+  applyScreenQuadEdit: () => {
+    const { screenQuadEditId, screenQuadDraftQuad } = get();
+    if (!screenQuadEditId || !screenQuadDraftQuad) return;
+    const validation = validateQuad(screenQuadDraftQuad);
+    if (!validation.valid) return;
+    get().commitObjectChange(screenQuadEditId, { screenQuad: screenQuadDraftQuad } as Partial<SignageObject>);
+    set({ screenQuadEditId: null, screenQuadDraftQuad: null, screenQuadEditOriginalQuad: null });
+  },
+
+  cancelScreenQuadEdit: () => {
+    set({ screenQuadEditId: null, screenQuadDraftQuad: null, screenQuadEditOriginalQuad: null });
+  },
+
+  resetScreenQuadEdit: () => {
+    const { screenQuadEditOriginalQuad } = get();
+    if (!screenQuadEditOriginalQuad) return;
+    set({ screenQuadDraftQuad: screenQuadEditOriginalQuad });
   },
 }));
 

@@ -129,7 +129,7 @@ describe('canvas object hit-area (reselection fix)', () => {
     });
   });
 
-  it('gives a portable product a full-bounds hit rect regardless of the photo having alpha', () => {
+  it('gives a portable product a full-bounds hit rect', () => {
     const object: PortableSignageObject = {
       id: 'obj-3',
       kind: 'portable',
@@ -138,13 +138,7 @@ describe('canvas object hit-area (reselection fix)', () => {
       width: 300,
       height: 200,
       rotation: 0,
-      productSourceId: 'unregistered-source',
-      productIntrinsicWidth: 600,
-      productIntrinsicHeight: 400,
-      // A transparent product photo must still use the object's rectangular bounds as its hit
-      // area, never the photo's own alpha channel — alpha-aware hit testing is out of scope.
-      productHasAlpha: true,
-      screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+      templateView: 'angled-right',
       content: null,
       material: 'lcd',
       materialSettings: DEFAULT_MATERIAL_SETTINGS,
@@ -155,6 +149,8 @@ describe('canvas object hit-area (reselection fix)', () => {
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
       installationMode: 'wall',
       occlusionMasks: [],
+      productPhotoSourceId: null,
+      screenQuad: null,
     };
 
     const tree = PortableProductView({
@@ -271,11 +267,7 @@ describe('canvas object hit-area (reselection fix)', () => {
       width: 300,
       height: 200,
       rotation: 0,
-      productSourceId: 'unregistered-source',
-      productIntrinsicWidth: 600,
-      productIntrinsicHeight: 400,
-      productHasAlpha: false,
-      screenRegion: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+      templateView: 'angled-right',
       content: null,
       material: 'lcd',
       materialSettings: DEFAULT_MATERIAL_SETTINGS,
@@ -286,6 +278,8 @@ describe('canvas object hit-area (reselection fix)', () => {
       environmentIntegration: DEFAULT_ENVIRONMENT_INTEGRATION,
       installationMode: 'wall',
       occlusionMasks: [],
+      productPhotoSourceId: null,
+      screenQuad: null,
     };
 
     const tree = PortableProductView({ object, groupProps, documentSize, spaceBackground: null });

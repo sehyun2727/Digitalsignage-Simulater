@@ -1,3 +1,5 @@
+import type { PortableTemplateView } from '../lib/portableTemplate';
+
 export const SUPPORTED_LOCALES = ['ja', 'ko', 'en'] as const;
 
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
@@ -24,6 +26,8 @@ export interface Messages {
   editorDeleteButton: string;
   editorUndoButton: string;
   editorRedoButton: string;
+  editorResetButton: string;
+  editorResetConfirm: string;
   editorExportButton: string;
   editorExportVideoButton: string;
   editorExportVideoInProgressButton: string;
@@ -59,6 +63,7 @@ export interface Messages {
   editorVideoUploadErrorDimensionsTooLarge: string;
   editorVideoUploadErrorDurationTooLong: string;
   editorExportedAnnouncement: string;
+  editorExportedIosAnnouncement: string;
   editorExportErrorAnnouncement: string;
 
   editorCanvasPresetLabel: string;
@@ -188,41 +193,28 @@ export interface Messages {
   editorOcclusionErrorSelfIntersecting: string;
   editorOcclusionErrorMinArea: string;
 
-  portableSectionHeading: string;
   editorAddPortableButton: string;
-  portableTypeLabel: string;
-  portableTypeValue: string;
-
-  portableBackgroundNotice: string;
-  portableRightsNotice: string;
-  portableSupportedFormatsHint: string;
-
-  portableStepSelectPhotoTitle: string;
-  portableStepDefineRegionTitle: string;
-  portableSelectPhotoButton: string;
-  portableChangePhotoButton: string;
-  portableNoPhotoSelectedHint: string;
-
-  portableScreenRegionDragHint: string;
-  portableScreenRegionMoveResizeHint: string;
-  portableScreenRegionXLabel: string;
-  portableScreenRegionYLabel: string;
-  portableScreenRegionWidthLabel: string;
-  portableScreenRegionHeightLabel: string;
-  portableScreenRegionResetButton: string;
-  portableScreenRegionEditButton: string;
-  portableScreenRegionMinSizeError: string;
-  portableReplacePhotoButton: string;
-
-  portableCancelButton: string;
-  portableBackButton: string;
-  portableNextButton: string;
-  portableAddButton: string;
-  portableSaveButton: string;
+  portableViewLabel: string;
+  /** One label per entry in `PORTABLE_TEMPLATE_VIEWS`. Keyed by view id so the toolbar's
+   *  selector can drive both the value and the label from the same PORTABLE_TEMPLATE_VIEWS
+   *  list — see `src/features/editor/Toolbar.tsx`. */
+  portableViewOptions: Record<PortableTemplateView, string>;
+  portableProductPhotoLabel: string;
+  portableUploadProductPhotoButton: string;
+  portableReplaceProductPhotoButton: string;
+  portableRemoveProductPhotoButton: string;
+  portableScreenQuadEditButton: string;
+  portableScreenQuadResetButton: string;
+  portableScreenQuadHint: string;
+  portableScreenQuadApplyButton: string;
+  portableScreenQuadCancelButton: string;
+  portableScreenQuadNoPhotoHint: string;
+  portableScreenQuadBackgroundHint: string;
 
   toolbarAriaLabel: string;
   toolbarSpaceSectionHeading: string;
   toolbarAddSignageSectionHeading: string;
+  toolbarAddElementSubheading: string;
   toolbarSelectedSignageSectionHeading: string;
   toolbarAppearanceSectionHeading: string;
   toolbarExportSectionHeading: string;

@@ -23,12 +23,12 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 export function EditorLayout() {
   const { messages } = useLocale();
-  const objectCount = useEditorStore((state) => state.document.objects.length);
   const objects = useEditorStore((state) => state.document.objects);
   const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
   const deleteSelected = useEditorStore((state) => state.deleteSelected);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
+  const resetDocument = useEditorStore((state) => state.resetDocument);
   const canUndo = useEditorStore(selectCanUndo);
   const canRedo = useEditorStore(selectCanRedo);
   const selectObject = useEditorStore((state) => state.selectObject);
@@ -141,13 +141,31 @@ export function EditorLayout() {
       return;
     }
 
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = buildExportFilename();
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setAnnouncement(messages.editorExportedAnnouncement);
+    // iOS (iPhone/iPad) does not support the `download` attribute on anchor tags.
+    // Try window.open first (works in Safari); if it returns null the browser
+    // blocked the popup (common in iOS Chrome), so fall back to an anchor with
+    // target="_blank" which bypasses popup blocking by routing through a real DOM click.
+    const isIos = /iP(hone|od|ad)/.test(navigator.userAgent);
+    if (isIos) {
+      const opened = window.open(dataUrl, '_blank');
+      if (!opened) {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+      setAnnouncement(messages.editorExportedIosAnnouncement);
+    } else {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = buildExportFilename();
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setAnnouncement(messages.editorExportedAnnouncement);
+    }
   }, [messages, setAnnouncement]);
 
   const handleExportVideo = useCallback(async () => {
@@ -246,11 +264,41 @@ export function EditorLayout() {
         <div className="editor-header-actions">
           {!salesReviewMode && (
             <>
-              <button type="button" onClick={undo} disabled={!canUndo}>
-                {messages.editorUndoButton}
+              <button
+                type="button"
+                className="editor-header-icon-button"
+                onClick={() => {
+                  // Confirm rather than silently wipe — Reset is not undo-recoverable (see the
+                  // store's resetDocument doc comment), so an accidental click would otherwise
+                  // lose the whole session with no way back.
+                  if (window.confirm(messages.editorResetConfirm)) resetDocument();
+                }}
+                title={messages.editorResetButton}
+                aria-label={messages.editorResetButton}
+              >
+                {/* A circular reset arrow keeps the header layout compact and reads as "start
+                    over" without needing a text label; the accessible name comes from aria-label. */}
+                <span aria-hidden="true">⟳</span>
               </button>
-              <button type="button" onClick={redo} disabled={!canRedo}>
-                {messages.editorRedoButton}
+              <button
+                type="button"
+                className="editor-header-icon-button"
+                onClick={undo}
+                disabled={!canUndo}
+                title={messages.editorUndoButton}
+                aria-label={messages.editorUndoButton}
+              >
+                <span aria-hidden="true">↶</span>
+              </button>
+              <button
+                type="button"
+                className="editor-header-icon-button"
+                onClick={redo}
+                disabled={!canRedo}
+                title={messages.editorRedoButton}
+                aria-label={messages.editorRedoButton}
+              >
+                <span aria-hidden="true">↷</span>
               </button>
             </>
           )}
@@ -295,34 +343,36 @@ export function EditorLayout() {
           {!spaceBackground && !comparisonMode && !salesReviewMode && (
             <p className="editor-empty-hint">{messages.editorCanvasEmptyHint}</p>
           )}
-          {spaceBackground && objectCount === 0 && !comparisonMode && !salesReviewMode && (
-            <p className="editor-empty-hint">{messages.editorCanvasNoSignageHint}</p>
-          )}
           <EditorCanvas
             ref={canvasRef}
             comparisonMode={comparisonMode}
             onContentError={handleContentError}
             onDropWithoutTarget={handleDropWithoutTarget}
           />
+          {/* Status hint + polite announcement region moved inside the canvas wrapper as a
+              non-blocking overlay along the bottom edge — this reclaims the ~70px they were
+              previously eating below the workspace and lets the canvas fill the whole remaining
+              viewport height. Still readable, still `role=status`/aria-live for screen readers,
+              and `pointer-events: none` so it never blocks a drag on canvas objects underneath. */}
+          <div className="editor-canvas-status-overlay" aria-hidden={!statusHint && !announcement}>
+            {statusHint && <span className="editor-canvas-status-hint">{statusHint}</span>}
+            <span
+              role="status"
+              aria-live="polite"
+              className={
+                isAnnouncementError
+                  ? 'editor-canvas-status-announcement editor-canvas-status-announcement--error'
+                  : 'editor-canvas-status-announcement'
+              }
+            >
+              {announcement}
+            </span>
+          </div>
         </div>
         {!salesReviewMode && (
           <Toolbar onImageError={handleImageError} onContentError={handleContentError} />
         )}
       </div>
-
-      <p className="editor-status-bar">{statusHint}</p>
-
-      <p
-        role="status"
-        aria-live="polite"
-        className={
-          isAnnouncementError
-            ? 'editor-announcement editor-announcement--error'
-            : 'editor-announcement'
-        }
-      >
-        {announcement}
-      </p>
 
       {onboardingOpen && (
         <OnboardingOverlay

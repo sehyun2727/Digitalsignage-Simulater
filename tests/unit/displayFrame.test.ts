@@ -28,14 +28,19 @@ describe('getFrameDecorations', () => {
     }
   });
 
-  it('uses a distinct, lighter bezel color for LCD than for LED/Transparent LED', () => {
+  it('uses a distinct, lighter bezel color for LCD than for LED', () => {
     const ledFill = getFrameDecorations('wall-led', 480, 270, 'led')[0]!.fill;
     const lcdFill = getFrameDecorations('wall-led', 480, 270, 'lcd')[0]!.fill;
-    const transparentLedFill = getFrameDecorations('wall-led', 480, 270, 'transparent-led')[0]!
-      .fill;
 
     expect(lcdFill).not.toBe(ledFill);
-    expect(transparentLedFill).toBe(ledFill);
+  });
+
+  it('returns an empty decoration list for a see-through / transparent-LED panel', () => {
+    // Painting any filled backing here would occlude the space photo the transparent screen
+    // is supposed to reveal — the see-through frame silhouette is a thin stroke drawn around
+    // just the screen rect in SignageDisplayView, not a filled body here.
+    expect(getFrameDecorations('wall-led', 480, 270, 'transparent-led')).toEqual([]);
+    expect(getFrameDecorations('stand-display', 220, 420, 'transparent-led')).toEqual([]);
   });
 });
 

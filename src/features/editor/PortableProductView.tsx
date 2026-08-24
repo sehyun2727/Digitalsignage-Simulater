@@ -1,15 +1,33 @@
 import type Konva from 'konva';
-import { Group, Image as KonvaImage, Line, Rect } from 'react-konva';
-import { getRegisteredAsset } from '../../lib/assetRegistry';
-import { resolveScreenRegionRect } from '../../lib/contentLayout';
-import { ENVIRONMENT_BLEND_COLOR, environmentBlendOpacity } from '../../lib/environmentIntegration';
+import { Group, Line, Rect } from 'react-konva';
 import { normalizedQuadToDocument, type DocumentSize } from '../../lib/quadGeometry';
 import type { NormalizedQuad, PortableSignageObject, SpaceBackground } from '../../types/editor';
 import { ContactShadowView } from './ContactShadowView';
 import { OcclusionMaskLayer } from './OcclusionMaskLayer';
 import { PerspectiveScreenView } from './PerspectiveScreenView';
-import { ScreenComposition } from './ScreenComposition';
-import { ScreenReflection } from './ScreenReflection';
+import { PortableQuadDebugOverlay } from './PortableQuadDebugOverlay';
+import { PortableTemplateBody } from './PortableTemplateBody';
+import { WarpedScreenContent } from './WarpedScreenContent';
+
+/**
+ * Dev-only calibration overlay flag. Enabled via either build-time
+ * `VITE_DEBUG_PORTABLE_QUAD=true` OR runtime `?debugPortableQuad=1` URL param.
+ * Evaluated once at module load so the per-render check is a cheap boolean read
+ * — no re-parsing of the URL on every frame.
+ *
+ * The overlay is intentionally not exposed anywhere in the regular UI (no menu
+ * entry, no toolbar toggle) so end users never see it; only developers running
+ * the dev server with the flag on do.
+ */
+const SHOW_QUAD_DEBUG = (() => {
+  const env = import.meta.env.VITE_DEBUG_PORTABLE_QUAD as string | undefined;
+  if (env === 'true' || env === '1') return true;
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('debugPortableQuad') === '1') return true;
+  }
+  return false;
+})();
 
 interface PortableProductViewProps {
   object: PortableSignageObject;
@@ -21,10 +39,17 @@ interface PortableProductViewProps {
   /** See SignageDisplayView.tsx — perspective-mode drag handler is passed in as a prop rather
    *  than sourced from the store here, so plain-function unit tests keep working. */
   onPerspectiveQuadTranslate?: (id: string, deltaDocumentX: number, deltaDocumentY: number) => void;
+  /** See SignageDisplayView.tsx — draws a dashed outline that traces the quad while selected,
+   *  since the shared Transformer can't attach to the quad-shaped hit target. */
+  isSelected?: boolean;
 }
 
-/** See SignageDisplayView.tsx for the same helper — flattens the four quad corners into an
- *  alternating x,y coordinate list in absolute document pixels for Konva.Line's points prop. */
+const PERSPECTIVE_SELECTION_STROKE = '#2563eb';
+const PERSPECTIVE_SELECTION_STROKE_WIDTH = 2;
+const PERSPECTIVE_SELECTION_DASH: number[] = [8, 4];
+
+/** Flattens the four quad corners into an alternating x,y list in absolute document pixels
+ *  for Konva.Line's points prop. */
 function quadDocumentPointsFlat(quad: NormalizedQuad, documentSize: DocumentSize): number[] {
   const doc = normalizedQuadToDocument(quad, documentSize);
   return [
@@ -40,12 +65,19 @@ function quadDocumentPointsFlat(quad: NormalizedQuad, documentSize: DocumentSize
 }
 
 /**
- * Renders a user's own portable product photo as the object's background (instead of a
- * hand-authored frame, as SignageDisplayView draws for the built-in templates), and reuses
- * ScreenComposition for the marked screen region's content/material/curvature rendering.
- * `object.screenRegion` is a fraction of the *photo's* own dimensions, but since the object's
- * bounding box is always kept at the photo's aspect ratio (see the transform aspect-lock in
- * CanvasObjectView.tsx), it can be resolved directly against the object size.
+ * Renders a template portable signage as a self-contained compound object:
+ *
+ *   Layer 1 (bottom): WarpedScreenContent — dark screen backing + user content perspective-
+ *     warped into the preset screenQuad for the current templateView.
+ *   Layer 2 (top): PortableTemplateBody — the device photo (frame/stand/wheels) with its
+ *     screen area made transparent via maskWhiteBackground + clearScreenArea, so the warped
+ *     content in layer 1 shows through that hole while the device body overlays the edges.
+ *
+ * The screenQuad is developer-hardcoded per preset (PORTABLE_PRESET_SCREEN_QUADS), not
+ * user-editable. The entire compound object moves, scales, and rotates as one unit.
+ *
+ * In global perspective placement mode the body is captured and warped by PerspectiveScreenView
+ * at document level, bypassing the object's own x/y/rotation rect geometry.
  */
 export function PortableProductView({
   object,
@@ -53,71 +85,41 @@ export function PortableProductView({
   documentSize,
   spaceBackground,
   onPerspectiveQuadTranslate,
+  isSelected = false,
 }: PortableProductViewProps) {
-  const productAsset = getRegisteredAsset(object.productSourceId);
-  const screen = resolveScreenRegionRect(
-    { width: object.width, height: object.height },
-    { shape: 'rect', ...object.screenRegion },
-  );
+  const showPerspective =
+    object.placementMode === 'perspective' && object.perspectiveQuad && documentSize;
 
-  const blendOpacity = environmentBlendOpacity(object.environmentIntegration.strength);
-
+  // Compound body used by global perspective mode: warped screen content first (bottom),
+  // device photo with transparent screen hole on top. Optional quad debug overlay renders
+  // last so calibration dots/labels sit on top of everything else.
   const body = (
     <>
-      {productAsset && (
-        <KonvaImage
-          image={productAsset.image}
-          x={0}
-          y={0}
+      <WarpedScreenContent
+        view={object.templateView}
+        width={object.width}
+        height={object.height}
+        content={object.content}
+      />
+      <PortableTemplateBody
+        view={object.templateView}
+        width={object.width}
+        height={object.height}
+        productPhotoSourceId={object.productPhotoSourceId}
+      />
+      {SHOW_QUAD_DEBUG && (
+        <PortableQuadDebugOverlay
+          view={object.templateView}
           width={object.width}
           height={object.height}
-          listening={false}
-        />
-      )}
-      <ScreenComposition
-        screen={screen}
-        material={object.material}
-        materialSettings={object.materialSettings}
-        curvature={object.curvature}
-        content={object.content}
-        objectId={object.id}
-      />
-      <ScreenReflection
-        screen={screen}
-        material={object.material}
-        materialSettings={object.materialSettings}
-        curvature={object.curvature}
-        content={object.content}
-        installationMode={object.installationMode}
-        objectId={object.id}
-      />
-      {blendOpacity > 0 && (
-        // Restricted to the screen region only (not the whole product photo): see
-        // SignageDisplayView.tsx for why the frame/product body must stay out of the blend.
-        <Rect
-          x={screen.x}
-          y={screen.y}
-          width={screen.width}
-          height={screen.height}
-          fill={object.environmentIntegration.sampledColor ?? ENVIRONMENT_BLEND_COLOR}
-          opacity={blendOpacity}
-          listening={false}
         />
       )}
     </>
   );
 
-  // See SignageDisplayView.tsx: perspectiveQuad is absolute document-space and decoupled from
-  // this object's own x/y/rotation, so the warped photo+screen renders as a sibling of the
-  // interactive Group rather than inside it.
-  const showPerspective =
-    object.placementMode === 'perspective' && object.perspectiveQuad && documentSize;
-
   return (
     <>
-      {/* See SignageDisplayView.tsx: once placementMode is 'perspective', the object's flat
-          x/y/width/height/rotation rect no longer describes the warped body's actual on-screen
-          position, so the shadow switches to the quad-anchored perspective variant. */}
+      {/* Contact shadow: switches to quad-anchored variant when in perspective placement mode. */}
       {showPerspective && object.perspectiveQuad && documentSize ? (
         <ContactShadowView
           perspective={{
@@ -137,12 +139,9 @@ export function PortableProductView({
           shadow={object.contactShadow}
         />
       )}
+
       {showPerspective && object.perspectiveQuad && documentSize ? (
-        // See SignageDisplayView.tsx for the equivalent perspective-mode hit-area treatment:
-        // the visible body lives inside PerspectiveScreenView (warped to absolute quad corners),
-        // so the interactive Group here has to sit at the document origin and use a Line that
-        // traces the quad rather than a Rect at the object's original x/y — otherwise clicking
-        // the visibly warped product would land on a hit region that has drifted off screen.
+        // Perspective placement: hit area is the warped quad at document level.
         <Group
           id={object.id}
           x={0}
@@ -167,20 +166,24 @@ export function PortableProductView({
             perfectDrawEnabled={false}
             name="portable-hit-area"
           />
+          {isSelected && (
+            <Line
+              points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
+              closed
+              stroke={PERSPECTIVE_SELECTION_STROKE}
+              strokeWidth={PERSPECTIVE_SELECTION_STROKE_WIDTH}
+              dash={PERSPECTIVE_SELECTION_DASH}
+              listening={false}
+              perfectDrawEnabled={false}
+              name="perspective-selection-outline"
+            />
+          )}
         </Group>
       ) : (
+        // Rect placement: the Transformer attaches to this Group. The compound body layers
+        // (warped content + device photo) render at object-local coordinates.
         <Group {...groupProps}>
-          {/* Every other descendant below is listening={false} (product photo, clip contents,
-              material overlays); Konva only bubbles click/tap/drag hits up to this Group from a
-              listening descendant, so without this rect a portable object isn't reselectable
-              after being deselected. `fill="transparent"` (not an omitted fill) is required:
-              Konva's default hit function skips painting the hit canvas entirely for a shape with
-              no fill, so an undefined fill is invisible AND unclickable, whereas a defined
-              zero-alpha fill is invisible but still hit-tested as this rect's full bounding box.
-              This is also this sprint's documented transparent-photo hit policy: the hit target is
-              always the object's full rectangular bounds, never the product photo's actual alpha
-              channel — per CLAUDE.md/ADR 0004, alpha-aware hit testing is out of scope. It paints
-              nothing, so it never appears in exported PNGs. */}
+          {/* Transparent full-bbox hit area — required for re-selection after deselect. */}
           <Rect
             x={0}
             y={0}
@@ -194,6 +197,10 @@ export function PortableProductView({
           {body}
         </Group>
       )}
+
+      {/* Global perspective warp: entire compound body captured off-canvas and warped into
+          perspectiveQuad. The body renders the device photo + warped screen content at
+          object-local coordinates; PerspectiveScreenView rasterizes and re-warps the whole. */}
       {showPerspective && object.perspectiveQuad && documentSize && (
         <PerspectiveScreenView
           width={object.width}
@@ -205,6 +212,7 @@ export function PortableProductView({
           {body}
         </PerspectiveScreenView>
       )}
+
       {documentSize && spaceBackground && object.occlusionMasks.length > 0 && (
         <OcclusionMaskLayer
           masks={object.occlusionMasks}

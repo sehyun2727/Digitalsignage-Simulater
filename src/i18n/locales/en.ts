@@ -22,6 +22,8 @@ export const en: Messages = {
   editorDeleteButton: 'Delete',
   editorUndoButton: 'Undo',
   editorRedoButton: 'Redo',
+  editorResetButton: 'Reset all',
+  editorResetConfirm: 'Discard everything and start over? This clears the space photo, all signage, and the undo history.',
   editorExportButton: 'Export as PNG',
   editorExportVideoButton: 'Export as video',
   editorExportVideoInProgressButton: 'Exporting...',
@@ -62,6 +64,7 @@ export const en: Messages = {
     'Video resolution is too large. Use 1920x1080 (Full HD) or smaller.',
   editorVideoUploadErrorDurationTooLong: 'Video length must be 30 seconds or shorter.',
   editorExportedAnnouncement: 'Exported the PNG image.',
+  editorExportedIosAnnouncement: 'Image opened in a new tab. Long-press the image to save it.',
   editorExportErrorAnnouncement: 'Failed to export the PNG image. Please try again.',
 
   editorCanvasPresetLabel: 'Canvas size',
@@ -177,10 +180,10 @@ export const en: Messages = {
   editorInstallationModeWindow: 'Window (see-through)',
   editorInstallationModeFreestanding: 'Freestanding',
 
-  editorOcclusionLabel: 'Foreground occlusion',
-  editorOcclusionMaskItemLabel: 'Mask',
-  editorOcclusionEmptyHint: 'No masks yet.',
-  editorOcclusionAddButton: 'Add mask',
+  editorOcclusionLabel: 'Mosaic',
+  editorOcclusionMaskItemLabel: 'Mosaic',
+  editorOcclusionEmptyHint: 'No mosaics yet.',
+  editorOcclusionAddButton: 'Add mosaic',
   editorOcclusionEditButton: 'Edit',
   editorOcclusionDeleteButton: 'Delete',
   editorOcclusionEnableLabel: 'Enabled',
@@ -190,7 +193,7 @@ export const en: Messages = {
   editorOcclusionOpacityLabel: 'Opacity',
   editorOcclusionApplyButton: 'Apply',
   editorOcclusionCancelButton: 'Cancel',
-  editorOcclusionNoSpaceHint: 'Add a space photo to edit foreground occlusion.',
+  editorOcclusionNoSpaceHint: 'Add a space photo to edit mosaics.',
   editorOcclusionErrorTooFewPoints: 'Not enough points (3 minimum).',
   editorOcclusionErrorTooManyPoints: 'Too many points.',
   editorOcclusionErrorInvalidValues: 'Point values are invalid.',
@@ -199,45 +202,29 @@ export const en: Messages = {
   editorOcclusionErrorSelfIntersecting: 'The outline crosses itself.',
   editorOcclusionErrorMinArea: 'The area is too small. Draw a larger shape.',
 
-  portableSectionHeading: 'My portable products',
   editorAddPortableButton: 'Add portable product',
-  portableTypeLabel: 'Type',
-  portableTypeValue: 'Portable product',
-
-  portableBackgroundNotice:
-    'A PNG or WebP with a transparent background produces a more natural result. JPGs and images with backgrounds will keep their original background.',
-  portableRightsNotice:
-    'Please ensure that you have the necessary rights or permission to use the uploaded product image. Images are processed in your browser and are not stored on a server.',
-  portableSupportedFormatsHint: 'JPG, JPEG, PNG, and WebP images are supported.',
-
-  portableStepSelectPhotoTitle: 'Select product photo',
-  portableStepDefineRegionTitle: 'Define screen region',
-  portableSelectPhotoButton: 'Select product photo',
-  portableChangePhotoButton: 'Change product photo',
-  portableNoPhotoSelectedHint: 'No photo selected yet.',
-
-  portableScreenRegionDragHint: 'Drag on the photo to mark the area that becomes the screen.',
-  portableScreenRegionMoveResizeHint:
-    'Drag inside the existing region to move it, or drag a corner handle to resize it. The X/Y/width/height number fields below offer the same control from the keyboard.',
-  portableScreenRegionXLabel: 'Region X',
-  portableScreenRegionYLabel: 'Region Y',
-  portableScreenRegionWidthLabel: 'Region width',
-  portableScreenRegionHeightLabel: 'Region height',
-  portableScreenRegionResetButton: 'Reset region',
-  portableScreenRegionEditButton: 'Edit screen region',
-  portableScreenRegionMinSizeError:
-    'The screen region is too small. Make it at least 5% of the photo in both width and height.',
-  portableReplacePhotoButton: 'Replace product photo',
-
-  portableCancelButton: 'Cancel',
-  portableBackButton: 'Back',
-  portableNextButton: 'Next',
-  portableAddButton: 'Add',
-  portableSaveButton: 'Save',
+  portableViewLabel: 'View',
+  portableViewOptions: {
+    'angled-left': 'Left 3/4 (−60°)',
+    front: 'Front (0°)',
+    'angled-right': 'Right 3/4 (+60°)',
+  },
+  portableProductPhotoLabel: 'Product photo',
+  portableUploadProductPhotoButton: 'Upload product photo',
+  portableReplaceProductPhotoButton: 'Replace product photo',
+  portableRemoveProductPhotoButton: 'Remove product photo',
+  portableScreenQuadEditButton: 'Edit screen area',
+  portableScreenQuadResetButton: 'Reset',
+  portableScreenQuadHint: 'Drag the four corner handles to mark the screen region on the product photo.',
+  portableScreenQuadApplyButton: 'Apply',
+  portableScreenQuadCancelButton: 'Cancel',
+  portableScreenQuadNoPhotoHint: 'Upload a product photo to edit the screen area.',
+  portableScreenQuadBackgroundHint: 'When no screen area is set, the template default region is used.',
 
   toolbarAriaLabel: 'Common actions',
   toolbarSpaceSectionHeading: 'Space',
   toolbarAddSignageSectionHeading: 'Add signage',
+  toolbarAddElementSubheading: 'Add text / image',
   toolbarSelectedSignageSectionHeading: 'Selected signage',
   toolbarAppearanceSectionHeading: 'Appearance',
   toolbarExportSectionHeading: 'Export',
@@ -294,7 +281,7 @@ export const en: Messages = {
   realismGuideStepEnvironment:
     'Sampling from the space photo creates an ambient color blend that matches the room.',
   realismGuideStepOcclusion:
-    'Foreground occlusion lets a pillar or fixture naturally cover part of the signage.',
+    'Mosaics let a pillar or fixture naturally cover part of the signage.',
   realismGuideDismissButton: 'Got it',
 
   salesReviewEnterButton: 'Sales review mode',
