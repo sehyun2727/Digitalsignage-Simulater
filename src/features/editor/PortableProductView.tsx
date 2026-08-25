@@ -45,7 +45,7 @@ interface PortableProductViewProps {
 }
 
 const PERSPECTIVE_SELECTION_STROKE = '#2563eb';
-const PERSPECTIVE_SELECTION_STROKE_WIDTH = 2;
+const PERSPECTIVE_SELECTION_STROKE_WIDTH = 3;
 const PERSPECTIVE_SELECTION_DASH: number[] = [8, 4];
 
 /** Flattens the four quad corners into an alternating x,y list in absolute document pixels
@@ -166,18 +166,6 @@ export function PortableProductView({
             perfectDrawEnabled={false}
             name="portable-hit-area"
           />
-          {isSelected && (
-            <Line
-              points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
-              closed
-              stroke={PERSPECTIVE_SELECTION_STROKE}
-              strokeWidth={PERSPECTIVE_SELECTION_STROKE_WIDTH}
-              dash={PERSPECTIVE_SELECTION_DASH}
-              listening={false}
-              perfectDrawEnabled={false}
-              name="perspective-selection-outline"
-            />
-          )}
         </Group>
       ) : (
         // Rect placement: the Transformer attaches to this Group. The compound body layers
@@ -211,6 +199,21 @@ export function PortableProductView({
         >
           {body}
         </PerspectiveScreenView>
+      )}
+      {showPerspective && isSelected && object.perspectiveQuad && documentSize && (
+        // Sibling AFTER PerspectiveScreenView so the outline sits on top of the warped body —
+        // previously nested inside the hit-area Group, where the warped raster covered it.
+        // `listening={false}` keeps clicks flowing to the hit-area Line above.
+        <Line
+          points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
+          closed
+          stroke={PERSPECTIVE_SELECTION_STROKE}
+          strokeWidth={PERSPECTIVE_SELECTION_STROKE_WIDTH}
+          dash={PERSPECTIVE_SELECTION_DASH}
+          listening={false}
+          perfectDrawEnabled={false}
+          name="perspective-selection-outline"
+        />
       )}
 
       {documentSize && spaceBackground && object.occlusionMasks.length > 0 && (

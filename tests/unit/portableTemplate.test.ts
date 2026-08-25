@@ -143,7 +143,7 @@ describe('portableTemplate — perspective mapping (homography round-trip)', () 
   );
 
   it('angled-left and angled-right are horizontal mirrors (x → 1-x) of each other', () => {
-    // PortableTemplateBody mirrors the angled.png asset via scaleX={-1} for angled-right,
+    // PortableTemplateBody mirrors the docodemo.webp asset via scaleX={-1} for angled-right,
     // so the preset quads must satisfy: angledRight.corner.x === 1 - angledLeft.corner.x for
     // every corresponding corner, and y values must match.
     const left = PORTABLE_PRESET_SCREEN_QUADS['angled-left'];

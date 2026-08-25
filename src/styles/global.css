@@ -259,13 +259,13 @@ a {
 
 .perspective-edit-handle {
   position: absolute;
-  /* 2.75rem = 44px: matches Apple's minimum touch target recommendation,
-     same as .occlusion-edit-handle — previously 1.75rem was too small to
-     reliably tap on iPhone. */
-  width: 2.75rem;
-  height: 2.75rem;
-  margin-left: -1.375rem;
-  margin-top: -1.375rem;
+  /* 2rem = 32px: smaller than the 44px Apple touch-target guideline but visually
+     less obtrusive over the quad; still well above the 1.75rem = 28px size that
+     was reported as too hard to tap on iPhone. */
+  width: 2rem;
+  height: 2rem;
+  margin-left: -1rem;
+  margin-top: -1rem;
   border-radius: 50%;
   background-color: #ffffff;
   border: 2px solid #2563eb;

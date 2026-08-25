@@ -717,7 +717,7 @@ describe('App', () => {
         templateView: 'front',
       });
 
-      // `angled-left` renders the same angled.png source asset flipped via a scaleX={-1}
+      // `angled-left` renders the same docodemo.webp source asset flipped via a scaleX={-1}
       // wrapper in PortableTemplateBody — no separate left-facing photo is bundled.
       await user.selectOptions(viewSelect, 'angled-left');
       expect(useEditorStore.getState().document.objects[0]).toMatchObject({

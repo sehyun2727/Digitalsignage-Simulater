@@ -33,7 +33,7 @@ interface SignageDisplayViewProps {
 }
 
 const PERSPECTIVE_SELECTION_STROKE = '#2563eb';
-const PERSPECTIVE_SELECTION_STROKE_WIDTH = 2;
+const PERSPECTIVE_SELECTION_STROKE_WIDTH = 3;
 const PERSPECTIVE_SELECTION_DASH: number[] = [8, 4];
 
 /** Flattens a normalized (0-1) quad into an alternating x,y coordinate array in absolute
@@ -264,22 +264,6 @@ export function SignageDisplayView({
             perfectDrawEnabled={false}
             name="display-hit-area"
           />
-          {isSelected && (
-            // Rendered as a separate sibling (not by stroking the hit-area Line above) so the
-            // export path can hide every `perspective-selection-outline` node in one query
-            // without also affecting hit testing. listening={false} keeps drag/click going to
-            // the hit-area sibling.
-            <Line
-              points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
-              closed
-              stroke={PERSPECTIVE_SELECTION_STROKE}
-              strokeWidth={PERSPECTIVE_SELECTION_STROKE_WIDTH}
-              dash={PERSPECTIVE_SELECTION_DASH}
-              listening={false}
-              perfectDrawEnabled={false}
-              name="perspective-selection-outline"
-            />
-          )}
         </Group>
       ) : (
         <Group {...groupProps}>
@@ -316,6 +300,23 @@ export function SignageDisplayView({
         >
           {body}
         </PerspectiveScreenView>
+      )}
+      {showPerspective && isSelected && object.perspectiveQuad && documentSize && (
+        // Drawn as a sibling AFTER PerspectiveScreenView so the outline sits on top of the warped
+        // body — previously nested inside the hit-area Group above, where the body's raster paint
+        // covered it and made the object look unselectable. `listening={false}` keeps clicks
+        // flowing to the hit-area Line, and the shared `perspective-selection-outline` name lets
+        // the export path hide it in one query.
+        <Line
+          points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
+          closed
+          stroke={PERSPECTIVE_SELECTION_STROKE}
+          strokeWidth={PERSPECTIVE_SELECTION_STROKE_WIDTH}
+          dash={PERSPECTIVE_SELECTION_DASH}
+          listening={false}
+          perfectDrawEnabled={false}
+          name="perspective-selection-outline"
+        />
       )}
       {documentSize && spaceBackground && object.occlusionMasks.length > 0 && (
         <OcclusionMaskLayer

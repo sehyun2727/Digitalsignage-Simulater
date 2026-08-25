@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Group, Image as KonvaImage } from 'react-konva';
-import angledUrl from '../../assets/portable/angled.png';
+import docodemoUrl from '../../assets/portable/docodemo.webp';
 import frontUrl from '../../assets/portable/front.png';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
 import {
@@ -28,16 +28,17 @@ interface PortableTemplateBodyProps {
  * `PortableProductView`. Every shape is `listening={false}` — the interactive hit area is a
  * separate transparent rect installed by `PortableProductView` around this body.
  *
- * The raw `angled.png` shows the display on the LEFT of the composition (camera on the
- * product's front-left), so `angled-left` uses the raw asset while `angled-right` is the
- * same asset mirrored via a `scaleX={-1}` wrapper — two views, one source photograph.
+ * `angled-left` uses the raw docodemo asset (a real product shot, delivered as a WebP with a
+ * native alpha channel), while `angled-right` is the same asset mirrored via a `scaleX={-1}`
+ * wrapper — two views, one source photograph.
  *
- * Both source PNGs are AI-generated product shots on a pure-white background. Rendering
- * them straight over a dark space photo would leave a hard white rectangle around the
- * product, so `useAssetImage` post-processes each photo once at load time to make near-white
- * pixels transparent (see the helper below). The black screen backdrop stays in the parent's
- * un-mirrored coordinate space so `ScreenComposition` (also parent-space) always lines up on
- * top of it — only the photo gets mirrored, not the screen rect.
+ * `front.png` is still an AI-generated shot on a pure-white background, so it needs the
+ * flood-fill background removal in `useAssetImage` to avoid a hard white rectangle around the
+ * product over a dark space photo. The docodemo WebP already ships with transparency, so
+ * `useAssetImage` skips the flood fill for it and only punches the screen-area hole. The
+ * black screen backdrop stays in the parent's un-mirrored coordinate space so
+ * `ScreenComposition` (also parent-space) always lines up on top of it — only the photo gets
+ * mirrored, not the screen rect.
  */
 export function PortableTemplateBody({
   view,
@@ -47,7 +48,7 @@ export function PortableTemplateBody({
 }: PortableTemplateBodyProps) {
   const isAngled = view === 'angled-right' || view === 'angled-left';
   const mirrored = view === 'angled-right';
-  const templateImage = useAssetImage(isAngled ? angledUrl : frontUrl);
+  const templateImage = useAssetImage(isAngled ? docodemoUrl : frontUrl);
 
   // When a user product photo is supplied, render it instead of the fixed template asset.
   const productPhotoAsset = productPhotoSourceId
@@ -92,17 +93,20 @@ export function PortableTemplateBody({
 const imageCache = new Map<string, HTMLCanvasElement>();
 
 /**
- * Returns the NormalizedQuad (in the RAW PNG's coordinate space) for the screen area that
- * should be made transparent. For the angled view both angled-left and angled-right use the
- * same source PNG (`angled.png`), whose screen is on the LEFT — this is the angled-left
- * quad. For angled-right the canvas is later rendered with scaleX={-1}, so the cleared left
- * area maps to the correct right-side screen position automatically.
+ * Returns the NormalizedQuad (in the raw source image's coordinate space) for the screen area
+ * that should be made transparent. Both angled views share the same source (`docodemo.webp`),
+ * so the angled-left quad is what gets punched out; angled-right renders that same asset with
+ * scaleX={-1}, which maps the cleared area to the right-hand screen position automatically.
  */
 function getScreenQuadForUrl(url: string): NormalizedQuad {
-  return url === angledUrl
+  return url === docodemoUrl
     ? PORTABLE_PRESET_SCREEN_QUADS['angled-left']
     : PORTABLE_PRESET_SCREEN_QUADS['front'];
 }
+
+/** Sources that already carry a real alpha channel (WebP), so `useAssetImage` skips the
+ *  flood-fill white-background removal and just punches the screen hole. */
+const NATIVELY_TRANSPARENT_SOURCES = new Set<string>([docodemoUrl]);
 
 /**
  * Erases the screen-area polygon from a processed template canvas so that ScreenComposition
@@ -143,7 +147,13 @@ function useAssetImage(url: string): HTMLCanvasElement | null {
     const img = new window.Image();
     img.onload = () => {
       if (cancelled) return;
-      const canvas = maskWhiteBackground(img);
+      // WebP sources ship with a real alpha channel already, so skip the flood fill that
+      // trims a white PNG background and only punch the screen hole. Running the flood
+      // fill anyway would either be a no-op (near-white pixels are already transparent)
+      // or accidentally erode subtle bright product highlights.
+      const canvas = NATIVELY_TRANSPARENT_SOURCES.has(url)
+        ? copyImageToCanvas(img)
+        : maskWhiteBackground(img);
       clearScreenArea(canvas, getScreenQuadForUrl(url));
       imageCache.set(url, canvas);
       setImage(canvas);
@@ -157,6 +167,18 @@ function useAssetImage(url: string): HTMLCanvasElement | null {
   }, [url]);
 
   return image;
+}
+
+/** Rasterizes `img` (already carrying an alpha channel) into a fresh canvas so the shared
+ *  `clearScreenArea` can then use `destination-out` compositing to punch the screen hole. */
+function copyImageToCanvas(img: HTMLImageElement): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+  ctx.drawImage(img, 0, 0);
+  return canvas;
 }
 
 /**
