@@ -11,7 +11,7 @@
 
 ![Digital Signage Simulator - Main Editor](./readme사진/editor-main.png)
 
-<video src="./readme사진/demo.webm" controls muted loop playsinline width="100%"></video>
+<video src="https://raw.githubusercontent.com/sehyun2727/Digitalsignage-Simulater/main/readme%EC%82%AC%EC%A7%84/demo.webm" controls muted loop playsinline width="100%"></video>
 
 > 영상이 재생되지 않을 경우 [demo.webm 직접 다운로드](./readme사진/demo.webm)
 
