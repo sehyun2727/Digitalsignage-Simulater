@@ -11,6 +11,10 @@
 
 ![Digital Signage Simulator - Main Editor](./readme사진/editor-main.png)
 
+<video src="./readme사진/demo.webm" controls muted loop playsinline width="100%"></video>
+
+> 영상이 재생되지 않을 경우 [demo.webm 직접 다운로드](./readme사진/demo.webm)
+
 ---
 
 ## From Sales Floor to Working Software
