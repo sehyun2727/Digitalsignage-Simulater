@@ -7,7 +7,7 @@ test.describe('unsupported browser locale', () => {
     await page.goto('/');
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
-    await expect(page.getByRole('heading', { name: 'Digital Signage Simulator' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'サイネージ シミュレーター' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'テキストを追加' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'サイネージ設置はこちら' })).toHaveAttribute(
       'href',

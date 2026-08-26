@@ -2,8 +2,6 @@ import type { Messages } from '../../types/i18n';
 
 export const en: Messages = {
   appTitle: 'Digital Signage Simulator',
-  disclaimer:
-    'This service is an independently operated digital signage simulation tool and is not an official service of HULL Inc.',
   editorCrashTitle: 'Something went wrong',
   editorCrashDescription:
     'The editor ran into an unexpected error. Your edits since the last export may not be saved. Please reload the page and try again.',
@@ -83,9 +81,9 @@ export const en: Messages = {
   editorSpaceBackgroundPrivacyNotice:
     'The photo is processed only in your browser and is never sent to a server.',
 
-  editorAddLedButton: 'Add LED display',
-  editorAddLcdButton: 'Add LCD display',
-  editorAddTransparentLedButton: 'Add Transparent LED display',
+  editorAddLedButton: 'LED',
+  editorAddLcdButton: 'LCD',
+  editorAddTransparentLedButton: 'See-through',
   toolbarAddSignageDisabledHint: 'Upload a space photo first to add signage.',
 
   editorContentLabel: 'Screen content',
@@ -202,7 +200,7 @@ export const en: Messages = {
   editorOcclusionErrorSelfIntersecting: 'The outline crosses itself.',
   editorOcclusionErrorMinArea: 'The area is too small. Draw a larger shape.',
 
-  editorAddPortableButton: 'Add portable product',
+  editorAddPortableButton: 'Portable',
   portableViewLabel: 'View',
   portableViewOptions: {
     'angled-left': 'Left 3/4 (−60°)',
@@ -288,4 +286,69 @@ export const en: Messages = {
   salesReviewExitButton: 'Back to editing',
   salesReviewModeHint:
     'A clean, non-editable view you can show a client as-is. Select "Back to editing" any time to resume editing.',
+
+  userGuideOpenButton: 'About & how to use',
+  userGuideTitle: 'About & how to use',
+  userGuideCloseButton: 'Close',
+  userGuideAboutHeading: 'About this tool',
+  userGuideAboutBody:
+    'A browser-based tool that lets you place digital signage over a photo of a space to preview how it would look after installation. Finished compositions can be exported as PNG images or videos.',
+  userGuideHowHeading: 'How to use',
+  userGuideHowSteps: [
+    'Upload a space photo to create the background.',
+    'Add signage (LED / LCD / see-through / portable) and place it.',
+    'Upload images or videos and assign them to the signage.',
+    'Export as PNG or video.',
+  ],
+  userGuideSignageHeading: 'Signage types',
+  userGuideSignageItems: [
+    'LED: Self-lit displays for outdoor or large formats. Strong emission and coarse pixel texture.',
+    'LCD: Indoor LCD displays. Even, subdued color reproduction.',
+    'See-through: Transparent panels through which the background remains visible. Suited to window installations.',
+    'Portable: Wheeled, freestanding signage that can be moved around a space.',
+  ],
+  userGuideContentHeading: 'Displayed content',
+  userGuideContentItems: [
+    'Select a signage object and use "Add content" to upload an image or video.',
+    'The "fit" setting switches between contain (whole content visible) and cover (cropped fill).',
+    'Advanced settings expose position, scale, and rotation.',
+    'You can also drop images or videos directly onto a signage screen.',
+  ],
+  userGuideRealismHeading: 'Making it look real',
+  userGuideRealismItems: [
+    'Rendering presets (Natural / Bright / Night) switch the lighting mood with one click.',
+    'Adjust material brightness, intensity, transparency, pixel grain, glow, and contrast individually.',
+    'LED displays support curvature (concave / convex) and curvature amount.',
+    'Contact shadow blends the signage onto the floor plane.',
+    'Sample a color from the space photo to create an ambient blend that matches the room.',
+    'Installation surface (wall / window / freestanding) changes how shadows and highlights behave.',
+  ],
+  userGuidePerspectiveHeading: 'Angled installs and foreground occlusion',
+  userGuidePerspectiveItems: [
+    'For an angled installation view, drag each corner individually to fit the signage into a perspective quad.',
+    'To hide part of the signage behind pillars or fixtures, draw a mask polygon over the covered portion.',
+  ],
+  userGuideOverlaysHeading: 'Text and image overlays',
+  userGuideOverlaysBody:
+    'Beyond signage, you can add plain text or images anywhere on the canvas. Click to select, drag to move, and use the corner handles to resize or rotate.',
+  userGuideTipsHeading: 'Editing tips',
+  userGuideTipsItems: [
+    'Delete / Backspace removes the selected element.',
+    'Ctrl+Z (⌘+Z on Mac) undoes; Ctrl+Y or Ctrl+Shift+Z redoes.',
+    'The ⟳ button resets everything (no undo).',
+    'The Original / Result toggle compares the plain space photo to the composed result.',
+    'Sales Review mode switches to a non-editable presentation view.',
+    'The language selector in the top-right switches between 日本語 / 한국어 / English.',
+  ],
+  userGuideDataHeading: 'Your data',
+  userGuideDataItems: [
+    'All uploaded images and videos are processed entirely inside your browser.',
+    'Nothing is uploaded or sent to any server.',
+    'No account registration is required and no personal information is collected.',
+    'No access logs or usage history are kept.',
+    'Closing or reloading the page discards all edits without saving.',
+  ],
+  userGuideExportHeading: 'About exports',
+  userGuideExportBody:
+    'Export as PNG or video (WebM). Exported files include a small HULL watermark in the bottom-right corner; it is not shown during live editing. Video export requires a browser with MediaRecorder support (e.g. Chrome).',
 };

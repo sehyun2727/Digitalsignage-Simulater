@@ -48,7 +48,7 @@ async function reselectViaCanvasClick(page: import('@playwright/test').Page) {
 test.describe('canvas object reselection', () => {
   test('an LED display is reselectable after being deselected', async ({ page }) => {
     await setup(page);
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
     await expect(deleteButton(page)).toBeEnabled();
 
     await deselectViaBlankCanvas(page);
@@ -62,7 +62,7 @@ test.describe('canvas object reselection', () => {
 
   test('an LCD display is reselectable after being deselected', async ({ page }) => {
     await setup(page);
-    await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
+    await page.getByRole('button', { name: 'LCD' }).click();
     await expect(deleteButton(page)).toBeEnabled();
 
     await deselectViaBlankCanvas(page);
@@ -76,7 +76,7 @@ test.describe('canvas object reselection', () => {
 
   test('a custom portable product is reselectable after being deselected', async ({ page }) => {
     await setup(page);
-    await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+    await page.getByRole('button', { name: 'ポータブル' }).click();
     const dialog = page.getByRole('dialog');
     const photo = await solidColorPng(page, '#1155ff');
     await dialog
@@ -128,7 +128,7 @@ test.describe('canvas object reselection', () => {
     page,
   }) => {
     await setup(page);
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
     await deselectViaBlankCanvas(page);
 
     const center = await canvasCenter(page);
@@ -149,7 +149,7 @@ test.describe('canvas object reselection', () => {
     page,
   }) => {
     await setup(page);
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
 
     // A second history entry (beyond the add itself) so Undo reverts the move, not the add.
     const center = await canvasCenter(page);
@@ -174,7 +174,7 @@ test.describe('canvas object reselection', () => {
     page,
   }) => {
     await setup(page);
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
 
     await deselectViaBlankCanvas(page);
     await reselectViaCanvasClick(page);
@@ -199,7 +199,7 @@ test.describe('canvas object reselection', () => {
     await setup(page);
     // Both default to the same centered position; addText is added second, so it renders on
     // top of the LED display in Konva's stacking order.
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
     await page.getByRole('button', { name: 'テキストを追加' }).click();
 
     await deselectViaBlankCanvas(page);
@@ -213,7 +213,7 @@ test.describe('canvas object reselection', () => {
     page,
   }) => {
     await setup(page);
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
 
     const firstDownloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'PNGで書き出す' }).click();

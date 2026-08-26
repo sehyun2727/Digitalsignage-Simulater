@@ -8,7 +8,7 @@ test('switching to the original view hides signage objects and clears selection'
 }) => {
   await page.goto('/');
   await addSpaceBackground(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
   await expect(page.getByRole('button', { name: '削除', exact: true })).toBeEnabled();
 
   await page.getByRole('button', { name: 'オリジナル', exact: true }).click();
@@ -49,7 +49,7 @@ test('original view with a space photo hides the empty-space hint', async ({ pag
 test('dropping a file onto the canvas while in the original view is a no-op', async ({ page }) => {
   await page.goto('/');
   await addSpaceBackground(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   await page.getByRole('button', { name: 'オリジナル', exact: true }).click();
 

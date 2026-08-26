@@ -48,14 +48,14 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await page.goto('/');
 
   // 2. Confirm the Japanese default (default locale, no stored preference).
-  await expect(page.getByRole('heading', { name: 'Digital Signage Simulator' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'サイネージ シミュレーター' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
 
   // 3. Upload a valid space background photo; its resolution becomes the export size.
   await addSpaceBackground(page, 1920, 1080);
 
   // 4. Add an LED display.
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   // 5. Select the display (adding it auto-selects it; the content section confirms this).
   await expect(
@@ -114,10 +114,10 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await page.getByRole('button', { name: 'PNGで書き出す' }).scrollIntoViewIfNeeded();
   await expect(page.getByRole('button', { name: 'PNGで書き出す' })).toBeVisible();
   await page
-    .getByRole('button', { name: 'LEDディスプレイを追加', exact: true })
+    .getByRole('button', { name: 'LED', exact: true })
     .scrollIntoViewIfNeeded();
   await expect(
-    page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }),
+    page.getByRole('button', { name: 'LED', exact: true }),
   ).toBeVisible();
 
   // 15. Confirm the canvas region is present and usable (rendered with a non-zero box).
@@ -134,10 +134,12 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await expect(hullLink).toHaveAttribute('target', '_blank');
   await expect(hullLink).toHaveAttribute('rel', 'noopener noreferrer');
 
-  // 17. Confirm the independent-service disclaimer is visible/reachable.
-  const disclaimer = page.locator('.disclaimer');
-  await disclaimer.scrollIntoViewIfNeeded();
-  await expect(disclaimer).toBeVisible();
+  // 17. Confirm the footer user-guide link is present and opens the modal on tap.
+  const guideLink = page.getByRole('button', { name: '使い方・このツールについて' });
+  await guideLink.scrollIntoViewIfNeeded();
+  await expect(guideLink).toBeVisible();
+  await guideLink.click();
+  await expect(page.getByRole('heading', { name: 'このツールについて' })).toBeVisible();
 });
 
 test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 390x844', async ({
@@ -151,7 +153,7 @@ test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 
   await addSpaceBackground(page, 1080, 1920);
   await page.getByRole('button', { name: '縦長 (9:16)' }).click();
 
-  await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
+  await page.getByRole('button', { name: 'LCD' }).click();
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
 
   const content = await solidColorPng(page, '#ff8800');
@@ -179,7 +181,7 @@ test('mobile: adds a custom portable product with a screen region and exports it
 
   // 1. Open the portable builder and confirm it renders as an accessible dialog at this
   // viewport (no horizontal overflow introduced by the modal itself).
-  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  await page.getByRole('button', { name: 'ポータブル' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   await expectNoHorizontalOverflow(page);
@@ -231,7 +233,7 @@ test('mobile: dragging the portable screen region moves and resizes it at 390x84
   await page.goto('/');
   await addSpaceBackground(page, 1920, 1080);
 
-  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  await page.getByRole('button', { name: 'ポータブル' }).click();
   const dialog = page.getByRole('dialog');
   const productPhoto = await solidColorPng(page, '#1155ff');
   await dialog
@@ -293,7 +295,7 @@ test('mobile: an LED display is reselectable by tap after being deselected at 39
   await page.goto('/');
   await addSpaceBackground(page, 1920, 1080);
 
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
   await expect(deleteButton(page)).toBeEnabled();
 
   const canvasContainer = page.locator('.editor-canvas-container');
@@ -318,7 +320,7 @@ test('mobile: adds a transparent LED display and blends more of the space backgr
   await page.goto('/');
   await addSpaceBackground(page, 1920, 1080);
 
-  await page.getByRole('button', { name: '透過LEDディスプレイを追加' }).click();
+  await page.getByRole('button', { name: '透過LED' }).click();
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue(
     'transparent-led',
   );
@@ -358,7 +360,7 @@ test('mobile: applies a four-point perspective quad via the corner input fields 
   await page.goto('/');
   await addSpaceBackground(page, 1920, 1080);
 
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
   await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
   await expectNoHorizontalOverflow(page);
 
@@ -405,7 +407,7 @@ test('mobile: draws a foreground occlusion mask via tap-to-add points at 390x844
   await page.goto('/');
   await addSpaceBackground(page, 1080, 1920);
   await page.getByRole('button', { name: '縦長 (9:16)' }).click();
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
   await page.getByRole('button', { name: '詳細設定', exact: true }).scrollIntoViewIfNeeded();
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
 
@@ -449,7 +451,7 @@ test('mobile smoke: a real-photo-style scene renders, exports a PNG, and introdu
   await expect(page.getByRole('button', { name: '空間写真を削除' })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
+  await page.getByRole('button', { name: 'LCD' }).click();
   const content = await solidColorPng(page, '#2563eb');
   await page
     .getByLabel('コンテンツを追加')

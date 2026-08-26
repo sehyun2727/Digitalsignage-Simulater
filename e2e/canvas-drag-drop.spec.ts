@@ -89,7 +89,7 @@ const DISPLAY_SCREEN_CENTER = { x: 960, y: 540 };
 
 test('dropping an image file onto an LED screen region assigns it as content', async ({ page }) => {
   await setup(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   const png = await solidColorPng(page, '#ff8800');
   await dropImageOntoCanvas(page, png, DISPLAY_SCREEN_CENTER);
@@ -99,7 +99,7 @@ test('dropping an image file onto an LED screen region assigns it as content', a
 
 test('dropping onto a rotated display screen region still hits it correctly', async ({ page }) => {
   await setup(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   const rotationInput = page.getByRole('spinbutton', { name: '回転' });
   await rotationInput.fill('40');
@@ -132,8 +132,8 @@ test('dropping onto the topmost of two overlapping displays assigns content only
   // second, so it renders on top of the LED display in Konva's stacking order (same z-order
   // convention as reselection.spec.ts's overlapping-objects test). Since both objects share the
   // same size, the material combobox (not width) identifies which one received the drop.
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
-  await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
+  await page.getByRole('button', { name: 'LCD' }).click();
 
   const png = await solidColorPng(page, '#00cc44');
   await dropImageOntoCanvas(page, png, DISPLAY_SCREEN_CENTER);
@@ -157,7 +157,7 @@ test('dropping onto the topmost of two overlapping displays assigns content only
 
 test('dropping outside any screen region does nothing', async ({ page }) => {
   await setup(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
   await expect(page.getByRole('button', { name: '削除', exact: true })).toBeEnabled();
 
   const png = await solidColorPng(page, '#ff0000');
@@ -177,7 +177,7 @@ test('dropping an unsupported file type onto a screen region shows an accessible
   page,
 }) => {
   await setup(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   const notAnImage = Buffer.from('this is not a real image').toString('base64');
   await dropImageOntoCanvas(page, notAnImage, DISPLAY_SCREEN_CENTER, {

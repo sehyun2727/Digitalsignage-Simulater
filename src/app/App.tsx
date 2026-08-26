@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { HullCta } from '../components/HullCta';
+import { UserGuideModal } from '../components/UserGuideModal';
 import { EditorErrorBoundary } from '../features/editor/EditorErrorBoundary';
 import { EditorLayout } from '../features/editor/EditorLayout';
 import { useLocale } from '../i18n/localeContext';
@@ -6,6 +8,7 @@ import { LocaleProvider } from '../i18n/LocaleProvider';
 
 function AppShell() {
   const { messages } = useLocale();
+  const [userGuideOpen, setUserGuideOpen] = useState(false);
 
   return (
     <div className="app-shell">
@@ -20,15 +23,21 @@ function AppShell() {
       </main>
 
       <footer className="app-footer">
-        {/* title exposes the full disclaimer text on hover in case the compact single-line
-         *  rendering ellipsizes it on narrow viewports. Text itself stays as-is (a legal
-         *  requirement per CLAUDE.md §1) — only its layout footprint is compressed. */}
-        <p className="disclaimer" title={messages.disclaimer}>
-          {messages.disclaimer}
-        </p>
+        {/* The independent-service disclaimer (CLAUDE.md §1) now lives inside the user guide
+         *  modal opened by this link, alongside the browser-local privacy notes and basic
+         *  usage steps, instead of taking a persistent line of below-canvas height. */}
+        <button
+          type="button"
+          className="user-guide-open-button"
+          onClick={() => setUserGuideOpen(true)}
+        >
+          {messages.userGuideOpenButton}
+        </button>
       </footer>
 
       <HullCta />
+
+      {userGuideOpen && <UserGuideModal onClose={() => setUserGuideOpen(false)} />}
     </div>
   );
 }

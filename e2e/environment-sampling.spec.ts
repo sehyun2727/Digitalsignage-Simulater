@@ -19,7 +19,7 @@ test('sampling the space photo tints the screen toward its ambient color as stre
 }) => {
   await page.goto('/');
   await addSpaceBackground(page, { width: 1920, height: 1080, color: '#ff0000' });
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   const content = await solidColorPng(page, '#00ff00');
   await page

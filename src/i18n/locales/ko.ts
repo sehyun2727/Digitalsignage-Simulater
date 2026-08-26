@@ -2,8 +2,6 @@ import type { Messages } from '../../types/i18n';
 
 export const ko: Messages = {
   appTitle: 'Digital Signage Simulator',
-  disclaimer:
-    '본 서비스는 개인이 기획·운영하는 독립적인 디지털 사이니지 시뮬레이션 도구이며, HULL 주식회사의 공식 서비스가 아닙니다.',
   editorCrashTitle: '문제가 발생했습니다',
   editorCrashDescription:
     '편집기에서 예기치 못한 오류가 발생했습니다. 지금까지의 편집 내용은 저장되지 않았을 수 있습니다. 페이지를 새로고침해 다시 시도해 주세요.',
@@ -83,9 +81,9 @@ export const ko: Messages = {
   editorSpaceBackgroundDownscaledNotice: '이미지가 너무 커서 안전한 크기로 자동 축소되었습니다.',
   editorSpaceBackgroundPrivacyNotice: '사진은 브라우저에서만 처리되며 서버로 전송되지 않습니다.',
 
-  editorAddLedButton: 'LED 사이네지 추가',
-  editorAddLcdButton: 'LCD 사이네지 추가',
-  editorAddTransparentLedButton: '시스루 사이네지 추가',
+  editorAddLedButton: 'LED',
+  editorAddLcdButton: 'LCD',
+  editorAddTransparentLedButton: '시스루',
   toolbarAddSignageDisabledHint: '사이네지를 추가하려면 먼저 공간 사진을 업로드해 주세요.',
 
   editorContentLabel: '화면 콘텐츠',
@@ -203,7 +201,7 @@ export const ko: Messages = {
   editorOcclusionErrorSelfIntersecting: '윤곽선이 교차합니다.',
   editorOcclusionErrorMinArea: '영역이 너무 작습니다. 조금 더 크게 그려주세요.',
 
-  editorAddPortableButton: '포터블 제품 추가',
+  editorAddPortableButton: '포터블',
   portableViewLabel: '뷰',
   portableViewOptions: {
     'angled-left': '좌측 3/4 (−60°)',
@@ -288,4 +286,69 @@ export const ko: Messages = {
   salesReviewExitButton: '편집으로 돌아가기',
   salesReviewModeHint:
     '편집 기능을 비활성화한, 고객에게 그대로 보여줄 수 있는 화면입니다. "편집으로 돌아가기"를 누르면 언제든 편집을 다시 시작할 수 있습니다.',
+
+  userGuideOpenButton: '사용법 · 이 서비스에 대하여',
+  userGuideTitle: '사용법 · 이 서비스에 대하여',
+  userGuideCloseButton: '닫기',
+  userGuideAboutHeading: '이 서비스에 대하여',
+  userGuideAboutBody:
+    '공간 사진 위에 디지털 사이니지를 배치해, 실제로 설치했을 때의 모습을 브라우저에서 시뮬레이션할 수 있는 도구입니다. 완성한 합성 결과는 PNG 이미지 또는 동영상으로 내보낼 수 있습니다.',
+  userGuideHowHeading: '기본 사용법',
+  userGuideHowSteps: [
+    '공간 사진을 업로드해 배경을 만듭니다.',
+    '사이니지(LED / LCD / 시스루 / 포터블)를 추가해 배치합니다.',
+    '사이니지에 표시할 이미지·영상을 업로드해 할당합니다.',
+    'PNG 또는 동영상으로 내보냅니다.',
+  ],
+  userGuideSignageHeading: '사이니지 종류',
+  userGuideSignageItems: [
+    'LED: 실외·대형에 사용되는 자발광 디스플레이. 강한 발광과 거친 픽셀감이 특징입니다.',
+    'LCD: 실내용 액정 디스플레이. 균일하고 차분한 발색이 됩니다.',
+    '시스루: 배경이 비치는 투과 타입. 윈도우 설치 등에 사용할 수 있습니다.',
+    '포터블: 캐스터가 달린 자립형 사이니지. 이동해서 쓰는 이미지를 만들 수 있습니다.',
+  ],
+  userGuideContentHeading: '표시할 콘텐츠',
+  userGuideContentItems: [
+    '사이니지를 선택한 뒤 "콘텐츠 추가"에서 이미지나 영상을 업로드합니다.',
+    '"핏"에서 전체 표시(contain)와 잘라 표시(cover)를 전환할 수 있습니다.',
+    '세부 설정을 열면 위치·확대율·회전을 세밀하게 조정할 수 있습니다.',
+    '드래그 앤 드롭으로 사이니지 화면에 직접 이미지/영상을 떨어뜨릴 수도 있습니다.',
+  ],
+  userGuideRealismHeading: '더 자연스럽게 보이기',
+  userGuideRealismItems: [
+    '렌더링 프리셋(자연 / 밝음 / 야간)으로 광원 분위기를 원클릭으로 전환할 수 있습니다.',
+    '소재의 밝기·강도·투명도·픽셀 입자감·글로우·대비를 개별 조정할 수 있습니다.',
+    'LED에는 곡면(오목 / 볼록)과 곡률을 설정할 수 있습니다.',
+    '접지 그림자로 바닥면과의 그림자를 자연스럽게 추가할 수 있습니다.',
+    '공간 사진에서 색을 "샘플링"해 환경 블렌드를 만들면 배경에 자연스럽게 어우러집니다.',
+    '설치면(벽 / 창 / 자립)에 따라 그림자와 질감이 바뀝니다.',
+  ],
+  userGuidePerspectiveHeading: '비스듬한 설치와 앞쪽 가림 표현',
+  userGuidePerspectiveItems: [
+    '비스듬한 각도의 설치 이미지를 만들고 싶을 때는 네 모서리를 자유롭게 드래그해 원근감 있는 사각형에 맞출 수 있습니다.',
+    '기둥이나 집기 앞에 사이니지를 겹치고 싶을 때는 모자이크를 설정해 해당 부분을 자연스럽게 가릴 수 있습니다.',
+  ],
+  userGuideOverlaysHeading: '텍스트·이미지 추가',
+  userGuideOverlaysBody:
+    '사이니지 이외에도 캔버스에 임의의 텍스트나 이미지를 추가할 수 있습니다. 클릭으로 선택, 드래그로 이동, 네 모서리 핸들로 크기 조정과 회전을 할 수 있습니다.',
+  userGuideTipsHeading: '편집 팁',
+  userGuideTipsItems: [
+    'Delete / Backspace: 선택 중인 요소 삭제',
+    'Ctrl+Z(Mac ⌘+Z)로 실행 취소, Ctrl+Y 또는 Ctrl+Shift+Z로 다시 실행',
+    '⟳ 버튼으로 전체 초기화(되돌릴 수 없습니다)',
+    '"원본 / 합성 결과"로 합성 전의 공간 사진과 결과를 비교할 수 있습니다.',
+    '"영업 리뷰 모드"로 편집을 비활성화한 프레젠테이션 뷰로 전환할 수 있습니다.',
+    '언어는 헤더 우측 상단 셀렉터에서 日本語 / 한국어 / English 로 전환할 수 있습니다.',
+  ],
+  userGuideDataHeading: '데이터 처리',
+  userGuideDataItems: [
+    '업로드한 이미지·영상은 모두 브라우저 내에서만 처리됩니다.',
+    '서버로의 전송·업로드는 일절 없습니다.',
+    '계정 등록이 필요 없으며 개인정보를 수집하지 않습니다.',
+    '접속 로그나 이용 기록도 저장하지 않습니다.',
+    '페이지를 닫거나 새로고침하면 편집 내용은 저장되지 않고 사라집니다.',
+  ],
+  userGuideExportHeading: '내보내기에 대하여',
+  userGuideExportBody:
+    'PNG 또는 동영상(WebM)으로 내보낼 수 있습니다. 내보낸 파일의 우측 하단에는 작은 HULL 워터마크가 자동으로 추가됩니다. 편집 중 프리뷰에는 표시되지 않습니다. 동영상 내보내기는 MediaRecorder를 지원하는 브라우저(Chrome 등)에서 이용할 수 있습니다.',
 };

@@ -19,7 +19,7 @@ test('does not block the toolbar: sections stay usable while the card is showing
   await addSpaceBackground(page);
   await expect(page.getByRole('note', { name: 'ようこそ' })).toBeVisible();
 
-  const ledButton = page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true });
+  const ledButton = page.getByRole('button', { name: 'LED', exact: true });
   await expect(ledButton).toBeEnabled();
   await ledButton.click();
 
@@ -67,7 +67,7 @@ test('walks through all 4 steps, each CTA reusing an existing toolbar/store/expo
   await expect(page.getByText('2. サイネージを追加')).toBeVisible();
   await page.getByRole('button', { name: 'サイネージの追加へ' }).click();
   await expect(page.locator('#toolbar-add-signage-trigger')).toBeFocused();
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
   await expect(page.getByRole('heading', { name: '選択中のサイネージ' })).toBeVisible();
 
   // Step 3: apply content. The CTA focuses the real toolbar content upload trigger.

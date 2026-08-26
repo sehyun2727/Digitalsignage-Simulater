@@ -15,34 +15,21 @@ describe('detectInitialLocale', () => {
     vi.restoreAllMocks();
   });
 
-  it('falls back to Japanese when nothing is stored and the browser locale is unsupported', () => {
-    setBrowserLanguages(['fr-FR', 'de-DE']);
+  it('defaults to Japanese when nothing is stored, regardless of browser locale', () => {
+    setBrowserLanguages(['ko-KR', 'en-US']);
 
     expect(detectInitialLocale()).toBe('ja');
   });
 
-  it('uses a supported browser locale when nothing is stored', () => {
-    setBrowserLanguages(['ko-KR']);
-
-    expect(detectInitialLocale()).toBe('ko');
-  });
-
-  it('prefers a previously stored locale over the browser locale', () => {
+  it('uses a previously stored supported locale', () => {
     setBrowserLanguages(['en-US']);
     window.localStorage.setItem('signage-canvas.locale', 'ko');
 
     expect(detectInitialLocale()).toBe('ko');
   });
 
-  it('ignores an unsupported stored value and falls through to the browser locale', () => {
+  it('falls back to Japanese when the stored value is unsupported', () => {
     setBrowserLanguages(['en-US']);
-    window.localStorage.setItem('signage-canvas.locale', 'fr');
-
-    expect(detectInitialLocale()).toBe('en');
-  });
-
-  it('falls back to Japanese when both the stored value and the browser locale are unsupported', () => {
-    setBrowserLanguages(['fr-FR']);
     window.localStorage.setItem('signage-canvas.locale', 'fr');
 
     expect(detectInitialLocale()).toBe('ja');

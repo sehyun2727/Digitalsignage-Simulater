@@ -13,10 +13,13 @@ export interface UiState {
   salesReviewMode: boolean;
   onboardingDismissed: boolean;
   realismGuideDismissed: boolean;
+  /** When true, the HULL watermark is suppressed from PNG and video exports. */
+  watermarkDisabled: boolean;
   setComparisonMode: (value: boolean) => void;
   setSalesReviewMode: (value: boolean) => void;
   dismissOnboarding: () => void;
   dismissRealismGuide: () => void;
+  toggleWatermarkDisabled: () => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -24,6 +27,7 @@ export const useUiStore = create<UiState>((set) => ({
   salesReviewMode: false,
   onboardingDismissed: readOnboardingDismissed(),
   realismGuideDismissed: readRealismGuideDismissed(),
+  watermarkDisabled: false,
   setComparisonMode: (value) => set({ comparisonMode: value }),
   setSalesReviewMode: (value) => set({ salesReviewMode: value }),
   dismissOnboarding: () => {
@@ -34,4 +38,5 @@ export const useUiStore = create<UiState>((set) => ({
     writeRealismGuideDismissed();
     set({ realismGuideDismissed: true });
   },
+  toggleWatermarkDisabled: () => set((state) => ({ watermarkDisabled: !state.watermarkDisabled })),
 }));

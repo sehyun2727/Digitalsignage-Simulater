@@ -16,7 +16,7 @@ test.use({ locale: 'ja-JP' });
 test('a window-mounted display casts a faint reflection below itself', async ({ page }) => {
   await page.goto('/');
   await addSpaceBackground(page, { width: 1920, height: 1080, color: '#111318' });
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   const content = await solidColorPng(page, '#ffffff');
   await page

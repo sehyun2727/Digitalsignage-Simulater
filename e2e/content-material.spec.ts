@@ -23,7 +23,7 @@ test('adds an LED display defaulting to led material', async ({ page }) => {
   await page.goto('/');
   await addSpaceBackground(page);
 
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
@@ -35,7 +35,7 @@ test('adds an LCD display defaulting to LCD material', async ({ page }) => {
   await page.goto('/');
   await addSpaceBackground(page);
 
-  await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
+  await page.getByRole('button', { name: 'LCD' }).click();
 
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
 });
@@ -45,7 +45,7 @@ test('uploads content into a display, edits fit/offset/scale, and resets placeme
 }) => {
   await page.goto('/');
   await addSpaceBackground(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   const content = await solidColorPng(page, '#00ff00');
   await page
@@ -73,7 +73,7 @@ test('uploads content into a display, edits fit/offset/scale, and resets placeme
 test('removes uploaded content from a display', async ({ page }) => {
   await page.goto('/');
   await addSpaceBackground(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   const content = await solidColorPng(page, '#00ff00');
   await page
@@ -93,7 +93,7 @@ test('uploads a generated video clip into a display and shows the autoplay/loop/
 }) => {
   await page.goto('/');
   await addSpaceBackground(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   await addVideoContent(page);
 
@@ -108,7 +108,7 @@ test('exported PNG stays at the exact space photo resolution with a display pres
 }) => {
   await page.goto('/');
   await addSpaceBackground(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'PNGで書き出す' }).click();
@@ -125,7 +125,7 @@ test('cover-fit display content is clipped to the screen region and never spills
   await page.goto('/');
   await addSpaceBackground(page);
 
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   // A solid-red cover-fit image fills the whole screen region regardless of its own
   // aspect ratio, so any point strictly inside the screen rect must sample as red and
@@ -173,7 +173,7 @@ test('a newly added LED display has its contact shadow enabled by default and it
 }) => {
   await page.goto('/');
   await addSpaceBackground(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   // Regression check for the "shadow disabled by default" defect: a freshly added display must
   // already have a contact shadow, not require the user to opt in.
@@ -206,7 +206,7 @@ test('rendering presets update the material sliders and the export brightness to
 }) => {
   await page.goto('/');
   await addSpaceBackground(page);
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   const brightnessSlider = page.getByRole('slider', { name: '明るさ' });
   const naturalBrightness = await brightnessSlider.inputValue();

@@ -70,7 +70,7 @@ test.describe('four-point perspective placement', () => {
     page,
   }) => {
     await setup(page);
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
 
     await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
     const topLeftHandle = page.getByRole('slider', { name: '左上' });
@@ -91,7 +91,7 @@ test.describe('four-point perspective placement', () => {
     page,
   }) => {
     await setup(page);
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
     await applyTopLeftPerspectiveQuad(page);
     await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeVisible();
 
@@ -134,7 +134,7 @@ test.describe('four-point perspective placement', () => {
     page,
   }) => {
     await setup(page);
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
     await applyTopLeftPerspectiveQuad(page);
 
     // A second, default-centered object added afterward overlaps the LED display's flat
@@ -171,7 +171,7 @@ test.describe('transparent LED window blending', () => {
     // A saturated, unambiguous background color makes the directional pixel comparison below
     // (more transparency -> more background showing through -> higher red channel) robust.
     await addSpaceBackground(page, { ...DOCUMENT_SIZE, color: '#ff0000' });
-    await page.getByRole('button', { name: '透過LEDディスプレイを追加' }).click();
+    await page.getByRole('button', { name: '透過LED' }).click();
     await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue(
       'transparent-led',
     );
@@ -221,7 +221,7 @@ test.describe('video content preview and export', () => {
     page,
   }) => {
     await setup(page);
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
 
     await addVideoContent(page);
     await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();

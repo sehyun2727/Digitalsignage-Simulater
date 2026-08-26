@@ -1,9 +1,7 @@
 import type { Messages } from '../../types/i18n';
 
 export const ja: Messages = {
-  appTitle: 'Digital Signage Simulator',
-  disclaimer:
-    '本サービスは個人が企画・運営する独立したデジタルサイネージシミュレーションツールであり、HULL株式会社の公式サービスではありません。',
+  appTitle: 'サイネージ シミュレーター',
   editorCrashTitle: '問題が発生しました',
   editorCrashDescription:
     'エディタで予期しないエラーが発生しました。これまでの編集内容は保存されていない可能性があります。ページを再読み込みしてもう一度お試しください。',
@@ -85,9 +83,9 @@ export const ja: Messages = {
   editorSpaceBackgroundPrivacyNotice:
     '写真はブラウザ内でのみ処理され、サーバーには送信されません。',
 
-  editorAddLedButton: 'LEDディスプレイを追加',
-  editorAddLcdButton: 'LCDディスプレイを追加',
-  editorAddTransparentLedButton: '透過LEDディスプレイを追加',
+  editorAddLedButton: 'LED',
+  editorAddLcdButton: 'LCD',
+  editorAddTransparentLedButton: 'シースルー',
   toolbarAddSignageDisabledHint:
     'サイネージを追加するには、先に空間写真をアップロードしてください。',
 
@@ -206,7 +204,7 @@ export const ja: Messages = {
   editorOcclusionErrorSelfIntersecting: '輪郭線が交差しています。',
   editorOcclusionErrorMinArea: '範囲が小さすぎます。もう少し大きく囲んでください。',
 
-  editorAddPortableButton: 'ポータブル製品を追加',
+  editorAddPortableButton: 'ポータブル',
   portableViewLabel: 'ビュー',
   portableViewOptions: {
     'angled-left': '左3/4 (−60°)',
@@ -292,4 +290,69 @@ export const ja: Messages = {
   salesReviewExitButton: '編集に戻る',
   salesReviewModeHint:
     '編集操作を無効にした、お客様にそのままお見せできる表示です。「編集に戻る」を押すといつでも編集を再開できます。',
+
+  userGuideOpenButton: '使い方・このツールについて',
+  userGuideTitle: '使い方・このツールについて',
+  userGuideCloseButton: '閉じる',
+  userGuideAboutHeading: 'このツールについて',
+  userGuideAboutBody:
+    '空間写真の上にデジタルサイネージを配置し、実際に設置したときの見え方をブラウザ上でシミュレートできるツールです。作成した合成結果はPNG画像または動画として書き出せます。',
+  userGuideHowHeading: '基本の流れ',
+  userGuideHowSteps: [
+    '空間写真をアップロードして背景を作成します。',
+    'サイネージ(LED / LCD / シースルー / ポータブル)を追加して配置します。',
+    'サイネージに表示する画像・動画をアップロードして割り当てます。',
+    'PNGまたは動画として書き出します。',
+  ],
+  userGuideSignageHeading: 'サイネージの種類',
+  userGuideSignageItems: [
+    'LED: 屋外・大型で使われる自発光ディスプレイ。強い発光と粗いピクセル感が特徴です。',
+    'LCD: 屋内向けの液晶ディスプレイ。均一で落ち着いた発色になります。',
+    'シースルー: 背景が透けて見える透過タイプ。ウィンドウ設置などに使えます。',
+    'ポータブル: キャスター付きの自立型サイネージ。動かして使うイメージを作れます。',
+  ],
+  userGuideContentHeading: '表示するコンテンツ',
+  userGuideContentItems: [
+    'サイネージを選択して「コンテンツを追加」から画像や動画をアップロードします。',
+    '「フィット」で全体表示(contain)と切り抜き表示(cover)を切り替えられます。',
+    '詳細設定を開くと、位置・拡大率・回転を細かく調整できます。',
+    'ドラッグ&ドロップで直接サイネージ画面に画像や動画を落とすこともできます。',
+  ],
+  userGuideRealismHeading: 'よりリアルに見せる',
+  userGuideRealismItems: [
+    'レンダリングプリセット(自然/明るい/夜間)で光の雰囲気をワンクリックで切り替えられます。',
+    '素材の明るさ・強度・透明度・ピクセル粒感・グロー・コントラストを個別に調整できます。',
+    'LEDには曲面(凹面/凸面)と曲率を設定できます。',
+    '接地シャドウで床面との影のなじみを追加できます。',
+    '空間写真から色を「サンプリング」して環境ブレンドを作ると、背景に自然に馴染みます。',
+    '設置面(壁 / 窓 / 自立)によって影や質感の出方が変わります。',
+  ],
+  userGuidePerspectiveHeading: '斜め設置と手前オブジェクトの表現',
+  userGuidePerspectiveItems: [
+    '斜めから見た設置イメージを作りたい場合、四隅を自由にドラッグして遠近感のある四角形にフィットさせられます。',
+    '柱や什器などの手前にサイネージを重ねたい場合、モザイクを設定してその部分を自然に隠せます。',
+  ],
+  userGuideOverlaysHeading: 'テキスト・画像の追加',
+  userGuideOverlaysBody:
+    'サイネージだけでなく、キャンバスに任意のテキストや画像を追加することもできます。クリックで選択、ドラッグで移動、四隅ハンドルでリサイズや回転ができます。',
+  userGuideTipsHeading: '編集のヒント',
+  userGuideTipsItems: [
+    'Delete / Backspace: 選択中の要素を削除',
+    'Ctrl+Z(Mac ⌘+Z)で元に戻す、Ctrl+Y または Ctrl+Shift+Z でやり直す',
+    '⟳ ボタンですべてをリセット(戻せません)',
+    '「オリジナル / 仕上がり」で合成前の空間写真と結果を比較できます。',
+    '「営業レビューモード」で編集を無効化した提示ビューに切り替えられます。',
+    '言語はヘッダー右上のセレクタから 日本語 / 한국어 / English を切り替えられます。',
+  ],
+  userGuideDataHeading: 'データの取り扱い',
+  userGuideDataItems: [
+    'アップロードした画像・動画はすべてブラウザ内でのみ処理されます。',
+    'サーバーへの送信・アップロードは一切ありません。',
+    'アカウント登録は不要で、個人情報は収集しません。',
+    'アクセスログや利用履歴も保存しません。',
+    'ページを閉じるか再読み込みすると、編集内容は保存されずに消えます。',
+  ],
+  userGuideExportHeading: '書き出しについて',
+  userGuideExportBody:
+    'PNGまたは動画(WebM)として書き出せます。書き出したファイルの右下には、小さくHULLのウォーターマークが自動で入ります。編集中のプレビューには表示されません。動画の書き出しは MediaRecorder に対応するブラウザ(Chrome など)で利用できます。',
 };

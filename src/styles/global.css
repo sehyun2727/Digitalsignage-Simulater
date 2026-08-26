@@ -452,6 +452,17 @@ a {
   background-color: rgba(255, 255, 255, 0.92);
 }
 
+.watermark-off-badge {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.2rem;
+  background-color: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .toolbar {
   flex: 0 0 22rem;
   min-width: 0;
@@ -708,25 +719,32 @@ a {
 }
 
 .app-footer {
-  /* Compressed from the old 1rem-padded, border-topped block: the disclaimer is a legal
-   * requirement (CLAUDE.md §1) so it stays, but it doesn't need to eat ~50 px of below-canvas
-   * height. Single tiny line, no top border, minimal padding. */
+  /* Only holds the small user-guide link now — the previous inline disclaimer paragraph moved
+   * into the modal that link opens, keeping the below-canvas chrome to a single tiny line. */
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   padding-top: 0.15rem;
 }
 
-.disclaimer {
+.user-guide-open-button {
+  align-self: flex-start;
+  padding: 0.1rem 0.3rem;
+  margin: 0;
   font-size: 0.7rem;
   line-height: 1.2;
   color: var(--color-muted);
-  margin: 0;
-  /* Truncate rather than wrap so the disclaimer never re-flows into two lines and pushes the
-   * canvas up on narrow viewports. Full text remains available via the browser tooltip. */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  background: transparent;
+  border: none;
+  border-radius: 0.2rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.user-guide-open-button:hover,
+.user-guide-open-button:focus-visible {
+  color: var(--color-fg);
 }
 
 .hull-cta {
@@ -987,6 +1005,53 @@ a {
 
 .advanced-settings-dialog {
   max-width: 32rem;
+}
+
+.user-guide-dialog {
+  max-width: 34rem;
+}
+
+.user-guide-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.user-guide-section h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.user-guide-section p,
+.user-guide-section li {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--color-muted);
+}
+
+.user-guide-section ul,
+.user-guide-section ol {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.user-guide-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.25rem;
+}
+
+.user-guide-actions button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background-color: var(--color-bg);
+  cursor: pointer;
 }
 
 .modal-dialog label {

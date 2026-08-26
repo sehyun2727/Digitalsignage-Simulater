@@ -197,7 +197,7 @@ describe('App', () => {
   it('renders the editor shell', () => {
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: 'Digital Signage Simulator' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: ja.appTitle })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: ja.editorAddTextButton })).toBeInTheDocument();
   });
 
@@ -205,13 +205,24 @@ describe('App', () => {
     render(<App />);
 
     expect(document.documentElement.lang).toBe('ja');
-    expect(screen.getByText(ja.disclaimer)).toBeInTheDocument();
+    // The footer previously exposed a JA-specific disclaimer line; that text now lives inside
+    // the user guide modal, so the JA-only footer link stands in as a language-visible marker.
+    expect(screen.getByRole('button', { name: ja.userGuideOpenButton })).toBeInTheDocument();
   });
 
-  it('shows the independent-service disclaimer', () => {
+  it('opens the user guide modal from the footer link and shows the service description', async () => {
+    const user = userEvent.setup();
     render(<App />);
 
-    expect(screen.getByText(ja.disclaimer)).toBeInTheDocument();
+    // The modal is closed by default: none of its section content is on screen yet.
+    expect(screen.queryByRole('heading', { name: ja.userGuideAboutHeading })).not.toBeInTheDocument();
+    expect(screen.queryByText(ja.userGuideAboutBody)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: ja.userGuideOpenButton }));
+
+    // Once opened, the About section and its short service description are reachable.
+    expect(await screen.findByRole('heading', { name: ja.userGuideAboutHeading })).toBeInTheDocument();
+    expect(screen.getByText(ja.userGuideAboutBody)).toBeInTheDocument();
   });
 
   it('links the HULL CTA to the approved contact URL as a safe external link', () => {
@@ -734,12 +745,10 @@ describe('App', () => {
         screen.getByRole('combobox', { name: ja.languageSelectorLabel }),
         'ko',
       );
-      expect(screen.getByRole('button', { name: '포터블 제품 추가' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '포터블' })).toBeInTheDocument();
 
       await user.selectOptions(screen.getByRole('combobox', { name: '언어' }), 'en');
-      expect(
-        screen.getByRole('button', { name: /add (a )?portable product/i }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Portable' })).toBeInTheDocument();
     });
   });
 });

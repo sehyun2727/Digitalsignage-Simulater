@@ -32,7 +32,7 @@ async function documentPointToPagePoint(
 async function setup(page: Page): Promise<void> {
   await page.goto('/');
   await addSpaceBackground(page, { ...DOCUMENT_SIZE, color: '#1155ff' });
-  await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
   const content = await solidColorPng(page, '#ffee00');
   await page
     .getByLabel('コンテンツを追加')

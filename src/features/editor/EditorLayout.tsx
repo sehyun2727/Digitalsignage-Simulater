@@ -39,7 +39,10 @@ export function EditorLayout() {
   const salesReviewMode = useUiStore((state) => state.salesReviewMode);
   const setSalesReviewMode = useUiStore((state) => state.setSalesReviewMode);
   const onboardingDismissed = useUiStore((state) => state.onboardingDismissed);
+  const watermarkDisabled = useUiStore((state) => state.watermarkDisabled);
+  const toggleWatermarkDisabled = useUiStore((state) => state.toggleWatermarkDisabled);
   const canvasRef = useRef<EditorCanvasHandle>(null);
+  const resetClickCountRef = useRef(0);
   const [announcement, setAnnouncementText] = useState('');
   const [isAnnouncementError, setIsAnnouncementError] = useState(false);
   const setAnnouncement = useCallback((text: string, isError = false) => {
@@ -243,6 +246,17 @@ export function EditorLayout() {
     }
   }, [salesReviewMode, setSalesReviewMode, selectObject, cancelPerspectiveEdit, cancelOcclusionEdit]);
 
+  // Clicking ⟳ five times in a row (regardless of the confirm result) triggers a hidden toggle
+  // that disables the export watermark. Clicking five more times re-enables it.
+  const handleResetClick = useCallback(() => {
+    resetClickCountRef.current += 1;
+    if (resetClickCountRef.current >= 5) {
+      toggleWatermarkDisabled();
+      resetClickCountRef.current = 0;
+    }
+    if (window.confirm(messages.editorResetConfirm)) resetDocument();
+  }, [messages, resetDocument, toggleWatermarkDisabled]);
+
   const statusHint = useMemo(() => {
     if (!spaceBackground) return messages.statusBarHintNoSpace;
     const hasSignage = objects.some(
@@ -267,12 +281,7 @@ export function EditorLayout() {
               <button
                 type="button"
                 className="editor-header-icon-button"
-                onClick={() => {
-                  // Confirm rather than silently wipe — Reset is not undo-recoverable (see the
-                  // store's resetDocument doc comment), so an accidental click would otherwise
-                  // lose the whole session with no way back.
-                  if (window.confirm(messages.editorResetConfirm)) resetDocument();
-                }}
+                onClick={handleResetClick}
                 title={messages.editorResetButton}
                 aria-label={messages.editorResetButton}
               >
@@ -346,6 +355,7 @@ export function EditorLayout() {
           <EditorCanvas
             ref={canvasRef}
             comparisonMode={comparisonMode}
+            watermarkDisabled={watermarkDisabled}
             onContentError={handleContentError}
             onDropWithoutTarget={handleDropWithoutTarget}
           />
@@ -354,7 +364,12 @@ export function EditorLayout() {
               previously eating below the workspace and lets the canvas fill the whole remaining
               viewport height. Still readable, still `role=status`/aria-live for screen readers,
               and `pointer-events: none` so it never blocks a drag on canvas objects underneath. */}
-          <div className="editor-canvas-status-overlay" aria-hidden={!statusHint && !announcement}>
+          <div className="editor-canvas-status-overlay" aria-hidden={!statusHint && !announcement && !watermarkDisabled}>
+            {watermarkDisabled && (
+              <span className="watermark-off-badge" aria-label="watermark disabled">
+                watermark off
+              </span>
+            )}
             {statusHint && <span className="editor-canvas-status-hint">{statusHint}</span>}
             <span
               role="status"

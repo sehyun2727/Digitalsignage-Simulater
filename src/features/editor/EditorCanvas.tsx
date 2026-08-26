@@ -16,6 +16,7 @@ import { useEditorStore } from '../../store/editorStore';
 import { getDocumentSize } from '../../types/editor';
 import type { ContentKind, SignageObject } from '../../types/editor';
 import { CanvasObjectView } from './CanvasObjectView';
+import { HullWatermarkView } from './HullWatermarkView';
 import { OcclusionEditOverlay } from './OcclusionEditOverlay';
 import { PerspectiveEditOverlay } from './PerspectiveEditOverlay';
 import { ScreenQuadEditOverlay } from './ScreenQuadEditOverlay';
@@ -41,10 +42,12 @@ interface EditorCanvasProps {
   /** When true, renders only the space background so the user can compare it against the
    *  composed result; signage objects, selection, and drag-and-drop are all suppressed. */
   comparisonMode?: boolean;
+  /** When true, suppresses the HULL watermark from PNG and video exports. */
+  watermarkDisabled?: boolean;
 }
 
 export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function EditorCanvas(
-  { onContentError, onDropWithoutTarget, comparisonMode = false },
+  { onContentError, onDropWithoutTarget, comparisonMode = false, watermarkDisabled = false },
   ref,
 ) {
   const document = useEditorStore((state) => state.document);
@@ -64,6 +67,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   const layerRef = useRef<Konva.Layer | null>(null);
   const transformerRef = useRef<Konva.Transformer | null>(null);
   const objectsGroupRef = useRef<Konva.Group | null>(null);
+  const watermarkGroupRef = useRef<Konva.Group | null>(null);
   const nodesRef = useRef<Map<string, Konva.Node>>(new Map());
   const captureRestoreRef = useRef<(() => void) | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -87,6 +91,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       const stage = stageRef.current;
       const transformer = transformerRef.current;
       const objectsGroup = objectsGroupRef.current;
+      const watermarkGroup = watermarkGroupRef.current;
       if (!stage || fitScale <= 0) return null;
 
       // Hide the Transformer's border/anchors, and force the signage objects visible, for the
@@ -105,6 +110,9 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       // handles are hidden here, so exported PNGs never contain selection chrome.
       const selectionOutlines = stage?.find('.perspective-selection-outline') ?? [];
       selectionOutlines.forEach((node) => node.hide());
+      // Show the watermark on top of everything for the export capture; it is kept invisible
+      // during live editing so it never distracts from the composition workflow.
+      if (!watermarkDisabled) watermarkGroup?.visible(true);
       layer?.draw();
 
       // Konva assigns the exported canvas's pixel dimensions via a raw `canvas.width =`/
@@ -132,6 +140,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       if (selectedNodes.length > 0) transformer?.nodes(selectedNodes);
       objectsGroup?.visible(!comparisonMode);
       selectionOutlines.forEach((node) => node.show());
+      watermarkGroup?.visible(false);
       layer?.draw();
 
       return dataUrl;
@@ -141,6 +150,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       const stage = stageRef.current;
       const transformer = transformerRef.current;
       const objectsGroup = objectsGroupRef.current;
+      const watermarkGroup = watermarkGroupRef.current;
       if (!layer) return null;
 
       // Capture the restore closure at begin time (comparisonMode, previous selection, node
@@ -153,11 +163,13 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       transformer?.nodes([]);
       objectsGroup?.visible(true);
       selectionOutlines.forEach((node) => node.hide());
+      if (!watermarkDisabled) watermarkGroup?.visible(true);
       layer.draw();
       captureRestoreRef.current = () => {
         transformer?.nodes(previousSelection);
         objectsGroup?.visible(!previousComparisonMode);
         selectionOutlines.forEach((node) => node.show());
+        watermarkGroup?.visible(false);
         layer.draw();
       };
 
@@ -392,6 +404,11 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
                 />
               </Group>
             )}
+            {/* Watermark group: always invisible in the live editor; made visible only for the
+                duration of PNG/video export captures so it appears in every exported result. */}
+            <Group ref={watermarkGroupRef} visible={false} listening={false}>
+              <HullWatermarkView canvasWidth={size.width} canvasHeight={size.height} />
+            </Group>
             <Transformer
               ref={transformerRef}
               boundBoxFunc={(oldBox, newBox) =>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 26" fill="none">
+  <defs>
+    <filter id="s" x="-10%" y="-25%" width="120%" height="150%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="black" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+  <text
+    x="40"
+    y="20"
+    text-anchor="middle"
+    font-family="'Arial Black', 'Arial Bold', Arial, sans-serif"
+    font-weight="900"
+    font-size="22"
+    fill="white"
+    letter-spacing="3"
+    filter="url(#s)"
+  >HULL</text>
+</svg>

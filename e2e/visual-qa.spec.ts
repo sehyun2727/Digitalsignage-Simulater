@@ -69,7 +69,7 @@ test.describe('golden-image visual QA', () => {
   test('wall-mounted LED display with content on the Natural preset', async ({ page }) => {
     await page.goto('/');
     await addSpaceBackground(page, { ...DOCUMENT_SIZE, color: '#334455' });
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
 
     await addContent(page, '#ff2d55');
     await zeroMaterialIntensity(page);
@@ -82,7 +82,7 @@ test.describe('golden-image visual QA', () => {
     await page.goto('/');
     await addSpaceBackground(page, { ...DOCUMENT_SIZE, color: '#556677' });
 
-    await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+    await page.getByRole('button', { name: 'ポータブル' }).click();
     const dialog = page.getByRole('dialog');
     const photo = await solidColorPng(page, '#1155ff');
     await dialog
@@ -114,7 +114,7 @@ test.describe('golden-image visual QA', () => {
   test('four-point perspective-placed display', async ({ page }) => {
     await page.goto('/');
     await addSpaceBackground(page, { ...DOCUMENT_SIZE, color: '#445566' });
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
 
     await addContent(page, '#2dd4bf');
     await zeroMaterialIntensity(page);
@@ -140,7 +140,7 @@ test.describe('golden-image visual QA', () => {
       DOCUMENT_SIZE.width,
       DOCUMENT_SIZE.height,
     );
-    await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
+    await page.getByRole('button', { name: 'LCD' }).click();
 
     await addContent(page, '#2563eb');
     await zeroMaterialIntensity(page);
@@ -154,7 +154,7 @@ test.describe('golden-image visual QA', () => {
   test('dark interior photo with an LED wall display on the Night preset', async ({ page }) => {
     await page.goto('/');
     await addScenePhotoBackground(page, 'dark-interior', DOCUMENT_SIZE.width, DOCUMENT_SIZE.height);
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
     await page.getByRole('button', { name: '夜間', exact: true }).click();
 
     await addContent(page, '#f97316');
@@ -174,7 +174,7 @@ test.describe('golden-image visual QA', () => {
       DOCUMENT_SIZE.width,
       DOCUMENT_SIZE.height,
     );
-    await page.getByRole('button', { name: 'LEDディスプレイを追加', exact: true }).click();
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
     await page.getByRole('button', { name: '明るい屋外', exact: true }).click();
 
     await addContent(page, '#22c55e');
@@ -196,7 +196,7 @@ test.describe('golden-image PNG export validity', () => {
       DOCUMENT_SIZE.width,
       DOCUMENT_SIZE.height,
     );
-    await page.getByRole('button', { name: 'LCDディスプレイを追加' }).click();
+    await page.getByRole('button', { name: 'LCD' }).click();
     await addContent(page, '#2563eb');
     await zeroMaterialIntensity(page);
     await deselect(page);

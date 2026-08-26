@@ -12,7 +12,6 @@ export function isSupportedLocale(value: string): value is Locale {
 
 export interface Messages {
   appTitle: string;
-  disclaimer: string;
   editorCrashTitle: string;
   editorCrashDescription: string;
   editorCrashReloadButton: string;
@@ -271,4 +270,28 @@ export interface Messages {
   salesReviewEnterButton: string;
   salesReviewExitButton: string;
   salesReviewModeHint: string;
+
+  userGuideOpenButton: string;
+  userGuideTitle: string;
+  userGuideCloseButton: string;
+  userGuideAboutHeading: string;
+  userGuideAboutBody: string;
+  userGuideHowHeading: string;
+  userGuideHowSteps: readonly string[];
+  userGuideSignageHeading: string;
+  userGuideSignageItems: readonly string[];
+  userGuideContentHeading: string;
+  userGuideContentItems: readonly string[];
+  userGuideRealismHeading: string;
+  userGuideRealismItems: readonly string[];
+  userGuidePerspectiveHeading: string;
+  userGuidePerspectiveItems: readonly string[];
+  userGuideOverlaysHeading: string;
+  userGuideOverlaysBody: string;
+  userGuideTipsHeading: string;
+  userGuideTipsItems: readonly string[];
+  userGuideDataHeading: string;
+  userGuideDataItems: readonly string[];
+  userGuideExportHeading: string;
+  userGuideExportBody: string;
 }

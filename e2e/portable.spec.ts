@@ -67,7 +67,7 @@ test('walks the photo and drag-to-draw region steps to add a portable product, t
 }) => {
   await setup(page);
 
-  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  await page.getByRole('button', { name: 'ポータブル' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('button', { name: '次へ' })).toBeDisabled();
@@ -116,7 +116,7 @@ test('replaces a portable product photo, resetting its screen region, and undo r
 }) => {
   await setup(page);
 
-  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  await page.getByRole('button', { name: 'ポータブル' }).click();
   const createDialog = page.getByRole('dialog');
   await uploadPortableProductPhoto(createDialog, '#1155ff');
   await createDialog.getByRole('button', { name: '次へ' }).click();
@@ -161,7 +161,7 @@ test('rejects a screen region smaller than the minimum size and keeps the dialog
 }) => {
   await setup(page);
 
-  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  await page.getByRole('button', { name: 'ポータブル' }).click();
   const dialog = page.getByRole('dialog');
   await uploadPortableProductPhoto(dialog, '#1155ff');
   await dialog.getByRole('button', { name: '次へ' }).click();
@@ -179,7 +179,7 @@ test('rejects a screen region smaller than the minimum size and keeps the dialog
 test('cancelling the builder does not add a portable object', async ({ page }) => {
   await setup(page);
 
-  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  await page.getByRole('button', { name: 'ポータブル' }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'キャンセル' }).click();
 
@@ -190,7 +190,7 @@ test('cancelling the builder does not add a portable object', async ({ page }) =
 test('undo removes an added portable product and redo restores it', async ({ page }) => {
   await setup(page);
 
-  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  await page.getByRole('button', { name: 'ポータブル' }).click();
   const dialog = page.getByRole('dialog');
   await uploadPortableProductPhoto(dialog, '#1155ff');
   await dialog.getByRole('button', { name: '次へ' }).click();
@@ -212,7 +212,7 @@ test('applies content and material to a portable product; export is clipped to i
 }) => {
   await setup(page);
 
-  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  await page.getByRole('button', { name: 'ポータブル' }).click();
   const dialog = page.getByRole('dialog');
   await uploadPortableProductPhoto(dialog, '#1155ff');
   await dialog.getByRole('button', { name: '次へ' }).click();
@@ -270,7 +270,7 @@ test.describe('direct region move/resize (real pointer drags)', () => {
     page: import('@playwright/test').Page,
   ): Promise<import('@playwright/test').Locator> {
     await setup(page);
-    await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+    await page.getByRole('button', { name: 'ポータブル' }).click();
     const dialog = page.getByRole('dialog');
     await uploadPortableProductPhoto(dialog, '#1155ff');
     await dialog.getByRole('button', { name: '次へ' }).click();
@@ -420,7 +420,7 @@ test.describe('export composition (pixel verification)', () => {
     // photo's transparent border once composited.
     await addSpaceBackground(page, { width: 1920, height: 1080, color: '#00cc44' });
 
-    await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+    await page.getByRole('button', { name: 'ポータブル' }).click();
     const dialog = page.getByRole('dialog');
     await uploadTransparentPortableProductPhoto(dialog, '#1155ff');
     await dialog.getByRole('button', { name: '次へ' }).click();
@@ -479,7 +479,7 @@ test.describe('export composition (pixel verification)', () => {
   }) => {
     await setup(page);
 
-    await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+    await page.getByRole('button', { name: 'ポータブル' }).click();
     const dialog = page.getByRole('dialog');
     await uploadPortableProductPhoto(dialog, '#1155ff');
     await dialog.getByRole('button', { name: '次へ' }).click();
@@ -523,7 +523,7 @@ test.describe('export composition (pixel verification)', () => {
     // The canvas size is an explicit preset, independent of the uploaded photo's orientation.
     await page.getByRole('button', { name: '縦長 (9:16)' }).click();
 
-    await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+    await page.getByRole('button', { name: 'ポータブル' }).click();
     const dialog = page.getByRole('dialog');
     await uploadPortableProductPhoto(dialog, '#1155ff');
     await dialog.getByRole('button', { name: '次へ' }).click();

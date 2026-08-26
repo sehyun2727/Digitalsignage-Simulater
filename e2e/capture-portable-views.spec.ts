@@ -22,7 +22,7 @@ test('captures all portable template views', async ({ page }) => {
   await page.goto('/');
   await addSpaceBackground(page, { width: 1600, height: 900, color: '#1e2530' });
 
-  await page.getByRole('button', { name: 'ポータブル製品を追加' }).click();
+  await page.getByRole('button', { name: 'ポータブル' }).click();
   const viewSelect = page.getByRole('combobox', { name: 'ビュー' });
 
   for (const view of VIEWS) {
