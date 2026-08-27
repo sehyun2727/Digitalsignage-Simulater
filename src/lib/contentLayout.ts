@@ -5,7 +5,7 @@ import {
   MIN_CONTENT_SCALE,
   MIN_MATERIAL_SETTING,
 } from '../types/editor';
-import type { ScreenRegion, SignageContent } from '../types/editor';
+import type { MediaContent, ScreenRegion } from '../types/editor';
 
 export interface Rect {
   x: number;
@@ -79,7 +79,7 @@ export function computeContentLayout(
   screen: Rect,
   naturalWidth: number,
   naturalHeight: number,
-  content: Pick<SignageContent, 'fit' | 'offsetX' | 'offsetY' | 'scale'>,
+  content: Pick<MediaContent, 'fit' | 'offsetX' | 'offsetY' | 'scale'>,
 ): Rect {
   const screenRatio = screen.width / screen.height;
   const contentRatio = naturalWidth / naturalHeight;

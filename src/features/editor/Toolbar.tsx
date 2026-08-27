@@ -56,7 +56,9 @@ import {
   MAX_CURVATURE_AMOUNT,
   MAX_ENVIRONMENT_INTEGRATION,
   MAX_MATERIAL_SETTING,
+  MAX_TEXT_CONTENT_FONT_SIZE,
   MIN_CONTENT_SCALE,
+  MIN_TEXT_CONTENT_FONT_SIZE,
   MIN_CONTACT_SHADOW_SETTING,
   MIN_CONTACT_SHADOW_SPREAD,
   MIN_CONTACT_SHADOW_TINT,
@@ -300,32 +302,6 @@ function AddSignageSection() {
   );
 }
 
-/** Add Text control that lives alongside the Content Upload button so the same section
- *  handles both "put a floating text on the canvas" and "put an image/video into a signage
- *  screen" — the previous standalone Add Image button was folded into Content Upload, which
- *  already auto-detects image vs. video via validateContentFile and routes into the selected
- *  display/portable's screen content. */
-function AddCanvasElementControls() {
-  const { messages } = useLocale();
-  const document = useEditorStore((state) => state.document);
-  const addText = useEditorStore((state) => state.addText);
-  const canAddElement = document.spaceBackground !== null;
-
-  return (
-    <div className="toolbar-subsection">
-      <span className="toolbar-subsection-heading">{messages.toolbarAddElementSubheading}</span>
-      <div className="toolbar-actions">
-        <button
-          type="button"
-          disabled={!canAddElement}
-          onClick={() => addText(messages.signageTypeText)}
-        >
-          {messages.editorAddTextButton}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 type Draft = Pick<SignageObject, 'x' | 'y' | 'width' | 'height' | 'rotation'> & {
   text?: string;
@@ -732,11 +708,16 @@ function ContentSection({
 
   return (
     <ToolbarSection heading={messages.editorContentLabel}>
-      <AddCanvasElementControls />
+      {/* The whole content-adding area only becomes reachable when a signage is selected.
+       *  With no selection we only show the hint so the user knows where to click first;
+       *  Add Text and Add image/video live *inside* ContentFields where they belong. */}
       {!hasContentSupport ? (
         <p className="toolbar-notice">{messages.toolbarContentEmptyHint}</p>
       ) : (
-        <ContentFields key={selected.id} object={selected} onContentError={onContentError} />
+        <>
+          <p className="toolbar-notice">{messages.toolbarAddElementSubheading}</p>
+          <ContentFields key={selected.id} object={selected} onContentError={onContentError} />
+        </>
       )}
     </ToolbarSection>
   );
@@ -751,10 +732,15 @@ function ContentFields({
 }) {
   const { messages } = useLocale();
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
+  const addText = useEditorStore((state) => state.addText);
   const contentInputRef = useRef<HTMLInputElement | null>(null);
-  const [offsetXDraft, setOffsetXDraft] = useState(object.content?.offsetX ?? 0);
-  const [offsetYDraft, setOffsetYDraft] = useState(object.content?.offsetY ?? 0);
-  const [scaleDraft, setScaleDraft] = useState(object.content?.scale ?? 1);
+  // Media-only draft state — kept null-safe against text content by only reading the fields on
+  // MediaContent (`content.kind !== 'text'`).
+  const mediaContent = object.content && object.content.kind !== 'text' ? object.content : null;
+  const textContent = object.content?.kind === 'text' ? object.content : null;
+  const [offsetXDraft, setOffsetXDraft] = useState(mediaContent?.offsetX ?? 0);
+  const [offsetYDraft, setOffsetYDraft] = useState(mediaContent?.offsetY ?? 0);
+  const [scaleDraft, setScaleDraft] = useState(mediaContent?.scale ?? 1);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const commit = (patch: Partial<SignageObject>) => commitObjectChange(object.id, patch);
@@ -781,11 +767,15 @@ function ContentFields({
             asset.naturalHeight,
           )
         : 0;
+      // Preserve the previous `fit` only when the previous content was media too — text has no
+      // `fit` field, so we fall back to 'contain' when replacing a text block with media.
+      const previousFit =
+        object.content && object.content.kind !== 'text' ? object.content.fit : 'contain';
       commit({
         content: {
           kind: asset.kind,
           sourceId: asset.sourceId,
-          fit: object.content?.fit ?? 'contain',
+          fit: previousFit,
           offsetX: 0,
           offsetY: 0,
           scale: 1,
@@ -806,7 +796,7 @@ function ContentFields({
 
   return (
     <>
-      {object.content ? (
+      {mediaContent ? (
         <>
           <div className="toolbar-actions">
             <button type="button" onClick={() => contentInputRef.current?.click()}>
@@ -817,17 +807,16 @@ function ContentFields({
             </button>
           </div>
 
-          {object.content.kind === 'video' && (
+          {mediaContent.kind === 'video' && (
             <p className="toolbar-notice">{messages.editorContentVideoAutoplayHint}</p>
           )}
 
           <label>
             <span>{messages.editorContentFitLabel}</span>
             <select
-              value={object.content.fit}
+              value={mediaContent.fit}
               onChange={(event) => {
-                if (!object.content) return;
-                commit({ content: { ...object.content, fit: event.target.value as ContentFit } });
+                commit({ content: { ...mediaContent, fit: event.target.value as ContentFit } });
               }}
             >
               <option value="contain">{messages.editorContentFitContain}</option>
@@ -838,11 +827,10 @@ function ContentFields({
           <label>
             <span>{messages.editorContentRotationLabel}</span>
             <select
-              value={String(object.content.rotation ?? 0)}
+              value={String(mediaContent.rotation ?? 0)}
               onChange={(event) => {
-                if (!object.content) return;
                 const rotation = event.target.value === '90' ? 90 : 0;
-                commit({ content: { ...object.content, rotation } });
+                commit({ content: { ...mediaContent, rotation } });
               }}
             >
               <option value="0">{messages.editorContentRotationZero}</option>
@@ -868,9 +856,8 @@ function ContentFields({
                   value={offsetXDraft}
                   onChange={(event) => setOffsetXDraft(Number(event.target.value))}
                   onBlur={() => {
-                    if (!object.content) return;
                     commit({
-                      content: { ...object.content, offsetX: clampContentOffset(offsetXDraft) },
+                      content: { ...mediaContent, offsetX: clampContentOffset(offsetXDraft) },
                     });
                   }}
                 />
@@ -886,9 +873,8 @@ function ContentFields({
                   value={offsetYDraft}
                   onChange={(event) => setOffsetYDraft(Number(event.target.value))}
                   onBlur={() => {
-                    if (!object.content) return;
                     commit({
-                      content: { ...object.content, offsetY: clampContentOffset(offsetYDraft) },
+                      content: { ...mediaContent, offsetY: clampContentOffset(offsetYDraft) },
                     });
                   }}
                 />
@@ -904,9 +890,8 @@ function ContentFields({
                   value={scaleDraft}
                   onChange={(event) => setScaleDraft(Number(event.target.value))}
                   onBlur={() => {
-                    if (!object.content) return;
                     commit({
-                      content: { ...object.content, scale: clampContentScale(scaleDraft) },
+                      content: { ...mediaContent, scale: clampContentScale(scaleDraft) },
                     });
                   }}
                 />
@@ -915,8 +900,7 @@ function ContentFields({
               <button
                 type="button"
                 onClick={() => {
-                  if (!object.content) return;
-                  commit({ content: { ...object.content, offsetX: 0, offsetY: 0, scale: 1 } });
+                  commit({ content: { ...mediaContent, offsetX: 0, offsetY: 0, scale: 1 } });
                   setOffsetXDraft(0);
                   setOffsetYDraft(0);
                   setScaleDraft(1);
@@ -927,16 +911,86 @@ function ContentFields({
             </AdvancedSettingsModal>
           )}
         </>
+      ) : textContent ? (
+        <>
+          <div className="toolbar-actions">
+            <button type="button" onClick={() => commit({ content: null })}>
+              {messages.editorContentRemoveButton}
+            </button>
+          </div>
+
+          <label>
+            <span>{messages.editorTextContentLabel}</span>
+            <textarea
+              rows={2}
+              value={textContent.text}
+              onChange={(event) =>
+                commit({ content: { ...textContent, text: event.target.value } })
+              }
+            />
+          </label>
+
+          <label>
+            <span>{messages.editorTextColorLabel}</span>
+            <input
+              type="color"
+              value={textContent.color}
+              onChange={(event) =>
+                commit({ content: { ...textContent, color: event.target.value } })
+              }
+            />
+          </label>
+
+          <label>
+            <span>{messages.editorFontSizeLabel}</span>
+            <input
+              type="range"
+              min={MIN_TEXT_CONTENT_FONT_SIZE}
+              max={MAX_TEXT_CONTENT_FONT_SIZE}
+              step={0.01}
+              value={textContent.fontSize}
+              onChange={(event) =>
+                commit({
+                  content: { ...textContent, fontSize: Number(event.target.value) },
+                })
+              }
+            />
+          </label>
+
+          <label>
+            <span>{messages.editorTextAlignLabel}</span>
+            <select
+              value={textContent.align}
+              onChange={(event) =>
+                commit({
+                  content: {
+                    ...textContent,
+                    align: event.target.value as 'left' | 'center' | 'right',
+                  },
+                })
+              }
+            >
+              <option value="left">{messages.editorAlignLeft}</option>
+              <option value="center">{messages.editorAlignCenter}</option>
+              <option value="right">{messages.editorAlignRight}</option>
+            </select>
+          </label>
+        </>
       ) : (
         <>
           <p className="toolbar-notice">{messages.editorContentNoneHint}</p>
-          <button
-            type="button"
-            id="toolbar-content-upload-trigger"
-            onClick={() => contentInputRef.current?.click()}
-          >
-            {messages.editorContentUploadButton}
-          </button>
+          <div className="toolbar-actions">
+            <button
+              type="button"
+              id="toolbar-content-upload-trigger"
+              onClick={() => contentInputRef.current?.click()}
+            >
+              {messages.editorContentUploadButton}
+            </button>
+            <button type="button" onClick={() => addText(messages.signageTypeText)}>
+              {messages.editorAddTextButton}
+            </button>
+          </div>
         </>
       )}
 

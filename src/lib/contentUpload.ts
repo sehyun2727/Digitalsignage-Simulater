@@ -12,19 +12,19 @@ import {
   validateVideoDuration,
   validateVideoFile,
 } from './videoValidation';
-import type { ContentKind } from '../types/editor';
+import type { MediaContentKind } from '../types/editor';
 
 export type ContentValidationError = ImageValidationError | VideoValidationError;
 
 export interface ContentValidationFailure {
-  kind: ContentKind;
+  kind: MediaContentKind;
   error: ContentValidationError;
 }
 
 /** Whether `file` should go through the image or video content pipeline, based on its declared
  *  MIME type's top-level category — the same signal a file `<input accept>` and the native OS
  *  drag payload both already rely on to offer only image/video files in the first place. */
-export function contentKindForFile(file: File): ContentKind {
+export function contentKindForFile(file: File): MediaContentKind {
   return file.type.startsWith('video/') ? 'video' : 'image';
 }
 
@@ -47,7 +47,7 @@ export function validateContentFile(file: File): ContentValidationFailure | null
  *  try/catch already falls back to for every other failure mode. */
 export class ContentDimensionError extends Error {
   constructor(
-    public readonly kind: ContentKind,
+    public readonly kind: MediaContentKind,
     public readonly error: ContentValidationError,
   ) {
     super(`content dimension validation failed: ${kind}/${error}`);
@@ -56,7 +56,7 @@ export class ContentDimensionError extends Error {
 
 export async function registerContentAsset(
   file: File,
-): Promise<{ sourceId: string; naturalWidth: number; naturalHeight: number; kind: ContentKind }> {
+): Promise<{ sourceId: string; naturalWidth: number; naturalHeight: number; kind: MediaContentKind }> {
   const kind = contentKindForFile(file);
   const asset = kind === 'video' ? await registerVideoAsset(file) : await registerAsset(file);
 

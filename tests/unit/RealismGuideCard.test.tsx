@@ -83,15 +83,11 @@ describe('RealismGuideCard', () => {
     expect(screen.getByRole('note', { name: ja.realismGuideTitle })).toBeInTheDocument();
   });
 
-  it('is not shown for a selected element with no appearance settings (e.g. text)', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-    await addSpaceBackground(user);
-
-    await user.click(screen.getByRole('button', { name: ja.editorAddTextButton }));
-
-    expect(screen.queryByRole('note', { name: ja.realismGuideTitle })).not.toBeInTheDocument();
-  });
+  // The old "text object with no appearance settings hides the RealismGuideCard" scenario no
+  // longer exists: text is now a real child of a display/portable signage (a TextContent on the
+  // parent's `content` field), not a standalone selectable element. Selecting a signage always
+  // shows the RealismGuideCard, whether the current content is media or text, so there is no
+  // way for the user to reach the "selected but no appearance settings" state through the UI.
 
   it('the dismiss button hides the card and persists the choice to localStorage', async () => {
     const user = userEvent.setup();

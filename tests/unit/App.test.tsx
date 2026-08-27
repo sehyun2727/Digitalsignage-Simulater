@@ -200,10 +200,17 @@ describe('App', () => {
     );
   });
 
-  it('renders the editor shell', () => {
+  it('renders the editor shell', async () => {
+    const user = userEvent.setup();
     render(<App />);
 
     expect(screen.getByRole('heading', { name: ja.appName })).toBeInTheDocument();
+    // The Add Text button now lives inside the Content section and only appears when a
+    // display/portable signage is selected (text is a real child of the signage, not a
+    // floating standalone element). Add a space photo + LED so the selection reaches
+    // ContentFields' empty-content branch where the button renders.
+    await addSpaceBackground(user);
+    await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
     expect(screen.getByRole('button', { name: ja.editorAddTextButton })).toBeInTheDocument();
   });
 

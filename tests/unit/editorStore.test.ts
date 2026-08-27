@@ -445,7 +445,11 @@ describe('editorStore', () => {
       },
     });
     const display = useEditorStore.getState().document.objects[0];
-    expect(display?.kind === 'display' && display.content?.sourceId).toBe('src-1');
+    expect(
+      display?.kind === 'display' &&
+        display.content?.kind !== 'text' &&
+        display.content?.sourceId,
+    ).toBe('src-1');
 
     useEditorStore.getState().undo();
     const afterUndo = useEditorStore.getState().document.objects[0];
@@ -453,7 +457,11 @@ describe('editorStore', () => {
 
     useEditorStore.getState().redo();
     const afterRedo = useEditorStore.getState().document.objects[0];
-    expect(afterRedo?.kind === 'display' && afterRedo.content?.sourceId).toBe('src-1');
+    expect(
+      afterRedo?.kind === 'display' &&
+        afterRedo.content?.kind !== 'text' &&
+        afterRedo.content?.sourceId,
+    ).toBe('src-1');
   });
 
   it('committing an identical materialSettings patch does not push a history entry', () => {

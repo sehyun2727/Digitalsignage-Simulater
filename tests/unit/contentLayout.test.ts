@@ -6,10 +6,10 @@ import {
   computeContentLayout,
   resolveScreenRegionRect,
 } from '../../src/lib/contentLayout';
-import type { ScreenRegion, SignageContent } from '../../src/types/editor';
+import type { MediaContent, ScreenRegion } from '../../src/types/editor';
 
 function baseContent(
-  overrides: Partial<Pick<SignageContent, 'fit' | 'offsetX' | 'offsetY' | 'scale'>> = {},
+  overrides: Partial<Pick<MediaContent, 'fit' | 'offsetX' | 'offsetY' | 'scale'>> = {},
 ) {
   return { fit: 'contain' as const, offsetX: 0, offsetY: 0, scale: 1, ...overrides };
 }

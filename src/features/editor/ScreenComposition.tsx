@@ -1,7 +1,7 @@
 import Konva from 'konva';
 import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { Group, Image as KonvaImage, Rect } from 'react-konva';
+import { Group, Image as KonvaImage, Rect, Text as KonvaText } from 'react-konva';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
 import { computeContentLayout } from '../../lib/contentLayout';
 import type { Rect as RectShape } from '../../lib/contentLayout';
@@ -177,18 +177,21 @@ export function ScreenComposition({
 }: ScreenCompositionProps) {
   const normalized = normalizeMaterial(material);
   const isTransparentLed = normalized === 'transparent-led';
-  const isVideo = content?.kind === 'video';
-  const asset = content ? getRegisteredAsset(content.sourceId) : undefined;
+  const isMedia = content !== null && content.kind !== 'text';
+  const isText = content?.kind === 'text';
+  const mediaContent = isMedia ? content : null;
+  const isVideo = mediaContent?.kind === 'video';
+  const asset = mediaContent ? getRegisteredAsset(mediaContent.sourceId) : undefined;
   const rootRef = useRef<Konva.Group | null>(null);
   // Comparison mode hides the objects group entirely, so keeping the video decoding + Konva
   // redraw loop running would burn CPU frames on invisible content — pause it while hidden.
   const comparisonMode = useUiStore((state) => state.comparisonMode);
-  useVideoPlaybackRedraw(rootRef, content?.sourceId ?? null, isVideo, !comparisonMode);
+  useVideoPlaybackRedraw(rootRef, mediaContent?.sourceId ?? null, isVideo, !comparisonMode);
   // A rotation of 90 swaps the content's effective width/height as seen by the screen: layout
   // is computed against the rotated shape so a portrait photo lands correctly rotated inside a
   // landscape screen instead of leaving unused left/right space. The Konva image itself is drawn
   // with an actual 90° rotation below (matching how the layout was computed).
-  const contentRotation = content?.rotation ?? 0;
+  const contentRotation = mediaContent?.rotation ?? 0;
   const contentIsRotated = contentRotation === 90;
   const layoutSourceWidth = asset
     ? contentIsRotated
@@ -201,8 +204,8 @@ export function ScreenComposition({
       : asset.naturalHeight
     : 0;
   const contentLayout =
-    asset && content
-      ? computeContentLayout(screen, layoutSourceWidth, layoutSourceHeight, content)
+    asset && mediaContent
+      ? computeContentLayout(screen, layoutSourceWidth, layoutSourceHeight, mediaContent)
       : null;
   const screenSizePx = Math.min(screen.width, screen.height);
   const patternOpacity = materialPatternOpacity(
@@ -212,14 +215,14 @@ export function ScreenComposition({
   );
   const brightnessOverlay = getBrightnessOverlay(materialSettings.brightness);
   const imageLuminance = useMemo(() => {
-    if (!asset || !content || content.kind !== 'image') return null;
+    if (!asset || !mediaContent || mediaContent.kind !== 'image') return null;
     return sampleMeanLuminance(asset.image as HTMLImageElement | HTMLCanvasElement);
-  }, [asset, content]);
+  }, [asset, mediaContent]);
   // LCD never glows regardless of luminance (see the `glow` computation below), and a glow
   // slider at 0 has nothing to scale, so sampling is skipped in both cases rather than paying a
   // throttled-but-still-nonzero readback cost for a value that would never be used.
   const videoLuminance = useVideoLuminance(
-    isVideo ? content!.sourceId : null,
+    isVideo && mediaContent ? mediaContent.sourceId : null,
     isVideo && normalized !== 'lcd' && materialSettings.glow > 0,
   );
   const meanLuminance = isVideo ? videoLuminance : imageLuminance;
@@ -285,6 +288,29 @@ export function ScreenComposition({
           listening={false}
         />
       )}
+      {isText && content && content.kind === 'text' && (() => {
+        // Text content: font size is stored as a fraction of the screen's shorter dimension so
+        // the text scales with signage resizes instead of drifting out of proportion. Konva.Text
+        // vertically centers via verticalAlign='middle' and horizontally aligns via align; the
+        // rendered text is clipped by the parent Group's screen-rect clipFunc above (same as
+        // media content), so overflow past the screen edge is trimmed cleanly.
+        const shortSide = Math.min(screen.width, screen.height);
+        const fontSizePx = Math.max(6, content.fontSize * shortSide);
+        return (
+          <KonvaText
+            x={screen.x}
+            y={screen.y}
+            width={screen.width}
+            height={screen.height}
+            text={content.text}
+            fontSize={fontSizePx}
+            fill={content.color}
+            align={content.align}
+            verticalAlign="middle"
+            listening={false}
+          />
+        );
+      })()}
       {(normalized === 'led' || isTransparentLed) && (
         <Rect
           x={screen.x}

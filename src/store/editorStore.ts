@@ -45,6 +45,7 @@ import type {
   PortableSignageObject,
   SignageObject,
   SpaceBackground,
+  TextContent,
   TextSignageObject,
 } from '../types/editor';
 import {
@@ -54,6 +55,7 @@ import {
   DEFAULT_OCCLUSION_FEATHER,
   DEFAULT_OCCLUSION_OPACITY,
   DEFAULT_PLACEMENT_MODE,
+  DEFAULT_TEXT_CONTENT_FONT_SIZE,
   getDocumentSize,
   supportsPerspective,
 } from '../types/editor';
@@ -99,6 +101,11 @@ export interface EditorState {
   screenQuadDraftQuad: NormalizedQuad | null;
   /** The quad screenQuadDraftQuad started from, restored by resetScreenQuadEdit. */
   screenQuadEditOriginalQuad: NormalizedQuad | null;
+  /**
+   * Sets a `text` content on the currently-selected display/portable signage. The text becomes
+   * a real child of that signage — it renders inside the screen region and moves/resizes/deletes
+   * with the parent. No-op if no display/portable is selected.
+   */
   addText: (defaultText?: string) => void;
   addImage: (payload: { sourceId: string; naturalWidth: number; naturalHeight: number }) => void;
   addDisplay: (material: DisplayMaterial) => void;
@@ -247,8 +254,13 @@ function collectAssetSourceIds(document: EditorDocument, into: Set<string>): voi
   if (document.spaceBackground) into.add(document.spaceBackground.sourceId);
   for (const object of document.objects) {
     if (object.kind === 'image') into.add(object.sourceId);
-    if (object.kind === 'display' && object.content) into.add(object.content.sourceId);
-    if (object.kind === 'portable' && object.content) into.add(object.content.sourceId);
+    if (
+      (object.kind === 'display' || object.kind === 'portable') &&
+      object.content &&
+      object.content.kind !== 'text'
+    ) {
+      into.add(object.content.sourceId);
+    }
     if (object.kind === 'portable' && object.productPhotoSourceId) into.add(object.productPhotoSourceId);
   }
 }
@@ -271,8 +283,40 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   screenQuadEditOriginalQuad: null,
 
   addText: (defaultText?: string) => {
-    const { document } = get();
+    const { document, selectedId } = get();
     if (!document.spaceBackground) return;
+    // Preferred path: when a display/portable is currently selected, the text becomes a real
+    // child of that signage (a TextContent on its `content` field) so it moves/resizes/deletes
+    // with the parent — matching how image/video content behaves. The UI's Add Text button is
+    // only enabled in this branch (see Toolbar's ContentFields), so it is the one users hit.
+    const target = document.objects.find((object) => object.id === selectedId);
+    if (target && (target.kind === 'display' || target.kind === 'portable')) {
+      const textContent: TextContent = {
+        kind: 'text',
+        text: defaultText ?? 'Text',
+        // Fraction of the screen's shorter dimension — see DEFAULT_TEXT_CONTENT_FONT_SIZE in
+        // types/editor.ts. Keeps the text scaling with the signage instead of drifting out of
+        // proportion at a fixed pixel value.
+        fontSize: DEFAULT_TEXT_CONTENT_FONT_SIZE,
+        color: '#ffffff',
+        align: 'center',
+      };
+      const nextObjects = document.objects.map((object) =>
+        object.id === target.id ? { ...object, content: textContent } : object,
+      );
+      set({
+        document: { ...document, objects: nextObjects },
+        past: pushHistory(get().past, document),
+        future: [],
+      });
+      return;
+    }
+    // Fallback for callers that invoke addText without a signage selection (currently only the
+    // store's own tests, which use it as a lightweight "put a test object in the document"
+    // primitive). The UI never reaches this branch — the Toolbar's Add Text button is disabled
+    // when the selection is not a display/portable — so no user-visible floating text object is
+    // ever created through the UI, matching the sprint's "content only exists inside signage"
+    // constraint.
     const size = getDocumentSize(document);
     const newObject: TextSignageObject = {
       id: createId(),
@@ -282,11 +326,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       width: 300,
       height: 60,
       rotation: 0,
-      // A non-empty placeholder is required — Konva.Text with an empty string renders no
-      // glyphs, has zero self-rect, and therefore has nothing hit-testable, so the newly
-      // added text object was invisible AND unclickable (the properties panel opened but the
-      // user had no idea because nothing showed on the canvas). Default color is dark so the
-      // placeholder reads over typical space photos.
       text: defaultText ?? 'Text',
       fontSize: 48,
       color: '#1a1a1a',

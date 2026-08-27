@@ -34,8 +34,15 @@ export interface ImageSignageObject extends BaseSignageObject {
 /** How uploaded screen content is fit within a display's screen region. */
 export type ContentFit = 'contain' | 'cover';
 
-/** The kind of media a signage screen shows. Video was added in Sprint 4.3 (ADR 0008). */
-export type ContentKind = 'image' | 'video';
+/**
+ * The kind of content a signage screen shows. `'text'` was added so a text block can be a real
+ * child of the signage (rendered inside its screen region, moving/deleting with the parent),
+ * not a separate floating object; `'image'`/`'video'` come from the user's uploaded assets.
+ */
+export type ContentKind = 'image' | 'video' | 'text';
+
+/** The subset of ContentKind whose data is stored in the runtime asset registry. */
+export type MediaContentKind = Exclude<ContentKind, 'text'>;
 
 /**
  * A user-supplied image or video shown inside a display object's screen region.
@@ -45,8 +52,8 @@ export type ContentKind = 'image' | 'video';
  * lifecycle. Video playback state (play/pause, current time, mute) is deliberately not part of
  * this type — it is transient runtime state, not document/history state (sprint spec section 26).
  */
-export interface SignageContent {
-  kind: ContentKind;
+export interface MediaContent {
+  kind: MediaContentKind;
   sourceId: string;
   fit: ContentFit;
   /** Fraction of the screen width/height the content center is shifted, roughly -1..1. */
@@ -66,6 +73,27 @@ export interface SignageContent {
    */
   rotation?: 0 | 90;
 }
+
+/**
+ * A text block shown inside a display/portable's screen region — a true child of its parent
+ * signage that lives and dies with it, unlike the legacy floating TextSignageObject. `fontSize`
+ * is a fraction (0..1) of the screen's shorter dimension so the text scales when the signage is
+ * resized instead of drifting out of proportion at a fixed pixel value.
+ */
+export interface TextContent {
+  kind: 'text';
+  text: string;
+  /** Font size as a fraction (0..1) of the screen's shorter dimension. */
+  fontSize: number;
+  color: string;
+  align: 'left' | 'center' | 'right';
+}
+
+export const DEFAULT_TEXT_CONTENT_FONT_SIZE = 0.4;
+export const MIN_TEXT_CONTENT_FONT_SIZE = 0.05;
+export const MAX_TEXT_CONTENT_FONT_SIZE = 1;
+
+export type SignageContent = MediaContent | TextContent;
 
 export const MIN_CONTENT_SCALE = 1;
 export const MAX_CONTENT_SCALE = 3;
