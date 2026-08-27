@@ -348,6 +348,10 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
     await addSpaceBackground(user);
+    // The standalone Add Image button was folded into the Content Upload flow; uploads now
+    // go through the selected display's content upload input, which auto-detects image vs.
+    // video via validateContentFile.
+    await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
 
     class FailingImage {
       onload: (() => void) | null = null;
@@ -359,7 +363,7 @@ describe('App', () => {
     vi.stubGlobal('Image', FailingImage as unknown as typeof Image);
 
     const file = new File([new Uint8Array([1, 2, 3])], 'corrupt.png', { type: 'image/png' });
-    await user.upload(screen.getByLabelText(ja.editorAddImageButton), file);
+    await user.upload(screen.getByLabelText(ja.editorContentUploadButton), file);
 
     expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
     expect(revokeSpy).toHaveBeenCalledWith('blob:mock-url');
@@ -382,10 +386,11 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
     await addSpaceBackground(user);
+    await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
     vi.stubGlobal('Image', OversizedImage as unknown as typeof Image);
 
     const file = new File([new Uint8Array([1, 2, 3])], 'huge.png', { type: 'image/png' });
-    await user.upload(screen.getByLabelText(ja.editorAddImageButton), file);
+    await user.upload(screen.getByLabelText(ja.editorContentUploadButton), file);
 
     const message = await screen.findByText(ja.editorImageUploadErrorDimensionsTooLarge);
     // The status/announcement region moved into the canvas wrapper as a bottom overlay so it

@@ -110,7 +110,7 @@ export function Toolbar({ onImageError, onContentError }: ToolbarProps) {
       <SpaceSection onImageError={onImageError} />
       <AddSignageSection />
       <SelectedSignageSection />
-      <ContentSection onContentError={onContentError} onImageError={onImageError} />
+      <ContentSection onContentError={onContentError} />
       <AppearanceSection />
       <ExportSection />
     </div>
@@ -300,76 +300,16 @@ function AddSignageSection() {
   );
 }
 
-/** Add Text / Add Image controls that were previously mixed in with the signage-creation
- *  buttons — moved next to the content controls so the same section handles every "put something
- *  on / into the canvas" flow. Add Image still routes into a selected display/portable as its
- *  screen content (the drop-into-signage flow) when one is selected, and falls back to adding a
- *  floating image element otherwise; Add Text always adds a floating text element. */
-function AddCanvasElementControls({
-  onImageError,
-}: {
-  onImageError: (error: ImageValidationError) => void;
-}) {
+/** Add Text control that lives alongside the Content Upload button so the same section
+ *  handles both "put a floating text on the canvas" and "put an image/video into a signage
+ *  screen" — the previous standalone Add Image button was folded into Content Upload, which
+ *  already auto-detects image vs. video via validateContentFile and routes into the selected
+ *  display/portable's screen content. */
+function AddCanvasElementControls() {
   const { messages } = useLocale();
   const document = useEditorStore((state) => state.document);
   const addText = useEditorStore((state) => state.addText);
-  const addImage = useEditorStore((state) => state.addImage);
-  const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
-  const selectedObject = useEditorStore(selectSelectedObject);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const canAddElement = document.spaceBackground !== null;
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-
-    const error = validateImageFile(file);
-    if (error) {
-      onImageError(error);
-      return;
-    }
-
-    try {
-      const asset = await registerContentAsset(file);
-      // Selected display/portable → assign as its screen content (matches drag-and-drop flow).
-      // Anything else selected (or nothing) → add as a floating image element on top.
-      if (selectedObject?.kind === 'display' || selectedObject?.kind === 'portable') {
-        const screenRect = getObjectScreenRect(selectedObject);
-        const rotation = screenRect
-          ? computeAutoContentRotation(
-              screenRect.width,
-              screenRect.height,
-              asset.naturalWidth,
-              asset.naturalHeight,
-            )
-          : 0;
-        commitObjectChange(selectedObject.id, {
-          content: {
-            kind: asset.kind,
-            sourceId: asset.sourceId,
-            fit: selectedObject.content?.fit ?? 'contain',
-            offsetX: 0,
-            offsetY: 0,
-            scale: 1,
-            rotation,
-          },
-        });
-        return;
-      }
-      addImage({
-        sourceId: asset.sourceId,
-        naturalWidth: asset.naturalWidth,
-        naturalHeight: asset.naturalHeight,
-      });
-    } catch (err) {
-      if (err instanceof ContentDimensionError) {
-        onImageError(err.error as ImageValidationError);
-      } else {
-        onImageError('decode-error');
-      }
-    }
-  };
 
   return (
     <div className="toolbar-subsection">
@@ -382,22 +322,7 @@ function AddCanvasElementControls({
         >
           {messages.editorAddTextButton}
         </button>
-        <button
-          type="button"
-          disabled={!canAddElement}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {messages.editorAddImageButton}
-        </button>
       </div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={ACCEPTED_IMAGE_TYPES.join(',')}
-        onChange={handleFileChange}
-        className="visually-hidden"
-        aria-label={messages.editorAddImageButton}
-      />
     </div>
   );
 }
@@ -798,10 +723,8 @@ function PerspectiveFitControls({ object }: { object: PerspectiveCapableObject }
 
 function ContentSection({
   onContentError,
-  onImageError,
 }: {
   onContentError: (kind: ContentKind, error: ContentValidationError) => void;
-  onImageError: (error: ImageValidationError) => void;
 }) {
   const { messages } = useLocale();
   const selected = useEditorStore(selectSelectedObject);
@@ -809,7 +732,7 @@ function ContentSection({
 
   return (
     <ToolbarSection heading={messages.editorContentLabel}>
-      <AddCanvasElementControls onImageError={onImageError} />
+      <AddCanvasElementControls />
       {!hasContentSupport ? (
         <p className="toolbar-notice">{messages.toolbarContentEmptyHint}</p>
       ) : (
