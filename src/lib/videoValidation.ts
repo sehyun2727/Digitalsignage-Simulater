@@ -1,7 +1,11 @@
 export const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/webm'] as const;
-export const MAX_VIDEO_BYTES = 80 * 1024 * 1024;
-export const MAX_VIDEO_WIDTH = 1920;
-export const MAX_VIDEO_HEIGHT = 1080;
+// Raised from 80MB/1080p to 300MB/4K after in-house testing showed browser-local decoding
+// stays comfortable within these bounds on typical modern laptops. Anything larger risks
+// exhausting mobile-Safari memory and is still rejected up front so the user sees a clear
+// error instead of a silent decode crash.
+export const MAX_VIDEO_BYTES = 300 * 1024 * 1024;
+export const MAX_VIDEO_WIDTH = 3840;
+export const MAX_VIDEO_HEIGHT = 2160;
 export const MAX_VIDEO_DURATION_SECONDS = 30;
 
 export type VideoValidationError =

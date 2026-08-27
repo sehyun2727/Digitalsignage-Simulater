@@ -563,7 +563,8 @@ describe('App', () => {
     });
 
     it('shows an accessible error when an uploaded video decodes to oversized dimensions', async () => {
-      stubRealVideoElementWith({ videoWidth: 3840, videoHeight: 2160 });
+      // Max is now 4K (3840x2160), so trigger the too-large branch with one pixel past that.
+      stubRealVideoElementWith({ videoWidth: 3841, videoHeight: 2160 });
       const user = userEvent.setup();
       render(<App />);
       await addSpaceBackground(user);

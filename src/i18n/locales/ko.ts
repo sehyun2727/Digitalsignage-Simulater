@@ -58,12 +58,12 @@ export const ko: Messages = {
   editorContentDropNoTargetHint:
     '파일을 콘텐츠로 사용하려면 사이네지 또는 포터블 사이네지의 화면 영역에 드롭하세요.',
   editorVideoUploadErrorUnsupportedType: 'MP4, WebM 형식의 동영상만 사용할 수 있습니다.',
-  editorVideoUploadErrorTooLarge: '동영상 크기는 80MB 이하여야 합니다.',
+  editorVideoUploadErrorTooLarge: '동영상 크기는 300MB 이하여야 합니다.',
   editorVideoUploadErrorUnsupportedCodec: '이 브라우저에서는 동영상 코덱을 재생할 수 없습니다.',
   editorVideoUploadErrorDecodeFailed:
     '동영상을 불러오지 못했습니다. 파일이 손상되었을 수 있습니다.',
   editorVideoUploadErrorDimensionsTooLarge:
-    '동영상 해상도가 너무 큽니다. 1920x1080(Full HD) 이하의 동영상을 사용해 주세요.',
+    '동영상 해상도가 너무 큽니다. 3840x2160(4K) 이하의 동영상을 사용해 주세요.',
   editorVideoUploadErrorDurationTooLong: '동영상 길이는 30초 이하여야 합니다.',
   editorExportedAnnouncement: 'PNG 이미지를 내보냈습니다.',
   editorExportedIosAnnouncement: '새 탭에서 이미지를 열었습니다. 이미지를 길게 눌러 저장하세요.',

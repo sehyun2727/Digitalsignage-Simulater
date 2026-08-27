@@ -139,7 +139,8 @@ describe('validateContentFile', () => {
   });
 
   it('tags a video validation failure with kind "video"', () => {
-    expect(validateContentFile(createVideoFile(100 * 1024 * 1024))).toEqual({
+    // Cap raised to 300MB in src/lib/videoValidation.ts, so use 400MB to guarantee too-large.
+    expect(validateContentFile(createVideoFile(400 * 1024 * 1024))).toEqual({
       kind: 'video',
       error: 'too-large',
     });

@@ -57,11 +57,11 @@ export const en: Messages = {
   editorContentDropNoTargetHint:
     'Drop files onto a display or portable signage’s screen area to use them as content.',
   editorVideoUploadErrorUnsupportedType: 'Only MP4 and WebM videos are supported.',
-  editorVideoUploadErrorTooLarge: 'Video size must be 80MB or smaller.',
+  editorVideoUploadErrorTooLarge: 'Video size must be 300MB or smaller.',
   editorVideoUploadErrorUnsupportedCodec: 'This browser cannot play this video’s codec.',
   editorVideoUploadErrorDecodeFailed: 'Could not load the video. The file may be corrupted.',
   editorVideoUploadErrorDimensionsTooLarge:
-    'Video resolution is too large. Use 1920x1080 (Full HD) or smaller.',
+    'Video resolution is too large. Use 3840x2160 (4K) or smaller.',
   editorVideoUploadErrorDurationTooLong: 'Video length must be 30 seconds or shorter.',
   editorExportedAnnouncement: 'Exported the PNG image.',
   editorExportedIosAnnouncement: 'Image opened in a new tab. Long-press the image to save it.',

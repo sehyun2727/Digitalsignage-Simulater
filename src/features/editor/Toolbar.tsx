@@ -474,6 +474,7 @@ function SelectedSignageSection() {
 function SelectedSignageFields({ object: selected }: { object: SignageObject }) {
   const { messages } = useLocale();
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
+  const updateObjectTransient = useEditorStore((state) => state.updateObjectTransient);
   const [draft, setDraft] = useState<Draft>(() => toDraft(selected));
 
   // Reflect store-side changes (canvas drag/rotate/resize, undo, redo) back into the numeric
@@ -567,7 +568,15 @@ function SelectedSignageFields({ object: selected }: { object: SignageObject }) 
             <span>{messages.editorTextContentLabel}</span>
             <textarea
               value={draft.text ?? ''}
-              onChange={(event) => setDraft({ ...draft, text: event.target.value })}
+              onChange={(event) => {
+                const text = event.target.value;
+                setDraft({ ...draft, text });
+                // Push each keystroke into the store as a transient (non-history) update so the
+                // canvas re-renders live as the user types — mirrors how sliders elsewhere in
+                // this file drive transient updates then commit on release. The onBlur below
+                // then adds ONE history entry with the final text.
+                updateObjectTransient(selected.id, { text });
+              }}
               onBlur={() => commit({ text: draft.text })}
             />
           </label>
@@ -578,7 +587,13 @@ function SelectedSignageFields({ object: selected }: { object: SignageObject }) 
               type="number"
               min={8}
               value={draft.fontSize ?? 16}
-              onChange={(event) => setDraft({ ...draft, fontSize: Number(event.target.value) })}
+              onChange={(event) => {
+                const fontSize = Number(event.target.value);
+                setDraft({ ...draft, fontSize });
+                // Live-preview font-size changes too so the canvas glyphs resize as the user
+                // types the number, matching the text-content field's real-time behaviour above.
+                if (fontSize >= 8) updateObjectTransient(selected.id, { fontSize });
+              }}
               onBlur={() => commit({ fontSize: Math.max(8, draft.fontSize ?? 16) })}
             />
           </label>

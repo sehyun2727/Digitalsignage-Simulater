@@ -58,12 +58,12 @@ export const ja: Messages = {
   editorContentDropNoTargetHint:
     'ファイルをコンテンツとして使用するには、ディスプレイまたはポータブルサイネージの画面領域にドロップしてください。',
   editorVideoUploadErrorUnsupportedType: 'MP4、WebM形式の動画のみ利用できます。',
-  editorVideoUploadErrorTooLarge: '動画サイズは80MB以下にしてください。',
+  editorVideoUploadErrorTooLarge: '動画サイズは300MB以下にしてください。',
   editorVideoUploadErrorUnsupportedCodec: 'このブラウザでは動画のコーデックを再生できません。',
   editorVideoUploadErrorDecodeFailed:
     '動画を読み込めませんでした。ファイルが破損している可能性があります。',
   editorVideoUploadErrorDimensionsTooLarge:
-    '動画の解像度が大きすぎます。1920x1080(フルHD)以下の動画を使用してください。',
+    '動画の解像度が大きすぎます。3840x2160(4K)以下の動画を使用してください。',
   editorVideoUploadErrorDurationTooLong: '動画の長さは30秒以下にしてください。',
   editorExportedAnnouncement: 'PNG画像を書き出しました。',
   editorExportedIosAnnouncement: '新しいタブで画像を開きました。画像を長押しして保存してください。',
