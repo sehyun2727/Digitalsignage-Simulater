@@ -99,7 +99,7 @@ export interface EditorState {
   screenQuadDraftQuad: NormalizedQuad | null;
   /** The quad screenQuadDraftQuad started from, restored by resetScreenQuadEdit. */
   screenQuadEditOriginalQuad: NormalizedQuad | null;
-  addText: () => void;
+  addText: (defaultText?: string) => void;
   addImage: (payload: { sourceId: string; naturalWidth: number; naturalHeight: number }) => void;
   addDisplay: (material: DisplayMaterial) => void;
   /** Creates a portable using the fixed vector template — no arguments, since the template's
@@ -270,7 +270,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   screenQuadDraftQuad: null,
   screenQuadEditOriginalQuad: null,
 
-  addText: () => {
+  addText: (defaultText?: string) => {
     const { document } = get();
     if (!document.spaceBackground) return;
     const size = getDocumentSize(document);
@@ -282,9 +282,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       width: 300,
       height: 60,
       rotation: 0,
-      text: '',
+      // A non-empty placeholder is required — Konva.Text with an empty string renders no
+      // glyphs, has zero self-rect, and therefore has nothing hit-testable, so the newly
+      // added text object was invisible AND unclickable (the properties panel opened but the
+      // user had no idea because nothing showed on the canvas). Default color is dark so the
+      // placeholder reads over typical space photos.
+      text: defaultText ?? 'Text',
       fontSize: 48,
-      color: '#ffffff',
+      color: '#1a1a1a',
       align: 'center',
     };
     set({

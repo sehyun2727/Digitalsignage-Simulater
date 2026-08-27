@@ -375,7 +375,11 @@ function AddCanvasElementControls({
     <div className="toolbar-subsection">
       <span className="toolbar-subsection-heading">{messages.toolbarAddElementSubheading}</span>
       <div className="toolbar-actions">
-        <button type="button" disabled={!canAddElement} onClick={addText}>
+        <button
+          type="button"
+          disabled={!canAddElement}
+          onClick={() => addText(messages.signageTypeText)}
+        >
           {messages.editorAddTextButton}
         </button>
         <button

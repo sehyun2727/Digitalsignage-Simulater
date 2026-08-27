@@ -72,6 +72,36 @@ function loadVideo(objectUrl: string): Promise<HTMLVideoElement> {
 }
 
 /**
+ * Some MP4/WebM encodings (Chrome-recorded MediaRecorder blobs, fragmented MP4s remuxed from
+ * streams, files whose duration atom wasn't finalized on write) report `duration === Infinity`
+ * at `loadedmetadata` even though the file is a well-formed finite clip. The standard workaround
+ * — seek past the end so the browser recomputes duration from the actual read-through position
+ * — is applied here so downstream validation doesn't falsely reject those files as
+ * "duration-too-long". No-op when the initial duration is already a finite number.
+ */
+async function ensureFiniteDuration(video: HTMLVideoElement): Promise<void> {
+  if (Number.isFinite(video.duration)) return;
+  await new Promise<void>((resolve) => {
+    // Give up after 2s so a genuinely bad file doesn't hang the upload — the caller's
+    // downstream duration check will then still reject it, but at least the UI unfreezes.
+    const timeout = window.setTimeout(() => {
+      video.ontimeupdate = null;
+      resolve();
+    }, 2000);
+    video.ontimeupdate = () => {
+      if (Number.isFinite(video.duration)) {
+        window.clearTimeout(timeout);
+        video.ontimeupdate = null;
+        // Rewind so the eventual playback starts from the beginning as the preview expects.
+        video.currentTime = 0;
+        resolve();
+      }
+    };
+    video.currentTime = Number.MAX_SAFE_INTEGER;
+  });
+}
+
+/**
  * Registers a decoded, ready-to-play video element the same way registerAsset registers a
  * decoded image: caller has already run validateVideoFile (src/lib/videoValidation.ts), this
  * only performs the actual browser-local decode and lifecycle bookkeeping. The returned
@@ -84,6 +114,7 @@ export async function registerVideoAsset(
   const objectUrl = URL.createObjectURL(file);
   try {
     const video = await loadVideo(objectUrl);
+    await ensureFiniteDuration(video);
     const sourceId = createId();
     registry.set(sourceId, {
       objectUrl,

@@ -91,9 +91,14 @@ function stubRealVideoElementWith(overrides: {
       value: overrides.videoHeight,
       configurable: true,
     });
-    if (overrides.duration !== undefined) {
-      Object.defineProperty(video, 'duration', { value: overrides.duration, configurable: true });
-    }
+    // Always define a finite duration (default 10s) so registerVideoAsset's Infinity-duration
+    // fallback (`ensureFiniteDuration` in src/lib/assetRegistry.ts) short-circuits — otherwise
+    // jsdom's uninitialized `video.duration` is NaN, and the fallback's 2s seek-and-wait
+    // timeout stalls every test that exercises the dimension/duration paths.
+    Object.defineProperty(video, 'duration', {
+      value: overrides.duration ?? 10,
+      configurable: true,
+    });
     Object.defineProperty(video, 'src', {
       set() {
         queueMicrotask(() => video.onloadedmetadata?.(new Event('loadedmetadata')));
