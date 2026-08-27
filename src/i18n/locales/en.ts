@@ -290,6 +290,7 @@ export const en: Messages = {
     'A clean, non-editable view you can show a client as-is. Select "Back to editing" any time to resume editing.',
 
   userGuideOpenButton: 'About & how to use',
+  userGuideHereHint: '← Manual is here',
   userGuideTitle: 'About & how to use',
   userGuideCloseButton: 'Close',
   userGuideAboutHeading: 'About this tool',

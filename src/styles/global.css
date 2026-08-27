@@ -764,14 +764,22 @@ a {
 }
 
 .app-footer {
-  /* Only holds the small user-guide icon button now — the previous inline disclaimer paragraph
-   * moved into the modal that button opens, keeping the below-canvas chrome to a single tiny
-   * line. Zero padding so the button sits directly on the shell's own gap without an extra
-   * strip of empty space above or below. */
+  /* Holds the 📖 user-guide icon button and a small red pointer label to its right, since
+   * the manual is otherwise easy to miss in this bottom corner. Zero padding so the row
+   * sits directly on the shell's own gap without an extra strip of empty space. */
   flex-shrink: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0;
+}
+
+.user-guide-here-hint {
+  font-size: 0.75rem;
+  color: #d32f2f;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .user-guide-open-button {

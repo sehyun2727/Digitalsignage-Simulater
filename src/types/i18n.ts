@@ -274,6 +274,7 @@ export interface Messages {
   salesReviewModeHint: string;
 
   userGuideOpenButton: string;
+  userGuideHereHint: string;
   userGuideTitle: string;
   userGuideCloseButton: string;
   userGuideAboutHeading: string;

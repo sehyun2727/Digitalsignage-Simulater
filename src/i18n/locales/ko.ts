@@ -290,6 +290,7 @@ export const ko: Messages = {
     '편집 기능을 비활성화한, 고객에게 그대로 보여줄 수 있는 화면입니다. "편집으로 돌아가기"를 누르면 언제든 편집을 다시 시작할 수 있습니다.',
 
   userGuideOpenButton: '사용법 · 이 서비스에 대하여',
+  userGuideHereHint: '← 설명서는 여기',
   userGuideTitle: '사용법 · 이 서비스에 대하여',
   userGuideCloseButton: '닫기',
   userGuideAboutHeading: '이 서비스에 대하여',

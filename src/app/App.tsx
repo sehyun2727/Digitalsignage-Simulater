@@ -35,6 +35,9 @@ function AppShell() {
         >
           <span aria-hidden="true">📖</span>
         </button>
+        <span className="user-guide-here-hint" aria-hidden="true">
+          {messages.userGuideHereHint}
+        </span>
       </footer>
 
       <HullCta />

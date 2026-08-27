@@ -294,6 +294,7 @@ export const ja: Messages = {
     '編集操作を無効にした、お客様にそのままお見せできる表示です。「編集に戻る」を押すといつでも編集を再開できます。',
 
   userGuideOpenButton: '使い方・このツールについて',
+  userGuideHereHint: '← マニュアルはこちら',
   userGuideTitle: '使い方・このツールについて',
   userGuideCloseButton: '閉じる',
   userGuideAboutHeading: 'このツールについて',
