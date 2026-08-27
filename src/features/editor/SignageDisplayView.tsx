@@ -232,14 +232,12 @@ export function SignageDisplayView({
       )}
       {showPerspective && object.perspectiveQuad && documentSize ? (
         // Perspective mode's visible body is warped to `perspectiveQuad`'s absolute document
-        // corners (see PerspectiveScreenView below), so the rect-based hit area that lives inside
-        // this object's own rotated Group no longer overlaps with what the user sees on screen.
-        // Instead, render an interactive Group at the document origin whose only child is a
-        // closed Line tracing the four quad corners in document space — that Line is where clicks
-        // are received and drags are captured, matching the visible warped shape exactly. The
-        // drag translates the whole quad (via `translatePerspectiveQuad`) rather than moving an
-        // x/y offset that would no longer make sense in this mode; Group is reset back to (0,0)
-        // after every drag so the next drag also measures a fresh (0,0)-relative delta.
+        // corners (see PerspectiveScreenView below). The hit-area Line, the warped body, and the
+        // selection outline all live inside ONE draggable Group at (0,0) so a drag translates
+        // the whole visible shape live — previously the body/outline sat as siblings outside the
+        // drag Group and only jumped to the new position after `onDragEnd` committed the quad
+        // translation, which felt like nothing was happening during the drag. The Group is reset
+        // back to (0,0) on drop so the next drag also measures a fresh (0,0)-relative delta.
         <Group
           id={object.id}
           x={0}
@@ -264,6 +262,30 @@ export function SignageDisplayView({
             perfectDrawEnabled={false}
             name="display-hit-area"
           />
+          <PerspectiveScreenView
+            width={object.width}
+            height={object.height}
+            quad={object.perspectiveQuad}
+            documentSize={documentSize}
+            redrawContinuously={object.content?.kind === 'video'}
+          >
+            {body}
+          </PerspectiveScreenView>
+          {isSelected && (
+            // Rendered AFTER PerspectiveScreenView so the outline sits on top of the warped body.
+            // `listening={false}` keeps clicks flowing to the hit-area Line above, and the
+            // `perspective-selection-outline` name lets the export path hide it in one query.
+            <Line
+              points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
+              closed
+              stroke={PERSPECTIVE_SELECTION_STROKE}
+              strokeWidth={PERSPECTIVE_SELECTION_STROKE_WIDTH}
+              dash={PERSPECTIVE_SELECTION_DASH}
+              listening={false}
+              perfectDrawEnabled={false}
+              name="perspective-selection-outline"
+            />
+          )}
         </Group>
       ) : (
         <Group {...groupProps}>
@@ -289,34 +311,6 @@ export function SignageDisplayView({
           />
           {body}
         </Group>
-      )}
-      {showPerspective && object.perspectiveQuad && documentSize && (
-        <PerspectiveScreenView
-          width={object.width}
-          height={object.height}
-          quad={object.perspectiveQuad}
-          documentSize={documentSize}
-          redrawContinuously={object.content?.kind === 'video'}
-        >
-          {body}
-        </PerspectiveScreenView>
-      )}
-      {showPerspective && isSelected && object.perspectiveQuad && documentSize && (
-        // Drawn as a sibling AFTER PerspectiveScreenView so the outline sits on top of the warped
-        // body — previously nested inside the hit-area Group above, where the body's raster paint
-        // covered it and made the object look unselectable. `listening={false}` keeps clicks
-        // flowing to the hit-area Line, and the shared `perspective-selection-outline` name lets
-        // the export path hide it in one query.
-        <Line
-          points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
-          closed
-          stroke={PERSPECTIVE_SELECTION_STROKE}
-          strokeWidth={PERSPECTIVE_SELECTION_STROKE_WIDTH}
-          dash={PERSPECTIVE_SELECTION_DASH}
-          listening={false}
-          perfectDrawEnabled={false}
-          name="perspective-selection-outline"
-        />
       )}
       {documentSize && spaceBackground && object.occlusionMasks.length > 0 && (
         <OcclusionMaskLayer

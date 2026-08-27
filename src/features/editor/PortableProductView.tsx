@@ -141,7 +141,12 @@ export function PortableProductView({
       )}
 
       {showPerspective && object.perspectiveQuad && documentSize ? (
-        // Perspective placement: hit area is the warped quad at document level.
+        // Perspective placement: the hit-area Line, the warped body, and the selection outline
+        // all live inside ONE draggable Group so a drag translates the whole visible shape live.
+        // Previously the body/outline sat as siblings outside this Group and only jumped to the
+        // new position after `onDragEnd` committed the quad translation, which felt like nothing
+        // moved during the drag. Group is reset to (0,0) on drop so the next drag also measures
+        // a fresh (0,0)-relative delta against the newly translated quad.
         <Group
           id={object.id}
           x={0}
@@ -166,6 +171,29 @@ export function PortableProductView({
             perfectDrawEnabled={false}
             name="portable-hit-area"
           />
+          <PerspectiveScreenView
+            width={object.width}
+            height={object.height}
+            quad={object.perspectiveQuad}
+            documentSize={documentSize}
+            redrawContinuously={object.content?.kind === 'video'}
+          >
+            {body}
+          </PerspectiveScreenView>
+          {isSelected && (
+            // Drawn AFTER PerspectiveScreenView so the outline sits on top of the warped body.
+            // `listening={false}` keeps clicks flowing to the hit-area Line above.
+            <Line
+              points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
+              closed
+              stroke={PERSPECTIVE_SELECTION_STROKE}
+              strokeWidth={PERSPECTIVE_SELECTION_STROKE_WIDTH}
+              dash={PERSPECTIVE_SELECTION_DASH}
+              listening={false}
+              perfectDrawEnabled={false}
+              name="perspective-selection-outline"
+            />
+          )}
         </Group>
       ) : (
         // Rect placement: the Transformer attaches to this Group. The compound body layers
@@ -184,36 +212,6 @@ export function PortableProductView({
           />
           {body}
         </Group>
-      )}
-
-      {/* Global perspective warp: entire compound body captured off-canvas and warped into
-          perspectiveQuad. The body renders the device photo + warped screen content at
-          object-local coordinates; PerspectiveScreenView rasterizes and re-warps the whole. */}
-      {showPerspective && object.perspectiveQuad && documentSize && (
-        <PerspectiveScreenView
-          width={object.width}
-          height={object.height}
-          quad={object.perspectiveQuad}
-          documentSize={documentSize}
-          redrawContinuously={object.content?.kind === 'video'}
-        >
-          {body}
-        </PerspectiveScreenView>
-      )}
-      {showPerspective && isSelected && object.perspectiveQuad && documentSize && (
-        // Sibling AFTER PerspectiveScreenView so the outline sits on top of the warped body —
-        // previously nested inside the hit-area Group, where the warped raster covered it.
-        // `listening={false}` keeps clicks flowing to the hit-area Line above.
-        <Line
-          points={quadDocumentPointsFlat(object.perspectiveQuad, documentSize)}
-          closed
-          stroke={PERSPECTIVE_SELECTION_STROKE}
-          strokeWidth={PERSPECTIVE_SELECTION_STROKE_WIDTH}
-          dash={PERSPECTIVE_SELECTION_DASH}
-          listening={false}
-          perfectDrawEnabled={false}
-          name="perspective-selection-outline"
-        />
       )}
 
       {documentSize && spaceBackground && object.occlusionMasks.length > 0 && (
