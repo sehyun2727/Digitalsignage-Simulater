@@ -1,7 +1,9 @@
 import type { Messages } from '../../types/i18n';
 
 export const en: Messages = {
-  appTitle: 'Digital Signage Simulator',
+  appTitle: 'Digital Signage Placement Simulator',
+  appName: '置いてみる君',
+  appTagline: 'What if you placed signage here? Just upload a photo\nto preview how it would look installed.',
   editorCrashTitle: 'Something went wrong',
   editorCrashDescription:
     'The editor ran into an unexpected error. Your edits since the last export may not be saved. Please reload the page and try again.',

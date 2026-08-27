@@ -274,7 +274,11 @@ export function EditorLayout() {
   return (
     <div className="editor-layout">
       <header className="editor-header">
-        <h1 className="editor-header-title">{messages.appTitle}</h1>
+        <div className="app-hero">
+          <p className="app-hero-eyebrow">{messages.appTitle}</p>
+          <h1 className="app-hero-name">{messages.appName}</h1>
+          <p className="app-hero-tagline">{messages.appTagline}</p>
+        </div>
         <div className="editor-header-actions">
           {!salesReviewMode && (
             <>

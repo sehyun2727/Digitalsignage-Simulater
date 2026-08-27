@@ -1,7 +1,9 @@
 import type { Messages } from '../../types/i18n';
 
 export const ko: Messages = {
-  appTitle: 'Digital Signage Simulator',
+  appTitle: '디지털 사이니지 설치 시뮬레이터',
+  appName: '置いてみる君',
+  appTagline: '여기에 사이니지를 놓으면 어떨까? 사진만 업로드하면\n설치 후 이미지를 손쉽게 확인!',
   editorCrashTitle: '문제가 발생했습니다',
   editorCrashDescription:
     '편집기에서 예기치 못한 오류가 발생했습니다. 지금까지의 편집 내용은 저장되지 않았을 수 있습니다. 페이지를 새로고침해 다시 시도해 주세요.',

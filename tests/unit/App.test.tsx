@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/app/App';
 import { en } from '../../src/i18n/locales/en';
 import { ja } from '../../src/i18n/locales/ja';
+import { ko } from '../../src/i18n/locales/ko';
 import { useEditorStore } from '../../src/store/editorStore';
 import { useUiStore } from '../../src/store/uiStore';
 import { createEmptyDocument } from '../../src/types/editor';
@@ -197,7 +198,7 @@ describe('App', () => {
   it('renders the editor shell', () => {
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: ja.appTitle })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: ja.appName })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: ja.editorAddTextButton })).toBeInTheDocument();
   });
 
@@ -245,7 +246,7 @@ describe('App', () => {
     );
 
     expect(document.documentElement.lang).toBe('ko');
-    expect(screen.getByRole('heading', { name: 'Digital Signage Simulator' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: ko.hullCtaLabel })).toBeInTheDocument();
   });
 
   it('switches the UI to English', async () => {

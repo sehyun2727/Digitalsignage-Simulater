@@ -30,8 +30,10 @@ function AppShell() {
           type="button"
           className="user-guide-open-button"
           onClick={() => setUserGuideOpen(true)}
+          aria-label={messages.userGuideOpenButton}
+          title={messages.userGuideOpenButton}
         >
-          {messages.userGuideOpenButton}
+          <span aria-hidden="true">📖</span>
         </button>
       </footer>
 

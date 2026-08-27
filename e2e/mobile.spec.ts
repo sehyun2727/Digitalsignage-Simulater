@@ -48,7 +48,7 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await page.goto('/');
 
   // 2. Confirm the Japanese default (default locale, no stored preference).
-  await expect(page.getByRole('heading', { name: 'サイネージ シミュレーター' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '置いてみる君' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
 
   // 3. Upload a valid space background photo; its resolution becomes the export size.

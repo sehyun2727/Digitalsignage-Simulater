@@ -21,6 +21,12 @@ body,
      Browsers without dvh support keep the 100% fallback above (invalid unit
      values are ignored, not applied as 0). */
   height: 100dvh;
+  /* Belt-and-suspenders: the app-shell is already `overflow: hidden` at 100dvh, but a
+   * few pixels of rounding or a stray fixed-position child can still trigger a
+   * page-level scrollbar on desktop. Lock the page itself so it never scrolls — only
+   * the toolbar's own overflow-y: auto handles in-app scrolling. Mobile portrait
+   * re-enables scrolling in its own @media block below (the stacked layout needs it). */
+  overflow: hidden;
 }
 
 body {
@@ -57,8 +63,10 @@ a {
   /* Trimmed from the old 1rem × 4 padding + 0.75rem gap: the workspace was the largest thing
    * on screen but was surrounded by ~50–70 px of chrome (shell padding, footer, per-region
    * gaps) that never carried critical UI. Every rem shaved here goes straight into the
-   * canvas's available height, which is the point of the "expand downward" pass. */
-  padding: 0.5rem 0.75rem;
+   * canvas's available height, which is the point of the "expand downward" pass.
+   * Bottom padding is 0 so the manual button sits flush against the viewport bottom edge
+   * with no leftover empty strip. */
+  padding: 0.5rem 0.75rem 0;
   gap: 0.4rem;
   max-width: 120rem;
   width: 100%;
@@ -91,6 +99,42 @@ a {
   font-size: 1rem;
 }
 
+.app-hero {
+  /* Lives inside .editor-header as the left column; .editor-header owns the bottom border
+   * and padding, so the hero itself is just a stacked title block. */
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.app-hero-eyebrow {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.app-hero-name {
+  margin: 0;
+  font-size: 1.85rem;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.app-hero-tagline {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  line-height: 1.45;
+  /* Tagline strings carry an explicit "\n" at the intended wrap point (see i18n locales);
+   * pre-line honors it as a hard break while still collapsing incidental spaces. */
+  white-space: pre-line;
+}
+
 .app-main {
   flex: 1 1 auto;
   min-height: 0;
@@ -110,20 +154,10 @@ a {
 .editor-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
   flex-wrap: nowrap;
   border-bottom: 1px solid var(--color-border);
-  padding-bottom: 0.4rem;
-}
-
-.editor-header-title {
-  margin: 0;
-  flex-shrink: 0;
-  font-size: 1.1rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 0.35rem 0 0.4rem;
 }
 
 .editor-header-actions {
@@ -132,6 +166,9 @@ a {
   gap: 0.5rem;
   flex-shrink: 0;
   flex-wrap: nowrap;
+  /* Push to the end even when the hero is hidden (landscape mobile) or missing, since
+   * .editor-header no longer sets justify-content. */
+  margin-inline-start: auto;
 }
 
 .editor-header-actions button {
@@ -174,7 +211,12 @@ a {
   min-height: 0;
   display: flex;
   gap: 1rem;
-  align-items: stretch;
+  /* flex-start (not stretch) so the canvas wrapper is sized by the canvas's own 16:9 height
+   * and doesn't get inflated into a tall empty box when the toolbar is much longer.
+   * The toolbar itself uses align-self: stretch to fill the full workspace height so its
+   * own overflow-y: auto handles the scroll internally (see .toolbar). */
+  align-items: flex-start;
+  overflow: hidden;
   /* The HULL CTA is `position: fixed` at bottom-right (z-index 5) and would otherwise cover
    * the last ~5rem of the toolbar's scrollable content — reserving that vertical slack at
    * the workspace level pushes both the canvas and the toolbar to end just above the CTA.
@@ -193,15 +235,13 @@ a {
    * flush against the header's bottom border. Applied only to the canvas wrapper (not the
    * toolbar sibling) so the toolbar's own top alignment isn't affected. */
   padding-top: 0.75rem;
-  /* Plain `center` centers overflowing content in *both* directions, so a portrait
-     template (e.g. Stand Display) taller than the available space pokes its top
-     edge up past the wrapper's own box and under the header above it, letting a
-     click meant for blank canvas land on the header instead. `safe center` centers
-     when the content fits and falls back to start-alignment when it doesn't, so
-     any overflow only ever extends downward into the wrapper's own scroll area. */
   align-items: safe center;
   justify-content: safe center;
-  overflow: auto;
+  /* The canvas wrapper never scrolls itself — the shell is fixed-height with
+   * overflow: hidden, and the toolbar handles all in-app scrolling. On unusually short
+   * viewports the workspace's own overflow: hidden clips a too-tall canvas, but on any
+   * typical desktop the natural 16:9 (or 9:16) height fits comfortably. */
+  overflow: visible;
 }
 
 .editor-canvas-container {
@@ -467,6 +507,11 @@ a {
   flex: 0 0 22rem;
   min-width: 0;
   min-height: 0;
+  /* Workspace uses align-items: flex-start (so the canvas wrapper stays at its natural
+   * 16:9 height), so the toolbar has to opt itself back into stretching to fill the
+   * workspace's full height — without this, its own height is content-sized and the
+   * overflow-y: auto below never has anything to scroll against. */
+  align-self: stretch;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -719,32 +764,36 @@ a {
 }
 
 .app-footer {
-  /* Only holds the small user-guide link now — the previous inline disclaimer paragraph moved
-   * into the modal that link opens, keeping the below-canvas chrome to a single tiny line. */
+  /* Only holds the small user-guide icon button now — the previous inline disclaimer paragraph
+   * moved into the modal that button opens, keeping the below-canvas chrome to a single tiny
+   * line. Zero padding so the button sits directly on the shell's own gap without an extra
+   * strip of empty space above or below. */
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  padding-top: 0.15rem;
+  padding: 0;
 }
 
 .user-guide-open-button {
   align-self: flex-start;
-  padding: 0.1rem 0.3rem;
+  /* Icon-only square-ish button. The accessible name lives on `aria-label`/`title`
+   * (see App.tsx); the visible glyph is a small book emoji. */
+  padding: 0.25rem 0.45rem;
   margin: 0;
-  font-size: 0.7rem;
-  line-height: 1.2;
-  color: var(--color-muted);
-  background: transparent;
-  border: none;
-  border-radius: 0.2rem;
+  font-size: 1.15rem;
+  line-height: 1;
+  min-width: 2rem;
+  text-align: center;
+  color: var(--color-fg);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }
 
 .user-guide-open-button:hover,
 .user-guide-open-button:focus-visible {
-  color: var(--color-fg);
+  background-color: #f4f5f7;
 }
 
 .hull-cta {
@@ -793,6 +842,9 @@ a {
   #root {
     height: auto;
     min-height: 100%;
+    /* Re-enable page scroll (base rule sets overflow: hidden on desktop to defend
+     * against stray pixel-rounding scrollbars); the mobile stacked layout needs it. */
+    overflow: visible;
   }
 
   .app-shell {
@@ -803,6 +855,15 @@ a {
 
   .editor-layout {
     min-height: 0;
+  }
+
+  .app-hero-name {
+    font-size: 1.5rem;
+  }
+
+  .app-hero-eyebrow,
+  .app-hero-tagline {
+    font-size: 0.8rem;
   }
 
   .editor-header {
@@ -926,14 +987,15 @@ a {
     padding: 0.35rem 0.5rem;
   }
 
-  .editor-header {
-    flex-wrap: nowrap;
+  /* Landscape phones have ~350–430px of vertical space total — the hero would eat 20–30% of
+     the canvas/toolbar area for a title the user has already read on entry. Hide it here and
+     leave the compact editor header as the only chrome above the workspace. */
+  .app-hero {
+    display: none;
   }
 
-  /* Allow the title to shrink so action buttons can stay in a single row */
-  .editor-header-title {
-    flex-shrink: 1;
-    min-width: 0;
+  .editor-header {
+    flex-wrap: nowrap;
   }
 
   .editor-header-actions {

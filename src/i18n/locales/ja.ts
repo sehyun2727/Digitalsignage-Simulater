@@ -1,7 +1,9 @@
 import type { Messages } from '../../types/i18n';
 
 export const ja: Messages = {
-  appTitle: 'サイネージ シミュレーター',
+  appTitle: 'デジタルサイネージ設置シミュレーター',
+  appName: '置いてみる君',
+  appTagline: 'ここにサイネージを置いたら？写真をアップするだけで、\n設置後のイメージをかんたんチェック！',
   editorCrashTitle: '問題が発生しました',
   editorCrashDescription:
     'エディタで予期しないエラーが発生しました。これまでの編集内容は保存されていない可能性があります。ページを再読み込みしてもう一度お試しください。',

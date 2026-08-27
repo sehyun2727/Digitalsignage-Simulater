@@ -12,6 +12,8 @@ export function isSupportedLocale(value: string): value is Locale {
 
 export interface Messages {
   appTitle: string;
+  appName: string;
+  appTagline: string;
   editorCrashTitle: string;
   editorCrashDescription: string;
   editorCrashReloadButton: string;
