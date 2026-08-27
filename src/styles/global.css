@@ -223,6 +223,10 @@ a {
    * The toolbar's own overflow-y: auto still lets the user scroll all settings into view;
    * this only keeps the fixed CTA from occluding the bottom of that scroll area. */
   padding-bottom: 5rem;
+  /* Shared breathing room above BOTH the canvas wrapper and the toolbar so their tops start
+   * at the same y-position — previously only the canvas wrapper had this padding, so the
+   * toolbar's first section sat ~12px higher than the canvas's own top edge. */
+  padding-top: 0.75rem;
 }
 
 .editor-canvas-wrapper {
@@ -231,10 +235,6 @@ a {
   min-width: 0;
   min-height: 0;
   display: flex;
-  /* Small breathing room above the canvas so the top edge of the space photo doesn't sit
-   * flush against the header's bottom border. Applied only to the canvas wrapper (not the
-   * toolbar sibling) so the toolbar's own top alignment isn't affected. */
-  padding-top: 0.75rem;
   align-items: safe center;
   justify-content: safe center;
   /* The canvas wrapper never scrolls itself — the shell is fixed-height with
