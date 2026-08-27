@@ -169,6 +169,10 @@ a {
   /* Push to the end even when the hero is hidden (landscape mobile) or missing, since
    * .editor-header no longer sets justify-content. */
   margin-inline-start: auto;
+  /* Sit at the bottom of the header (just above the border-bottom line) instead of being
+   * vertically centered against the taller three-line hero block on the left — the buttons
+   * now anchor to the same baseline as the header's separator line. */
+  align-self: flex-end;
 }
 
 .editor-header-actions button {
@@ -217,15 +221,11 @@ a {
    * own overflow-y: auto handles the scroll internally (see .toolbar). */
   align-items: flex-start;
   overflow: hidden;
-  /* The HULL CTA is `position: fixed` at bottom-right (z-index 5) and would otherwise cover
-   * the last ~5rem of the toolbar's scrollable content — reserving that vertical slack at
-   * the workspace level pushes both the canvas and the toolbar to end just above the CTA.
-   * The toolbar's own overflow-y: auto still lets the user scroll all settings into view;
-   * this only keeps the fixed CTA from occluding the bottom of that scroll area. */
-  padding-bottom: 5rem;
   /* Shared breathing room above BOTH the canvas wrapper and the toolbar so their tops start
    * at the same y-position — previously only the canvas wrapper had this padding, so the
-   * toolbar's first section sat ~12px higher than the canvas's own top edge. */
+   * toolbar's first section sat ~12px higher than the canvas's own top edge.
+   * (No padding-bottom is needed anymore: the HULL CTA moved from fixed bottom-right to
+   * fixed top-right, so it no longer floats over the toolbar's scroll tail.) */
   padding-top: 0.75rem;
 }
 
@@ -797,9 +797,12 @@ a {
 }
 
 .hull-cta {
+  /* Fixed top-right overlay: sits at the very top of the page without shifting any of the
+   * underlying layout (hero, canvas, toolbar all stay put). Previously anchored to the
+   * bottom-right; moved up so the editor's own bottom no longer has to reserve space for it. */
   position: fixed;
   right: max(1rem, env(safe-area-inset-right));
-  bottom: max(1rem, env(safe-area-inset-bottom));
+  top: max(0.5rem, env(safe-area-inset-top));
   z-index: 5;
   display: flex;
   flex-direction: column;
