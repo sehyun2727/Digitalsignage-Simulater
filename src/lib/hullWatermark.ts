@@ -1,4 +1,4 @@
-export const HULL_WATERMARK_SRC = '/assets/brand/hull-watermark.svg';
+export const HULL_WATERMARK_SRC = `${import.meta.env.BASE_URL}assets/brand/hull-watermark.svg`;
 
 /** SVG viewBox aspect ratio (80 / 26 ≈ 3.077). */
 const WATERMARK_ASPECT_RATIO = 80 / 26;
