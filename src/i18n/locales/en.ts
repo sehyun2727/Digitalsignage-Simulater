@@ -15,7 +15,100 @@ export const en: Messages = {
     en: 'English',
   },
   hullCtaLabel: 'Install signage with HULL',
-  hullCtaExternalNotice: 'Opens the official HULL website in a new tab.',
+  hullCtaTermsLinkLabel: 'Terms of Service',
+  termsOfServiceTitle:
+    'Digital Signage Placement Simulator "Oitemiru-kun" Terms of Service',
+  termsOfServiceCloseButton: 'Close',
+  termsOfServiceEffectiveDate: 'Effective date: 2026',
+  termsOfServiceRevisedDate: 'Revised date: 2026',
+  termsOfServiceIntro:
+    'These Terms of Service ("Terms") set forth the conditions for use of the "Digital Signage Placement Simulator Oitemiru-kun" ("Service") operated and provided by HULL Corporation ("we", "us", or "our"). By using the Service, the user ("User") is deemed to have agreed to these Terms. If you do not agree to these Terms, you may not use the Service.',
+  termsOfServiceSections: [
+    {
+      heading: 'Article 1 (Content of the Service)',
+      paragraphs: [
+        'The Service is a web tool that lets Users place digital signage (LED / LCD / see-through / portable, etc.) over uploaded space photos and other images, simulate the installed appearance in the browser, and export the result as a PNG image or a video.',
+      ],
+    },
+    {
+      heading: 'Article 2 (Operator)',
+      paragraphs: [
+        'The Service is developed and operated by us (HULL Corporation) and offered as an official service on our official website.',
+      ],
+    },
+    {
+      heading: 'Article 3 (Eligibility)',
+      paragraphs: [
+        'Anyone who agrees to these Terms — whether a corporate entity or an individual — may use the Service free of charge.',
+        'No account registration or sign-in is required.',
+      ],
+    },
+    {
+      heading: 'Article 4 (Prohibited Conduct)',
+      paragraphs: ['When using the Service, the User must not engage in any of the following:'],
+      items: [
+        'Acts that violate laws or public order and morals.',
+        'Uploading images, videos, or other assets that infringe a third party’s copyright, portrait rights, privacy rights, trademark rights, or other rights.',
+        'Placing an excessive load on the Service’s systems, servers, or network (including access via automated tools).',
+        'Unauthorized access to, analysis of, or modification of the Service’s source code.',
+        'Presenting or distributing images or videos generated with the Service to any third party as if they were actual installation photographs or factual records.',
+        'Any other conduct that interferes with the normal provision or operation of the Service.',
+      ],
+    },
+    {
+      heading: 'Article 5 (Handling of Data and Privacy)',
+      paragraphs: [
+        'All image and video data uploaded to the Service is processed entirely on the User’s own device (inside the browser); it is not transmitted to or stored on our servers.',
+        'The Service does not require account registration and does not directly collect or store the User’s personal information in the course of providing the Service.',
+        'Closing the browser (tab or window) or reloading the page discards the editing state. Please export any results you need as a PNG image or video and save them to your own device.',
+      ],
+    },
+    {
+      heading: 'Article 6 (Rights, Use of Outputs, and User Responsibility)',
+      paragraphs: [
+        'Copyrights, portrait rights, and other rights in the materials (photos, images, videos, etc.) uploaded by the User remain with the User or the rightful rights holder.',
+        'Images and videos produced through the Service ("Outputs") may be used freely by the User for commercial or non-commercial purposes such as internal materials, client proposals, and sales collateral, provided that any use prohibited under Article 4 is not permitted.',
+        'Exported Outputs automatically include our watermark (logo, etc.). Please refrain from intentionally removing, hiding, or altering this watermark.',
+        'If a dispute or issue arises with a third party in connection with materials uploaded to the Service by the User or with the use of any Output — for example, alleged infringement of copyright, portrait rights, privacy rights, or other rights — the User shall resolve it at their own responsibility and expense, and we bear no responsibility whatsoever.',
+      ],
+    },
+    {
+      heading: 'Article 7 (Disclaimers)',
+      paragraphs: [
+        'The Service is a tool for visual simulation of installed signage in a space; it does not guarantee an exact reproduction of real lighting, reflections, product materials, luminance, size ratios, installation environment, or similar factors.',
+        'Please use Outputs as reference material for sales and planning purposes. For actual product installation, please consult us separately about product specifications, installation conditions, and the installation environment.',
+        'Except in cases of our willful misconduct or gross negligence, we bear no responsibility for any damages (including direct, indirect, or incidental damages) incurred by the User or a third party from use of, inability to use, or secondary use of Outputs from, the Service.',
+        'We may change the content of the Service, suspend it temporarily, or discontinue it without prior notice to the User for reasons such as system maintenance, incident response, or other operational needs.',
+        'The video export feature works only in operating environments that support video recording and saving (recent versions of Chrome, Edge, Safari, and similar browsers). Complete operation on every device or browser environment is not guaranteed.',
+      ],
+    },
+    {
+      heading: 'Article 8 (Exclusion of Antisocial Forces)',
+      paragraphs: [
+        'The User warrants that the User (and in the case of a corporate entity, its officers and employees) does not fall within, and will not in the future fall within, antisocial forces (boryokudan, boryokudan members, quasi-members, boryokudan-affiliated companies, sokaiya, groups engaged in criminal activities under the pretext of social movements, special intelligence violence groups, or similar), and that the User does not cooperate with or engage in the maintenance or operation of antisocial forces through means such as providing funding.',
+      ],
+    },
+    {
+      heading: 'Article 9 (Changes to These Terms)',
+      paragraphs: [
+        'We may change these Terms without prior notice to the User when we consider it necessary. The changed Terms take effect from the time they are posted within the Service, and if the User continues to use the Service after the change, the User is deemed to have agreed to the changed Terms.',
+      ],
+    },
+    {
+      heading: 'Article 10 (Governing Law and Jurisdiction)',
+      paragraphs: [
+        'These Terms are interpreted under and governed by the laws of Japan.',
+        'Any dispute arising in connection with the Service or these Terms shall be subject to the exclusive agreed jurisdiction of the court having jurisdiction over the location of our head office (the Tokyo District Court) in the first instance.',
+      ],
+    },
+    {
+      heading: 'Article 11 (Contact)',
+      paragraphs: [
+        'For inquiries about the Service or consultations regarding the introduction and installation of digital signage, please contact us through the inquiry page below.',
+        '[Contact] HULL Corporation',
+      ],
+    },
+  ],
 
   editorAddTextButton: 'Add text',
   editorAddImageButton: 'Add image',
@@ -61,7 +154,7 @@ export const en: Messages = {
   editorVideoUploadErrorUnsupportedCodec: 'This browser cannot play this video’s codec.',
   editorVideoUploadErrorDecodeFailed: 'Could not load the video. The file may be corrupted.',
   editorVideoUploadErrorDimensionsTooLarge:
-    'Video resolution is too large. Use 3840x2160 (4K) or smaller.',
+    'Video resolution is too large. Long edge must be 3840px or less and short edge 2160px or less (4K equivalent). Portrait orientation is supported.',
   editorVideoUploadErrorDurationTooLong: 'Video length must be 30 seconds or shorter.',
   editorExportedAnnouncement: 'Exported the PNG image.',
   editorExportedIosAnnouncement: 'Image opened in a new tab. Long-press the image to save it.',

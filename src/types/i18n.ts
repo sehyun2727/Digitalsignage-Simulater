@@ -20,7 +20,20 @@ export interface Messages {
   languageSelectorLabel: string;
   localeName: Record<Locale, string>;
   hullCtaLabel: string;
-  hullCtaExternalNotice: string;
+  hullCtaTermsLinkLabel: string;
+  termsOfServiceTitle: string;
+  termsOfServiceCloseButton: string;
+  termsOfServiceEffectiveDate: string;
+  termsOfServiceRevisedDate: string;
+  termsOfServiceIntro: string;
+  /** Numbered clauses of the terms document, rendered in order inside the dialog body.
+   *  Each entry may carry a paragraph list, a bulleted item list (for 禁止事項-style
+   *  enumerations), or both — the modal renders them in that order. */
+  termsOfServiceSections: readonly {
+    heading: string;
+    paragraphs?: readonly string[];
+    items?: readonly string[];
+  }[];
 
   editorAddTextButton: string;
   editorAddImageButton: string;

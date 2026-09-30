@@ -245,7 +245,9 @@ describe('App', () => {
     expect(link).toHaveAttribute('href', 'https://hull-inc.jp/');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(screen.getByText(ja.hullCtaExternalNotice)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: ja.hullCtaTermsLinkLabel }),
+    ).toBeInTheDocument();
   });
 
   it('switches the UI to Korean', async () => {

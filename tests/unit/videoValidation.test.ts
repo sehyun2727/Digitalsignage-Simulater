@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MAX_VIDEO_BYTES,
   MAX_VIDEO_DURATION_SECONDS,
-  MAX_VIDEO_HEIGHT,
-  MAX_VIDEO_WIDTH,
+  MAX_VIDEO_LONG_EDGE,
+  MAX_VIDEO_SHORT_EDGE,
   canPlayVideoType,
   validateVideoDimensions,
   validateVideoDuration,
@@ -79,16 +79,26 @@ describe('validateVideoDimensions', () => {
     expect(validateVideoDimensions(1280, 720)).toBeNull();
   });
 
-  it('accepts dimensions exactly at the limit', () => {
-    expect(validateVideoDimensions(MAX_VIDEO_WIDTH, MAX_VIDEO_HEIGHT)).toBeNull();
+  it('accepts a landscape 4K clip at the limit', () => {
+    expect(validateVideoDimensions(MAX_VIDEO_LONG_EDGE, MAX_VIDEO_SHORT_EDGE)).toBeNull();
   });
 
-  it('rejects a width beyond the limit', () => {
-    expect(validateVideoDimensions(MAX_VIDEO_WIDTH + 1, 720)).toBe('dimensions-too-large');
+  it('accepts the same clip rotated portrait (symmetric with landscape)', () => {
+    expect(validateVideoDimensions(MAX_VIDEO_SHORT_EDGE, MAX_VIDEO_LONG_EDGE)).toBeNull();
   });
 
-  it('rejects a height beyond the limit', () => {
-    expect(validateVideoDimensions(1280, MAX_VIDEO_HEIGHT + 1)).toBe('dimensions-too-large');
+  it('accepts a portrait 1440p (1440x2560) clip that the old axis-fixed check rejected', () => {
+    expect(validateVideoDimensions(1440, 2560)).toBeNull();
+  });
+
+  it('rejects when the long edge exceeds the limit', () => {
+    expect(validateVideoDimensions(MAX_VIDEO_LONG_EDGE + 1, 720)).toBe('dimensions-too-large');
+    expect(validateVideoDimensions(720, MAX_VIDEO_LONG_EDGE + 1)).toBe('dimensions-too-large');
+  });
+
+  it('rejects when the short edge exceeds the limit', () => {
+    expect(validateVideoDimensions(3000, MAX_VIDEO_SHORT_EDGE + 1)).toBe('dimensions-too-large');
+    expect(validateVideoDimensions(MAX_VIDEO_SHORT_EDGE + 1, 3000)).toBe('dimensions-too-large');
   });
 });
 

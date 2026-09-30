@@ -836,12 +836,75 @@ a {
   background-color: #146c2e;
 }
 
-.hull-cta-notice {
+.hull-cta-terms-link {
   font-size: 0.7rem;
   color: var(--color-muted);
-  background-color: rgba(255, 255, 255, 0.9);
-  padding: 0.1rem 0.4rem;
-  border-radius: 0.25rem;
+  background: none;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+}
+
+.hull-cta-terms-link:hover,
+.hull-cta-terms-link:focus-visible {
+  color: var(--color-text, #1f2933);
+}
+
+.terms-of-service-dialog {
+  /* Terms text runs long, so widen from the default 28rem to give each article a comfortable
+   * reading measure without wrapping every clause into three-line paragraphs. */
+  max-width: 42rem;
+}
+
+.terms-of-service-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--color-text, #1f2933);
+}
+
+.terms-of-service-body p {
+  margin: 0;
+}
+
+.terms-of-service-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.terms-of-service-intro {
+  color: var(--color-fg);
+}
+
+.terms-of-service-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.terms-of-service-section h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.terms-of-service-section ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.terms-of-service-contact-link {
+  word-break: break-all;
 }
 
 @media (max-width: 48rem) {

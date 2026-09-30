@@ -4,8 +4,12 @@ export const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/webm'] as const;
 // exhausting mobile-Safari memory and is still rejected up front so the user sees a clear
 // error instead of a silent decode crash.
 export const MAX_VIDEO_BYTES = 300 * 1024 * 1024;
-export const MAX_VIDEO_WIDTH = 3840;
-export const MAX_VIDEO_HEIGHT = 2160;
+/** Long/short-edge caps applied symmetrically so a 4K clip is accepted regardless of orientation
+ *  (portrait 2160x3840 as well as landscape 3840x2160). Previously two width/height constants were
+ *  compared axis-fixed, which silently rejected portrait 4K/QHD videos that would fit fine when
+ *  rotated. */
+export const MAX_VIDEO_LONG_EDGE = 3840;
+export const MAX_VIDEO_SHORT_EDGE = 2160;
 export const MAX_VIDEO_DURATION_SECONDS = 30;
 
 export type VideoValidationError =
@@ -47,7 +51,9 @@ export function validateVideoDimensions(
   width: number,
   height: number,
 ): VideoValidationError | null {
-  if (width > MAX_VIDEO_WIDTH || height > MAX_VIDEO_HEIGHT) {
+  const longEdge = Math.max(width, height);
+  const shortEdge = Math.min(width, height);
+  if (longEdge > MAX_VIDEO_LONG_EDGE || shortEdge > MAX_VIDEO_SHORT_EDGE) {
     return 'dimensions-too-large';
   }
   return null;
