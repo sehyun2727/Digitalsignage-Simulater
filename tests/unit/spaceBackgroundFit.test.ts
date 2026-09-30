@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  clampSpaceBackgroundOffsetY,
-  computeCoverFit,
-} from '../../src/lib/spaceBackgroundFit';
+import { clampSpaceBackgroundOffsetY, computeCoverFit } from '../../src/lib/spaceBackgroundFit';
 
 describe('computeCoverFit', () => {
   it('cover-fits a landscape photo into a landscape canvas with no crop when aspect matches', () => {

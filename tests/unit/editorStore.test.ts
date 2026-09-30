@@ -106,7 +106,9 @@ describe('editorStore', () => {
 
   it('does not add objects before a space background exists', () => {
     useEditorStore.getState().addText();
-    useEditorStore.getState().addImage({ sourceId: 'src-image-mock-1', naturalWidth: 100, naturalHeight: 100 });
+    useEditorStore
+      .getState()
+      .addImage({ sourceId: 'src-image-mock-1', naturalWidth: 100, naturalHeight: 100 });
     useEditorStore.getState().addDisplay('led');
     useEditorStore.getState().addPortable();
 
@@ -447,9 +449,7 @@ describe('editorStore', () => {
     });
     const display = useEditorStore.getState().document.objects[0];
     expect(
-      display?.kind === 'display' &&
-        display.content?.kind !== 'text' &&
-        display.content?.sourceId,
+      display?.kind === 'display' && display.content?.kind !== 'text' && display.content?.sourceId,
     ).toBe('src-1');
 
     useEditorStore.getState().undo();

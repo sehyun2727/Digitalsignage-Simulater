@@ -84,10 +84,22 @@ export function isPointOnObjectScreen(
     const localPoint = toLocalPoint(point, object);
     // Convert the normalized 0-1 quad to absolute object-local pixel coords for isPointInQuad.
     const localQuad = {
-      topLeft: { x: object.screenQuad.topLeft.x * object.width, y: object.screenQuad.topLeft.y * object.height },
-      topRight: { x: object.screenQuad.topRight.x * object.width, y: object.screenQuad.topRight.y * object.height },
-      bottomRight: { x: object.screenQuad.bottomRight.x * object.width, y: object.screenQuad.bottomRight.y * object.height },
-      bottomLeft: { x: object.screenQuad.bottomLeft.x * object.width, y: object.screenQuad.bottomLeft.y * object.height },
+      topLeft: {
+        x: object.screenQuad.topLeft.x * object.width,
+        y: object.screenQuad.topLeft.y * object.height,
+      },
+      topRight: {
+        x: object.screenQuad.topRight.x * object.width,
+        y: object.screenQuad.topRight.y * object.height,
+      },
+      bottomRight: {
+        x: object.screenQuad.bottomRight.x * object.width,
+        y: object.screenQuad.bottomRight.y * object.height,
+      },
+      bottomLeft: {
+        x: object.screenQuad.bottomLeft.x * object.width,
+        y: object.screenQuad.bottomLeft.y * object.height,
+      },
     };
     // isPointInQuad works with any coordinate system since it only computes cross products.
     return isPointInQuad(localPoint, localQuad);

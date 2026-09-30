@@ -1,9 +1,6 @@
 import { Image as KonvaImage } from 'react-konva';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
-import {
-  clampSpaceBackgroundOffsetY,
-  computeCoverFit,
-} from '../../lib/spaceBackgroundFit';
+import { clampSpaceBackgroundOffsetY, computeCoverFit } from '../../lib/spaceBackgroundFit';
 import type { SpaceBackground } from '../../types/editor';
 
 interface SpaceBackgroundViewProps {

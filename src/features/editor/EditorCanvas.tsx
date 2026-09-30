@@ -189,7 +189,13 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   useEffect(() => {
     const transformer = transformerRef.current;
     if (!transformer) return;
-    if (comparisonMode || !selectedId || perspectiveEditId || occlusionEditObjectId || screenQuadEditId) {
+    if (
+      comparisonMode ||
+      !selectedId ||
+      perspectiveEditId ||
+      occlusionEditObjectId ||
+      screenQuadEditId
+    ) {
       transformer.nodes([]);
       transformer.getLayer()?.batchDraw();
       return;
@@ -218,7 +224,14 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     );
     transformer.nodes(node ? [node] : []);
     transformer.getLayer()?.batchDraw();
-  }, [selectedId, document.objects, comparisonMode, perspectiveEditId, occlusionEditObjectId, screenQuadEditId]);
+  }, [
+    selectedId,
+    document.objects,
+    comparisonMode,
+    perspectiveEditId,
+    occlusionEditObjectId,
+    screenQuadEditId,
+  ]);
 
   const registerNode = (id: string, node: Konva.Node | null) => {
     if (node) {
@@ -383,7 +396,9 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
             <Group
               ref={objectsGroupRef}
               visible={!comparisonMode}
-              listening={!comparisonMode && !perspectiveEditId && !occlusionEditObjectId && !screenQuadEditId}
+              listening={
+                !comparisonMode && !perspectiveEditId && !occlusionEditObjectId && !screenQuadEditId
+              }
             >
               {document.objects.map((object) => (
                 <CanvasObjectView
@@ -437,12 +452,14 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       {!comparisonMode && size && occlusionEditObjectId && (
         <OcclusionEditOverlay documentSize={size} fitScale={fitScale} />
       )}
-      {!comparisonMode && screenQuadEditId && (() => {
-        const obj = document.objects.find((o) => o.id === screenQuadEditId);
-        return obj && obj.kind === 'portable' ? (
-          <ScreenQuadEditOverlay object={obj} fitScale={fitScale} />
-        ) : null;
-      })()}
+      {!comparisonMode &&
+        screenQuadEditId &&
+        (() => {
+          const obj = document.objects.find((o) => o.id === screenQuadEditId);
+          return obj && obj.kind === 'portable' ? (
+            <ScreenQuadEditOverlay object={obj} fitScale={fitScale} />
+          ) : null;
+        })()}
     </div>
   );
 });

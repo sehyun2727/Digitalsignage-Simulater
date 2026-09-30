@@ -2,7 +2,10 @@ import Konva from 'konva';
 import { useMemo, useRef } from 'react';
 import { Group, Line, Shape, Text as KonvaText } from 'react-konva';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
-import { PORTABLE_PRESET_SCREEN_QUADS, type PortableTemplateView } from '../../lib/portableTemplate';
+import {
+  PORTABLE_PRESET_SCREEN_QUADS,
+  type PortableTemplateView,
+} from '../../lib/portableTemplate';
 import { buildQuadMesh, normalizedQuadToDocument } from '../../lib/quadGeometry';
 import type { QuadMeshCell } from '../../lib/quadGeometry';
 import { drawWarpedImageMesh } from '../../lib/warpMesh';
@@ -107,24 +110,26 @@ export function WarpedScreenContent({ view, width, height, content }: WarpedScre
           }}
         />
       )}
-      {textContent && textBoundingBox && (() => {
-        const shortSide = Math.min(textBoundingBox.width, textBoundingBox.height);
-        const fontSizePx = Math.max(6, textContent.fontSize * shortSide);
-        return (
-          <KonvaText
-            x={textBoundingBox.x}
-            y={textBoundingBox.y}
-            width={textBoundingBox.width}
-            height={textBoundingBox.height}
-            text={textContent.text}
-            fontSize={fontSizePx}
-            fill={textContent.color}
-            align={textContent.align}
-            verticalAlign="middle"
-            listening={false}
-          />
-        );
-      })()}
+      {textContent &&
+        textBoundingBox &&
+        (() => {
+          const shortSide = Math.min(textBoundingBox.width, textBoundingBox.height);
+          const fontSizePx = Math.max(6, textContent.fontSize * shortSide);
+          return (
+            <KonvaText
+              x={textBoundingBox.x}
+              y={textBoundingBox.y}
+              width={textBoundingBox.width}
+              height={textBoundingBox.height}
+              text={textContent.text}
+              fontSize={fontSizePx}
+              fill={textContent.color}
+              align={textContent.align}
+              verticalAlign="middle"
+              listening={false}
+            />
+          );
+        })()}
     </Group>
   );
 }

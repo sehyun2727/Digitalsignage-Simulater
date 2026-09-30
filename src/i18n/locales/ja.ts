@@ -3,7 +3,8 @@ import type { Messages } from '../../types/i18n';
 export const ja: Messages = {
   appTitle: 'デジタルサイネージ設置シミュレーター',
   appName: '置いてみる君',
-  appTagline: 'ここにサイネージを置いたら？写真をアップするだけで、\n設置後のイメージをかんたんチェック！',
+  appTagline:
+    'ここにサイネージを置いたら？写真をアップするだけで、\n設置後のイメージをかんたんチェック！',
   editorCrashTitle: '問題が発生しました',
   editorCrashDescription:
     'エディタで予期しないエラーが発生しました。これまでの編集内容は保存されていない可能性があります。ページを再読み込みしてもう一度お試しください。',
@@ -115,7 +116,8 @@ export const ja: Messages = {
   editorUndoButton: '元に戻す',
   editorRedoButton: 'やり直す',
   editorResetButton: '全リセット',
-  editorResetConfirm: 'すべてを破棄して最初からやり直しますか？空間写真、すべてのサイネージ、および元に戻す履歴がクリアされます。',
+  editorResetConfirm:
+    'すべてを破棄して最初からやり直しますか？空間写真、すべてのサイネージ、および元に戻す履歴がクリアされます。',
   editorExportButton: 'PNGで書き出す',
   editorExportVideoButton: '動画で書き出す',
   editorExportVideoInProgressButton: '書き出し中...',
@@ -315,7 +317,8 @@ export const ja: Messages = {
   portableScreenQuadApplyButton: '適用',
   portableScreenQuadCancelButton: 'キャンセル',
   portableScreenQuadNoPhotoHint: '製品写真をアップロードすると画面領域を編集できます。',
-  portableScreenQuadBackgroundHint: '画面領域を指定していない場合、テンプレートの既定領域が使われます。',
+  portableScreenQuadBackgroundHint:
+    '画面領域を指定していない場合、テンプレートの既定領域が使われます。',
 
   toolbarAriaLabel: '共通操作',
   toolbarSpaceSectionHeading: '空間',

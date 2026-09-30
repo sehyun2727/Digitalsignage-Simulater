@@ -115,7 +115,8 @@ export const ko: Messages = {
   editorUndoButton: '실행 취소',
   editorRedoButton: '다시 실행',
   editorResetButton: '전체 초기화',
-  editorResetConfirm: '모두 삭제하고 처음부터 다시 시작할까요? 공간 사진, 모든 사이네지, 실행 취소 기록이 모두 지워집니다.',
+  editorResetConfirm:
+    '모두 삭제하고 처음부터 다시 시작할까요? 공간 사진, 모든 사이네지, 실행 취소 기록이 모두 지워집니다.',
   editorExportButton: 'PNG로 내보내기',
   editorExportVideoButton: '동영상으로 내보내기',
   editorExportVideoInProgressButton: '내보내는 중...',
@@ -343,7 +344,8 @@ export const ko: Messages = {
   comparisonOriginalNoSpaceHint: '아직 추가된 공간 사진이 없습니다.',
 
   statusBarHintNoSpace: '먼저 "공간" 섹션에서 공간 사진을 추가해 보세요.',
-  statusBarHintNoSignage: '"사이네지 추가" 섹션에서 LED·LCD·시스루 사이네지·포터블 제품을 배치해 보세요.',
+  statusBarHintNoSignage:
+    '"사이네지 추가" 섹션에서 LED·LCD·시스루 사이네지·포터블 제품을 배치해 보세요.',
   statusBarHintNoContent: '선택한 사이네지에 "콘텐츠" 섹션에서 이미지를 추가할 수 있습니다.',
   statusBarHintReady: '준비가 되면 "내보내기" 섹션에서 PNG로 내보내 보세요.',
 

@@ -69,10 +69,7 @@ const PASS_THROUGH_ERROR_MESSAGES: ReadonlySet<ContentValidationError> = new Set
  * codec/decode Error.message values `loadVideo`/`loadImage` reject with; anything else falls
  * through to a generic 'decode-error' matching the previous default behavior.
  */
-export function resolveContentUploadFailure(
-  file: File,
-  error: unknown,
-): ContentValidationFailure {
+export function resolveContentUploadFailure(file: File, error: unknown): ContentValidationFailure {
   if (error instanceof ContentDimensionError) {
     return { kind: error.kind, error: error.error };
   }
@@ -84,9 +81,12 @@ export function resolveContentUploadFailure(
   return { kind, error: 'decode-error' };
 }
 
-export async function registerContentAsset(
-  file: File,
-): Promise<{ sourceId: string; naturalWidth: number; naturalHeight: number; kind: MediaContentKind }> {
+export async function registerContentAsset(file: File): Promise<{
+  sourceId: string;
+  naturalWidth: number;
+  naturalHeight: number;
+  kind: MediaContentKind;
+}> {
   const kind = contentKindForFile(file);
   const asset = kind === 'video' ? await registerVideoAsset(file) : await registerAsset(file);
 

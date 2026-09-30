@@ -51,18 +51,11 @@ export function PortableTemplateBody({
   const templateImage = useAssetImage(isAngled ? docodemoUrl : frontUrl);
 
   // When a user product photo is supplied, render it instead of the fixed template asset.
-  const productPhotoAsset = productPhotoSourceId
-    ? getRegisteredAsset(productPhotoSourceId)
-    : null;
+  const productPhotoAsset = productPhotoSourceId ? getRegisteredAsset(productPhotoSourceId) : null;
 
   if (productPhotoSourceId && productPhotoAsset) {
     return (
-      <KonvaImage
-        image={productPhotoAsset.image}
-        width={width}
-        height={height}
-        listening={false}
-      />
+      <KonvaImage image={productPhotoAsset.image} width={width} height={height} listening={false} />
     );
   }
 
@@ -132,9 +125,7 @@ function clearScreenArea(canvas: HTMLCanvasElement, quad: NormalizedQuad): void 
 }
 
 function useAssetImage(url: string): HTMLCanvasElement | null {
-  const [image, setImage] = useState<HTMLCanvasElement | null>(
-    () => imageCache.get(url) ?? null,
-  );
+  const [image, setImage] = useState<HTMLCanvasElement | null>(() => imageCache.get(url) ?? null);
 
   useEffect(() => {
     const cached = imageCache.get(url);

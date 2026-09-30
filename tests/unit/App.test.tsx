@@ -228,13 +228,17 @@ describe('App', () => {
     render(<App />);
 
     // The modal is closed by default: none of its section content is on screen yet.
-    expect(screen.queryByRole('heading', { name: ja.userGuideAboutHeading })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: ja.userGuideAboutHeading }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(ja.userGuideAboutBody)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: ja.userGuideOpenButton }));
 
     // Once opened, the About section and its short service description are reachable.
-    expect(await screen.findByRole('heading', { name: ja.userGuideAboutHeading })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: ja.userGuideAboutHeading }),
+    ).toBeInTheDocument();
     expect(screen.getByText(ja.userGuideAboutBody)).toBeInTheDocument();
   });
 
@@ -245,9 +249,7 @@ describe('App', () => {
     expect(link).toHaveAttribute('href', 'https://hull-inc.jp/');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(
-      screen.getByRole('button', { name: ja.hullCtaTermsLinkLabel }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: ja.hullCtaTermsLinkLabel })).toBeInTheDocument();
   });
 
   it('switches the UI to Korean', async () => {

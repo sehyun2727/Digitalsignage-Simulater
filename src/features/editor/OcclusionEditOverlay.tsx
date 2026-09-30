@@ -1,11 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useLocale } from '../../i18n/localeContext';
 import { documentToPreviewPoint, previewToDocumentPoint } from '../../lib/quadGeometry';
-import {
-  clampPoint01,
-  documentToNormalized,
-  normalizedToDocument,
-} from '../../lib/occlusion';
+import { clampPoint01, documentToNormalized, normalizedToDocument } from '../../lib/occlusion';
 import type { DocumentSize, Point } from '../../lib/occlusion';
 import { useEditorStore } from '../../store/editorStore';
 import { MAX_OCCLUSION_POINTS, MIN_OCCLUSION_POINTS } from '../../types/editor';

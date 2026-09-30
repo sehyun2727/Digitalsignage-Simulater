@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import { getRegisteredAsset, sweepUnusedAssets } from '../lib/assetRegistry';
-import {
-  clampSpaceBackgroundOffsetY,
-  computeCoverFit,
-} from '../lib/spaceBackgroundFit';
+import { clampSpaceBackgroundOffsetY, computeCoverFit } from '../lib/spaceBackgroundFit';
 import { resolveShadowMode, sampleAmbientColor } from '../lib/environmentIntegration';
 import { normalizeObjectGeometry } from '../lib/geometryNormalization';
 import { createId } from '../lib/id';
@@ -270,7 +267,8 @@ function collectAssetSourceIds(document: EditorDocument, into: Set<string>): voi
     ) {
       into.add(object.content.sourceId);
     }
-    if (object.kind === 'portable' && object.productPhotoSourceId) into.add(object.productPhotoSourceId);
+    if (object.kind === 'portable' && object.productPhotoSourceId)
+      into.add(object.productPhotoSourceId);
   }
 }
 
@@ -571,11 +569,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     // When templateView changes on a portable, auto-update screenQuad to the preset for the
     // new view so the screen area stays calibrated without requiring a manual quad reset.
     let finalPatch = patch;
-    if (
-      target.kind === 'portable' &&
-      'templateView' in patch &&
-      patch.templateView !== undefined
-    ) {
+    if (target.kind === 'portable' && 'templateView' in patch && patch.templateView !== undefined) {
       const newView = patch.templateView as PortableTemplateView;
       const presetQuad = PORTABLE_PRESET_SCREEN_QUADS[newView];
       if (presetQuad) {
@@ -1034,7 +1028,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { document } = get();
     const target = document.objects.find((object) => object.id === id);
     if (!target || target.kind !== 'portable') return;
-    get().commitObjectChange(id, { productPhotoSourceId: sourceId, screenQuad: null } as Partial<SignageObject>);
+    get().commitObjectChange(id, {
+      productPhotoSourceId: sourceId,
+      screenQuad: null,
+    } as Partial<SignageObject>);
   },
 
   beginScreenQuadEdit: (id) => {
@@ -1066,7 +1063,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!screenQuadEditId || !screenQuadDraftQuad) return;
     const validation = validateQuad(screenQuadDraftQuad);
     if (!validation.valid) return;
-    get().commitObjectChange(screenQuadEditId, { screenQuad: screenQuadDraftQuad } as Partial<SignageObject>);
+    get().commitObjectChange(screenQuadEditId, {
+      screenQuad: screenQuadDraftQuad,
+    } as Partial<SignageObject>);
     set({ screenQuadEditId: null, screenQuadDraftQuad: null, screenQuadEditOriginalQuad: null });
   },
 

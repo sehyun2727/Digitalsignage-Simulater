@@ -11,10 +11,10 @@ The same codebase produces two dist outputs depending on which URL path serves t
 Keep the base as a CLI flag — do **not** hard-code it in `vite.config.ts`, because a
 hard-coded `base` breaks whichever environment it does not match.
 
-| Script                  | Output folder     | Effective base | Target                                                         |
-| ----------------------- | ----------------- | -------------- | -------------------------------------------------------------- |
-| `npm run build`         | `dist/`           | `/`            | Render staging (served at root)                                |
-| `npm run build:oitemiru`| `dist-oitemiru/`  | `/oitemiru/`   | `hull-inc.jp/oitemiru/` manual upload (served at subpath)      |
+| Script                   | Output folder    | Effective base | Target                                                    |
+| ------------------------ | ---------------- | -------------- | --------------------------------------------------------- |
+| `npm run build`          | `dist/`          | `/`            | Render staging (served at root)                           |
+| `npm run build:oitemiru` | `dist-oitemiru/` | `/oitemiru/`   | `hull-inc.jp/oitemiru/` manual upload (served at subpath) |
 
 Preview locally with `npm run preview` (root) or `npm run preview:oitemiru` — the latter
 reads `dist-oitemiru/` and serves at `http://localhost:4173/oitemiru/`.

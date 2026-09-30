@@ -3,7 +3,8 @@ import type { Messages } from '../../types/i18n';
 export const en: Messages = {
   appTitle: 'Digital Signage Placement Simulator',
   appName: '置いてみる君',
-  appTagline: 'What if you placed signage here? Just upload a photo\nto preview how it would look installed.',
+  appTagline:
+    'What if you placed signage here? Just upload a photo\nto preview how it would look installed.',
   editorCrashTitle: 'Something went wrong',
   editorCrashDescription:
     'The editor ran into an unexpected error. Your edits since the last export may not be saved. Please reload the page and try again.',
@@ -16,8 +17,7 @@ export const en: Messages = {
   },
   hullCtaLabel: 'Install signage with HULL',
   hullCtaTermsLinkLabel: 'Terms of Service',
-  termsOfServiceTitle:
-    'Digital Signage Placement Simulator "Oitemiru-kun" Terms of Service',
+  termsOfServiceTitle: 'Digital Signage Placement Simulator "Oitemiru-kun" Terms of Service',
   termsOfServiceCloseButton: 'Close',
   termsOfServiceEffectiveDate: 'Effective date: 2026',
   termsOfServiceRevisedDate: 'Revised date: 2026',
@@ -116,7 +116,8 @@ export const en: Messages = {
   editorUndoButton: 'Undo',
   editorRedoButton: 'Redo',
   editorResetButton: 'Reset all',
-  editorResetConfirm: 'Discard everything and start over? This clears the space photo, all signage, and the undo history.',
+  editorResetConfirm:
+    'Discard everything and start over? This clears the space photo, all signage, and the undo history.',
   editorExportButton: 'Export as PNG',
   editorExportVideoButton: 'Export as video',
   editorExportVideoInProgressButton: 'Exporting...',
@@ -308,11 +309,13 @@ export const en: Messages = {
   portableRemoveProductPhotoButton: 'Remove product photo',
   portableScreenQuadEditButton: 'Edit screen area',
   portableScreenQuadResetButton: 'Reset',
-  portableScreenQuadHint: 'Drag the four corner handles to mark the screen region on the product photo.',
+  portableScreenQuadHint:
+    'Drag the four corner handles to mark the screen region on the product photo.',
   portableScreenQuadApplyButton: 'Apply',
   portableScreenQuadCancelButton: 'Cancel',
   portableScreenQuadNoPhotoHint: 'Upload a product photo to edit the screen area.',
-  portableScreenQuadBackgroundHint: 'When no screen area is set, the template default region is used.',
+  portableScreenQuadBackgroundHint:
+    'When no screen area is set, the template default region is used.',
 
   toolbarAriaLabel: 'Common actions',
   toolbarSpaceSectionHeading: 'Space',
@@ -373,8 +376,7 @@ export const en: Messages = {
     'Installation surface and contact shadow reflect whether the signage sits on a wall, a window, or freestanding.',
   realismGuideStepEnvironment:
     'Sampling from the space photo creates an ambient color blend that matches the room.',
-  realismGuideStepOcclusion:
-    'Mosaics let a pillar or fixture naturally cover part of the signage.',
+  realismGuideStepOcclusion: 'Mosaics let a pillar or fixture naturally cover part of the signage.',
   realismGuideDismissButton: 'Got it',
 
   salesReviewEnterButton: 'Sales review mode',

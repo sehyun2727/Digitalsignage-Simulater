@@ -41,7 +41,7 @@ export function CanvasObjectView({
   // (fixes the object-URL leak that used to accumulate on every Add-Image / Delete cycle) — the
   // registered decoded HTMLImageElement is available synchronously here, no separate load hook.
   const imageAsset =
-    object.kind === 'image' ? getRegisteredAsset(object.sourceId)?.image ?? null : null;
+    object.kind === 'image' ? (getRegisteredAsset(object.sourceId)?.image ?? null) : null;
 
   useEffect(() => {
     return () => onRegisterNode(object.id, null);

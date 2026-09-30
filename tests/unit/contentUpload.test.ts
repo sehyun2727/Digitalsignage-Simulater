@@ -6,10 +6,7 @@ import {
   validateContentFile,
 } from '../../src/lib/contentUpload';
 import { MAX_IMAGE_LONG_EDGE } from '../../src/lib/fileValidation';
-import {
-  MAX_VIDEO_DURATION_SECONDS,
-  MAX_VIDEO_LONG_EDGE,
-} from '../../src/lib/videoValidation';
+import { MAX_VIDEO_DURATION_SECONDS, MAX_VIDEO_LONG_EDGE } from '../../src/lib/videoValidation';
 
 class SucceedingMockImage {
   onload: (() => void) | null = null;

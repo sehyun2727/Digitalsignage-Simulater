@@ -244,7 +244,13 @@ export function EditorLayout() {
       cancelPerspectiveEdit();
       cancelOcclusionEdit();
     }
-  }, [salesReviewMode, setSalesReviewMode, selectObject, cancelPerspectiveEdit, cancelOcclusionEdit]);
+  }, [
+    salesReviewMode,
+    setSalesReviewMode,
+    selectObject,
+    cancelPerspectiveEdit,
+    cancelOcclusionEdit,
+  ]);
 
   // Clicking ⟳ five times in a row (regardless of the confirm result) triggers a hidden toggle
   // that disables the export watermark. Clicking five more times re-enables it.
@@ -368,7 +374,10 @@ export function EditorLayout() {
               previously eating below the workspace and lets the canvas fill the whole remaining
               viewport height. Still readable, still `role=status`/aria-live for screen readers,
               and `pointer-events: none` so it never blocks a drag on canvas objects underneath. */}
-          <div className="editor-canvas-status-overlay" aria-hidden={!statusHint && !announcement && !watermarkDisabled}>
+          <div
+            className="editor-canvas-status-overlay"
+            aria-hidden={!statusHint && !announcement && !watermarkDisabled}
+          >
             {watermarkDisabled && (
               <span className="watermark-off-badge" aria-label="watermark disabled">
                 watermark off

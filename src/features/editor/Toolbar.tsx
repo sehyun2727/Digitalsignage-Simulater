@@ -67,10 +67,7 @@ import {
   supportsPerspective,
 } from '../../types/editor';
 import { ACCEPTED_VIDEO_TYPES } from '../../lib/videoValidation';
-import {
-  PORTABLE_TEMPLATE_VIEWS,
-  type PortableTemplateView,
-} from '../../lib/portableTemplate';
+import { PORTABLE_TEMPLATE_VIEWS, type PortableTemplateView } from '../../lib/portableTemplate';
 import { AdvancedSettingsModal } from './AdvancedSettingsModal';
 import { RealismGuideCard } from './RealismGuideCard';
 import type { ImageValidationError } from '../../lib/fileValidation';
@@ -301,7 +298,6 @@ function AddSignageSection() {
   );
 }
 
-
 type Draft = Pick<SignageObject, 'x' | 'y' | 'width' | 'height' | 'rotation'> & {
   text?: string;
   fontSize?: number;
@@ -390,14 +386,7 @@ function SelectedSignageFields({ object: selected }: { object: SignageObject }) 
     // state when a prop changes": local state driven by props/store is the intended pattern.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft(toDraft(selected));
-  }, [
-    selected,
-    selected.x,
-    selected.y,
-    selected.width,
-    selected.height,
-    selected.rotation,
-  ]);
+  }, [selected, selected.x, selected.y, selected.width, selected.height, selected.rotation]);
 
   const commit = (patch: Partial<SignageObject>) => {
     commitObjectChange(selected.id, patch);

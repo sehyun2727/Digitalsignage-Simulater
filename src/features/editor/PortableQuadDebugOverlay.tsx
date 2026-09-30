@@ -27,10 +27,14 @@ const CORNER_LABEL_LETTERS = {
 
 function quadPointsFlat(quad: NormalizedQuad, width: number, height: number): number[] {
   return [
-    quad.topLeft.x * width, quad.topLeft.y * height,
-    quad.topRight.x * width, quad.topRight.y * height,
-    quad.bottomRight.x * width, quad.bottomRight.y * height,
-    quad.bottomLeft.x * width, quad.bottomLeft.y * height,
+    quad.topLeft.x * width,
+    quad.topLeft.y * height,
+    quad.topRight.x * width,
+    quad.topRight.y * height,
+    quad.bottomRight.x * width,
+    quad.bottomRight.y * height,
+    quad.bottomLeft.x * width,
+    quad.bottomLeft.y * height,
   ];
 }
 
@@ -45,21 +49,15 @@ function quadPointsFlat(quad: NormalizedQuad, width: number, height: number): nu
  * Guaranteed non-interactive: every child sets `listening={false}` so debug shapes
  * never intercept clicks/drags meant for the object hit area beneath.
  */
-export function PortableQuadDebugOverlay({
-  view,
-  width,
-  height,
-}: PortableQuadDebugOverlayProps) {
+export function PortableQuadDebugOverlay({ view, width, height }: PortableQuadDebugOverlayProps) {
   const quad = PORTABLE_PRESET_SCREEN_QUADS[view];
-  const corners = (['topLeft', 'topRight', 'bottomRight', 'bottomLeft'] as const).map(
-    (corner) => ({
-      corner,
-      point: {
-        x: quad[corner].x * width,
-        y: quad[corner].y * height,
-      },
-    }),
-  );
+  const corners = (['topLeft', 'topRight', 'bottomRight', 'bottomLeft'] as const).map((corner) => ({
+    corner,
+    point: {
+      x: quad[corner].x * width,
+      y: quad[corner].y * height,
+    },
+  }));
   const dotRadius = Math.max(4, Math.min(width, height) * 0.015);
   return (
     <Group listening={false}>

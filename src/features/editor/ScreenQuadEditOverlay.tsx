@@ -1,11 +1,6 @@
 import { useRef } from 'react';
 import { useLocale } from '../../i18n/localeContext';
-import {
-  clampPoint01,
-  validateQuad,
-  QUAD_CORNER_ORDER,
-  quadPoints,
-} from '../../lib/quadGeometry';
+import { clampPoint01, validateQuad, QUAD_CORNER_ORDER, quadPoints } from '../../lib/quadGeometry';
 import type { Point, QuadCorner } from '../../lib/quadGeometry';
 import { fromLocalPoint, toLocalPoint } from '../../lib/rotationTransform';
 import { useEditorStore } from '../../store/editorStore';
@@ -58,44 +53,40 @@ export function ScreenQuadEditOverlay({ object, fitScale }: ScreenQuadEditOverla
     updateScreenQuadDraft({ ...draftQuad, [corner]: normalized });
   };
 
-  const handlePointerDown =
-    (corner: QuadCorner) => (event: React.PointerEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-      activeCornerRef.current = corner;
-      event.currentTarget.setPointerCapture(event.pointerId);
-      event.currentTarget.focus();
-    };
+  const handlePointerDown = (corner: QuadCorner) => (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    activeCornerRef.current = corner;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.currentTarget.focus();
+  };
 
-  const handlePointerMove =
-    (corner: QuadCorner) => (event: React.PointerEvent<HTMLDivElement>) => {
-      if (activeCornerRef.current !== corner) return;
-      updateCorner(corner, event.clientX, event.clientY);
-    };
+  const handlePointerMove = (corner: QuadCorner) => (event: React.PointerEvent<HTMLDivElement>) => {
+    if (activeCornerRef.current !== corner) return;
+    updateCorner(corner, event.clientX, event.clientY);
+  };
 
-  const handlePointerUp =
-    (corner: QuadCorner) => (event: React.PointerEvent<HTMLDivElement>) => {
-      if (activeCornerRef.current !== corner) return;
-      activeCornerRef.current = null;
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
-    };
+  const handlePointerUp = (corner: QuadCorner) => (event: React.PointerEvent<HTMLDivElement>) => {
+    if (activeCornerRef.current !== corner) return;
+    activeCornerRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
 
-  const handleKeyDown =
-    (corner: QuadCorner) => (event: React.KeyboardEvent<HTMLDivElement>) => {
-      const step = event.shiftKey ? NUDGE_STEP_LARGE : NUDGE_STEP;
-      let delta: { x: number; y: number } | null = null;
-      if (event.key === 'ArrowLeft') delta = { x: -step, y: 0 };
-      else if (event.key === 'ArrowRight') delta = { x: step, y: 0 };
-      else if (event.key === 'ArrowUp') delta = { x: 0, y: -step };
-      else if (event.key === 'ArrowDown') delta = { x: 0, y: step };
-      if (!delta) return;
-      event.preventDefault();
-      const current = draftQuad[corner];
-      const next = clampPoint01({ x: current.x + delta.x, y: current.y + delta.y });
-      updateScreenQuadDraft({ ...draftQuad, [corner]: next });
-    };
+  const handleKeyDown = (corner: QuadCorner) => (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = event.shiftKey ? NUDGE_STEP_LARGE : NUDGE_STEP;
+    let delta: { x: number; y: number } | null = null;
+    if (event.key === 'ArrowLeft') delta = { x: -step, y: 0 };
+    else if (event.key === 'ArrowRight') delta = { x: step, y: 0 };
+    else if (event.key === 'ArrowUp') delta = { x: 0, y: -step };
+    else if (event.key === 'ArrowDown') delta = { x: 0, y: step };
+    if (!delta) return;
+    event.preventDefault();
+    const current = draftQuad[corner];
+    const next = clampPoint01({ x: current.x + delta.x, y: current.y + delta.y });
+    updateScreenQuadDraft({ ...draftQuad, [corner]: next });
+  };
 
   const outlinePoints = quadPoints(draftQuad)
     .map((corner) => {

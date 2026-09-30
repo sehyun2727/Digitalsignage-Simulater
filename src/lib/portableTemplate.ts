@@ -55,25 +55,25 @@ export const PORTABLE_TEMPLATE_ASPECT = 1024 / 1536;
  */
 export const PORTABLE_PRESET_SCREEN_QUADS: Record<PortableTemplateView, NormalizedQuad> = {
   front: {
-    topLeft:     { x: 0.22461, y: 0.06706 },
-    topRight:    { x: 0.77441, y: 0.06706 },
+    topLeft: { x: 0.22461, y: 0.06706 },
+    topRight: { x: 0.77441, y: 0.06706 },
     bottomRight: { x: 0.77539, y: 0.75651 },
-    bottomLeft:  { x: 0.22363, y: 0.75716 },
+    bottomLeft: { x: 0.22363, y: 0.75716 },
   },
   'angled-left': {
-    topLeft:     { x: 0.27231, y: 0.09000 },
-    topRight:    { x: 0.63538, y: 0.14789 },
+    topLeft: { x: 0.27231, y: 0.09 },
+    topRight: { x: 0.63538, y: 0.14789 },
     bottomRight: { x: 0.78308, y: 0.71474 },
-    bottomLeft:  { x: 0.42077, y: 0.75368 },
+    bottomLeft: { x: 0.42077, y: 0.75368 },
   },
   'angled-right': {
     // Exact horizontal mirror (x → 1−x) of angled-left. Corner labels swap because a
     // horizontal flip trades left and right: angled-left's topRight becomes angled-right's
     // topLeft (and analogously for the bottom pair).
-    topLeft:     { x: 1 - 0.63538, y: 0.14789 },  // ↔ angled-left.topRight
-    topRight:    { x: 1 - 0.27231, y: 0.09000 },  // ↔ angled-left.topLeft
-    bottomRight: { x: 1 - 0.42077, y: 0.75368 },  // ↔ angled-left.bottomLeft
-    bottomLeft:  { x: 1 - 0.78308, y: 0.71474 },  // ↔ angled-left.bottomRight
+    topLeft: { x: 1 - 0.63538, y: 0.14789 }, // ↔ angled-left.topRight
+    topRight: { x: 1 - 0.27231, y: 0.09 }, // ↔ angled-left.topLeft
+    bottomRight: { x: 1 - 0.42077, y: 0.75368 }, // ↔ angled-left.bottomLeft
+    bottomLeft: { x: 1 - 0.78308, y: 0.71474 }, // ↔ angled-left.bottomRight
   },
 };
 
@@ -129,10 +129,10 @@ export function getPortableScreenRect(
  * from an intrinsic photo size — every portable is one template family now, no per-photo
  * geometry to preserve.
  */
-export function getDefaultPortableSize(canvasSize: {
+export function getDefaultPortableSize(canvasSize: { width: number; height: number }): {
   width: number;
   height: number;
-}): { width: number; height: number } {
+} {
   // Target ~55% of the canvas height, capped at 600px so a very tall canvas doesn't produce a
   // portable object bigger than any realistic on-screen scale. Width follows from the fixed
   // template aspect ratio, so the object stays the correct silhouette regardless of canvas.

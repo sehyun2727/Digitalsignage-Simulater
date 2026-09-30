@@ -18,11 +18,7 @@ export function HullCta() {
         >
           {messages.hullCtaLabel}
         </a>
-        <button
-          type="button"
-          className="hull-cta-terms-link"
-          onClick={() => setTermsOpen(true)}
-        >
+        <button type="button" className="hull-cta-terms-link" onClick={() => setTermsOpen(true)}>
           {messages.hullCtaTermsLinkLabel}
         </button>
       </div>

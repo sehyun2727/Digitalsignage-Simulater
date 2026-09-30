@@ -153,7 +153,10 @@ function largestComponent(mask, width, height) {
         count++;
         queue.push(qx - 1, qy, qx + 1, qy, qx, qy - 1, qx, qy + 1);
       }
-      if (count > bestCount) { bestCount = count; bestLabel = id; }
+      if (count > bestCount) {
+        bestCount = count;
+        bestLabel = id;
+      }
     }
   }
   const out = new Uint8Array(width * height);
@@ -226,16 +229,32 @@ function fitLine(points, orient) {
   if (horizontalLike) {
     // y = a + b*x
     const n = trimmed.length;
-    let sx = 0, sy = 0, sxx = 0, sxy = 0;
-    for (const p of trimmed) { sx += p.x; sy += p.y; sxx += p.x * p.x; sxy += p.x * p.y; }
+    let sx = 0,
+      sy = 0,
+      sxx = 0,
+      sxy = 0;
+    for (const p of trimmed) {
+      sx += p.x;
+      sy += p.y;
+      sxx += p.x * p.x;
+      sxy += p.x * p.y;
+    }
     const b = (n * sxy - sx * sy) / (n * sxx - sx * sx);
     const a = (sy - b * sx) / n;
     return { orient: 'h', a, b };
   }
   // x = a + b*y
   const n = trimmed.length;
-  let sx = 0, sy = 0, syy = 0, sxy = 0;
-  for (const p of trimmed) { sx += p.x; sy += p.y; syy += p.y * p.y; sxy += p.x * p.y; }
+  let sx = 0,
+    sy = 0,
+    syy = 0,
+    sxy = 0;
+  for (const p of trimmed) {
+    sx += p.x;
+    sy += p.y;
+    syy += p.y * p.y;
+    sxy += p.x * p.y;
+  }
   const b = (n * sxy - sx * sy) / (n * syy - sy * sy);
   const a = (sx - b * sy) / n;
   return { orient: 'v', a, b };
@@ -243,7 +262,8 @@ function fitLine(points, orient) {
 
 function intersect(l1, l2) {
   // General form: A*x + B*y = C.
-  const toGeneral = (l) => (l.orient === 'h' ? { A: -l.b, B: 1, C: l.a } : { A: 1, B: -l.b, C: l.a });
+  const toGeneral = (l) =>
+    l.orient === 'h' ? { A: -l.b, B: 1, C: l.a } : { A: 1, B: -l.b, C: l.a };
   const g1 = toGeneral(l1);
   const g2 = toGeneral(l2);
   const det = g1.A * g2.B - g2.A * g1.B;
@@ -273,7 +293,10 @@ function drawLine(out, width, height, l, color) {
         const py = y + dy;
         if (px < 0 || px >= width || py < 0 || py >= height) continue;
         const j = (py * width + px) * 4;
-        out.data[j] = r; out.data[j + 1] = g; out.data[j + 2] = b; out.data[j + 3] = 255;
+        out.data[j] = r;
+        out.data[j + 1] = g;
+        out.data[j + 2] = b;
+        out.data[j + 3] = 255;
       }
     }
   }
@@ -364,17 +387,35 @@ function saveDebugMask(name, img, mask, corners, lines) {
  * corner without shifting it away from the true extreme.
  */
 function findCornersByDiagonals(mask, width, height) {
-  let tlBest = Infinity, trBest = -Infinity, brBest = -Infinity, blBest = -Infinity;
-  let tl = null, tr = null, br = null, bl = null;
+  let tlBest = Infinity,
+    trBest = -Infinity,
+    brBest = -Infinity,
+    blBest = -Infinity;
+  let tl = null,
+    tr = null,
+    br = null,
+    bl = null;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (!mask[y * width + x]) continue;
       const s1 = x + y;
       const s2 = x - y;
-      if (s1 < tlBest) { tlBest = s1; tl = { x, y }; }
-      if (s2 > trBest) { trBest = s2; tr = { x, y }; }
-      if (s1 > brBest) { brBest = s1; br = { x, y }; }
-      if (-s2 > blBest) { blBest = -s2; bl = { x, y }; }
+      if (s1 < tlBest) {
+        tlBest = s1;
+        tl = { x, y };
+      }
+      if (s2 > trBest) {
+        trBest = s2;
+        tr = { x, y };
+      }
+      if (s1 > brBest) {
+        brBest = s1;
+        br = { x, y };
+      }
+      if (-s2 > blBest) {
+        blBest = -s2;
+        bl = { x, y };
+      }
     }
   }
   return { topLeft: tl, topRight: tr, bottomRight: br, bottomLeft: bl };
@@ -397,8 +438,12 @@ function measure(name, path) {
   return { img, count, corners };
 }
 
-function fmtPx(pt) { return `{ x: ${pt.x.toFixed(1)}, y: ${pt.y.toFixed(1)} }`; }
-function fmtNorm(pt, w, h) { return `{ x: ${(pt.x / w).toFixed(4)}, y: ${(pt.y / h).toFixed(4)} }`; }
+function fmtPx(pt) {
+  return `{ x: ${pt.x.toFixed(1)}, y: ${pt.y.toFixed(1)} }`;
+}
+function fmtNorm(pt, w, h) {
+  return `{ x: ${(pt.x / w).toFixed(4)}, y: ${(pt.y / h).toFixed(4)} }`;
+}
 
 for (const { name, path } of IMAGES) {
   const { img, count, corners } = measure(name, path);

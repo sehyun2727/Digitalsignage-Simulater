@@ -288,29 +288,32 @@ export function ScreenComposition({
           listening={false}
         />
       )}
-      {isText && content && content.kind === 'text' && (() => {
-        // Text content: font size is stored as a fraction of the screen's shorter dimension so
-        // the text scales with signage resizes instead of drifting out of proportion. Konva.Text
-        // vertically centers via verticalAlign='middle' and horizontally aligns via align; the
-        // rendered text is clipped by the parent Group's screen-rect clipFunc above (same as
-        // media content), so overflow past the screen edge is trimmed cleanly.
-        const shortSide = Math.min(screen.width, screen.height);
-        const fontSizePx = Math.max(6, content.fontSize * shortSide);
-        return (
-          <KonvaText
-            x={screen.x}
-            y={screen.y}
-            width={screen.width}
-            height={screen.height}
-            text={content.text}
-            fontSize={fontSizePx}
-            fill={content.color}
-            align={content.align}
-            verticalAlign="middle"
-            listening={false}
-          />
-        );
-      })()}
+      {isText &&
+        content &&
+        content.kind === 'text' &&
+        (() => {
+          // Text content: font size is stored as a fraction of the screen's shorter dimension so
+          // the text scales with signage resizes instead of drifting out of proportion. Konva.Text
+          // vertically centers via verticalAlign='middle' and horizontally aligns via align; the
+          // rendered text is clipped by the parent Group's screen-rect clipFunc above (same as
+          // media content), so overflow past the screen edge is trimmed cleanly.
+          const shortSide = Math.min(screen.width, screen.height);
+          const fontSizePx = Math.max(6, content.fontSize * shortSide);
+          return (
+            <KonvaText
+              x={screen.x}
+              y={screen.y}
+              width={screen.width}
+              height={screen.height}
+              text={content.text}
+              fontSize={fontSizePx}
+              fill={content.color}
+              align={content.align}
+              verticalAlign="middle"
+              listening={false}
+            />
+          );
+        })()}
       {(normalized === 'led' || isTransparentLed) && (
         <Rect
           x={screen.x}
@@ -389,9 +392,7 @@ export function ScreenComposition({
       <ContrastGroup contrastValue={contrastValue} redrawContinuously={isVideo}>
         <Group
           clipFunc={
-            curvatureClipPoints
-              ? (ctx) => traceOutlinePath(ctx, curvatureClipPoints)
-              : undefined
+            curvatureClipPoints ? (ctx) => traceOutlinePath(ctx, curvatureClipPoints) : undefined
           }
         >
           {strips.map((strip) => (

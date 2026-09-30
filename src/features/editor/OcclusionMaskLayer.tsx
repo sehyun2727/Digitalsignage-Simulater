@@ -4,10 +4,7 @@ import { Group, Image as KonvaImage } from 'react-konva';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
 import { resolveOcclusionFeatherRadius } from '../../lib/occlusion';
 import type { DocumentSize } from '../../lib/quadGeometry';
-import {
-  clampSpaceBackgroundOffsetY,
-  computeCoverFit,
-} from '../../lib/spaceBackgroundFit';
+import { clampSpaceBackgroundOffsetY, computeCoverFit } from '../../lib/spaceBackgroundFit';
 import type { OcclusionMask, SpaceBackground } from '../../types/editor';
 
 interface OcclusionMaskLayerProps {
@@ -102,7 +99,11 @@ function OcclusionMaskView({ mask, documentSize, spaceBackground }: OcclusionMas
   // shows a different frame of the photo than what's actually behind the object. Applying the
   // same clamped offsetY here keeps the mask's photo copy pixel-aligned with the panned
   // background regardless of scroll position.
-  const offsetY = clampSpaceBackgroundOffsetY(documentSize.height, fit.height, spaceBackground.offsetY);
+  const offsetY = clampSpaceBackgroundOffsetY(
+    documentSize.height,
+    fit.height,
+    spaceBackground.offsetY,
+  );
 
   return (
     <Group

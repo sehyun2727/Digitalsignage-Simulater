@@ -11,9 +11,7 @@ test('entering sales review mode hides the toolbar and clears the selection', as
 
   await page.getByRole('button', { name: '営業レビューモード', exact: true }).click();
 
-  await expect(
-    page.getByRole('button', { name: 'LED', exact: true }),
-  ).toBeHidden();
+  await expect(page.getByRole('button', { name: 'LED', exact: true })).toBeHidden();
   await expect(
     page.getByText('編集操作を無効にした、お客様にそのままお見せできる表示です。'),
   ).toBeVisible();
@@ -41,8 +39,6 @@ test('the exit button restores the toolbar and editing header controls', async (
 
   await page.getByRole('button', { name: '編集に戻る', exact: true }).click();
 
-  await expect(
-    page.getByRole('button', { name: 'LED', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'LED', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '元に戻す' })).toBeVisible();
 });
