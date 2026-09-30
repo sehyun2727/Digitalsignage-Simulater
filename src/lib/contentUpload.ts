@@ -54,6 +54,36 @@ export class ContentDimensionError extends Error {
   }
 }
 
+/** Set of Error.message strings that `registerAsset` / `registerVideoAsset` throw when the
+ *  browser refuses a decode — kept in one place so `resolveContentUploadFailure` can pass them
+ *  through to the same i18n error slots the pre-decode validation uses. */
+const PASS_THROUGH_ERROR_MESSAGES: ReadonlySet<ContentValidationError> = new Set([
+  'unsupported-codec',
+  'decode-error',
+]);
+
+/**
+ * Normalizes any exception thrown from `registerContentAsset` into the same
+ * `{kind, error}` shape the pre-decode `validateContentFile` returns, so both Toolbar and
+ * EditorCanvas can share one catch-handler shape. Recognizes `ContentDimensionError` and the
+ * codec/decode Error.message values `loadVideo`/`loadImage` reject with; anything else falls
+ * through to a generic 'decode-error' matching the previous default behavior.
+ */
+export function resolveContentUploadFailure(
+  file: File,
+  error: unknown,
+): ContentValidationFailure {
+  if (error instanceof ContentDimensionError) {
+    return { kind: error.kind, error: error.error };
+  }
+  const kind = contentKindForFile(file);
+  const message = error instanceof Error ? error.message : '';
+  if ((PASS_THROUGH_ERROR_MESSAGES as ReadonlySet<string>).has(message)) {
+    return { kind, error: message as ContentValidationError };
+  }
+  return { kind, error: 'decode-error' };
+}
+
 export async function registerContentAsset(
   file: File,
 ): Promise<{ sourceId: string; naturalWidth: number; naturalHeight: number; kind: MediaContentKind }> {

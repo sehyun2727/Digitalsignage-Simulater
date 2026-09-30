@@ -66,7 +66,17 @@ function loadVideo(objectUrl: string): Promise<HTMLVideoElement> {
     video.playsInline = true;
     video.preload = 'auto';
     video.onloadedmetadata = () => resolve(video);
-    video.onerror = () => reject(new Error('decode-error'));
+    // MediaError.code === 4 (MEDIA_ERR_SRC_NOT_SUPPORTED) means the browser can parse the file
+    // enough to know it can't play the codec/container inside — the most common real-world
+    // trigger being HEVC-encoded mp4s recorded by iPhones on browsers without HEVC decoders.
+    // Surfacing that as 'unsupported-codec' instead of 'decode-error' shows the user the accurate
+    // "this browser can't play this codec" message instead of misleading them into thinking the
+    // file itself is corrupted. Codes 2 (network) / 3 (decode) / anything else fall through to
+    // the generic decode-error path the previous behavior already handled.
+    video.onerror = () => {
+      const code = video.error?.code;
+      reject(new Error(code === 4 ? 'unsupported-codec' : 'decode-error'));
+    };
     video.src = objectUrl;
   });
 }

@@ -11,9 +11,8 @@ import { getObjectScreenRect } from '../../lib/screenHitTest';
 import { clampCurvatureAmount, isCurvatureSupported } from '../../lib/curvature';
 import type { ContentValidationError } from '../../lib/contentUpload';
 import {
-  ContentDimensionError,
-  contentKindForFile,
   registerContentAsset,
+  resolveContentUploadFailure,
   validateContentFile,
 } from '../../lib/contentUpload';
 import {
@@ -786,11 +785,8 @@ function ContentFields({
       setOffsetYDraft(0);
       setScaleDraft(1);
     } catch (error) {
-      if (error instanceof ContentDimensionError) {
-        onContentError(error.kind, error.error);
-      } else {
-        onContentError(contentKindForFile(file), 'decode-error');
-      }
+      const failure = resolveContentUploadFailure(file, error);
+      onContentError(failure.kind, failure.error);
     }
   };
 

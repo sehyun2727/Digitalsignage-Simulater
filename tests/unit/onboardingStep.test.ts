@@ -23,6 +23,7 @@ const SPACE_BACKGROUND: EditorDocument['spaceBackground'] = {
   width: 1920,
   height: 1080,
   downscaled: false,
+  offsetY: 0,
 };
 
 function textObject(): TextSignageObject {

@@ -26,3 +26,20 @@ export function computeCoverFit(
     height: drawHeight,
   };
 }
+
+/**
+ * Clamps a raw offsetY to the valid pan range for the cover-fitted photo, so the photo's edges
+ * never leave the canvas box. The valid range is [-overflow/2, +overflow/2] centered at 0
+ * (which matches the default centered cover-fit); a photo whose cover-fit already fits the
+ * canvas height has no overflow and returns 0 unconditionally.
+ */
+export function clampSpaceBackgroundOffsetY(
+  canvasHeight: number,
+  drawnHeight: number,
+  offsetY: number,
+): number {
+  const overflow = drawnHeight - canvasHeight;
+  if (overflow <= 0) return 0;
+  const half = overflow / 2;
+  return Math.min(half, Math.max(-half, offsetY));
+}

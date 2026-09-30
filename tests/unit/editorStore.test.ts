@@ -345,6 +345,7 @@ describe('editorStore', () => {
       width: 1000,
       height: 500,
       downscaled: false,
+      offsetY: 0,
     });
     expect(selectCanUndo(useEditorStore.getState())).toBe(true);
 

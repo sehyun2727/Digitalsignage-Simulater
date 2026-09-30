@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import { getRegisteredAsset, sweepUnusedAssets } from '../lib/assetRegistry';
+import {
+  clampSpaceBackgroundOffsetY,
+  computeCoverFit,
+} from '../lib/spaceBackgroundFit';
 import { resolveShadowMode, sampleAmbientColor } from '../lib/environmentIntegration';
 import { normalizeObjectGeometry } from '../lib/geometryNormalization';
 import { createId } from '../lib/id';
@@ -121,6 +125,11 @@ export interface EditorState {
     downscaled: boolean;
   }) => void;
   removeSpaceBackground: () => void;
+  /** Adjusts the vertical pan of the space background photo. Value is stored in canvas
+   *  coordinates and clamped to the valid overflow range by the store — a photo that already fits
+   *  the canvas height clamps to 0 automatically. Non-history mutation (viewport-like), so
+   *  panning doesn't fill the undo stack one wheel-tick at a time. */
+  setSpaceBackgroundOffsetY: (offsetY: number) => void;
   /** Switches the fixed document/export frame to a different preset, re-mapping every existing
    *  object's geometry (preserving normalized center/size) in the same history entry. */
   setCanvasPreset: (preset: CanvasPresetId) => void;
@@ -448,6 +457,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       width,
       height,
       downscaled,
+      // Reset the pan on every new/replaced photo: the previous offsetY was computed against a
+      // different photo's overflow range and would clamp to a stale-looking position otherwise.
+      offsetY: 0,
     };
     set({
       document: { ...document, spaceBackground },
@@ -465,6 +477,29 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       document: { ...document, spaceBackground: null },
       past: pushHistory(get().past, document),
       future: [],
+    });
+  },
+
+  setSpaceBackgroundOffsetY: (offsetY) => {
+    const { document } = get();
+    const { spaceBackground } = document;
+    if (!spaceBackground) return;
+    const asset = getRegisteredAsset(spaceBackground.sourceId);
+    if (!asset) return;
+    const canvas = getDocumentSize(document);
+    const fit = computeCoverFit(
+      asset.naturalWidth,
+      asset.naturalHeight,
+      canvas.width,
+      canvas.height,
+    );
+    const clamped = clampSpaceBackgroundOffsetY(canvas.height, fit.height, offsetY);
+    if (clamped === spaceBackground.offsetY) return;
+    set({
+      document: {
+        ...document,
+        spaceBackground: { ...spaceBackground, offsetY: clamped },
+      },
     });
   },
 

@@ -3,9 +3,8 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import { Group, Layer, Rect, Stage, Transformer } from 'react-konva';
 import type { ContentValidationError } from '../../lib/contentUpload';
 import {
-  ContentDimensionError,
-  contentKindForFile,
   registerContentAsset,
+  resolveContentUploadFailure,
   validateContentFile,
 } from '../../lib/contentUpload';
 import { findCachedNodes, recacheAtPixelRatio } from '../../lib/konvaCacheSync';
@@ -263,6 +262,22 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     setDropTargetId(null);
   };
 
+  // Vertical pan of the space background photo when its cover-fit overflows the canvas height
+  // (Option A: canvas frame stays at the preset size, but a taller-than-canvas photo can be
+  // panned to reveal the rest). Wheel delta is in screen pixels; divide by fitScale so a
+  // one-notch wheel tick pans the photo by the same distance in canvas coords regardless of
+  // how large the canvas is drawn on this viewport. Store-side clamping means a no-overflow
+  // photo simply pins to 0 — the handler doesn't need to know the overflow range itself.
+  const setSpaceBackgroundOffsetY = useEditorStore((state) => state.setSpaceBackgroundOffsetY);
+  const spaceBackgroundOffsetY = document.spaceBackground?.offsetY ?? 0;
+  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (!document.spaceBackground || comparisonMode || fitScale <= 0) return;
+    // A positive deltaY (wheel scrolled toward user) reveals lower parts of the photo, which
+    // means shifting the photo UP in canvas coords — so the offset decreases.
+    const delta = event.deltaY / fitScale;
+    setSpaceBackgroundOffsetY(spaceBackgroundOffsetY - delta);
+  };
+
   const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setDropTargetId(null);
@@ -313,11 +328,8 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       });
       selectObject(targetId);
     } catch (error) {
-      if (error instanceof ContentDimensionError) {
-        onContentError(error.kind, error.error);
-      } else {
-        onContentError(contentKindForFile(file), 'decode-error');
-      }
+      const failure = resolveContentUploadFailure(file, error);
+      onContentError(failure.kind, failure.error);
     }
   };
 
@@ -328,6 +340,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onWheel={handleWheel}
     >
       {containerWidth > 0 && size && (
         <Stage

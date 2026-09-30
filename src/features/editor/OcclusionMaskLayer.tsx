@@ -4,7 +4,10 @@ import { Group, Image as KonvaImage } from 'react-konva';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
 import { resolveOcclusionFeatherRadius } from '../../lib/occlusion';
 import type { DocumentSize } from '../../lib/quadGeometry';
-import { computeCoverFit } from '../../lib/spaceBackgroundFit';
+import {
+  clampSpaceBackgroundOffsetY,
+  computeCoverFit,
+} from '../../lib/spaceBackgroundFit';
 import type { OcclusionMask, SpaceBackground } from '../../types/editor';
 
 interface OcclusionMaskLayerProps {
@@ -93,6 +96,13 @@ function OcclusionMaskView({ mask, documentSize, spaceBackground }: OcclusionMas
     documentSize.width,
     documentSize.height,
   );
+  // Mask polygons live in document coordinates and don't move when the user pans the space
+  // background, but the *photo pixels revealed inside the polygon* must match whatever is
+  // currently painted underneath by SpaceBackgroundView — otherwise the "poking through" effect
+  // shows a different frame of the photo than what's actually behind the object. Applying the
+  // same clamped offsetY here keeps the mask's photo copy pixel-aligned with the panned
+  // background regardless of scroll position.
+  const offsetY = clampSpaceBackgroundOffsetY(documentSize.height, fit.height, spaceBackground.offsetY);
 
   return (
     <Group
@@ -111,7 +121,7 @@ function OcclusionMaskView({ mask, documentSize, spaceBackground }: OcclusionMas
       <KonvaImage
         image={asset.image}
         x={fit.x}
-        y={fit.y}
+        y={fit.y + offsetY}
         width={fit.width}
         height={fit.height}
         listening={false}

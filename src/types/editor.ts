@@ -413,6 +413,13 @@ export interface SpaceBackground {
   width: number;
   height: number;
   downscaled: boolean;
+  /** Vertical pan applied to the cover-fitted photo, in canvas coordinates. 0 keeps the previous
+   *  centered behavior (photo overflow split equally top/bottom). Positive shifts the photo up,
+   *  revealing more of its bottom; negative shifts it down. Range is clamped so the photo edge
+   *  never leaves the canvas — a photo whose cover-fit already fits both dimensions has no valid
+   *  range and stays at 0. Applied both by the background renderer and by any occlusion mask
+   *  that re-samples the same photo, so masks stay pixel-aligned with the visible background. */
+  offsetY: number;
 }
 
 /**
