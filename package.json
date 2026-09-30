@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:oitemiru": "tsc -b && vite build --base=/oitemiru/ --outDir dist-oitemiru --emptyOutDir",
     "preview": "vite preview",
+    "preview:oitemiru": "vite preview --base=/oitemiru/ --outDir dist-oitemiru",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

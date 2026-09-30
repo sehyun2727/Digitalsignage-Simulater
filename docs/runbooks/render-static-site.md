@@ -1,8 +1,26 @@
 # Runbook: Render Static Site deployment
 
-Status: documented, not yet deployed. No live Render deployment has been created or
-verified as of Sprint 4 (main now contains Sprint 0-3.2) — this is the configuration to
-use when deployment is approved.
+Status: live at `https://digitalsignage-simulater.onrender.com` as a staging environment
+that mirrors the current `main` branch. The production site at
+`https://hull-inc.jp/oitemiru/` is a separate manual upload described at the bottom of
+this document, not a Render deploy.
+
+## Two build targets
+
+The same codebase produces two dist outputs depending on which URL path serves them.
+Keep the base as a CLI flag — do **not** hard-code it in `vite.config.ts`, because a
+hard-coded `base` breaks whichever environment it does not match.
+
+| Script                  | Output folder     | Effective base | Target                                                         |
+| ----------------------- | ----------------- | -------------- | -------------------------------------------------------------- |
+| `npm run build`         | `dist/`           | `/`            | Render staging (served at root)                                |
+| `npm run build:oitemiru`| `dist-oitemiru/`  | `/oitemiru/`   | `hull-inc.jp/oitemiru/` manual upload (served at subpath)      |
+
+Preview locally with `npm run preview` (root) or `npm run preview:oitemiru` — the latter
+reads `dist-oitemiru/` and serves at `http://localhost:4173/oitemiru/`.
+
+`dist-oitemiru/` is git-ignored (see `.gitignore`, `.prettierignore`,
+`eslint.config.js`). Never commit it.
 
 ## Service type
 
@@ -53,5 +71,24 @@ configured; Sprint 0 does not add production auto-deployment beyond what Render'
 - [ ] Default language is Japanese on first load.
 - [ ] HULL CTA link works and opens in a new tab.
 
-No deployment has been performed yet as of Sprint 4; this document describes the
-intended configuration only.
+## hull-inc.jp/oitemiru/ manual upload (production)
+
+The production site at `https://hull-inc.jp/oitemiru/` is **not** a Render deploy. It is
+served by HULL's own web hosting at a subpath, and updates are pushed by manually
+uploading a build. `git push` does not affect it.
+
+Procedure:
+
+1. Run `npm run build:oitemiru` locally on a clean checkout of the release commit. This
+   writes `dist-oitemiru/` with all asset URLs prefixed by `/oitemiru/`.
+2. On the hosting side, back up the current `/oitemiru/` folder (rename to something
+   like `oitemiru-YYYYMMDD/`) so you have a one-step rollback if the new upload breaks.
+3. Upload the **contents of** `dist-oitemiru/` (not the folder itself) into the
+   `/oitemiru/` directory on the server, replacing existing files.
+4. Verify: open `https://hull-inc.jp/oitemiru/`, reload, upload a photo, export a PNG.
+   Check the browser network tab — every asset request should be under `/oitemiru/…`
+   and return 200.
+5. If anything is broken, restore the backup folder to `oitemiru/` as the rollback.
+
+Never upload `dist/` (root build) to `/oitemiru/`, and never upload `dist-oitemiru/` to
+Render — the base prefixes are mutually exclusive.
