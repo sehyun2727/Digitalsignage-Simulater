@@ -3,11 +3,13 @@
 > 공간 사진 위에 디지털 사이니지를 설치한 모습을 빠르게 시뮬레이션하고,  
 > 영업·제안용 이미지로 내보낼 수 있는 브라우저 기반 디지털 사이니지 시뮬레이터
 
-**[Live Demo](https://digitalsignage-simulater.onrender.com)** ·
+**[운영](https://hull-inc.jp/oitemiru/)** ·
+**[직원 확인용 스테이징](https://digitalsignage-simulater.onrender.com)** ·
 **[Issues](https://github.com/sehyun2727/Digitalsignage-Simulater/issues)**
 
-> **Independent personal project. Not an official HULL service.**  
-> HULL株式会社 인턴십 경험에서 출발한 개인 프로젝트입니다.
+> **HULL株式会社가 운영하는 공식 서비스입니다.**  
+> 운영 URL은 `https://hull-inc.jp/oitemiru/`이며, Render 배포는 직원 확인용 스테이징입니다.
+> 상세는 [`docs/v2/deployment.md`](./docs/v2/deployment.md)를 참고하세요.
 
 ![Digital Signage Simulator - Main Editor](./readme사진/editor-main.png)
 
@@ -249,7 +251,7 @@ docs/
 - 별도 회원가입 없음
 - 별도 프로젝트 서버 저장 없음
 - 기본적인 작업 데이터의 서버 업로드 없이 브라우저 중심으로 처리
-- 워터마크 없음
+- 내보낸 PNG·동영상에는 HULL 워터마크가 자동으로 포함됩니다 (`src/features/editor/HullWatermarkView.tsx`).
 
 브라우저를 새로고침하거나 세션이 종료되면 작업 내용이 사라질 수 있으므로, 필요한 결과물은 PNG로 저장하는 것을 권장합니다.
 
@@ -261,7 +263,7 @@ docs/
 | ------------- | -------------- | --------- |
 | 공간 사진     | JPG, PNG, WebP | 최대 10MB |
 | 콘텐츠 이미지 | JPG, PNG, WebP | 최대 10MB |
-| 콘텐츠 영상   | MP4, WebM      | 최대 80MB |
+| 콘텐츠 영상   | MP4, WebM      | 최대 300MB (해상도 긴 변 3840 / 짧은 변 2160 / 길이 30초) |
 
 > 브라우저와 파일 코덱에 따라 일부 영상은 불러오지 못할 수 있습니다.
 
@@ -329,11 +331,14 @@ npm run lint
 # TypeScript check
 npm run typecheck
 
-# Unit tests
-npm test
+# Unit tests (단일 실행 — `npm test`는 watch 모드이므로 CI/보고에는 쓰지 말 것)
+npm run test:run
 
-# Production build
+# Production build (Render 스테이징, base '/')
 npm run build
+
+# Production build (본서버 수동 업로드용, base '/oitemiru/')
+npm run build:oitemiru
 
 # Playwright E2E tests
 npm run test:e2e
@@ -345,21 +350,18 @@ Visual QA 관련 절차는 [`docs/quality-runbook.md`](./docs/quality-runbook.md
 
 ## Deployment
 
-프로젝트는 Render Static Site 배포를 기준으로 구성했습니다.
+두 환경으로 운영됩니다. 상세는 [`docs/v2/deployment.md`](./docs/v2/deployment.md)와 [`docs/runbooks/render-static-site.md`](./docs/runbooks/render-static-site.md) 참조.
 
-- Vite production build
-- Docker multi-stage build
-- Nginx static serving
-- SPA fallback
-- GitHub Actions quality gate
-
-배포 전 점검 절차는 [`docs/runbooks/render-static-site.md`](./docs/runbooks/render-static-site.md)를 참고하세요.
+| 환경 | URL | 빌드 | 배포 방식 |
+|---|---|---|---|
+| 본서버 (운영) | `https://hull-inc.jp/oitemiru/` | `npm run build:oitemiru` → `dist-oitemiru/` | 수동 업로드 |
+| Render 스테이징 (직원 확인용) | `https://digitalsignage-simulater.onrender.com` | `npm run build` → `dist/` | `main` push 자동 재배포 |
 
 ---
 
 ## Project Background
 
-이 프로젝트는 HULL株式会社 인턴십 기간 중 진행한 **독립 개인 프로젝트**입니다.
+이 프로젝트는 HULL株式会社 인턴십 중 시작되어 **당사가 운영하는 공식 서비스**로 전환되었습니다.
 
 - **Role:** Planning, UX direction, frontend development, testing, deployment
 - **Context:** Digital signage sales 동행 및 현장 관찰
@@ -386,15 +388,9 @@ Visual QA 관련 절차는 [`docs/quality-runbook.md`](./docs/quality-runbook.md
 - [x] Unit / E2E / Visual QA
 - [x] Render 배포
 
-### V2 — Planned
+### V2 — In progress
 
-- [ ] 더 빠른 영업 시안 제작 플로우
-- [ ] 제품·공간·업종 중심 프리셋
-- [ ] 빠른 시안 모드와 정밀 편집 모드 분리
-- [ ] 고객용 전 / 후 비교 프리뷰
-- [ ] 제품 카탈로그 및 설치 목적 기반 추천
-- [ ] 공유 링크 및 제안서 출력 검토
-- [ ] 모바일 UX 개선
+사내 사용 피드백 「置いて見る君の修正案v2」 반영. 상세 계획은 [`docs/v2/sprint-plan.md`](./docs/v2/sprint-plan.md), 요구사항 체크리스트는 [`docs/v2/requirements.md`](./docs/v2/requirements.md).
 
 ---
 
@@ -410,10 +406,7 @@ Visual QA 관련 절차는 [`docs/quality-runbook.md`](./docs/quality-runbook.md
 
 ## License
 
-This project is an independent portfolio project.
-
-Repository code and assets are provided for portfolio and educational reference.  
-For commercial use, redistribution, or reuse of project assets, please contact the author.
+HULL株式会社가 운영하는 공식 서비스의 소스 코드입니다. 상업 이용·재배포·에셋 재사용에 관해서는 당사 또는 작성자에게 문의해 주세요.
 
 ---
 
