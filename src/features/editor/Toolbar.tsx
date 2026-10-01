@@ -235,12 +235,17 @@ function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationE
         <button
           type="button"
           id="toolbar-space-upload-trigger"
+          data-testid="editor-space-background-trigger"
           onClick={() => spaceBackgroundInputRef.current?.click()}
         >
           {addOrReplaceLabel}
         </button>
         {spaceBackground && (
-          <button type="button" onClick={removeSpaceBackground}>
+          <button
+            type="button"
+            data-testid="editor-space-background-remove"
+            onClick={removeSpaceBackground}
+          >
             {messages.editorRemoveSpaceBackgroundButton}
           </button>
         )}
@@ -252,6 +257,7 @@ function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationE
         onChange={handleSpaceBackgroundChange}
         className="visually-hidden"
         aria-label={addOrReplaceLabel}
+        data-testid="editor-space-background-upload"
       />
     </ToolbarSection>
   );
@@ -272,16 +278,23 @@ function AddSignageSection() {
         <button
           type="button"
           id="toolbar-add-signage-trigger"
+          data-testid="editor-add-led"
           disabled={!canAddSignage}
           onClick={() => addDisplay('led')}
         >
           {messages.editorAddLedButton}
         </button>
-        <button type="button" disabled={!canAddSignage} onClick={() => addDisplay('lcd')}>
+        <button
+          type="button"
+          data-testid="editor-add-lcd"
+          disabled={!canAddSignage}
+          onClick={() => addDisplay('lcd')}
+        >
           {messages.editorAddLcdButton}
         </button>
         <button
           type="button"
+          data-testid="editor-add-transparent-led"
           disabled={!canAddSignage}
           onClick={() => addDisplay('transparent-led')}
         >
@@ -290,7 +303,12 @@ function AddSignageSection() {
         {/* Portable is now a fixed vector template — click adds directly, no photo-upload
             wizard needed. Its screen still receives content via the same drop-onto-signage /
             Add Image flow every other signage kind uses. */}
-        <button type="button" disabled={!canAddSignage} onClick={() => addPortable()}>
+        <button
+          type="button"
+          data-testid="editor-add-portable"
+          disabled={!canAddSignage}
+          onClick={() => addPortable()}
+        >
           {messages.editorAddPortableButton}
         </button>
       </div>
@@ -360,7 +378,12 @@ function SelectedSignageSection() {
       ) : (
         <SelectedSignageFields key={selected.id} object={selected} />
       )}
-      <button type="button" onClick={deleteSelected} disabled={!selected}>
+      <button
+        type="button"
+        data-testid="editor-delete-selected"
+        onClick={deleteSelected}
+        disabled={!selected}
+      >
         {messages.editorDeleteButton}
       </button>
     </ToolbarSection>
@@ -784,10 +807,18 @@ function ContentFields({
       {mediaContent ? (
         <>
           <div className="toolbar-actions">
-            <button type="button" onClick={() => contentInputRef.current?.click()}>
+            <button
+              type="button"
+              data-testid="editor-content-replace"
+              onClick={() => contentInputRef.current?.click()}
+            >
               {messages.editorContentReplaceButton}
             </button>
-            <button type="button" onClick={() => commit({ content: null })}>
+            <button
+              type="button"
+              data-testid="editor-content-remove"
+              onClick={() => commit({ content: null })}
+            >
               {messages.editorContentRemoveButton}
             </button>
           </div>
@@ -899,7 +930,11 @@ function ContentFields({
       ) : textContent ? (
         <>
           <div className="toolbar-actions">
-            <button type="button" onClick={() => commit({ content: null })}>
+            <button
+              type="button"
+              data-testid="editor-content-remove"
+              onClick={() => commit({ content: null })}
+            >
               {messages.editorContentRemoveButton}
             </button>
           </div>
@@ -968,11 +1003,16 @@ function ContentFields({
             <button
               type="button"
               id="toolbar-content-upload-trigger"
+              data-testid="editor-content-upload-trigger"
               onClick={() => contentInputRef.current?.click()}
             >
               {messages.editorContentUploadButton}
             </button>
-            <button type="button" onClick={() => addText(messages.signageTypeText)}>
+            <button
+              type="button"
+              data-testid="editor-add-text-content"
+              onClick={() => addText(messages.signageTypeText)}
+            >
               {messages.editorAddTextButton}
             </button>
           </div>
@@ -986,6 +1026,7 @@ function ContentFields({
         onChange={handleContentFileChange}
         className="visually-hidden"
         aria-label={messages.editorContentUploadButton}
+        data-testid="editor-content-upload"
       />
     </>
   );
@@ -1543,6 +1584,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                 <div className="toolbar-actions">
                   <button
                     type="button"
+                    data-testid="editor-occlusion-add"
                     onClick={() => {
                       setSettingsOpen(false);
                       beginOcclusionEdit(object.id);

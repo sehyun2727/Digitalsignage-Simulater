@@ -94,7 +94,7 @@ test('dropping an image file onto an LED screen region assigns it as content', a
   const png = await solidColorPng(page, '#ff8800');
   await dropImageOntoCanvas(page, png, DISPLAY_SCREEN_CENTER);
 
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 });
 
 test('dropping onto a rotated display screen region still hits it correctly', async ({ page }) => {
@@ -121,7 +121,7 @@ test('dropping onto a rotated display screen region still hits it correctly', as
   const png = await solidColorPng(page, '#00aaff');
   await dropImageOntoCanvas(page, png, rotatedPoint);
 
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 });
 
 test('dropping onto the topmost of two overlapping displays assigns content only to that one', async ({
@@ -141,7 +141,7 @@ test('dropping onto the topmost of two overlapping displays assigns content only
   // A successful drop also selects its target, so the material combobox identifies which
   // object received the content without any extra canvas click.
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   // Delete the LCD display (topmost, now confirmed to hold the dropped content) to expose
   // the LED display beneath it, then confirm the LED display was left untouched by the drop.

@@ -32,19 +32,30 @@ async function documentPointToPagePoint(
   return { x: box.x + docPoint.x * scale, y: box.y + docPoint.y * scale };
 }
 
+// The pre-v2 overlay replaced the per-corner "X座標 / Y座標" number inputs (which the
+// old fieldset-based helper filled) with a draggable `role="slider"` handle per corner —
+// numeric nudging via ArrowKey still works but can't jump directly to an absolute fraction.
+// This helper pointer-drags the handle to the target normalized point inside the canvas
+// container, mirroring how a user would set the corner by eye. S1 Step 5 reuses it.
+const CORNER_TESTID_KEY: Record<'左上' | '右上' | '右下' | '左下', string> = {
+  左上: 'editor-perspective-handle-topLeft',
+  右上: 'editor-perspective-handle-topRight',
+  右下: 'editor-perspective-handle-bottomRight',
+  左下: 'editor-perspective-handle-bottomLeft',
+};
+
 async function setPerspectiveCorner(
   page: Page,
   cornerLabel: '左上' | '右上' | '右下' | '左下',
   xFraction: number,
   yFraction: number,
 ): Promise<void> {
-  const fieldset = page.locator('fieldset').filter({ hasText: cornerLabel });
-  const xInput = fieldset.getByRole('spinbutton', { name: 'X座標' });
-  const yInput = fieldset.getByRole('spinbutton', { name: 'Y座標' });
-  await xInput.fill(String(xFraction));
-  await xInput.blur();
-  await yInput.fill(String(yFraction));
-  await yInput.blur();
+  const handle = page.getByTestId(CORNER_TESTID_KEY[cornerLabel]);
+  const canvas = page.locator('.editor-canvas-container');
+  const box = (await canvas.boundingBox())!;
+  await handle.dragTo(canvas, {
+    targetPosition: { x: xFraction * box.width, y: yFraction * box.height },
+  });
 }
 
 // A valid, convex quad occupying the document's top-left quadrant — far from the default
@@ -171,7 +182,7 @@ test.describe('transparent LED window blending', () => {
     // A saturated, unambiguous background color makes the directional pixel comparison below
     // (more transparency -> more background showing through -> higher red channel) robust.
     await addSpaceBackground(page, { ...DOCUMENT_SIZE, color: '#ff0000' });
-    await page.getByRole('button', { name: '透過LED' }).click();
+    await page.getByTestId('editor-add-transparent-led').click();
     await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue(
       'transparent-led',
     );
@@ -224,7 +235,7 @@ test.describe('video content preview and export', () => {
     await page.getByRole('button', { name: 'LED', exact: true }).click();
 
     await addVideoContent(page);
-    await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+    await expect(page.getByTestId('editor-content-replace')).toBeVisible();
     await expect(
       page.getByText('動画は自動再生・ループ再生・ミュートで表示されます。'),
     ).toBeVisible();

@@ -185,7 +185,14 @@
 스프린트가 완료되려면 **모두** 참이어야 합니다.
 
 - [ ] 담당 요구사항 ID별 수용 기준 전부 충족 (`docs/v2/requirements.md`의 체크리스트).
-- [ ] `typecheck`, `lint`, `format:check`, `test:run`, `build`, `build:oitemiru`, `test:e2e`, `qa:visual` **모두 통과**. 또는 baseline(`docs/v2/baseline.md`) 대비 **새 실패 없음**을 보고서에 명시(기존 알려진 실패는 허용).
+- [ ] `typecheck`, `lint`, `format:check`, `test:run`, `build`, `build:oitemiru` **모두 통과**.
+- [ ] **e2e 판정**(`docs/v2/baseline.md`의 "알려진 e2e 실패" 표):
+  - 실패한 테스트가 전부 그 표 안에 있어야 함(새 실패 0건).
+  - 통과 수가 baseline(현재 51)보다 줄면 안 됨.
+  - 실패한 테스트는 1회 재실행. 재실행에서 통과하면 flaky로 표시하고 실패로 세지 않음.
+  - 담당 스프린트는 자기 debt를 해소: S2(C7/A1/A4-text/C/A3), S4(B1/B2), S5(F-occlusion), S3 또는 S7(F-download), S7(visual-qa 환경 미실행 포함).
+  - **S7 push 전에는 알려진 실패가 0건이어야 함.** 사용자가 승인한 예외만 남길 수 있음.
+- [ ] `qa:visual`: Docker 가능하면 Linux 환경에서 통과. 불가능하면 "환경 미실행" 기록 후 S7에서 반드시 실행.
 - [ ] 사용자 문구는 모두 i18n 키로. ja/ko/en 전부 갱신.
 - [ ] 일본어 기본 동작 유지. 한국어·영어 전환 깨짐 없음.
 - [ ] 포터블 compound model, HULL 워터마크, `/oitemiru/` 서브 경로, 이용약관 모달 접근성 **회귀 없음**.

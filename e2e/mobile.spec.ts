@@ -65,9 +65,9 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   // 6. Upload display content.
   const content = await solidColorPng(page, '#00ff00');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   // 7. Switch fit between Contain and Cover.
   const fitSelect = page.getByRole('combobox', { name: '表示方法' });
@@ -154,9 +154,9 @@ test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 
 
   const content = await solidColorPng(page, '#ff8800');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'PNGで書き出す' }).click();
@@ -200,9 +200,9 @@ test('mobile: adds a custom portable product with a screen region and exports it
   // 4. Upload screen content onto the new portable object.
   const content = await solidColorPng(page, '#ff8800');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   // 5. Export and confirm the resolution still matches the uploaded space photo exactly.
   const downloadPromise = page.waitForEvent('download');
@@ -316,7 +316,7 @@ test('mobile: adds a transparent LED display and blends more of the space backgr
   await page.goto('/');
   await addSpaceBackground(page, 1920, 1080);
 
-  await page.getByRole('button', { name: '透過LED' }).click();
+  await page.getByTestId('editor-add-transparent-led').click();
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue(
     'transparent-led',
   );
@@ -360,19 +360,26 @@ test('mobile: applies a four-point perspective quad via the corner input fields 
   await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
   await expectNoHorizontalOverflow(page);
 
+  // Mirrors the perspective-video.spec.ts helper rewritten in S1 Step 0: the pre-v2 corner
+  // number inputs became draggable `role="slider"` handles, so set each corner by pointer-
+  // dragging its handle to the target normalized point inside the canvas container.
+  const cornerTestidKey = {
+    左上: 'editor-perspective-handle-topLeft',
+    右上: 'editor-perspective-handle-topRight',
+    右下: 'editor-perspective-handle-bottomRight',
+    左下: 'editor-perspective-handle-bottomLeft',
+  } as const;
   const setCorner = async (
     cornerLabel: '左上' | '右上' | '右下' | '左下',
     xFraction: number,
     yFraction: number,
   ) => {
-    const fieldset = page.locator('fieldset').filter({ hasText: cornerLabel });
-    const xInput = fieldset.getByRole('spinbutton', { name: 'X座標' });
-    const yInput = fieldset.getByRole('spinbutton', { name: 'Y座標' });
-    await xInput.scrollIntoViewIfNeeded();
-    await xInput.fill(String(xFraction));
-    await xInput.blur();
-    await yInput.fill(String(yFraction));
-    await yInput.blur();
+    const handle = page.getByTestId(cornerTestidKey[cornerLabel]);
+    const canvas = page.locator('.editor-canvas-container');
+    const box = (await canvas.boundingBox())!;
+    await handle.dragTo(canvas, {
+      targetPosition: { x: xFraction * box.width, y: yFraction * box.height },
+    });
   };
 
   await setCorner('左上', 0.05, 0.05);
@@ -407,8 +414,8 @@ test('mobile: draws a foreground occlusion mask via tap-to-add points at 390x844
   await page.getByRole('button', { name: '詳細設定', exact: true }).scrollIntoViewIfNeeded();
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
 
-  await page.getByRole('button', { name: 'マスクを追加' }).scrollIntoViewIfNeeded();
-  await page.getByRole('button', { name: 'マスクを追加' }).click();
+  await page.getByTestId('editor-occlusion-add').scrollIntoViewIfNeeded();
+  await page.getByTestId('editor-occlusion-add').click();
   await expectNoHorizontalOverflow(page);
 
   const canvasContainer = page.locator('.editor-canvas-container');
@@ -450,9 +457,9 @@ test('mobile smoke: a real-photo-style scene renders, exports a PNG, and introdu
   await page.getByRole('button', { name: 'LCD' }).click();
   const content = await solidColorPng(page, '#2563eb');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   const canvasBox = await page.locator('.editor-canvas-container').boundingBox();
   expect(canvasBox).not.toBeNull();

@@ -49,10 +49,10 @@ test('uploads content into a display, edits fit/offset/scale, and resets placeme
 
   const content = await solidColorPng(page, '#00ff00');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
 
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   const fitSelect = page.getByRole('combobox', { name: '表示方法' });
   await expect(fitSelect).toHaveValue('contain');
@@ -77,11 +77,11 @@ test('removes uploaded content from a display', async ({ page }) => {
 
   const content = await solidColorPng(page, '#00ff00');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを削除' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-remove')).toBeVisible();
 
-  await page.getByRole('button', { name: 'コンテンツを削除' }).click();
+  await page.getByTestId('editor-content-remove').click();
 
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
@@ -97,7 +97,7 @@ test('uploads a generated video clip into a display and shows the autoplay/loop/
 
   await addVideoContent(page);
 
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
   await expect(
     page.getByText('動画は自動再生・ループ再生・ミュートで表示されます。'),
   ).toBeVisible();
@@ -132,9 +132,9 @@ test('cover-fit display content is clipped to the screen region and never spills
   // any point strictly inside the bezel must not.
   const content = await solidColorPng(page, '#ff0000');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 
@@ -227,7 +227,7 @@ test('rendering presets update the material sliders and the export brightness to
 
   const content = await solidColorPng(page, '#ffffff');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 

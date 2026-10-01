@@ -78,7 +78,7 @@ test('walks through all 4 steps, each CTA reusing an existing toolbar/store/expo
 
   const content = await solidColorPng(page, '#ff8800', 200, 120);
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
 
   // Step 4: save PNG. The CTA reuses the header's own export handler, not a duplicate one.

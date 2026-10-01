@@ -45,7 +45,7 @@ async function zeroMaterialIntensity(page: Page): Promise<void> {
 async function addContent(page: Page, color: string): Promise<void> {
   const content = await solidColorPng(page, color);
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 }

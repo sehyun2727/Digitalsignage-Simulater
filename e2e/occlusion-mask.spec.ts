@@ -35,7 +35,7 @@ async function setup(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'LED', exact: true }).click();
   const content = await solidColorPng(page, '#ffee00');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 }
@@ -49,10 +49,11 @@ async function closeSettings(page: Page): Promise<void> {
 }
 
 async function drawMaskTriangle(page: Page): Promise<void> {
-  // The occlusion controls live behind the "詳細設定" modal; clicking "マスクを追加" both starts
+  // The occlusion controls live behind the "詳細設定" modal; clicking the add-mask button (now
+  // "モザイクを追加" per editorOcclusionAddButton; targeted via editor-occlusion-add testid) both starts
   // the mask draft and closes the modal (so the canvas underneath becomes clickable again).
   await openSettings(page);
-  await page.getByRole('button', { name: 'マスクを追加' }).click();
+  await page.getByTestId('editor-occlusion-add').click();
   for (const docPoint of MASK_TRIANGLE) {
     const pagePoint = await documentPointToPagePoint(page, docPoint);
     await page.mouse.click(pagePoint.x, pagePoint.y);
@@ -144,7 +145,7 @@ test('a too-small mask draft is rejected and the apply button stays disabled', a
   await setup(page);
 
   await openSettings(page);
-  await page.getByRole('button', { name: 'マスクを追加' }).click();
+  await page.getByTestId('editor-occlusion-add').click();
   // Only two points: below MIN_OCCLUSION_POINTS (3), so validation must fail.
   for (const docPoint of MASK_TRIANGLE.slice(0, 2)) {
     const pagePoint = await documentPointToPagePoint(page, docPoint);

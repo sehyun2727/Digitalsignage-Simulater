@@ -225,9 +225,9 @@ test('applies content and material to a portable product; export is clipped to i
 
   const content = await solidColorPng(page, '#ff0000');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 
@@ -430,7 +430,7 @@ test.describe('export composition (pixel verification)', () => {
 
     const content = await solidColorPng(page, '#ff0000');
     await page
-      .getByLabel('コンテンツを追加')
+      .getByTestId('editor-content-upload')
       .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
     await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 

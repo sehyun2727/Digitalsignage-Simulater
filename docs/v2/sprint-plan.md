@@ -8,12 +8,12 @@
 |---|---|---|---|---|
 | **S0** | pre-v2 정리, 기준선, 문서 정비 | `docs/**`, `CLAUDE.md`, `README.md`, 설정 파일(P-8 범위) | 중 | **완료 제안** — 커밋 7개, Render push 완료, docs/v2 전부 작성 |
 | **S1** | 5-2 (원근·크기·콘텐츠 비율 일관성) | `src/lib/contentLayout.ts`, `src/features/editor/PerspectiveScreenView.tsx`, `src/features/editor/ScreenComposition.tsx`, 신규 테스트 | 상 | 가장 어려운 수학/기하. 임시 안내 선행 가능 |
-| **S2** | 5-1, 2-5, 3-2, C7, **e2e 라벨 정비(C11 1차)** | `src/features/editor/EditorLayout.tsx`, `src/features/editor/Toolbar.tsx`, `src/i18n/locales/*`, `e2e/**` 다수 | 중 | e2e 17줄 라벨 교체 포함(baseline 회귀 복구) |
+| **S2** | 5-1, 2-5, 3-2, C7, **e2e debt 해소: A1/A4-text/A3/C** (`docs/v2/baseline.md` 참조) | `src/features/editor/EditorLayout.tsx`, `src/features/editor/Toolbar.tsx`, `src/i18n/locales/*`, `e2e/{editor,image-upload,reselection,smoke}.spec.ts` 등 13건 | 중 | 「テキストを追加」·「画像を追加」·`.editor-empty-hint`를 현재 UI 흐름으로 재작성 |
 | **S3** | 2-1, 2-2, 2-3, 3-1, 2-4, 2-6, C12, C16, C20, C23 | `src/features/editor/EditorLayout.tsx`, `src/features/editor/Toolbar.tsx`, `src/features/editor/AdvancedSettingsModal.tsx`, `src/styles/global.css` | 상 | 2-6은 사용자 재확인 후 진입 |
-| **S4** | 1-1, 1-2, 1-3, C13, C14, C19, C21, C22 | `src/store/editorStore.ts`, `src/features/editor/EditorLayout.tsx`(keydown), `src/features/editor/EditorCanvas.tsx`(Transformer), `src/features/editor/SpaceBackgroundView.tsx`, `src/lib/spaceBackgroundFit.ts` | 상 | 1-3 Fit/Cover 전환 시 좌표 기준 결정 필요(audit B-5-4) |
-| **S5** | 3-3, 3-4, 3-5, C8 | `src/features/editor/Toolbar.tsx`, `src/features/editor/OcclusionEditOverlay.tsx`, `src/features/editor/RealismGuideCard.tsx`, `src/i18n/locales/*` | 중 | 모자이크 흐름이 가장 변화 큼 |
+| **S4** | 1-1, 1-2, 1-3, C13, C14, C19, C21, C22, **e2e debt 해소: B1/B2** (포터블 compound 흐름 기준 재작성 17건) | `src/store/editorStore.ts`, `src/features/editor/EditorLayout.tsx`(keydown), `src/features/editor/EditorCanvas.tsx`(Transformer), `src/features/editor/SpaceBackgroundView.tsx`, `src/lib/spaceBackgroundFit.ts`, `e2e/{portable,reselection,mobile,visual-qa}.spec.ts` | 상 | 1-3 Fit/Cover 전환 시 좌표 기준 결정 필요(audit B-5-4). 포터블 다이얼로그 제거(eef7335) 후 e2e 미갱신. |
+| **S5** | 3-3, 3-4, 3-5, C8, **e2e debt 해소: F-occlusion** (occlusion 흐름 재작성 4건) | `src/features/editor/Toolbar.tsx`, `src/features/editor/OcclusionEditOverlay.tsx`, `src/features/editor/RealismGuideCard.tsx`, `src/i18n/locales/*`, `e2e/{occlusion-mask,mobile}.spec.ts` | 중 | 모자이크 흐름이 가장 변화 큼 |
 | **S6** | 4-1, 4-2, 4-3, C1~C6, C9, C10(용어), C15(앱 문구) | `src/i18n/locales/*`, `src/components/UserGuideModal.tsx`, `src/features/editor/OnboardingOverlay.tsx`, `src/features/editor/RealismGuideCard.tsx` | 중 | 전수 용어 조사 선행(audit "미확인·추가 조사" 참조) |
-| **S7** | 전체 회귀, C11, C17, C18, 릴리스 노트(ja), 배포·롤백 절차 | `docs/v2/release-notes-s7.md`(신규), `docs/runbooks/*`, `tests/` 전체 재측정 | 중 | push 1회, 본서버 수동 업로드 가이드 재검증 |
+| **S7** | 전체 회귀, C11, C17, C18, 릴리스 노트(ja), 배포·롤백 절차, **F-download 재검증**, **Docker Linux에서 `qa:visual` 전체 실행 및 스냅샷 갱신** | `docs/v2/release-notes-s7.md`(신규), `docs/runbooks/*`, `tests/` 전체 재측정 | 중 | push 1회, 본서버 수동 업로드 가이드 재검증. **S1 Step 0 시점 Docker Desktop 데몬 미기동으로 qa:visual을 win32에서 미실행함. Linux 환경에서 반드시 재측정 필요.** |
 
 ## 스프린트별 상세 (제안)
 
