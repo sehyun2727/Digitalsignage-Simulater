@@ -2,10 +2,10 @@
 
 ## 두 환경
 
-| 환경 | URL | 역할 | 배포 방식 |
-|---|---|---|---|
-| **Render 스테이징** | `https://digitalsignage-simulater.onrender.com` | 직원 확인용. v2 스프린트 진행 중에도 중간 상태는 공유되지 않도록 push를 억제 | main에 push하면 `npm ci && npm run build` → `dist/` 자동 서빙 (Render Static Site) |
-| **본서버 (운영)** | `https://hull-inc.jp/oitemiru/` | 공개 운영. 서브 경로 `/oitemiru/` | 사용자가 로컬에서 `npm run build:oitemiru` 한 뒤 `dist-oitemiru/` **내용물**을 서버에 수동 업로드 |
+| 환경                | URL                                             | 역할                                                                         | 배포 방식                                                                                         |
+| ------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Render 스테이징** | `https://digitalsignage-simulater.onrender.com` | 직원 확인용. v2 스프린트 진행 중에도 중간 상태는 공유되지 않도록 push를 억제 | main에 push하면 `npm ci && npm run build` → `dist/` 자동 서빙 (Render Static Site)                |
+| **본서버 (운영)**   | `https://hull-inc.jp/oitemiru/`                 | 공개 운영. 서브 경로 `/oitemiru/`                                            | 사용자가 로컬에서 `npm run build:oitemiru` 한 뒤 `dist-oitemiru/` **내용물**을 서버에 수동 업로드 |
 
 두 환경은 **URL 경로가 다릅니다**. Render는 루트 `/`, 본서버는 하위 경로 `/oitemiru/`. 이 때문에 하나의 빌드로 양쪽을 커버할 수 없고, 환경별 빌드 스크립트가 분리되어 있습니다. (pre-v2 P-8 결정, ADR 0011)
 
@@ -19,10 +19,10 @@
 
 ## 환경별 빌드 조사 결과 (P-10)
 
-| 빌드 | 출력 폴더 | `index.html`의 JS/CSS 접두어 | `import.meta.env.BASE_URL` | HTTP 200 확인 |
-|---|---|---|---|---|
-| `npm run build` | `dist/` | `/assets/…` | `/` | localhost:4173/ 에서 index.html / favicon.svg / assets/*.js / assets/*.css / assets/brand/hull-watermark.svg 모두 200 |
-| `npm run build:oitemiru` | `dist-oitemiru/` | `/oitemiru/assets/…` | `/oitemiru/` | localhost:4174/oitemiru/ 에서 동일 자원 모두 200. 루트 `/`는 302(base로 리다이렉트) |
+| 빌드                     | 출력 폴더        | `index.html`의 JS/CSS 접두어 | `import.meta.env.BASE_URL` | HTTP 200 확인                                                                                                         |
+| ------------------------ | ---------------- | ---------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `npm run build`          | `dist/`          | `/assets/…`                  | `/`                        | localhost:4173/ 에서 index.html / favicon.svg / assets/_.js / assets/_.css / assets/brand/hull-watermark.svg 모두 200 |
+| `npm run build:oitemiru` | `dist-oitemiru/` | `/oitemiru/assets/…`         | `/oitemiru/`               | localhost:4174/oitemiru/ 에서 동일 자원 모두 200. 루트 `/`는 302(base로 리다이렉트)                                   |
 
 grep: `dist/` 안 `/oitemiru/` 등장은 index.html canonical/OG 메타 4곳뿐(자원 참조 아님). JS 번들 안에는 0건.
 
@@ -46,6 +46,7 @@ grep: `dist/` 안 `/oitemiru/` 등장은 index.html canonical/OG 메타 4곳뿐(
 5. 문제가 있으면 백업 폴더를 `/oitemiru/`로 되돌려 롤백.
 
 **금지**:
+
 - `dist/`(루트 빌드)를 `/oitemiru/`에 업로드하면 **자원 404**가 납니다.
 - `dist-oitemiru/`를 Render에 업로드/push하면 **자원 404**가 납니다.
 - 서버의 기존 백업 폴더(`oitemiru-YYYYMMDD/`)를 급히 삭제하지 말 것(최소 1 릴리스 분량 보존).
@@ -59,10 +60,10 @@ grep: `dist/` 안 `/oitemiru/` 등장은 index.html canonical/OG 메타 4곳뿐(
 
 ## 롤백
 
-| 환경 | 절차 |
-|---|---|
+| 환경   | 절차                                                                                 |
+| ------ | ------------------------------------------------------------------------------------ |
 | Render | 사용자가 Render 대시보드에서 이전 Deploy 선택 → Redeploy. 또는 `git revert` 후 push. |
-| 본서버 | 백업 폴더(`oitemiru-YYYYMMDD/`)의 이름을 `/oitemiru/`로 되돌리기. |
+| 본서버 | 백업 폴더(`oitemiru-YYYYMMDD/`)의 이름을 `/oitemiru/`로 되돌리기.                    |
 
 ## 관련 문서
 

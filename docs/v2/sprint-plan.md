@@ -4,20 +4,21 @@
 
 ## 전체 순서 (제안)
 
-| S | 범위 | 수정 예정 영역 | 리스크 | 메모 |
-|---|---|---|---|---|
-| **S0** | pre-v2 정리, 기준선, 문서 정비 | `docs/**`, `CLAUDE.md`, `README.md`, 설정 파일(P-8 범위) | 중 | **완료 제안** — 커밋 7개, Render push 완료, docs/v2 전부 작성 |
-| **S1** | 5-2 (원근·크기·콘텐츠 비율 일관성) | `src/lib/contentLayout.ts`, `src/features/editor/PerspectiveScreenView.tsx`, `src/features/editor/ScreenComposition.tsx`, 신규 테스트 | 상 | 가장 어려운 수학/기하. 임시 안내 선행 가능 |
-| **S2** | 5-1, 2-5, 3-2, C7, **e2e debt 해소: A1/A4-text/A3/C** (`docs/v2/baseline.md` 참조) | `src/features/editor/EditorLayout.tsx`, `src/features/editor/Toolbar.tsx`, `src/i18n/locales/*`, `e2e/{editor,image-upload,reselection,smoke}.spec.ts` 등 13건 | 중 | 「テキストを追加」·「画像を追加」·`.editor-empty-hint`를 현재 UI 흐름으로 재작성 |
-| **S3** | 2-1, 2-2, 2-3, 3-1, 2-4, 2-6, C12, C16, C20, C23 | `src/features/editor/EditorLayout.tsx`, `src/features/editor/Toolbar.tsx`, `src/features/editor/AdvancedSettingsModal.tsx`, `src/styles/global.css` | 상 | 2-6은 사용자 재확인 후 진입 |
-| **S4** | 1-1, 1-2, 1-3, C13, C14, C19, C21, C22, **e2e debt 해소: B1/B2** (포터블 compound 흐름 기준 재작성 17건) | `src/store/editorStore.ts`, `src/features/editor/EditorLayout.tsx`(keydown), `src/features/editor/EditorCanvas.tsx`(Transformer), `src/features/editor/SpaceBackgroundView.tsx`, `src/lib/spaceBackgroundFit.ts`, `e2e/{portable,reselection,mobile,visual-qa}.spec.ts` | 상 | 1-3 Fit/Cover 전환 시 좌표 기준 결정 필요(audit B-5-4). 포터블 다이얼로그 제거(eef7335) 후 e2e 미갱신. |
-| **S5** | 3-3, 3-4, 3-5, C8, **e2e debt 해소: F-occlusion** (occlusion 흐름 재작성 4건) | `src/features/editor/Toolbar.tsx`, `src/features/editor/OcclusionEditOverlay.tsx`, `src/features/editor/RealismGuideCard.tsx`, `src/i18n/locales/*`, `e2e/{occlusion-mask,mobile}.spec.ts` | 중 | 모자이크 흐름이 가장 변화 큼 |
-| **S6** | 4-1, 4-2, 4-3, C1~C6, C9, C10(용어), C15(앱 문구) | `src/i18n/locales/*`, `src/components/UserGuideModal.tsx`, `src/features/editor/OnboardingOverlay.tsx`, `src/features/editor/RealismGuideCard.tsx` | 중 | 전수 용어 조사 선행(audit "미확인·추가 조사" 참조) |
-| **S7** | 전체 회귀, C11, C17, C18, 릴리스 노트(ja), 배포·롤백 절차, **F-download 재검증**, **Docker Linux에서 `qa:visual` 전체 실행 및 스냅샷 갱신** | `docs/v2/release-notes-s7.md`(신규), `docs/runbooks/*`, `tests/` 전체 재측정 | 중 | push 1회, 본서버 수동 업로드 가이드 재검증. **S1 Step 0 시점 Docker Desktop 데몬 미기동으로 qa:visual을 win32에서 미실행함. Linux 환경에서 반드시 재측정 필요.** |
+| S      | 범위                                                                                                                                        | 수정 예정 영역                                                                                                                                                                                                                                                          | 리스크 | 메모                                                                                                                                                             |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **S0** | pre-v2 정리, 기준선, 문서 정비                                                                                                              | `docs/**`, `CLAUDE.md`, `README.md`, 설정 파일(P-8 범위)                                                                                                                                                                                                                | 중     | **완료 제안** — 커밋 7개, Render push 완료, docs/v2 전부 작성                                                                                                    |
+| **S1** | 5-2 (원근·크기·콘텐츠 비율 일관성)                                                                                                          | `src/lib/contentLayout.ts`, `src/features/editor/PerspectiveScreenView.tsx`, `src/features/editor/ScreenComposition.tsx`, 신규 테스트                                                                                                                                   | 상     | 가장 어려운 수학/기하. 임시 안내 선행 가능                                                                                                                       |
+| **S2** | 5-1, 2-5, 3-2, C7, **e2e debt 해소: A1/A4-text/A3/C** (`docs/v2/baseline.md` 참조)                                                          | `src/features/editor/EditorLayout.tsx`, `src/features/editor/Toolbar.tsx`, `src/i18n/locales/*`, `e2e/{editor,image-upload,reselection,smoke}.spec.ts` 등 13건                                                                                                          | 중     | 「テキストを追加」·「画像を追加」·`.editor-empty-hint`를 현재 UI 흐름으로 재작성                                                                                 |
+| **S3** | 2-1, 2-2, 2-3, 3-1, 2-4, 2-6, C12, C16, C20, C23                                                                                            | `src/features/editor/EditorLayout.tsx`, `src/features/editor/Toolbar.tsx`, `src/features/editor/AdvancedSettingsModal.tsx`, `src/styles/global.css`                                                                                                                     | 상     | 2-6은 사용자 재확인 후 진입                                                                                                                                      |
+| **S4** | 1-1, 1-2, 1-3, C13, C14, C19, C21, C22, **e2e debt 해소: B1/B2** (포터블 compound 흐름 기준 재작성 17건)                                    | `src/store/editorStore.ts`, `src/features/editor/EditorLayout.tsx`(keydown), `src/features/editor/EditorCanvas.tsx`(Transformer), `src/features/editor/SpaceBackgroundView.tsx`, `src/lib/spaceBackgroundFit.ts`, `e2e/{portable,reselection,mobile,visual-qa}.spec.ts` | 상     | 1-3 Fit/Cover 전환 시 좌표 기준 결정 필요(audit B-5-4). 포터블 다이얼로그 제거(eef7335) 후 e2e 미갱신.                                                           |
+| **S5** | 3-3, 3-4, 3-5, C8, **e2e debt 해소: F-occlusion** (occlusion 흐름 재작성 4건)                                                               | `src/features/editor/Toolbar.tsx`, `src/features/editor/OcclusionEditOverlay.tsx`, `src/features/editor/RealismGuideCard.tsx`, `src/i18n/locales/*`, `e2e/{occlusion-mask,mobile}.spec.ts`                                                                              | 중     | 모자이크 흐름이 가장 변화 큼                                                                                                                                     |
+| **S6** | 4-1, 4-2, 4-3, C1~C6, C9, C10(용어), C15(앱 문구)                                                                                           | `src/i18n/locales/*`, `src/components/UserGuideModal.tsx`, `src/features/editor/OnboardingOverlay.tsx`, `src/features/editor/RealismGuideCard.tsx`                                                                                                                      | 중     | 전수 용어 조사 선행(audit "미확인·추가 조사" 참조)                                                                                                               |
+| **S7** | 전체 회귀, C11, C17, C18, 릴리스 노트(ja), 배포·롤백 절차, **F-download 재검증**, **Docker Linux에서 `qa:visual` 전체 실행 및 스냅샷 갱신** | `docs/v2/release-notes-s7.md`(신규), `docs/runbooks/*`, `tests/` 전체 재측정                                                                                                                                                                                            | 중     | push 1회, 본서버 수동 업로드 가이드 재검증. **S1 Step 0 시점 Docker Desktop 데몬 미기동으로 qa:visual을 win32에서 미실행함. Linux 환경에서 반드시 재측정 필요.** |
 
 ## 스프린트별 상세 (제안)
 
 ### S1 — 5-2 (원근·크기·콘텐츠 비율 일관성)
+
 - **수정 예정 파일**: `src/lib/contentLayout.ts`(필요 시 perspective-aware fit 계산 추가), `src/features/editor/ScreenComposition.tsx`, `src/features/editor/PerspectiveScreenView.tsx`, `src/features/editor/Toolbar.tsx`(임시 안내 추가 시).
 - **새 테스트 파일**:
   - `tests/unit/contentLayout.perspective.test.ts` — 원근 corner 변경 시 콘텐츠 비율이 유지되는지(아직 실패하는 테스트 작성 후 구현).
@@ -26,6 +27,7 @@
 - **다른 스프린트와의 충돌**: 5-2 수정이 포터블 `screenQuad` 처리에 영향을 줄 수 있음(audit B-4-5). S4의 복사·붙여넣기 전에 안정화 필요.
 
 ### S2 — 5-1, 2-5, 3-2, C7, e2e 라벨 정비
+
 - **수정 예정 파일**: `src/features/editor/EditorLayout.tsx`(성공 경로 announcement 리셋, 힌트바 분리), `src/features/editor/Toolbar.tsx`(업로드 버튼 근처 제한값 표시), `src/i18n/locales/{ja,ko,en}.ts`(에러·안내 문구 상수화 템플릿), **`e2e/**/*.spec.ts`·`e2e/support/*.ts`**(17줄 라벨 교체: `editorContentUploadButton` 또는 `data-testid`).
 - **새 테스트 파일**:
   - `tests/unit/EditorLayout.announcement.test.tsx` — 실패 → 성공 흐름에서 announcement 자동 리셋.
@@ -34,25 +36,30 @@
 - **다른 스프린트와의 충돌**: S3 레이아웃 변경 전에 e2e 신뢰도 회복 필요.
 
 ### S3 — 캔버스/패널 레이아웃 (2-1, 2-2, 2-3, 3-1, 2-4, 2-6)
+
 - **수정 예정 파일**: `src/features/editor/EditorLayout.tsx`(fit 계산, 비교 버튼 위치), `src/features/editor/Toolbar.tsx`(아코디언, 상세 설정 섹션 통합), `src/features/editor/AdvancedSettingsModal.tsx`(섹션으로 전환 또는 삭제), `src/styles/global.css`.
 - **새 테스트 파일**:
   - `tests/unit/Toolbar.accordion.test.tsx` — 섹션 접기/펼치기, 선택 전환 시 상태 유지.
   - `tests/unit/EditorLayout.canvasFit.test.tsx` — 9:16에서 하단 안 잘림.
   - `e2e/panel-layout.spec.ts` — 아코디언·인라인 상세의 전체 흐름.
 - **예상 리스크**: visual-qa 다수가 영향받음(C11). 스냅샷 재측정 필요.
-- **다른 스프린트와의 충돌**: 2-6은 사용자 재확인 전까지 유보. 이 스프린트의 **마지막** 작업으로 두는 것을 제안.
+- **사용자 결정 반영 (ADR 0012)**: 2-6 → **D-9** (헤더에 「使い方ガイド」 버튼 추가, footer 📖 유지, `userGuideHereHint` 제거). 2-2 → **D-10** (「설치 장소 사진」·「사이니지 추가」 기본 펼침, 「선택 중/콘텐츠」는 세션 첫 선택 시 자동 펼침·이후 사용자 선택 유지, 「외관」·모든 상세는 기본 접힘, 「書き出し」는 접을 수 없는 하단 고정 — 2-4와 결합).
+- **다른 스프린트와의 충돌**: 2-6은 D-9로 명확해졌으므로 S3 안에서 자유롭게 진행 가능.
 
 ### S4 — 편집 기능 (1-1, 1-2, 1-3, C13, C14, C19, C21, C22)
+
 - **수정 예정 파일**: `src/store/editorStore.ts`(복사/붙여넣기 액션, 비율 고정 상태, Fit/Cover 상태), `src/features/editor/EditorLayout.tsx`(Ctrl+C/V 핸들러), `src/features/editor/Toolbar.tsx`(비율 고정 토글, Fit/Cover 토글), `src/features/editor/EditorCanvas.tsx`(Transformer keepRatio 토글, 휠 핸들러 — 2-1 캔버스 줌과의 조합), `src/features/editor/SpaceBackgroundView.tsx`, `src/lib/spaceBackgroundFit.ts`(computeContainFit 신규).
 - **새 테스트 파일**:
   - `tests/unit/editorStore.copy.test.ts` — 복사·붙여넣기 액션 동작, asset reference 공유 안전성(C13).
   - `tests/unit/spaceBackgroundFit.contain.test.ts` — Fit 계산.
   - `e2e/copy-paste.spec.ts` — Ctrl+C/V 흐름, input 포커스 중 가로채지 않음.
   - `e2e/fit-cover-toggle.spec.ts` — 토글 + 사이니지 좌표 보존 + PNG 출력 반영.
-- **예상 리스크**: 1-3 Fit↔Cover 전환 시 사이니지 좌표 기준 **결정 필요**(audit 권장: 캔버스 absolute 유지). 사용자 테스트 후 재조정 가능.
+- **사용자 결정 반영 (ADR 0012 D-11)**: 1-3 Fit↔Cover — 신규 사진 Fit 기본, 캔버스 absolute 좌표 유지(사진 pixel 재매핑 안 함), Fit에서 휠 팬 불가·`offsetY=0`, Fit↔Cover 전환은 Undo 대상이고 PNG/동영상 동일 반영, Fit→Cover 복귀 시 이전 offset 복원 안 함.
+- **예상 리스크**: Transformer가 perspective 모드에서 detach되어 있어 1-2 비율 고정 토글은 rect 모드에서만 UI 반영. perspective 모드에서는 toolbar의 W/H 수치 입력에만 적용.
 - **다른 스프린트와의 충돌**: S3의 캔버스 fit 로직과 겹침. S3 완료 후 S4.
 
 ### S5 — 외관·슬라이더·마스크 (3-3, 3-4, 3-5, C8)
+
 - **수정 예정 파일**: `src/features/editor/Toolbar.tsx`(슬라이더 현재값·단위 표기, 콘텐츠 scale % 표기), `src/features/editor/OcclusionEditOverlay.tsx`(흐름 단축: 범위 지정 직후 적용/취소), `src/features/editor/RealismGuideCard.tsx`(용어 교체), `src/i18n/locales/*`(C8/C10 용어).
 - **새 테스트 파일**:
   - `tests/unit/Toolbar.slider.test.tsx` — 모든 슬라이더에 % 표기, scale %.
@@ -60,12 +67,15 @@
 - **예상 리스크**: 중. visual-qa에 외관 관련 스냅샷이 많음.
 
 ### S6 — 전면 용어 통일 + 앱 문구 정리 (4-x, C1~C6, C9, C10, C15)
+
 - **수정 예정 파일**: `src/i18n/locales/{ja,ko,en}.ts`(대부분 수정), `src/components/UserGuideModal.tsx`(비공식 문구 → 공식 서비스), `src/features/editor/OnboardingOverlay.tsx`(C1/C2), `src/features/editor/RealismGuideCard.tsx`(C6), `src/features/editor/Toolbar.tsx`(라벨 참조).
 - **새 테스트 파일**:
   - `tests/unit/locales.terms.test.ts` — glossary.md ①의 신규 용어가 세 로케일에 모두 존재하고 옛 용어가 사라졌는지.
-- **예상 리스크**: 중. e2e 라벨 다수 다시 영향(S2에서 1차 정비하긴 했지만 S6의 재명명이 더 큼).
+- **사용자 결정 반영 (ADR 0012 D-12)**: 4-1 ko/en 번역은 `glossary.md` ①의 열에 적힌 대로 확정. S6에서 추가 다듬기는 가능하나 재번역 선결 조건 아님.
+- **예상 리스크**: 중. e2e 라벨 다수 다시 영향(S1 Step 0에서 testid 전환했으므로 S6의 라벨 재명명은 safely applicable).
 
 ### S7 — 전체 회귀 + 릴리스 (C11, C17, C18, 노트)
+
 - **수정 예정 파일**: `docs/v2/release-notes-s7.md`(신규, 일본어 요약), `docs/runbooks/*` 재검증.
 - **새 테스트 파일**: 없음. 전체 재측정만.
 - **작업**:

@@ -259,10 +259,10 @@ docs/
 
 ## Supported Files
 
-| 구분          | 지원 형식      | 기본 제한 |
-| ------------- | -------------- | --------- |
-| 공간 사진     | JPG, PNG, WebP | 최대 10MB |
-| 콘텐츠 이미지 | JPG, PNG, WebP | 최대 10MB |
+| 구분          | 지원 형식      | 기본 제한                                                 |
+| ------------- | -------------- | --------------------------------------------------------- |
+| 공간 사진     | JPG, PNG, WebP | 최대 10MB                                                 |
+| 콘텐츠 이미지 | JPG, PNG, WebP | 최대 10MB                                                 |
 | 콘텐츠 영상   | MP4, WebM      | 최대 300MB (해상도 긴 변 3840 / 짧은 변 2160 / 길이 30초) |
 
 > 브라우저와 파일 코덱에 따라 일부 영상은 불러오지 못할 수 있습니다.
@@ -352,10 +352,10 @@ Visual QA 관련 절차는 [`docs/quality-runbook.md`](./docs/quality-runbook.md
 
 두 환경으로 운영됩니다. 상세는 [`docs/v2/deployment.md`](./docs/v2/deployment.md)와 [`docs/runbooks/render-static-site.md`](./docs/runbooks/render-static-site.md) 참조.
 
-| 환경 | URL | 빌드 | 배포 방식 |
-|---|---|---|---|
-| 본서버 (운영) | `https://hull-inc.jp/oitemiru/` | `npm run build:oitemiru` → `dist-oitemiru/` | 수동 업로드 |
-| Render 스테이징 (직원 확인용) | `https://digitalsignage-simulater.onrender.com` | `npm run build` → `dist/` | `main` push 자동 재배포 |
+| 환경                          | URL                                             | 빌드                                        | 배포 방식               |
+| ----------------------------- | ----------------------------------------------- | ------------------------------------------- | ----------------------- |
+| 본서버 (운영)                 | `https://hull-inc.jp/oitemiru/`                 | `npm run build:oitemiru` → `dist-oitemiru/` | 수동 업로드             |
+| Render 스테이징 (직원 확인용) | `https://digitalsignage-simulater.onrender.com` | `npm run build` → `dist/`                   | `main` push 자동 재배포 |
 
 ---
 
