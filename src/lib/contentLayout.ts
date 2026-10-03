@@ -74,6 +74,14 @@ export function computeAutoContentRotation(
  * natural dimensions *pre-swapped* — the layout math still runs on the effective, rotated shape
  * the user actually sees on screen, not the source pixel orientation. Applying the visual
  * rotation is the renderer's job (see ScreenComposition.tsx).
+ *
+ * **Order-independence (invariant A/B, v2-S1)**: this is a pure function of its arguments —
+ * no history, no captured bounding box, no perspective state. The renderer feeds it the
+ * *logical screen* (via `getObjectScreenRect`, see screenHitTest.ts) — never a perspective-
+ * mapped rect — so content layout is identical regardless of the order in which size,
+ * perspective, and content were applied. Perspective warping is applied as a post-raster step
+ * by `PerspectiveScreenView.tsx`, not here. See `tests/unit/v2/contentLayoutOrder.test.ts` for
+ * the invariance proof.
  */
 export function computeContentLayout(
   screen: Rect,
