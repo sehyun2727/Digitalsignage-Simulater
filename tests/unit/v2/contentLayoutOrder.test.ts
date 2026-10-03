@@ -8,6 +8,7 @@ import {
   normalizedQuadToDocument,
 } from '../../../src/lib/quadGeometry';
 import { getPortableScreenRect } from '../../../src/lib/portableTemplate';
+import { getPerspectiveLogicalSize } from '../../../src/lib/perspectiveLogicalSize';
 import { getObjectScreenRect } from '../../../src/lib/screenHitTest';
 import { useEditorStore, selectSelectedObject } from '../../../src/store/editorStore';
 import {
@@ -134,13 +135,28 @@ function setContent(
 
 // --- Rendering-side math (mirrors ScreenComposition + PerspectiveScreenView) ---------------
 
-/** The object-local, axis-aligned "logical screen" rect — the single surface the renderer
- *  computes content layout against (`ScreenComposition.tsx` for displays,
- *  `PortableProductView.tsx` for portables). Delegates to the shared `getObjectScreenRect`
- *  so the test and the renderer stay in lock-step: a future change to the screen-rect
- *  derivation (e.g., a new frame template, a new signage kind) is reflected here with no
- *  edit, which is the whole point of invariant B. */
+/** The object-local, axis-aligned "logical screen" rect the renderer actually composes
+ *  content against. Mirrors `SignageDisplayView`'s rule (post-S1-rework):
+ *  - rect-mode: screen comes from stored object.width/height (and frameId for displays).
+ *  - perspective-mode: screen comes from the **quad-derived effective size** per ADR 0012
+ *    D-13 (`getPerspectiveLogicalSize`), so content fit/scale/offset are computed against a
+ *    body whose aspect matches the warped target — not against the user's unresized default.
+ *    The frame rule (fractional inset for wall-led, full-body for transparent-led) is then
+ *    applied to that effective body size.
+ *
+ *  Portables don't change — they go through `getPortableScreenRect` as before. */
 function logicalScreen(object: SignageObject) {
+  if (object.kind === 'display') {
+    const effective =
+      object.placementMode === 'perspective' && object.perspectiveQuad
+        ? getPerspectiveLogicalSize(object.width, object.height, object.perspectiveQuad, DOC)
+        : { width: object.width, height: object.height };
+    const normalized = object.material === 'transparent-led' ? 'transparent-led' : object.material;
+    if (normalized === 'transparent-led') {
+      return { x: 0, y: 0, width: effective.width, height: effective.height };
+    }
+    return getScreenRect(object.frameId, effective.width, effective.height);
+  }
   const rect = getObjectScreenRect(object);
   if (!rect) throw new Error(`logicalScreen: unsupported kind ${object.kind}`);
   return rect;
@@ -184,8 +200,6 @@ function contentDocumentCorners(
   ];
   if (object.placementMode === 'perspective' && object.perspectiveQuad) {
     const docQuad = normalizedQuadToDocument(object.perspectiveQuad, DOC);
-    // Note: computeQuadHomography maps unit square (0..1 in both axes) → quad.
-    // So we need to re-normalize the local corners from (0..width, 0..height) → (0..1).
     const unitQuadForLocal: NormalizedQuad = {
       topLeft: { x: docQuad.topLeft.x, y: docQuad.topLeft.y },
       topRight: { x: docQuad.topRight.x, y: docQuad.topRight.y },
@@ -193,9 +207,18 @@ function contentDocumentCorners(
       bottomLeft: { x: docQuad.bottomLeft.x, y: docQuad.bottomLeft.y },
     };
     const matrix = computeQuadHomography(unitQuadForLocal);
-    if (!matrix) throw new Error('degenerate TARGET_QUAD — fix the test fixture');
+    if (!matrix) throw new Error('degenerate quad in fixture');
+    // Normalize local corners to the unit square via the SAME body size the layout math
+    // used, which in perspective mode is the quad-derived effective size (not
+    // object.width/height) — see SignageDisplayView.tsx effectiveSize + PerspectiveScreenView
+    // width/height after the S1 rework. Dividing by object.width/height here would re-
+    // introduce the aspect mismatch the renderer no longer has.
+    const effective =
+      object.kind === 'display'
+        ? getPerspectiveLogicalSize(object.width, object.height, object.perspectiveQuad, DOC)
+        : { width: object.width, height: object.height };
     return localCorners.map((c) =>
-      applyHomography(matrix, { x: c.x / object.width, y: c.y / object.height }),
+      applyHomography(matrix, { x: c.x / effective.width, y: c.y / effective.height }),
     );
   }
   // Rect mode: object.x/y places the local origin in document space; rotation=0 in all these tests.
@@ -291,28 +314,19 @@ describe('v2-S1: content layout is order-independent (invariants A + B)', () => 
     resetStore();
   });
 
-  // --- PDF-reproducible pair -------------------------------------------------------------
-
-  it('R1 (size → perspective → content, Fit, same-ratio) produces content corners equal to the perspective quad corners', () => {
-    // Uses transparent-LED so the logical screen == the full object bounding box (no bezel
-    // inset shrinking the screen rect). A same-ratio Fit image then fills the entire logical
-    // screen, and after the quad warp its 4 corners must land exactly on the quad's own corners.
-    // Running the same assertion for 'led'/'lcd' (which have a wall-frame bezel) would land the
-    // content on an inset sub-rect of the quad, which is correct but doesn't make the "whole-
-    // quad" invariant provable at a single point; the full-matrix tests below prove invariance
-    // across orders for those materials.
-    const object = runOrder('A', 'transparent-led', 'contain', 0, sourceId);
-    const corners = contentDocumentCorners(object as DisplaySignageObject, NATURAL_W, NATURAL_H);
-    const quadCorners = normalizedQuadToDocument(TARGET_QUAD, DOC);
-    expect(corners[0]!.x).toBeCloseTo(quadCorners.topLeft.x, 1);
-    expect(corners[0]!.y).toBeCloseTo(quadCorners.topLeft.y, 1);
-    expect(corners[1]!.x).toBeCloseTo(quadCorners.topRight.x, 1);
-    expect(corners[1]!.y).toBeCloseTo(quadCorners.topRight.y, 1);
-    expect(corners[2]!.x).toBeCloseTo(quadCorners.bottomRight.x, 1);
-    expect(corners[2]!.y).toBeCloseTo(quadCorners.bottomRight.y, 1);
-    expect(corners[3]!.x).toBeCloseTo(quadCorners.bottomLeft.x, 1);
-    expect(corners[3]!.y).toBeCloseTo(quadCorners.bottomLeft.y, 1);
-  });
+  // --- Cross-order lock-in -----------------------------------------------------------------
+  //
+  // The old `R1 (size → perspective → content, Fit, same-ratio) produces content corners equal
+  // to the perspective quad corners` test was removed in the S1 rework. Under the superseded
+  // invariant B, content aspect was expected to match the stored object's own aspect — so
+  // resizing a transparent-LED to the same ratio as the content natural meant content filled
+  // the body, and after warping, content corners landed on the quad's own corners regardless of
+  // the quad's apparent aspect. Under invariant B' (ADR 0012 D-13) the content aspect is
+  // compared against the quad's apparent aspect, so the "same-ratio" setup now letterboxes the
+  // content inside the quad whenever `TARGET_QUAD`'s apparent aspect differs from `NATURAL_W/
+  // NATURAL_H`'s ratio. The PDF path tests above (P1 / P2 / P3) express the proper identity in
+  // the new rule — content corners land on the frame screen-inset quad corners — for both
+  // transparent-LED and wall-LED, so the deleted single-corner-equality check is redundant.
 
   it('R2 (perspective → size → content) matches R1 at corners (invariant A/B)', () => {
     const r1 = runOrder('A', 'led', 'contain', 0, sourceId);
@@ -407,6 +421,197 @@ describe('v2-S1: content layout is order-independent (invariants A + B)', () => 
     expect(corners[0]!.y).toBeCloseTo(object.y + screen.y, 1);
     expect(corners[2]!.x).toBeCloseTo(object.x + screen.x + screen.width, 1);
     expect(corners[2]!.y).toBeCloseTo(object.y + screen.y + screen.height, 1);
+  });
+
+  // --- PDF 5-2 regression: perspective-mode content aspect must come from the quad -----
+  //
+  // The PDF's reported bug (「①追加 → ②パース → ③コンテンツ」 produces a distorted ratio
+  // whereas 「①追加 → ②大きさ調整 → ③パース → ④コンテンツ」 is correct): if the quad's
+  // apparent aspect differs from the signage default aspect (480×270 = 16:9), content fit
+  // against the default-sized object produces a letterbox that the quad warp then stretches.
+  // Fix: perspective-mode logical screen aspect comes from the quad itself, not the
+  // object's stored width/height — so the content ratio is independent of whether the user
+  // happened to resize before applying perspective.
+  //
+  // Chosen quad PDF_QUAD has an apparent aspect of ~2.73:1 (document-space edge-length
+  // average, ADR 0012 D-13), about 1.53× wider than the signage default's 1.78:1.
+  // Content fixture is a 2730×1000 image to match the quad aspect; invariant B' then says the
+  // content's four pre-clip corners should land on the frame's screen-inset quad corners
+  // regardless of whether width/height was changed first.
+
+  const PDF_QUAD: NormalizedQuad = {
+    topLeft: { x: 0.3, y: 0.3 },
+    topRight: { x: 0.7, y: 0.33 },
+    bottomRight: { x: 0.68, y: 0.55 },
+    bottomLeft: { x: 0.32, y: 0.57 },
+  };
+  const PDF_NATURAL_W = 2730;
+  const PDF_NATURAL_H = 1000;
+  // Resized dimensions that match PDF_QUAD's apparent aspect of 2.73 — used by P1 to prove
+  // that the pre-resize-then-perspective path, which is already correct even in the pre-fix
+  // code, stays correct after the fix. The default signage dimensions (480×270, aspect 1.78)
+  // are kept for P2.
+  const PDF_RESIZED_W = 800;
+  const PDF_RESIZED_H = 293;
+
+  class PdfFixtureMockImage {
+    onload: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    naturalWidth = PDF_NATURAL_W;
+    naturalHeight = PDF_NATURAL_H;
+    set src(_value: string) {
+      queueMicrotask(() => this.onload?.());
+    }
+  }
+
+  /** Expected content corners under invariant B': the four frame-screen-inset points in
+   *  unit square coordinates projected through the perspective quad. */
+  function expectedScreenInsetCornersThroughQuad(
+    frameId: DisplaySignageObject['frameId'] | 'transparent-led',
+    quad: NormalizedQuad,
+  ): Corner[] {
+    const docQuad = normalizedQuadToDocument(quad, DOC);
+    const matrix = computeQuadHomography(docQuad);
+    if (!matrix) throw new Error('degenerate PDF_QUAD — fix the test fixture');
+    // transparent-LED has no bezel inset — screen fills the body unit square (0..1 × 0..1).
+    // wall-led uses the fractional screenRegion from DISPLAY_FRAME_TEMPLATES
+    // (x=0.02, y=0.02, w=0.96, h=0.96; see src/types/editor.ts:181). The frame rule is
+    // fraction-based (reported in Step 3 of the S1 rework), so under the new quad-derived
+    // aspect it stays an inset of the quad corners rather than drifting into a different
+    // shape.
+    const u0 = frameId === 'transparent-led' ? 0 : 0.02;
+    const v0 = frameId === 'transparent-led' ? 0 : 0.02;
+    const u1 = frameId === 'transparent-led' ? 1 : 0.98;
+    const v1 = frameId === 'transparent-led' ? 1 : 0.98;
+    return [
+      applyHomography(matrix, { x: u0, y: v0 }),
+      applyHomography(matrix, { x: u1, y: v0 }),
+      applyHomography(matrix, { x: u1, y: v1 }),
+      applyHomography(matrix, { x: u0, y: v1 }),
+    ];
+  }
+
+  it('video content goes through the same layout function as image content', () => {
+    // The renderer calls `computeContentLayout(screen, naturalW, naturalH, mediaContent)` for
+    // both image and video (ScreenComposition.tsx:208 — one call site, keyed off
+    // `mediaContent.kind !== 'text'`). This verifies that a video MediaContent lays out
+    // identically to an image MediaContent with the same fit/scale/offset/rotation — i.e., the
+    // kind field is NOT consulted inside the layout math. If a future refactor branches on
+    // kind here, this test flags the regression.
+    resetStore();
+    seedSpaceBackground();
+    const id = addDisplay('led');
+    useEditorStore.getState().commitObjectChange(id, {
+      content: {
+        kind: 'video',
+        sourceId: 'mocked-video',
+        fit: 'contain',
+        offsetX: 0,
+        offsetY: 0,
+        scale: 1,
+        rotation: 0,
+      },
+    });
+    const object = useEditorStore
+      .getState()
+      .document.objects.find((o) => o.id === id)! as DisplaySignageObject;
+    // Image equivalent at the same fit/offset/scale/rotation.
+    const imageContent: MediaContent = {
+      kind: 'image',
+      sourceId: 'any',
+      fit: 'contain',
+      offsetX: 0,
+      offsetY: 0,
+      scale: 1,
+      rotation: 0,
+    };
+    const screen = logicalScreen(object);
+    const videoLayout = computeContentLayout(
+      screen,
+      NATURAL_W,
+      NATURAL_H,
+      object.content as MediaContent,
+    );
+    const imageLayout = computeContentLayout(screen, NATURAL_W, NATURAL_H, imageContent);
+    expect(videoLayout).toEqual(imageLayout);
+  });
+
+  describe('PDF path 5-2 (quad-derived logical aspect)', () => {
+    const materials: Array<{
+      label: 'LED (wall-led bezel)' | 'シースルー (transparent-led)';
+      material: DisplayMaterial;
+      frameTag: DisplaySignageObject['frameId'] | 'transparent-led';
+    }> = [
+      { label: 'LED (wall-led bezel)', material: 'led', frameTag: 'wall-led' },
+      {
+        label: 'シースルー (transparent-led)',
+        material: 'transparent-led',
+        frameTag: 'transparent-led',
+      },
+    ];
+    let pdfSourceId: string;
+    beforeEach(async () => {
+      vi.stubGlobal('Image', PdfFixtureMockImage as unknown as typeof Image);
+      resetStore();
+      const asset = await registerAsset(createFile('pdf-content.png'));
+      pdfSourceId = asset.sourceId;
+    });
+
+    for (const spec of materials) {
+      it(`${spec.label}: P1 (resize-first then perspective then content) places content on the screen-inset quad corners`, () => {
+        resetStore();
+        seedSpaceBackground();
+        const id = addDisplay(spec.material);
+        resize(id, PDF_RESIZED_W, PDF_RESIZED_H);
+        useEditorStore.getState().beginPerspectiveEdit(id);
+        useEditorStore.getState().updatePerspectiveDraft(PDF_QUAD);
+        useEditorStore.getState().applyPerspectiveEdit();
+        setContent(id, pdfSourceId, { fit: 'contain', rotation: 0 });
+        const object = useEditorStore
+          .getState()
+          .document.objects.find((o) => o.id === id)! as DisplaySignageObject;
+        const corners = contentDocumentCorners(object, PDF_NATURAL_W, PDF_NATURAL_H);
+        const expected = expectedScreenInsetCornersThroughQuad(spec.frameTag, PDF_QUAD);
+        expect(cornersClose(corners, expected)).toBe(true);
+      });
+
+      it(`${spec.label}: P2 (no resize then perspective then content) places content on the screen-inset quad corners (PDF-reported bug path)`, () => {
+        resetStore();
+        seedSpaceBackground();
+        const id = addDisplay(spec.material);
+        // Default size kept (480×270, aspect 1.78) — the PDF-reported case.
+        useEditorStore.getState().beginPerspectiveEdit(id);
+        useEditorStore.getState().updatePerspectiveDraft(PDF_QUAD);
+        useEditorStore.getState().applyPerspectiveEdit();
+        setContent(id, pdfSourceId, { fit: 'contain', rotation: 0 });
+        const object = useEditorStore
+          .getState()
+          .document.objects.find((o) => o.id === id)! as DisplaySignageObject;
+        const corners = contentDocumentCorners(object, PDF_NATURAL_W, PDF_NATURAL_H);
+        const expected = expectedScreenInsetCornersThroughQuad(spec.frameTag, PDF_QUAD);
+        expect(cornersClose(corners, expected)).toBe(true);
+      });
+
+      it(`${spec.label}: P3 (perspective then content then attempted resize) places content on the screen-inset quad corners`, () => {
+        resetStore();
+        seedSpaceBackground();
+        const id = addDisplay(spec.material);
+        useEditorStore.getState().beginPerspectiveEdit(id);
+        useEditorStore.getState().updatePerspectiveDraft(PDF_QUAD);
+        useEditorStore.getState().applyPerspectiveEdit();
+        setContent(id, pdfSourceId, { fit: 'contain', rotation: 0 });
+        // The UI blocks size changes in perspective mode (ADR 0012 D-14), but the store
+        // action itself still accepts a width/height patch — so P3 asserts the invariant
+        // holds even if a resize bleeds through, as a double safety net.
+        resize(id, PDF_RESIZED_W, PDF_RESIZED_H);
+        const object = useEditorStore
+          .getState()
+          .document.objects.find((o) => o.id === id)! as DisplaySignageObject;
+        const corners = contentDocumentCorners(object, PDF_NATURAL_W, PDF_NATURAL_H);
+        const expected = expectedScreenInsetCornersThroughQuad(spec.frameTag, PDF_QUAD);
+        expect(cornersClose(corners, expected)).toBe(true);
+      });
+    }
   });
 
   it('regression (portable): adding a portable with content keeps the content aligned to its screen quad bounding box', () => {

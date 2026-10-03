@@ -135,6 +135,7 @@ export const ja: Messages = {
   editorPositionYLabel: 'Y座標',
   editorWidthLabel: '幅',
   editorHeightLabel: '高さ',
+  perspectiveSizeLockedHint: 'パース適用中は、四隅のハンドルで大きさと形を調整します',
   editorRotationLabel: '回転',
   editorTextContentLabel: 'テキスト内容',
   editorFontSizeLabel: 'フォントサイズ',

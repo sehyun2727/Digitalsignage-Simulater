@@ -57,6 +57,10 @@ export interface Messages {
   editorPositionYLabel: string;
   editorWidthLabel: string;
   editorHeightLabel: string;
+  /** Shown next to the width/height inputs when perspective is active and those controls are
+   *  disabled (ADR 0012 D-14). Explains why the user can't type into those fields and points
+   *  them at the perspective corner handles instead. */
+  perspectiveSizeLockedHint: string;
   editorRotationLabel: string;
   editorTextContentLabel: string;
   editorFontSizeLabel: string;

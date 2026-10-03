@@ -442,27 +442,55 @@ function SelectedSignageFields({ object: selected }: { object: SignageObject }) 
         />
       </label>
 
-      <label>
-        <span>{messages.editorWidthLabel}</span>
-        <input
-          type="number"
-          min={10}
-          value={Math.round(draft.width)}
-          onChange={(event) => setDraft({ ...draft, width: Number(event.target.value) })}
-          onBlur={() => commit({ width: Math.max(10, draft.width) })}
-        />
-      </label>
+      {/* In perspective mode the four corner handles fully determine the warped body — a
+       *  separate width/height number input would both re-introduce the pre-fix PDF 5-2
+       *  distortion (perspective aspect comes from the quad, not from these inputs) and leave
+       *  the user with two UI surfaces that can't agree about the signage's shape (ADR 0012
+       *  D-14). Disable both inputs while perspective is applied and point the user at the
+       *  overlay handles via `aria-describedby`; the Transformer resize handles are already
+       *  detached in perspective mode (EditorCanvas registers no node for the warped Group),
+       *  so this closes the only remaining size-change path. */}
+      {(() => {
+        const perspectiveLocked =
+          (selected.kind === 'display' || selected.kind === 'portable') &&
+          selected.placementMode === 'perspective' &&
+          selected.perspectiveQuad !== null;
+        return (
+          <>
+            <label>
+              <span>{messages.editorWidthLabel}</span>
+              <input
+                type="number"
+                min={10}
+                value={Math.round(draft.width)}
+                disabled={perspectiveLocked}
+                aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
+                onChange={(event) => setDraft({ ...draft, width: Number(event.target.value) })}
+                onBlur={() => commit({ width: Math.max(10, draft.width) })}
+              />
+            </label>
 
-      <label>
-        <span>{messages.editorHeightLabel}</span>
-        <input
-          type="number"
-          min={10}
-          value={Math.round(draft.height)}
-          onChange={(event) => setDraft({ ...draft, height: Number(event.target.value) })}
-          onBlur={() => commit({ height: Math.max(10, draft.height) })}
-        />
-      </label>
+            <label>
+              <span>{messages.editorHeightLabel}</span>
+              <input
+                type="number"
+                min={10}
+                value={Math.round(draft.height)}
+                disabled={perspectiveLocked}
+                aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
+                onChange={(event) => setDraft({ ...draft, height: Number(event.target.value) })}
+                onBlur={() => commit({ height: Math.max(10, draft.height) })}
+              />
+            </label>
+
+            {perspectiveLocked && (
+              <p id="perspective-size-locked-hint" className="toolbar-notice">
+                {messages.perspectiveSizeLockedHint}
+              </p>
+            )}
+          </>
+        );
+      })()}
 
       <label>
         <span>{messages.editorRotationLabel}</span>

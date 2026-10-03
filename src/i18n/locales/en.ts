@@ -135,6 +135,8 @@ export const en: Messages = {
   editorPositionYLabel: 'Y position',
   editorWidthLabel: 'Width',
   editorHeightLabel: 'Height',
+  perspectiveSizeLockedHint:
+    'While perspective is applied, adjust size and shape with the four corner handles.',
   editorRotationLabel: 'Rotation',
   editorTextContentLabel: 'Text content',
   editorFontSizeLabel: 'Font size',

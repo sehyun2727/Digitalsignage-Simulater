@@ -134,6 +134,7 @@ export const ko: Messages = {
   editorPositionYLabel: 'Y 좌표',
   editorWidthLabel: '너비',
   editorHeightLabel: '높이',
+  perspectiveSizeLockedHint: '원근 적용 중에는 네 모서리 핸들로 크기와 모양을 조정합니다',
   editorRotationLabel: '회전',
   editorTextContentLabel: '텍스트 내용',
   editorFontSizeLabel: '글자 크기',

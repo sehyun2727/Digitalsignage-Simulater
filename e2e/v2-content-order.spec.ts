@@ -5,54 +5,50 @@ import { addSpaceBackground } from './support/spaceBackground.js';
 
 test.use({ locale: 'ja-JP', viewport: { width: 1600, height: 1000 } });
 
-// v2-S1 requirement 5-2: content aspect ratio and position must be invariant under the order
-// in which (size → perspective → content) is applied. The unit test
-// `tests/unit/v2/contentLayoutOrder.test.ts` proves this at the store/layout math level across
-// a 5-order × 3-material × 2-fit × 2-rotation matrix (57 cases, order-independence shown by
-// comparing content document corners within 0.5px across orders). This e2e narrows to the one
-// case the PDF called out (R2: perspective → size → content) and verifies the PNG export the
-// user actually downloads places the four fixture color corners inside the warped quad — the
-// end-to-end confirmation that the invariant also holds through the drop handler, Konva
-// rasterization, mesh warping, and the download path.
+// v2-S1 requirement 5-2 — rework path (ADR 0012 D-13 / D-14):
 //
-// The spec's primary comparison method proposed in the Step 5 instruction (R1 vs R2 PNGs
-// pixel-compared with a tolerance) was downgraded here to the single-order corner-sampling
-// method the instruction permits as the fallback, because:
+// The PDF's reported bug is the P2 flow: "①サイネージを追加 → ②パース → ③コンテンツ" produces
+// a stretched content, whereas "①追加 → ②大きさ調整 → ③パース → ④コンテンツ" is correct. The
+// unit test `tests/unit/v2/contentLayoutOrder.test.ts` (PDF path 5-2 describe block, 6 cases)
+// covers this at the store/layout math level for both wall-LED (bezel) and transparent-LED
+// across P1 / P2 / P3. This e2e narrows to the P2 flow with a wall-LED (bezel inset in play)
+// and verifies through the real drop handler, Konva mesh warp, and PNG download path that the
+// four fixture color corners land on the frame's screen-inset quad corners.
 //
-// (1) R1 vs R2 PNGs are not meaningfully "the same final state" through the UI alone — the
-//     toolbar's width/height numeric inputs recreate the geometry but Konva's internal mesh
-//     rasterization + luminance sampling + LCD highlight canvas (per-object seeded, not time)
-//     introduce rendering timestamps and float-rounding noise that make bit-for-bit identity
-//     unreliable even when the store state is byte-identical;
-// (2) The invariant the user cares about (does my 4-colored-corner image land in the quad in
-//     an obvious way?) is more directly tested by sampling four pixel locations than by
-//     comparing two whole PNGs.
-//
-// Fixture is a 4-color-corner PNG (TL=red, TR=green, BR=blue, BL=yellow) with the same aspect
-// ratio as the transparent-LED logical screen at the sizes used here, so a Fit=contain
-// content lands with its four color corners against the four quad corners. transparent-LED is
-// picked because it has no bezel (screen == whole object rect, see SignageDisplayView.tsx:74),
-// so corner sampling isn't offset by the frame inset the way a wall-LED would be. Procedural
-// PNG generation matches `e2e/fixtures/README.md`'s "no committed binary fixtures" policy.
+// A second case asserts the ADR 0012 D-14 UI rule: the toolbar's `幅` / `高さ` inputs are
+// disabled while perspective is applied, and have the `perspective-size-locked-hint` note
+// wired via `aria-describedby`. Together these two cases close the 5-2 fix end to end — the
+// aspect comes from the quad, and the only legal way to change size while perspective is on
+// is via the four corner handles.
 
 const DOCUMENT_SIZE = { width: 1920, height: 1080 };
-const FINAL_WIDTH = 1600;
-const FINAL_HEIGHT = 900;
-// 16:9 — same ratio as a 1600x900 transparent-LED's logical screen (full object bounds).
-const FIXTURE_WIDTH = 1600;
-const FIXTURE_HEIGHT = 900;
 
-const CORNERS_QUAD = {
-  topLeft: { x: 0.1, y: 0.1 },
-  topRight: { x: 0.5, y: 0.12 },
-  bottomRight: { x: 0.52, y: 0.45 },
-  bottomLeft: { x: 0.08, y: 0.42 },
+// PDF path 5-2 fixture quad: apparent aspect ~2.73:1 (about 1.53× wider than the signage
+// default 480×270 = 1.78:1), chosen so a 2.73:1 fixture content filled against the unresized
+// default body would letterbox and visibly land away from the quad screen inset corners in
+// the pre-fix renderer. Matches the unit test's PDF_QUAD so the two coverage layers agree.
+const PDF_QUAD = {
+  topLeft: { x: 0.3, y: 0.3 },
+  topRight: { x: 0.7, y: 0.33 },
+  bottomRight: { x: 0.68, y: 0.55 },
+  bottomLeft: { x: 0.32, y: 0.57 },
 } as const;
 
-/** Builds a PNG with four colored corner quadrants (red/green/blue/yellow), generated inside
- *  the browser via Canvas 2D so there's no binary asset committed. The four color corners
- *  are large enough quadrants that sampling well inside each one tolerates mesh-warp drift. */
-async function fourCornerFixturePng(page: Page): Promise<Buffer> {
+// Content fixture dimensions tuned to the quad apparent aspect: a 2730×1000 four-color-corner
+// image (aspect 2.73) lands flush against the quad's screen inset only when the renderer
+// uses the quad-derived aspect — otherwise it letterboxes vertically inside the default
+// 1.78:1 body before warping.
+const FIXTURE_WIDTH = 2730;
+const FIXTURE_HEIGHT = 1000;
+
+// `wall-led` frame fractional screen inset from `DISPLAY_FRAME_TEMPLATES` in
+// src/types/editor.ts: screen = {x: 0.02, y: 0.02, width: 0.96, height: 0.96}. Mirrored here
+// (rather than imported) because e2e's tsconfig.node.json ESM resolver requires explicit `.js`
+// extensions on cross-package imports, which the `src/types/editor.ts` module tree doesn't
+// provide — same reason S1 Step 0 switched e2e selectors to testids instead of locale imports.
+const WALL_LED_INSET = { u0: 0.02, v0: 0.02, u1: 0.98, v1: 0.98 } as const;
+
+async function fourColorCornerPng(page: Page): Promise<Buffer> {
   const dataUrl = await page.evaluate(
     ({ width, height }) => {
       const canvas = document.createElement('canvas');
@@ -74,18 +70,7 @@ async function fourCornerFixturePng(page: Page): Promise<Buffer> {
   return Buffer.from(dataUrl.split(',')[1]!, 'base64');
 }
 
-/** Sets width/height via the toolbar numeric inputs — the only path that resizes an object
- *  while perspective is already applied (the Transformer is detached in perspective mode). */
-async function setSizeViaToolbar(page: Page, width: number, height: number): Promise<void> {
-  const widthInput = page.getByLabel('幅', { exact: true });
-  await widthInput.fill(String(width));
-  await widthInput.blur();
-  const heightInput = page.getByLabel('高さ', { exact: true });
-  await heightInput.fill(String(height));
-  await heightInput.blur();
-}
-
-async function applyPerspective(page: Page): Promise<void> {
+async function applyPdfQuadPerspective(page: Page): Promise<void> {
   await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
   const canvas = page.locator('.editor-canvas-container');
   const box = (await canvas.boundingBox())!;
@@ -95,7 +80,7 @@ async function applyPerspective(page: Page): Promise<void> {
     bottomRight: 'editor-perspective-handle-bottomRight',
     bottomLeft: 'editor-perspective-handle-bottomLeft',
   } as const;
-  for (const [corner, point] of Object.entries(CORNERS_QUAD) as Array<
+  for (const [corner, point] of Object.entries(PDF_QUAD) as Array<
     [keyof typeof handleTestid, { x: number; y: number }]
   >) {
     await page.getByTestId(handleTestid[corner]).dragTo(canvas, {
@@ -106,15 +91,13 @@ async function applyPerspective(page: Page): Promise<void> {
 }
 
 async function uploadFixtureContent(page: Page): Promise<void> {
-  const png = await fourCornerFixturePng(page);
+  const png = await fourColorCornerPng(page);
   await page
     .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'four-corner.png', mimeType: 'image/png', buffer: png });
-  // Default fit is 'contain'. The fixture matches the logical screen ratio, so it fills it.
 }
 
 async function exportPng(page: Page): Promise<Buffer> {
-  // Deselect so the Transformer bounding box doesn't leak into the export.
   await page.locator('.editor-canvas-container').click({ position: { x: 5, y: 5 } });
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'PNGで書き出す' }).click();
@@ -124,63 +107,62 @@ async function exportPng(page: Page): Promise<Buffer> {
   return fs.readFile(path!);
 }
 
-/** Bilinear (unit-square → quad) interpolation evaluated at the four quad corners themselves —
- *  which is identical to the corner value regardless of the mapping used (the four corners of
- *  the unit square map to the four corners of the quad by definition, under both the
- *  projective and the bilinear mapping). Used to compute the sample points for the four
- *  colored fixture quadrants in document pixels. */
-function cornerDocumentPoint(u: number, v: number): { x: number; y: number } {
+/** Document-space position of a unit-square point (u, v) warped through PDF_QUAD. Uses the
+ *  same bilinear-at-corners identity the renderer's piecewise-affine mesh converges to at
+ *  the four quad corners — exact for (0,0)/(1,0)/(1,1)/(0,1) regardless of mapping choice. */
+function bilinearThroughQuad(u: number, v: number): { x: number; y: number } {
   const scale = (p: { x: number; y: number }) => ({
     x: p.x * DOCUMENT_SIZE.width,
     y: p.y * DOCUMENT_SIZE.height,
   });
-  const p0 = scale(CORNERS_QUAD.topLeft);
-  const p1 = scale(CORNERS_QUAD.topRight);
-  const p2 = scale(CORNERS_QUAD.bottomRight);
-  const p3 = scale(CORNERS_QUAD.bottomLeft);
+  const tl = scale(PDF_QUAD.topLeft);
+  const tr = scale(PDF_QUAD.topRight);
+  const br = scale(PDF_QUAD.bottomRight);
+  const bl = scale(PDF_QUAD.bottomLeft);
   return {
-    x: p0.x * (1 - u) * (1 - v) + p1.x * u * (1 - v) + p2.x * u * v + p3.x * (1 - u) * v,
-    y: p0.y * (1 - u) * (1 - v) + p1.y * u * (1 - v) + p2.y * u * v + p3.y * (1 - u) * v,
+    x: tl.x * (1 - u) * (1 - v) + tr.x * u * (1 - v) + br.x * u * v + bl.x * (1 - u) * v,
+    y: tl.y * (1 - u) * (1 - v) + tr.y * u * (1 - v) + br.y * u * v + bl.y * (1 - u) * v,
   };
 }
 
-test('5-2: R2 PNG (perspective → size → content) places the four fixture color corners inside the warped quad', async ({
+test('5-2 (PDF P2): wall-LED without resizing lands the four-color-corner fixture inside the perspective quad screen inset', async ({
   page,
 }) => {
   await page.goto('/');
   await addSpaceBackground(page, { width: DOCUMENT_SIZE.width, height: DOCUMENT_SIZE.height });
-  // transparent-LED instead of plain LED so screen == full object rect (no bezel inset shrinks
-  // where the content actually paints — see SignageDisplayView.tsx:74).
-  await page.getByTestId('editor-add-transparent-led').click();
-  // R2 order: perspective BEFORE size change (the order the PDF reported as misaligned pre-v2).
-  await applyPerspective(page);
-  await setSizeViaToolbar(page, FINAL_WIDTH, FINAL_HEIGHT);
+  // wall-LED (bezel). Default size (480×270, aspect 1.78) is kept — the PDF-reported P2 flow.
+  await page.getByTestId('editor-add-led').click();
+  await applyPdfQuadPerspective(page);
   await uploadFixtureContent(page);
   const png = await exportPng(page);
 
   const { width: pngWidth, height: pngHeight } = readPngDimensions(png);
-  // Export resolution is the document preset (1920x1080) per ADR 0011.
   expect(pngWidth).toBe(DOCUMENT_SIZE.width);
   expect(pngHeight).toBe(DOCUMENT_SIZE.height);
 
-  // Sample at an inset toward each quadrant's centroid (0.25, 0.75 in u/v), so the sample is
-  // comfortably inside the color quadrant and tolerates both mesh-warp drift and the warped-
-  // quad edge boundary. The unit test already proves the mathematical corner positions match
-  // across orders to within 0.5px; this is the independent "does it actually look right in a
-  // real exported PNG" check.
+  // Sample the four color quadrants well inside their own screen-inset quarter so a ~3px
+  // mesh-warp drift at the quad edge doesn't accidentally cross into the neighboring color.
+  // Each sample's (u, v) is placed at the centroid of its own quadrant **inside the wall-LED
+  // screen inset** (fractional 0.02…0.98 of the body) — not at the full-quad corner, which
+  // the bezel would obscure. Under the fix the four quadrant centroids land cleanly on their
+  // own colors; before the fix (letterbox-then-warp) the top-left centroid would sample a
+  // row of pixels well above the quad, outside the warped content region.
+  const insetMid = (lo: number, hi: number, frac: number) => lo + (hi - lo) * frac;
+  const screenU = (frac: number) => insetMid(WALL_LED_INSET.u0, WALL_LED_INSET.u1, frac);
+  const screenV = (frac: number) => insetMid(WALL_LED_INSET.v0, WALL_LED_INSET.v1, frac);
   const corners: Array<{
     name: string;
     u: number;
     v: number;
     dominant: 'red' | 'green' | 'blue' | 'yellow';
   }> = [
-    { name: 'topLeft quadrant (red)', u: 0.25, v: 0.25, dominant: 'red' },
-    { name: 'topRight quadrant (green)', u: 0.75, v: 0.25, dominant: 'green' },
-    { name: 'bottomRight quadrant (blue)', u: 0.75, v: 0.75, dominant: 'blue' },
-    { name: 'bottomLeft quadrant (yellow)', u: 0.25, v: 0.75, dominant: 'yellow' },
+    { name: 'TL (red)', u: screenU(0.25), v: screenV(0.25), dominant: 'red' },
+    { name: 'TR (green)', u: screenU(0.75), v: screenV(0.25), dominant: 'green' },
+    { name: 'BR (blue)', u: screenU(0.75), v: screenV(0.75), dominant: 'blue' },
+    { name: 'BL (yellow)', u: screenU(0.25), v: screenV(0.75), dominant: 'yellow' },
   ];
   const points: Array<[number, number]> = corners.map((c) => {
-    const p = cornerDocumentPoint(c.u, c.v);
+    const p = bilinearThroughQuad(c.u, c.v);
     return [Math.round(p.x), Math.round(p.y)];
   });
   const pixels = await samplePngPixels(page, png, points);
@@ -206,4 +188,38 @@ test('5-2: R2 PNG (perspective → size → content) places the four fixture col
         break;
     }
   }
+});
+
+test('5-2 (ADR 0012 D-14): 幅 / 高さ inputs are disabled while perspective is applied and announce the lock via aria-describedby', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await addSpaceBackground(page, { width: DOCUMENT_SIZE.width, height: DOCUMENT_SIZE.height });
+  await page.getByTestId('editor-add-led').click();
+
+  // Before perspective: inputs are enabled.
+  const widthInput = page.getByLabel('幅', { exact: true });
+  const heightInput = page.getByLabel('高さ', { exact: true });
+  await expect(widthInput).toBeEnabled();
+  await expect(heightInput).toBeEnabled();
+
+  await applyPdfQuadPerspective(page);
+
+  // After perspective is applied: both inputs are disabled and point at the lock hint. The
+  // `perspective-size-locked-hint` id is wired in Toolbar.tsx; `aria-describedby` is also the
+  // accessibility path a screen reader uses here, so verifying the attribute wiring covers
+  // both the visual-disabled state and the assistive-technology announcement.
+  await expect(widthInput).toBeDisabled();
+  await expect(heightInput).toBeDisabled();
+  await expect(widthInput).toHaveAttribute('aria-describedby', 'perspective-size-locked-hint');
+  await expect(heightInput).toHaveAttribute('aria-describedby', 'perspective-size-locked-hint');
+  await expect(
+    page.locator('#perspective-size-locked-hint'),
+    'hint element must exist for aria-describedby to resolve',
+  ).toHaveText('パース適用中は、四隅のハンドルで大きさと形を調整します');
+
+  // Returning to rect mode re-enables the inputs.
+  await page.getByRole('button', { name: '通常配置に戻す' }).click();
+  await expect(widthInput).toBeEnabled();
+  await expect(heightInput).toBeEnabled();
 });
