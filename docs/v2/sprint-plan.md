@@ -44,6 +44,7 @@
   - `e2e/panel-layout.spec.ts` — 아코디언·인라인 상세의 전체 흐름.
 - **예상 리스크**: visual-qa 다수가 영향받음(C11). 스냅샷 재측정 필요.
 - **사용자 결정 반영 (ADR 0012)**: 2-6 → **D-9** (헤더에 「使い方ガイド」 버튼 추가, footer 📖 유지, `userGuideHereHint` 제거). 2-2 → **D-10** (「설치 장소 사진」·「사이니지 추가」 기본 펼침, 「선택 중/콘텐츠」는 세션 첫 선택 시 자동 펼침·이후 사용자 선택 유지, 「외관」·모든 상세는 기본 접힘, 「書き出し」는 접을 수 없는 하단 고정 — 2-4와 결합).
+- **5-2 재작업 영향 (ADR 0012 D-14)**: 3-1의 「位置・サイズの詳細設定」 접이식 섹션 안에서 幅/高さ 입력은 perspective 모드일 때 `disabled` + `aria-describedby="perspective-size-locked-hint"` 상태를 **유지**. 아코디언 재구성 과정에서 이 lock-out과 그에 딸린 안내 span을 제거하지 말 것.
 - **다른 스프린트와의 충돌**: 2-6은 D-9로 명확해졌으므로 S3 안에서 자유롭게 진행 가능.
 
 ### S4 — 편집 기능 (1-1, 1-2, 1-3, C13, C14, C19, C21, C22)
@@ -55,7 +56,7 @@
   - `e2e/copy-paste.spec.ts` — Ctrl+C/V 흐름, input 포커스 중 가로채지 않음.
   - `e2e/fit-cover-toggle.spec.ts` — 토글 + 사이니지 좌표 보존 + PNG 출력 반영.
 - **사용자 결정 반영 (ADR 0012 D-11)**: 1-3 Fit↔Cover — 신규 사진 Fit 기본, 캔버스 absolute 좌표 유지(사진 pixel 재매핑 안 함), Fit에서 휠 팬 불가·`offsetY=0`, Fit↔Cover 전환은 Undo 대상이고 PNG/동영상 동일 반영, Fit→Cover 복귀 시 이전 offset 복원 안 함.
-- **예상 리스크**: Transformer가 perspective 모드에서 detach되어 있어 1-2 비율 고정 토글은 rect 모드에서만 UI 반영. perspective 모드에서는 toolbar의 W/H 수치 입력에만 적용.
+- **5-2 재작업 영향 (ADR 0012 D-14)**: 1-2「縦横比を固定」비율 고정 토글은 **rect 모드 전용 기능**. perspective 모드에서는 幅/高さ 입력 자체가 비활성화되어 있어 토글이 의미 없음. UI 상에서도 perspective 모드에서는 비율 고정 아이콘을 숨기거나 비활성화할 것.
 - **다른 스프린트와의 충돌**: S3의 캔버스 fit 로직과 겹침. S3 완료 후 S4.
 
 ### S5 — 외관·슬라이더·마스크 (3-3, 3-4, 3-5, C8)
@@ -72,6 +73,7 @@
 - **새 테스트 파일**:
   - `tests/unit/locales.terms.test.ts` — glossary.md ①의 신규 용어가 세 로케일에 모두 존재하고 옛 용어가 사라졌는지.
 - **사용자 결정 반영 (ADR 0012 D-12)**: 4-1 ko/en 번역은 `glossary.md` ①의 열에 적힌 대로 확정. S6에서 추가 다듬기는 가능하나 재번역 선결 조건 아님.
+- **5-2 재작업 영향 (ADR 0012 D-14)**: 새 i18n 키 `perspectiveSizeLockedHint` (ja/ko/en 3개 문구) 를 S6 로케일 검수 대상에 포함할 것. 현재 문구는 임시 기준값으로, S6에서 전체 UI 톤 통일 과정에서 다듬어도 됨.
 - **예상 리스크**: 중. e2e 라벨 다수 다시 영향(S1 Step 0에서 testid 전환했으므로 S6의 라벨 재명명은 safely applicable).
 
 ### S7 — 전체 회귀 + 릴리스 (C11, C17, C18, 노트)

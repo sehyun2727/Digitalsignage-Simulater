@@ -271,15 +271,34 @@ HEAD: `4e9659d` (`v2-start` 태그). 조사자는 원문 코드를 읽어 보고
 - perspective가 활성인 경우에도 스크린은 여전히 axis-aligned bounding box로 계산되고, `PerspectiveScreenView`가 "완성된 사각형 렌더 결과"를 메시 워프.
 - 콘텐츠 offset/scale은 스크린 사각형의 fraction. 원근 corner 변경 시 콘텐츠 계산엔 피드백이 가지 않음.
 
-### B-4-4 5-2 원인 후보 (수정 금지) — **S1에서 확정: 세 후보 모두 기각**
+### B-4-4 5-2 원인 (S1 재작업에서 확정)
 
-1. **콘텐츠 레이아웃이 원근 corner를 입력으로 받지 않음**: `computeContentLayout`은 flat screen rect 기준. corner가 바뀌어도 콘텐츠는 옛 비율로 계산되어, 워프 후 비율이 틀어 보임. → **기각**. 이는 올바른 설계(불변식 B). "콘텐츠는 논리 화면 공간에서 계산, 원근은 마지막 raster-후 워프" 분리가 조작 순서를 독립적으로 만듦. corner를 받으면 오히려 순서 의존이 생김.
-2. **콘텐츠 fit=contain 모드와 원근 메시의 상호작용**: contain은 사각형 안에서 종횡비를 보존하지만, 사각형이 사다리꼴로 워프되면 원래 contain 결과가 왜곡되어 보임. cover는 상대적으로 덜 눈에 띔. → **기각**. 수학적으로 일관(letterbox가 사다리꼴로 변형되는 것은 원근 투영의 올바른 결과). 사용자 체감 "틀어짐"의 원인일 수 있으나 데이터/코드 레벨 수정 대상 아님. S3 2-6의 매뉴얼 보강이나 S7의 사용자 교육으로 대응.
-3. **크기 조정이 corner에 반영 안 됨**: ①→②→③ 순서에서 ①의 width/height 변경 후 ②에서 corner 재설정이 안 되면 draft에 저장된 ratio가 이상해질 수 있음. → **기각**. 원근 corner는 **캔버스 fraction** (0..1 of document), 크기는 **object-local px**. 두 값은 서로 다른 공간에 사는 독립 좌표계. `PerspectiveScreenView`가 object-local raster(= screen × content composition)를 corner로 매핑. 서로 간섭 없음. (B-4-2의 "원근 corner 변경 시 width/height 미변경"도 이 분리의 다른 쪽.)
+**S1 1차 결론(`c31a36b`에서 "세 후보 모두 기각 — 코드 변경 불필요"로 적힌 결론)은 철회**한다. 1차 결론이 틀렸던 이유:
 
-**확정 결론 (S1)**: 코드가 **이미 invariant A/B를 모두 만족**. 매트릭스 테스트(5 순서 × 3 재질 × 2 fit × 2 회전) + e2e 코너 샘플링으로 lock-in. 코드 변경 없이 JSDoc으로 설계 의도만 명시화 (`src/lib/contentLayout.ts:computeContentLayout`, `src/lib/screenHitTest.ts:getObjectScreenRect`).
+- 1차는 "최종 상태가 같으면 결과가 같다" (불변식 A)만 증명했고, "최종 상태 자체가 같을 수 없는 경로"를 간과했다.
+- PDF가 실제로 지적한 경로 「①追加 → ②パース → ③コンテンツ」는 사용자가 크기 조정을 **하지 않은 상태**로 끝난다. 이 경로의 최종 상태(width=480, height=270, perspectiveQuad=Q)에서 1차에서 가정한 불변식 B는 "quad가 어떻든 콘텐츠는 480×270 비율로 라운드트립"으로 해석되었고, PDF가 호소한 증상(콘텐츠가 늘어남)을 "수학적으로 올바른 결과"로 정의해 버렸다.
 
-- 영향 요구사항: 5-2. 리스크: ~~상~~ → **없음 (해소)**.
+**확정 원인 (파일:라인)**: `src/features/editor/SignageDisplayView.tsx:74-76`(이전 상태)에서 screen 계산이 `object.width/height`를 입력으로 사용. perspective 모드에서도 동일 입력 사용. 사용자가 리사이즈 없이 바로 パース를 적용하면 사이니지 default(480×270, 종횡비 1.78) 기준 콘텐츠 레이아웃이 결정되고, 겉보기 종횡비가 다른 quad(예: 2.73)로 워프 → letterbox가 사다리꼴로 변형되어 보이는 "비율이 틀어지는" 증상이 발생. PerspectiveScreenView의 width/height prop(이전 `object.width/height`)도 같은 뿌리.
+
+**불변식 B'로 교체 (ADR 0012 D-13)**: perspective 모드에서는 콘텐츠 레이아웃의 논리 화면 종횡비를 **현재 quad의 겉보기 종횡비에서 추정**한다.
+- 추정식: quad 4점을 내보내기 해상도 기준 px 좌표로 변환한 뒤
+  - `apparent_width = (|top edge| + |bottom edge|) / 2`
+  - `apparent_height = (|left edge| + |right edge|) / 2`
+  - `aspect = apparent_width / apparent_height`
+- 라스터 width는 `object.width` 유지, height는 `object.width / aspect`로 산출.
+- 베젤 inset은 fraction 규칙(`DISPLAY_FRAME_TEMPLATES[frameId].screenRegion`은 0.02/0.02/0.96/0.96 분수)이므로 effective 사이즈에 자연 적용. **고정 px 규칙이 없음을 확인**(src/types/editor.ts:181).
+- quad가 유효하지 않은 경우(비볼록, self-intersecting, 비유한)에는 fallback으로 `object.width/height` 유지. 불변식 A도 유지(함수가 순수, 저장 상태 추가 없음).
+
+**추가 UI 규칙 (ADR 0012 D-14)**: perspective 모드에서 幅/高さ 입력과 Transformer 리사이즈 핸들을 비활성화. 사용자는 네 모서리 핸들로만 크기와 모양을 조정. 접근성: `disabled` 속성 + `aria-describedby="perspective-size-locked-hint"` + i18n 키 `perspectiveSizeLockedHint` 안내.
+
+구현 위치:
+- `src/lib/perspectiveLogicalSize.ts`(신규): `perspectiveLogicalAspect(quad, documentSize)`, `getPerspectiveLogicalSize(w, h, quad, docSize)` 두 순수 함수.
+- `src/features/editor/SignageDisplayView.tsx`: perspective 모드일 때 `effectiveSize` 계산 후 `screen`, `getFrameDecorations`, `curvedBodyOutline`, `PerspectiveScreenView width/height prop` 모두 effectiveSize 사용.
+- `src/features/editor/Toolbar.tsx`: SelectedSignageFields의 幅/高さ 입력에 `disabled={perspectiveLocked}` + 안내 span.
+- Transformer: perspective 모드에서는 어차피 node ref가 등록되지 않아 attach되지 않음(기존 상태).
+
+- 영향 요구사항: 5-2 (해소), S3 3-1·S4 1-2 (perspective 모드에서 크기 입력 비활성 유지 필요 — sprint-plan 반영), S6 (`perspectiveSizeLockedHint` 로케일 검수).
+- 리스크: ~~상~~ → **중 (후속 스프린트에서 perspective-모드 UI 재설계 시 ADR 0012 D-14 깨뜨리면 안 됨)**.
 
 ### B-4-5 포터블 영향
 

@@ -164,13 +164,17 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
 
 ### 5-2 크기·원근 조정 순서와 콘텐츠 비율 일관성
 
-- **담당 스프린트**: S1 (가장 먼저) — **S1 완료**
+- **담당 스프린트**: S1 (가장 먼저) — **S1 완료 (재작업 후)**
 - **수용 기준**:
-  - ①크기 → ②원근 → ③콘텐츠, ②원근 → ①크기 → ③콘텐츠, ③콘텐츠 → ②원근 → ①크기 등 **어떤 순서로도** 콘텐츠 표시 방식(fit/cover) 및 회전값이 일관되게 유지
-  - 즉시 해결이 어려우면 "권장 순서: ①크기 → ②원근 → ③콘텐츠" 임시 안내 표시
-- **현재 상태**: **완료 (invariant 증명)** — S1에서 코드 조사 결과 이미 성립하고 있었음(아래 "확정 원인" 참조). 데이터 모델/렌더 파이프라인이 "논리 화면 = 객체 로컬 (0,0,width,height) + frameId → 스크린 사각형. 콘텐츠 레이아웃은 그 사각형 기준 순수 함수. 원근은 raster 후 메시 워프"로 분리되어 있어, 조작 순서 무관. `tests/unit/v2/contentLayoutOrder.test.ts`가 5 순서 × 3 재질 × 2 fit × 2 회전 = 60 조합을 매트릭스로 검증(통과 57건, 매크로 레벨 60 전체 통과). `e2e/v2-content-order.spec.ts`가 R2 순서의 PNG 코너 샘플링으로 end-to-end 재확인.
-- **확정 원인**: audit B-4-4 후보 3개 모두 **기각**(원인이 아님). ① "콘텐츠 레이아웃이 corner를 입력으로 받지 않음"은 **올바른 설계**(불변식 B). ② "contain과 원근 메시 상호작용"은 수학적으로 일관(사용자가 letterbox가 사다리꼴로 변형되는 것을 "틀어졌다"고 느꼈을 가능성이 있으나 데이터 레벨 문제 아님). ③ "크기 조정이 corner에 반영 안 됨"은 원근 corner는 캔버스 fraction, 크기는 object-local px — 서로 다른 공간에 사는 값이고, `PerspectiveScreenView`의 `toCanvas` + mesh warp가 두 공간을 안전하게 매핑. 결과: 코드 변경 없이 테스트 lock-in + JSDoc 보강으로 완료.
-- **임시 안내 표시**: 불필요 (invariant이 수학적으로 성립).
+  - PDF 재현 경로 「①追加 → ②パース → ③コンテンツ」(크기 조정 생략)에서도 콘텐츠 비율이 틀어지지 않는다.
+  - 「①追加 → ②大きさ調整 → ③パース → ④コンテンツ」와 같은 조합도 당연히 정상.
+  - perspective 모드에서는 크기 입력(幅·高さ)과 리사이즈 핸들이 비활성화되어 "크기 vs 원근 corner" 간 충돌이 UI 수준에서 발생하지 않음(ADR 0012 D-14).
+- **현재 상태**: **완료 (불변식 B'로 교체)** — perspective 모드의 콘텐츠 비율은 이제 quad의 겉보기 종횡비에서 추정(ADR 0012 D-13). 코드: `src/lib/perspectiveLogicalSize.ts`(신규) + `src/features/editor/SignageDisplayView.tsx`가 perspective 모드일 때 effectiveSize 사용. UI: `src/features/editor/Toolbar.tsx`의 幅/高さ 입력이 perspective 모드에서 `disabled` + `aria-describedby="perspective-size-locked-hint"`. i18n: `perspectiveSizeLockedHint` (ja/ko/en). 테스트: `tests/unit/v2/contentLayoutOrder.test.ts`의 "PDF path 5-2" describe 블록 6 케이스 + 매트릭스 48 + 영상 1 + rect 회귀 1 + 포터블 회귀 1 = 총 62건 유닛 테스트. e2e: `e2e/v2-content-order.spec.ts`의 PDF P2 wall-LED 코너 샘플링 + 크기 입력 disabled 검증 2건.
+- **확정 원인**: `src/features/editor/SignageDisplayView.tsx:74-76`(이전)가 perspective 모드에서도 `object.width/height`로 screen을 계산 → 사용자가 리사이즈를 생략하면 사이니지 기본값(480×270, 1.78) 기준 콘텐츠 레이아웃 → quad 겉보기 2.73:1에 letterbox-then-warp. audit B-4-4 후보 ①("콘텐츠 레이아웃이 quad를 입력받지 않음")이 **올바른 설계가 아니라 오히려 원인**이었음.
+- **커밋 이력**:
+  - `c31a36b fix(v2-S1): compute content layout in logical screen space independent of edit order` — JSDoc + 매트릭스 테스트만 추가, 코드 변경 없음. PDF 증상 실제로 재현 못 하는 "최종 상태 동일 → 결과 동일" 검증에 그쳤음. **S1 재작업 보고에서 결론 철회**.
+  - `fix(v2-S1): derive perspective content aspect from quad (PDF 5-2)` — 실제 수정. perspective 모드에서 quad 겉보기 종횡비 기반 effectiveSize + 크기 입력 비활성화 + 새 i18n 키.
+- **임시 안내 표시**: 불필요 (불변식이 UI 레벨에서 보장).
 
 ---
 

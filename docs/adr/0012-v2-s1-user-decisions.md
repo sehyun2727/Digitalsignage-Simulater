@@ -65,6 +65,68 @@ The ko/en columns in `docs/v2/glossary.md` ① ("変更 用어") are confirmed. 
 exactly those translations; S6 may still improve wording as part of the broader locale pass,
 but no retranslation of these specific terms is required before starting.
 
+### D-13. 5-2 — Perspective-mode content aspect comes from the quad, not from the stored width/height (S1 rework)
+
+The first S1 attempt (`c31a36b`) proved only "same final state → same output" and
+inadvertently defined the PDF-reported bug ("①追加 → ②パース → ③コンテンツ produces a
+stretched content") as *correct behavior under invariant B*. The rework retracts that
+conclusion.
+
+In perspective mode the renderer now derives the logical screen's aspect from the perspective
+quad itself. The pure helper `perspectiveLogicalAspect(quad, documentSize)` in
+`src/lib/perspectiveLogicalSize.ts` returns:
+
+```
+apparent_width  = (|top edge| + |bottom edge|) / 2    // in document pixels
+apparent_height = (|left edge| + |right edge|) / 2    // in document pixels
+aspect          = apparent_width / apparent_height
+```
+
+Measurements are in **document pixel** space (via `normalizedQuadToDocument`), not canvas
+fraction, because a 16:9 or 9:16 canvas shears edge-length comparisons taken on raw
+fractional coordinates. The companion `getPerspectiveLogicalSize(width, height, quad,
+documentSize)` keeps the raster width equal to the stored `object.width` and derives raster
+height as `width / aspect`, so the offscreen pixel density matches rect mode's. Fallback
+(stored width/height) applies when the quad is non-convex, self-intersecting, non-finite, or
+when `documentSize` is unavailable. The function is pure — invariant A (no history/stored
+captured size) is retained.
+
+The frame screen inset rule (`DISPLAY_FRAME_TEMPLATES[frameId].screenRegion`) is
+fraction-based for every current template (`wall-led` is x=0.02, y=0.02, w=0.96, h=0.96 per
+`src/types/editor.ts:181`), so applying the inset after the aspect substitution preserves the
+inset as an inset of the quad corners under warp.
+
+Portable objects are out of scope — their screen quad is a separate compound-model concept
+(see CLAUDE.md §3-5) and S4 owns any portable-specific perspective rework.
+
+### D-14. 5-2 — Perspective mode disables the width/height toolbar inputs
+
+The quad's four corner handles fully determine the warped body in perspective mode; a
+separate width/height number input (or Transformer resize handle) would both re-introduce
+PDF 5-2's "aspect comes from unrelated size" distortion and leave two UI surfaces that can't
+agree about the signage's shape. S1's rework disables `editorWidthLabel` / `editorHeightLabel`
+inputs when `object.placementMode === 'perspective' && object.perspectiveQuad !== null`.
+Transformer resize handles were already de-facto disabled (the perspective-mode warped Group
+in `SignageDisplayView.tsx` doesn't register a Konva node ref, so the shared Transformer
+attaches to no node). The toolbar inputs now mirror that lock-out, with:
+
+- `disabled={perspectiveLocked}` on both number inputs;
+- a visible hint span rendered under them with id `perspective-size-locked-hint`;
+- `aria-describedby="perspective-size-locked-hint"` on each input so screen readers announce
+  the lock reason;
+- an i18n key `perspectiveSizeLockedHint` with ja / ko / en strings (see glossary.md ②).
+
+When the user returns the object to rect mode (via `通常配置に戻す`), the inputs re-enable
+and the hint span is unmounted — see `Toolbar.tsx`'s `perspectiveLocked` branch.
+
+**Scope follow-ups**:
+
+- S3's requirement 3-1 (「位置・サイズの詳細設定」 collapsible section) and S4's requirement
+  1-2 (「縦横比を固定」 lock-aspect-ratio toggle) must keep width/height inputs disabled in
+  perspective mode. The 1-2 aspect-ratio toggle is a rect-mode-only feature under D-14.
+- S6's locale pass covers the `perspectiveSizeLockedHint` wording in the broader review of
+  v2 UI copy; the current ja/ko/en strings are the baseline but may be tightened then.
+
 ## Alternatives considered
 
 - **D-9 alternative**: keep the manual entrypoint in the footer only, enlarging it visually.
@@ -82,5 +144,7 @@ but no retranslation of these specific terms is required before starting.
 - S3 implements D-9 and D-10. The 2-6 and 2-2 blocking question is cleared.
 - S4 implements D-11. The 1-3 Fit/Cover design is now specified end-to-end.
 - S6 proceeds with D-12. No translation revision required before S6 starts.
+- S1 rework implements D-13 and D-14. `c31a36b` 's "code change unnecessary" conclusion is
+  retracted in `docs/v2/audit.md` B-4-4 and `docs/v2/requirements.md` 5-2.
 - `docs/v2/requirements.md` "요구 전제의 확인 요청 사항" items 1-4 are now answered —
   mark them resolved there.
