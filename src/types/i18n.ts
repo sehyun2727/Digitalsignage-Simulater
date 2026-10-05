@@ -84,6 +84,47 @@ export interface Messages {
   editorExportedIosAnnouncement: string;
   editorExportErrorAnnouncement: string;
 
+  // v2-S2 error banner (requirement 2-5). Every runtime failure the editor can surface shows a
+  // two-line banner: cause (why it happened) + remedy (what the user should do). The cause and
+  // remedy are separate keys so each locale can phrase them naturally without string concat.
+  // Numeric limits are {placeholders} interpolated from the uploadLimits.ts constants so
+  // changing a limit updates the message with no locale edits (sprint spec §3-4).
+  errorBannerDismissButtonLabel: string;
+  // Image upload (shared by space-photo and content image sources; the source noun is
+  // interpolated via `errorBannerSpacePhotoSourceLabel` / `errorBannerContentImageSourceLabel`).
+  errorImageUnsupportedTypeCause: string;
+  errorImageUnsupportedTypeRemedy: string;
+  errorImageTooLargeCause: string;
+  errorImageTooLargeRemedy: string;
+  errorImageDimensionsTooLargeCause: string;
+  errorImageDimensionsTooLargeRemedy: string;
+  errorImageDecodeErrorCause: string;
+  errorImageDecodeErrorRemedy: string;
+  // Video upload (content source, video kind).
+  errorVideoUnsupportedTypeCause: string;
+  errorVideoUnsupportedTypeRemedy: string;
+  errorVideoTooLargeCause: string;
+  errorVideoTooLargeRemedy: string;
+  errorVideoUnsupportedCodecCause: string;
+  errorVideoUnsupportedCodecRemedy: string;
+  errorVideoDimensionsTooLargeCause: string;
+  errorVideoDimensionsTooLargeRemedy: string;
+  errorVideoDurationTooLongCause: string;
+  errorVideoDurationTooLongRemedy: string;
+  errorVideoDecodeErrorCause: string;
+  errorVideoDecodeErrorRemedy: string;
+  // Export.
+  errorExportPngFailedCause: string;
+  errorExportPngFailedRemedy: string;
+  errorExportVideoFailedCause: string;
+  errorExportVideoFailedRemedy: string;
+
+  // v2-S2 pre-upload hint lines (requirement 3-2). The limits come from
+  // src/lib/uploadLimits.ts via {placeholders} so the hint and the banner always agree.
+  uploadHintSpacePhoto: string;
+  uploadHintContentImage: string;
+  uploadHintContentVideo: string;
+
   editorCanvasPresetLabel: string;
   editorCanvasPresetLandscapeLabel: string;
   editorCanvasPresetPortraitLabel: string;

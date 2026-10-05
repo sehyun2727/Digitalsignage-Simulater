@@ -2,16 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LanguageSelector } from '../../components/LanguageSelector';
 import { useLocale } from '../../i18n/localeContext';
 import { getRegisteredAsset } from '../../lib/assetRegistry';
-import type { ContentValidationError } from '../../lib/contentUpload';
+import { buildExportError } from '../../lib/uploadLimits';
 import { buildExportFilename, buildVideoExportFilename } from '../../lib/exportFilename';
-import type { ImageValidationError } from '../../lib/fileValidation';
 import { isVideoExportSupported } from '../../lib/videoExportCapability';
 import { recordCanvasToVideo, resolveVideoExportDurationMs } from '../../lib/videoExport';
 import { selectCanRedo, selectCanUndo, useEditorStore } from '../../store/editorStore';
 import { useUiStore } from '../../store/uiStore';
-import type { ContentKind } from '../../types/editor';
 import type { EditorCanvasHandle } from './EditorCanvas';
 import { EditorCanvas } from './EditorCanvas';
+import { ErrorBanner } from './ErrorBanner';
 import { OnboardingOverlay } from './OnboardingOverlay';
 import { Toolbar } from './Toolbar';
 
@@ -43,12 +42,16 @@ export function EditorLayout() {
   const toggleWatermarkDisabled = useUiStore((state) => state.toggleWatermarkDisabled);
   const canvasRef = useRef<EditorCanvasHandle>(null);
   const resetClickCountRef = useRef(0);
-  const [announcement, setAnnouncementText] = useState('');
-  const [isAnnouncementError, setIsAnnouncementError] = useState(false);
-  const setAnnouncement = useCallback((text: string, isError = false) => {
-    setAnnouncementText(text);
-    setIsAnnouncementError(isError);
-  }, []);
+  // Hints are the "polite status" success-side announcements (export complete, drop missed its
+  // target, …). Error banners live in uiStore.errors and have their own rendering + role=alert
+  // channel below — hints and errors are two separate state slots and two separate elements
+  // (requirement C7). Hints never carry an error style now.
+  const [hintAnnouncement, setHintAnnouncement] = useState('');
+  const errors = useUiStore((state) => state.errors);
+  const beginUploadRequest = useUiStore((state) => state.beginUploadRequest);
+  const setUploadError = useUiStore((state) => state.setUploadError);
+  const clearUploadError = useUiStore((state) => state.clearUploadError);
+  const dismissUploadError = useUiStore((state) => state.dismissUploadError);
   const [onboardingOpen, setOnboardingOpen] = useState(!onboardingDismissed);
   const [isExportingVideo, setIsExportingVideo] = useState(false);
   // Feature support does not change over the page's lifetime, so this is computed once rather
@@ -88,66 +91,23 @@ export function EditorLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [deleteSelected, undo, redo, salesReviewMode]);
 
-  const handleImageError = useCallback(
-    (error: ImageValidationError) => {
-      if (error === 'unsupported-type') {
-        setAnnouncement(messages.editorImageUploadErrorUnsupportedType, true);
-      } else if (error === 'too-large') {
-        setAnnouncement(messages.editorImageUploadErrorTooLarge, true);
-      } else if (error === 'dimensions-too-large') {
-        setAnnouncement(messages.editorImageUploadErrorDimensionsTooLarge, true);
-      } else {
-        setAnnouncement(messages.editorImageUploadErrorDecodeFailed, true);
-      }
-    },
-    [messages, setAnnouncement],
-  );
-
-  // Image and video validation errors share the same string values (e.g. 'too-large') for
-  // different limits (10MB vs. 80MB), so the announcement must branch on `kind` first to show
-  // an accurate message rather than reusing handleImageError's image-only wording.
-  const handleContentError = useCallback(
-    (kind: ContentKind, error: ContentValidationError) => {
-      if (kind === 'image') {
-        handleImageError(error as ImageValidationError);
-        return;
-      }
-      if (error === 'unsupported-type') {
-        setAnnouncement(messages.editorVideoUploadErrorUnsupportedType, true);
-      } else if (error === 'too-large') {
-        setAnnouncement(messages.editorVideoUploadErrorTooLarge, true);
-      } else if (error === 'unsupported-codec') {
-        setAnnouncement(messages.editorVideoUploadErrorUnsupportedCodec, true);
-      } else if (error === 'dimensions-too-large') {
-        setAnnouncement(messages.editorVideoUploadErrorDimensionsTooLarge, true);
-      } else if (error === 'duration-too-long') {
-        setAnnouncement(messages.editorVideoUploadErrorDurationTooLong, true);
-      } else {
-        setAnnouncement(messages.editorVideoUploadErrorDecodeFailed, true);
-      }
-    },
-    [messages, handleImageError, setAnnouncement],
-  );
-
   const handleExport = useCallback(() => {
     // EditorCanvas.exportToDataUrl() always captures the composed result, never the
     // comparison-mode space-photo-only view, regardless of what is currently on screen.
+    const requestId = beginUploadRequest('export');
     let dataUrl: string | null = null;
     try {
       dataUrl = canvasRef.current?.exportToDataUrl() ?? null;
     } catch {
-      // Fall through to the accessible error announcement below.
+      // Fall through to the error banner below.
     }
 
     if (!dataUrl) {
-      setAnnouncement(messages.editorExportErrorAnnouncement, true);
+      setUploadError('export', requestId, buildExportError('png'));
       return;
     }
 
     // iOS (iPhone/iPad) does not support the `download` attribute on anchor tags.
-    // Try window.open first (works in Safari); if it returns null the browser
-    // blocked the popup (common in iOS Chrome), so fall back to an anchor with
-    // target="_blank" which bypasses popup blocking by routing through a real DOM click.
     const isIos = /iP(hone|od|ad)/.test(navigator.userAgent);
     if (isIos) {
       const opened = window.open(dataUrl, '_blank');
@@ -159,7 +119,7 @@ export function EditorLayout() {
         link.click();
         link.remove();
       }
-      setAnnouncement(messages.editorExportedIosAnnouncement);
+      setHintAnnouncement(messages.editorExportedIosAnnouncement);
     } else {
       const link = document.createElement('a');
       link.href = dataUrl;
@@ -167,16 +127,18 @@ export function EditorLayout() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      setAnnouncement(messages.editorExportedAnnouncement);
+      setHintAnnouncement(messages.editorExportedAnnouncement);
     }
-  }, [messages, setAnnouncement]);
+    clearUploadError('export', requestId);
+  }, [messages, beginUploadRequest, setUploadError, clearUploadError]);
 
   const handleExportVideo = useCallback(async () => {
     if (!videoExportSupported || isExportingVideo) return;
 
+    const requestId = beginUploadRequest('export');
     const canvas = canvasRef.current?.beginVideoExportCapture() ?? null;
     if (!canvas) {
-      setAnnouncement(messages.editorExportErrorAnnouncement, true);
+      setUploadError('export', requestId, buildExportError('video'));
       return;
     }
 
@@ -202,18 +164,29 @@ export function EditorLayout() {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      setAnnouncement(messages.editorExportedVideoAnnouncement);
+      setHintAnnouncement(messages.editorExportedVideoAnnouncement);
+      clearUploadError('export', requestId);
     } catch {
-      setAnnouncement(messages.editorExportVideoErrorAnnouncement, true);
+      setUploadError('export', requestId, buildExportError('video'));
     } finally {
       canvasRef.current?.endVideoExportCapture();
       setIsExportingVideo(false);
     }
-  }, [messages, objects, videoExportSupported, isExportingVideo, setAnnouncement]);
+  }, [
+    messages,
+    objects,
+    videoExportSupported,
+    isExportingVideo,
+    beginUploadRequest,
+    setUploadError,
+    clearUploadError,
+  ]);
 
   const handleDropWithoutTarget = useCallback(() => {
-    setAnnouncement(messages.editorContentDropNoTargetHint, true);
-  }, [messages, setAnnouncement]);
+    // Drop-outside-target is a hint, not an error (requirement C7). The error banner channel
+    // is reserved for actual upload failures.
+    setHintAnnouncement(messages.editorContentDropNoTargetHint);
+  }, [messages]);
 
   const handleQuickCompareToggle = useCallback(() => {
     const next = !comparisonMode;
@@ -352,54 +325,75 @@ export function EditorLayout() {
       {salesReviewMode && <p className="editor-header-notice">{messages.salesReviewModeHint}</p>}
 
       <div className="editor-workspace">
-        <div
-          className={
-            salesReviewMode
-              ? 'editor-canvas-wrapper editor-canvas-wrapper--review'
-              : 'editor-canvas-wrapper'
-          }
-        >
-          {!spaceBackground && !comparisonMode && !salesReviewMode && (
-            <p className="editor-empty-hint">{messages.editorCanvasEmptyHint}</p>
-          )}
-          <EditorCanvas
-            ref={canvasRef}
-            comparisonMode={comparisonMode}
-            watermarkDisabled={watermarkDisabled}
-            onContentError={handleContentError}
-            onDropWithoutTarget={handleDropWithoutTarget}
-          />
-          {/* Status hint + polite announcement region moved inside the canvas wrapper as a
-              non-blocking overlay along the bottom edge — this reclaims the ~70px they were
-              previously eating below the workspace and lets the canvas fill the whole remaining
-              viewport height. Still readable, still `role=status`/aria-live for screen readers,
-              and `pointer-events: none` so it never blocks a drag on canvas objects underneath. */}
+        <div className="editor-canvas-column">
           <div
-            className="editor-canvas-status-overlay"
-            aria-hidden={!statusHint && !announcement && !watermarkDisabled}
+            className={
+              salesReviewMode
+                ? 'editor-canvas-wrapper editor-canvas-wrapper--review'
+                : 'editor-canvas-wrapper'
+            }
           >
-            {watermarkDisabled && (
-              <span className="watermark-off-badge" aria-label="watermark disabled">
-                watermark off
-              </span>
+            {!spaceBackground && !comparisonMode && !salesReviewMode && (
+              <p className="editor-empty-hint">{messages.editorCanvasEmptyHint}</p>
             )}
-            {statusHint && <span className="editor-canvas-status-hint">{statusHint}</span>}
-            <span
+            <EditorCanvas
+              ref={canvasRef}
+              comparisonMode={comparisonMode}
+              watermarkDisabled={watermarkDisabled}
+              onDropWithoutTarget={handleDropWithoutTarget}
+            />
+            {/* Minimal in-canvas overlay still carries the watermark-off badge: it is a visible
+                badge, not a status announcement, so it stays here where the user looking at the
+                canvas can see it. The old hint/announcement rows moved to the status area below
+                (requirement 2-5 §3-1 — status elements must not overlap the canvas). */}
+            {watermarkDisabled && (
+              <div className="editor-canvas-watermark-badge">
+                <span className="watermark-off-badge" aria-label="watermark disabled">
+                  watermark off
+                </span>
+              </div>
+            )}
+          </div>
+          {/* v2-S2 status area below the canvas (requirement 2-5 §3-1, C7). Error banner above
+              the polite status hint when both are present — order is enforced by DOM order, not
+              CSS. The error banner lives here (not inside the canvas container) so its bounding
+              box never overlaps the canvas. */}
+          <div className="editor-status-area" data-testid="editor-status-area">
+            {errors['space-photo'] && (
+              <ErrorBanner
+                error={errors['space-photo']}
+                announce
+                onDismiss={dismissUploadError}
+                variant="full"
+              />
+            )}
+            {errors.content && (
+              <ErrorBanner
+                error={errors.content}
+                announce={!errors['space-photo']}
+                onDismiss={dismissUploadError}
+                variant="full"
+              />
+            )}
+            {errors.export && (
+              <ErrorBanner
+                error={errors.export}
+                announce={!errors['space-photo'] && !errors.content}
+                onDismiss={dismissUploadError}
+                variant="full"
+              />
+            )}
+            <div
+              className="editor-status-area-hint"
               role="status"
               aria-live="polite"
-              className={
-                isAnnouncementError
-                  ? 'editor-canvas-status-announcement editor-canvas-status-announcement--error'
-                  : 'editor-canvas-status-announcement'
-              }
+              data-testid="editor-status-area-hint"
             >
-              {announcement}
-            </span>
+              {hintAnnouncement || statusHint}
+            </div>
           </div>
         </div>
-        {!salesReviewMode && (
-          <Toolbar onImageError={handleImageError} onContentError={handleContentError} />
-        )}
+        {!salesReviewMode && <Toolbar />}
       </div>
 
       {onboardingOpen && (

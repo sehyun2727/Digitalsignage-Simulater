@@ -503,6 +503,103 @@ a {
   flex-shrink: 0;
 }
 
+/* v2-S2 status area under the canvas — separate box from the canvas container so the error
+ * banner never overlaps the artwork (requirement 2-5 §3-1). Error row renders above the hint
+ * row when both are present. */
+.editor-status-area {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem 0;
+  min-height: 0;
+}
+
+.editor-status-area:empty {
+  display: none;
+}
+
+.editor-status-area-hint {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+/* v2-S2 error banner (requirement 2-5): cause + remedy on separate lines, warning icon on the
+ * left, dismiss × on the right. Dark red text on a light red tint gives a WCAG AA pass against
+ * #ffeeee at 4.5:1 while staying visually distinct from the standard body text. */
+.error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.4rem;
+  background-color: #ffe4e4;
+  color: #7a1515;
+  border: 1px solid #c62828;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.error-banner--inline {
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.error-banner-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  color: #c62828;
+}
+
+.error-banner-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.error-banner-cause {
+  margin: 0;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.error-banner-remedy {
+  margin: 0;
+  font-weight: 400;
+  word-break: break-word;
+}
+
+.error-banner-dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+  color: #7a1515;
+  border-radius: 0.25rem;
+}
+
+.error-banner-dismiss:hover,
+.error-banner-dismiss:focus-visible {
+  background-color: rgba(198, 40, 40, 0.15);
+}
+
+/* v2-S2 pre-upload hint lines under the trigger buttons (requirement 3-2). Compact single-line
+ * secondary text; wraps naturally at narrow panel widths without overflowing. */
+.upload-hint {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin: 0.25rem 0 0;
+  line-height: 1.35;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 .toolbar {
   flex: 0 0 22rem;
   min-width: 0;

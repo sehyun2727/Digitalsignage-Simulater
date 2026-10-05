@@ -164,6 +164,42 @@ export const ja: Messages = {
   editorExportedIosAnnouncement: '新しいタブで画像を開きました。画像を長押しして保存してください。',
   editorExportErrorAnnouncement: 'PNG画像の書き出しに失敗しました。もう一度お試しください。',
 
+  errorBannerDismissButtonLabel: '閉じる',
+  errorImageUnsupportedTypeCause: '対応していない画像形式です。',
+  errorImageUnsupportedTypeRemedy: '{formats}のいずれかの画像を選び直してください。',
+  errorImageTooLargeCause: '画像のファイルサイズが上限（{maxMb}MB）を超えています。',
+  errorImageTooLargeRemedy: '{maxMb}MB以下の画像を選び直してください。',
+  errorImageDimensionsTooLargeCause:
+    '画像の解像度が上限を超えています。長辺{maxLongEdge}px以内、合計{maxPixels}ピクセル以内にしてください。',
+  errorImageDimensionsTooLargeRemedy: 'もう少し小さいサイズに書き出した画像を選び直してください。',
+  errorImageDecodeErrorCause:
+    '画像を読み込めませんでした。ファイルが破損している可能性があります。',
+  errorImageDecodeErrorRemedy: '別の画像ファイルを選び直してください。',
+  errorVideoUnsupportedTypeCause: '対応していない動画形式です。',
+  errorVideoUnsupportedTypeRemedy: '{formats}のいずれかの動画を選び直してください。',
+  errorVideoTooLargeCause: '動画のファイルサイズが上限（{maxMb}MB）を超えています。',
+  errorVideoTooLargeRemedy: '{maxMb}MB以下の動画を選び直してください。',
+  errorVideoUnsupportedCodecCause: 'このブラウザでは再生できないコーデックです。',
+  errorVideoUnsupportedCodecRemedy: 'H.264 / VP9などで再エンコードした動画を選び直してください。',
+  errorVideoDimensionsTooLargeCause:
+    '動画の解像度が上限を超えています。長辺{maxLongEdge}px以内、短辺{maxShortEdge}px以内にしてください。',
+  errorVideoDimensionsTooLargeRemedy: 'もう少し小さいサイズに書き出した動画を選び直してください。',
+  errorVideoDurationTooLongCause: '動画の長さが上限（{maxSeconds}秒）を超えています。',
+  errorVideoDurationTooLongRemedy: '{maxSeconds}秒以下の動画を選び直してください。',
+  errorVideoDecodeErrorCause:
+    '動画を読み込めませんでした。ファイルが破損している可能性があります。',
+  errorVideoDecodeErrorRemedy: '別の動画ファイルを選び直してください。',
+  errorExportPngFailedCause: 'PNG画像の書き出しに失敗しました。',
+  errorExportPngFailedRemedy:
+    'しばらく待ってからもう一度お試しいただくか、サイネージを選択し直してください。',
+  errorExportVideoFailedCause: '動画の書き出しに失敗しました。',
+  errorExportVideoFailedRemedy:
+    'しばらく待ってからもう一度お試しいただくか、別のブラウザをお試しください。',
+
+  uploadHintSpacePhoto: '{formats}／{maxMb}MBまで',
+  uploadHintContentImage: '画像：{imageFormats}／{imageMaxMb}MBまで',
+  uploadHintContentVideo: '動画：{videoFormats}／{videoMaxMb}MB・{videoMaxSeconds}秒まで',
+
   editorCanvasPresetLabel: 'キャンバスサイズ',
   editorCanvasPresetLandscapeLabel: '横長 (16:9)',
   editorCanvasPresetPortraitLabel: '縦長 (9:16)',

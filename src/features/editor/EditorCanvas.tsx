@@ -1,7 +1,6 @@
 import type Konva from 'konva';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Group, Layer, Rect, Stage, Transformer } from 'react-konva';
-import type { ContentValidationError } from '../../lib/contentUpload';
 import {
   registerContentAsset,
   resolveContentUploadFailure,
@@ -12,8 +11,10 @@ import { computeAutoContentRotation } from '../../lib/contentLayout';
 import { findTopmostScreenHit, getObjectScreenRect } from '../../lib/screenHitTest';
 import type { Point } from '../../lib/screenHitTest';
 import { useEditorStore } from '../../store/editorStore';
+import { useUiStore } from '../../store/uiStore';
+import { buildContentUploadError } from '../../lib/uploadLimits';
 import { getDocumentSize } from '../../types/editor';
-import type { ContentKind, SignageObject } from '../../types/editor';
+import type { SignageObject } from '../../types/editor';
 import { CanvasObjectView } from './CanvasObjectView';
 import { HullWatermarkView } from './HullWatermarkView';
 import { OcclusionEditOverlay } from './OcclusionEditOverlay';
@@ -33,10 +34,11 @@ export interface EditorCanvasHandle {
 }
 
 interface EditorCanvasProps {
-  onContentError: (kind: ContentKind, error: ContentValidationError) => void;
   /** Called when a native OS file drop lands on the canvas but not inside any display/portable
    *  object's screen region, so callers can announce why the drop was ignored instead of leaving
-   *  the user with no feedback. */
+   *  the user with no feedback. The drop-without-target case is a hint (requirement C7
+   *  "hints and errors are different channels"), not an upload failure — it is dispatched as a
+   *  success-side announcement rather than as an error banner. */
   onDropWithoutTarget: () => void;
   /** When true, renders only the space background so the user can compare it against the
    *  composed result; signage objects, selection, and drag-and-drop are all suppressed. */
@@ -46,7 +48,7 @@ interface EditorCanvasProps {
 }
 
 export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function EditorCanvas(
-  { onContentError, onDropWithoutTarget, comparisonMode = false, watermarkDisabled = false },
+  { onDropWithoutTarget, comparisonMode = false, watermarkDisabled = false },
   ref,
 ) {
   const document = useEditorStore((state) => state.document);
@@ -310,9 +312,15 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       return;
     }
 
+    const uiStore = useUiStore.getState();
+    const requestId = uiStore.beginUploadRequest('content');
     const validation = validateContentFile(file);
     if (validation) {
-      onContentError(validation.kind, validation.error);
+      uiStore.setUploadError(
+        'content',
+        requestId,
+        buildContentUploadError(validation.kind, validation.error),
+      );
       return;
     }
 
@@ -340,9 +348,12 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
         },
       });
       selectObject(targetId);
+      useUiStore.getState().clearUploadError('content', requestId);
     } catch (error) {
       const failure = resolveContentUploadFailure(file, error);
-      onContentError(failure.kind, failure.error);
+      useUiStore
+        .getState()
+        .setUploadError('content', requestId, buildContentUploadError(failure.kind, failure.error));
     }
   };
 

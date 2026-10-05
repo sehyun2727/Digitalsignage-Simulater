@@ -1,6 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale } from '../../i18n/localeContext';
 import { getRegisteredAsset, registerSpaceBackgroundAsset } from '../../lib/assetRegistry';
+import { interpolate } from '../../lib/errorBannerMessages';
+import {
+  buildContentUploadError,
+  buildImageUploadError,
+  getImageAndVideoAcceptAttribute,
+  getImageLimits,
+  getVideoLimits,
+} from '../../lib/uploadLimits';
+import { ErrorBanner } from './ErrorBanner';
 import {
   clampContentOffset,
   clampContentScale,
@@ -9,7 +18,6 @@ import {
 } from '../../lib/contentLayout';
 import { getObjectScreenRect } from '../../lib/screenHitTest';
 import { clampCurvatureAmount, isCurvatureSupported } from '../../lib/curvature';
-import type { ContentValidationError } from '../../lib/contentUpload';
 import {
   registerContentAsset,
   resolveContentUploadFailure,
@@ -30,7 +38,7 @@ import {
   validateQuad,
 } from '../../lib/quadGeometry';
 import type { QuadCorner, QuadInvalidReason } from '../../lib/quadGeometry';
-import { ACCEPTED_IMAGE_TYPES, validateImageFile } from '../../lib/fileValidation';
+import { validateImageFile } from '../../lib/fileValidation';
 import { normalizeMaterial } from '../../lib/materialTexture';
 import {
   detectActivePreset,
@@ -66,16 +74,13 @@ import {
   MIN_MATERIAL_SETTING,
   supportsPerspective,
 } from '../../types/editor';
-import { ACCEPTED_VIDEO_TYPES } from '../../lib/videoValidation';
 import { PORTABLE_TEMPLATE_VIEWS, type PortableTemplateView } from '../../lib/portableTemplate';
 import { AdvancedSettingsModal } from './AdvancedSettingsModal';
 import { RealismGuideCard } from './RealismGuideCard';
-import type { ImageValidationError } from '../../lib/fileValidation';
 import type {
   CanvasPresetId,
   ContactShadowSettings,
   ContentFit,
-  ContentKind,
   CurvatureMode,
   DisplayMaterial,
   DisplaySignageObject,
@@ -87,11 +92,6 @@ import type {
   SignageObject,
 } from '../../types/editor';
 
-interface ToolbarProps {
-  onImageError: (error: ImageValidationError) => void;
-  onContentError: (kind: ContentKind, error: ContentValidationError) => void;
-}
-
 /**
  * The single always-visible right-side toolbar (Sprint 4.1 correction, Sprint 4.2 photo-first
  * rework). Six fixed sections in a fixed order — Space, Add signage, Selected signage, Content,
@@ -99,16 +99,20 @@ interface ToolbarProps {
  * control stays reachable at all times. The document/export size is a fixed canvasPreset chosen
  * in the Space section, independent of the uploaded photo (see ADR 0011); every other section is
  * still gated on the photo existing, unchanged from before.
+ *
+ * v2-S2 moved per-source upload error reporting out of callback props (the old
+ * `onImageError`/`onContentError`) into direct `useUiStore()` calls inside each section — the
+ * error slot is a global UI state now (requirement C7), not a prop.
  */
-export function Toolbar({ onImageError, onContentError }: ToolbarProps) {
+export function Toolbar() {
   const { messages } = useLocale();
 
   return (
     <div className="toolbar" aria-label={messages.toolbarAriaLabel}>
-      <SpaceSection onImageError={onImageError} />
+      <SpaceSection />
       <AddSignageSection />
       <SelectedSignageSection />
-      <ContentSection onContentError={onContentError} />
+      <ContentSection />
       <AppearanceSection />
       <ExportSection />
     </div>
@@ -160,7 +164,7 @@ function SpaceBackgroundThumbnail({ sourceId }: { sourceId: string }) {
   );
 }
 
-function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationError) => void }) {
+function SpaceSection() {
   const { messages } = useLocale();
   const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
   const canvasPreset = useEditorStore((state) => state.document.canvasPreset);
@@ -168,23 +172,38 @@ function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationE
   const removeSpaceBackground = useEditorStore((state) => state.removeSpaceBackground);
   const setCanvasPreset = useEditorStore((state) => state.setCanvasPreset);
   const spaceBackgroundInputRef = useRef<HTMLInputElement | null>(null);
+  const spaceError = useUiStore((state) => state.errors['space-photo']);
+  const beginUploadRequest = useUiStore((state) => state.beginUploadRequest);
+  const setUploadError = useUiStore((state) => state.setUploadError);
+  const clearUploadError = useUiStore((state) => state.clearUploadError);
+  const dismissUploadError = useUiStore((state) => state.dismissUploadError);
+  const imageLimits = useMemo(() => getImageLimits(), []);
 
   const handleSpaceBackgroundChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
 
+    const requestId = beginUploadRequest('space-photo');
     const error = validateImageFile(file);
     if (error) {
-      onImageError(error);
+      setUploadError('space-photo', requestId, buildImageUploadError('space-photo', error));
       return;
     }
 
     try {
       const asset = await registerSpaceBackgroundAsset(file);
       setSpaceBackground(asset);
+      // Success at the same source clears any previous error immediately (requirement 5-1).
+      // Async-race safety: `clearUploadError` only runs if `requestId` is still the latest for
+      // 'space-photo' — a slower earlier failure that resolves after this success is dropped.
+      clearUploadError('space-photo', requestId);
     } catch {
-      onImageError('decode-error');
+      setUploadError(
+        'space-photo',
+        requestId,
+        buildImageUploadError('space-photo', 'decode-error'),
+      );
     }
   };
 
@@ -250,15 +269,29 @@ function SpaceSection({ onImageError }: { onImageError: (error: ImageValidationE
           </button>
         )}
       </div>
+      <p className="upload-hint" data-testid="editor-space-background-upload-hint">
+        {interpolate(messages.uploadHintSpacePhoto, {
+          formats: imageLimits.extensionLabels.join(' / '),
+          maxMb: imageLimits.maxMegabytes,
+        })}
+      </p>
       <input
         ref={spaceBackgroundInputRef}
         type="file"
-        accept={ACCEPTED_IMAGE_TYPES.join(',')}
+        accept={imageLimits.acceptAttribute}
         onChange={handleSpaceBackgroundChange}
         className="visually-hidden"
         aria-label={addOrReplaceLabel}
         data-testid="editor-space-background-upload"
       />
+      {spaceError && (
+        <ErrorBanner
+          error={spaceError}
+          announce={false}
+          onDismiss={dismissUploadError}
+          variant="inline"
+        />
+      )}
     </ToolbarSection>
   );
 }
@@ -736,11 +769,7 @@ function PerspectiveFitControls({ object }: { object: PerspectiveCapableObject }
   );
 }
 
-function ContentSection({
-  onContentError,
-}: {
-  onContentError: (kind: ContentKind, error: ContentValidationError) => void;
-}) {
+function ContentSection() {
   const { messages } = useLocale();
   const selected = useEditorStore(selectSelectedObject);
   const hasContentSupport = selected?.kind === 'display' || selected?.kind === 'portable';
@@ -755,24 +784,26 @@ function ContentSection({
       ) : (
         <>
           <p className="toolbar-notice">{messages.toolbarAddElementSubheading}</p>
-          <ContentFields key={selected.id} object={selected} onContentError={onContentError} />
+          <ContentFields key={selected.id} object={selected} />
         </>
       )}
     </ToolbarSection>
   );
 }
 
-function ContentFields({
-  object,
-  onContentError,
-}: {
-  object: DisplaySignageObject | PortableSignageObject;
-  onContentError: (kind: ContentKind, error: ContentValidationError) => void;
-}) {
+function ContentFields({ object }: { object: DisplaySignageObject | PortableSignageObject }) {
   const { messages } = useLocale();
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const addText = useEditorStore((state) => state.addText);
   const contentInputRef = useRef<HTMLInputElement | null>(null);
+  const contentError = useUiStore((state) => state.errors.content);
+  const beginUploadRequest = useUiStore((state) => state.beginUploadRequest);
+  const setUploadError = useUiStore((state) => state.setUploadError);
+  const clearUploadError = useUiStore((state) => state.clearUploadError);
+  const dismissUploadError = useUiStore((state) => state.dismissUploadError);
+  const imageLimits = useMemo(() => getImageLimits(), []);
+  const videoLimits = useMemo(() => getVideoLimits(), []);
+  const contentAcceptAttribute = useMemo(() => getImageAndVideoAcceptAttribute(), []);
   // Media-only draft state — kept null-safe against text content by only reading the fields on
   // MediaContent (`content.kind !== 'text'`).
   const mediaContent = object.content && object.content.kind !== 'text' ? object.content : null;
@@ -789,9 +820,14 @@ function ContentFields({
     event.target.value = '';
     if (!file) return;
 
+    const requestId = beginUploadRequest('content');
     const validation = validateContentFile(file);
     if (validation) {
-      onContentError(validation.kind, validation.error);
+      setUploadError(
+        'content',
+        requestId,
+        buildContentUploadError(validation.kind, validation.error),
+      );
       return;
     }
 
@@ -824,9 +860,10 @@ function ContentFields({
       setOffsetXDraft(0);
       setOffsetYDraft(0);
       setScaleDraft(1);
+      clearUploadError('content', requestId);
     } catch (error) {
       const failure = resolveContentUploadFailure(file, error);
-      onContentError(failure.kind, failure.error);
+      setUploadError('content', requestId, buildContentUploadError(failure.kind, failure.error));
     }
   };
 
@@ -1044,18 +1081,39 @@ function ContentFields({
               {messages.editorAddTextButton}
             </button>
           </div>
+          <p className="upload-hint" data-testid="editor-content-upload-hint-image">
+            {interpolate(messages.uploadHintContentImage, {
+              imageFormats: imageLimits.extensionLabels.join(' / '),
+              imageMaxMb: imageLimits.maxMegabytes,
+            })}
+          </p>
+          <p className="upload-hint" data-testid="editor-content-upload-hint-video">
+            {interpolate(messages.uploadHintContentVideo, {
+              videoFormats: videoLimits.extensionLabels.join(' / '),
+              videoMaxMb: videoLimits.maxMegabytes,
+              videoMaxSeconds: videoLimits.maxDurationSeconds,
+            })}
+          </p>
         </>
       )}
 
       <input
         ref={contentInputRef}
         type="file"
-        accept={[...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES].join(',')}
+        accept={contentAcceptAttribute}
         onChange={handleContentFileChange}
         className="visually-hidden"
         aria-label={messages.editorContentUploadButton}
         data-testid="editor-content-upload"
       />
+      {contentError && (
+        <ErrorBanner
+          error={contentError}
+          announce={false}
+          onDismiss={dismissUploadError}
+          variant="inline"
+        />
+      )}
     </>
   );
 }
