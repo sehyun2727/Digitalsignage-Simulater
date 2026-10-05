@@ -148,19 +148,26 @@ test.describe('four-point perspective placement', () => {
     await page.getByRole('button', { name: 'LED', exact: true }).click();
     await applyTopLeftPerspectiveQuad(page);
 
-    // A second, default-centered object added afterward overlaps the LED display's flat
-    // hit-area rect exactly (both center on the document) and renders on top of it.
-    await page.getByRole('button', { name: 'テキストを追加' }).click();
+    // v2-S2 rewrite: 「テキストを追加」 moved into the Content section and now fills the
+    // selected display's content (editorStore.addText fast path), rather than creating a
+    // sibling text object. The test needs two independent default-centered objects to prove
+    // the flat-hit-area precedence rule — swap the text sibling for an LCD display, which
+    // also centers at the document midpoint and renders on top of the LED (added-later =
+    // topmost in Konva's stacking order). The semantic ("the topmost overlapping object
+    // wins the click") is preserved.
+    await page.getByTestId('editor-add-lcd').click();
     await expect(deleteButton(page)).toBeEnabled();
 
     const flatRectCenter = await documentPointToPagePoint(page, { x: 960, y: 540 });
     await page.mouse.click(flatRectCenter.x, flatRectCenter.y);
-    await expect(page.getByLabel('テキスト内容')).toBeVisible();
+    // LCD selected → its Material selector reads 'lcd'. This is a stable positive signal that
+    // the top of the stack won the click.
+    await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
 
     await deleteButton(page).click();
     await expect(deleteButton(page)).toBeDisabled();
 
-    // With the text gone, the same center point now hits the LED display's flat rect, even
+    // With the LCD gone, the same center point now hits the LED display's flat rect, even
     // though that display's visible body has been warped away to the top-left quadrant.
     await page.mouse.click(flatRectCenter.x, flatRectCenter.y);
     await expect(deleteButton(page)).toBeEnabled();

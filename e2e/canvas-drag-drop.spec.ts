@@ -185,7 +185,12 @@ test('dropping an unsupported file type onto a screen region shows an accessible
     fileName: 'notes.txt',
   });
 
-  await expect(page.getByRole('status')).toHaveText('PNG、JPEG、WebP形式の画像のみ利用できます。');
+  // v2-S2: upload errors moved from the aria-live polite status region into a dedicated
+  // role=alert banner (requirement 2-5 / C7). An unsupported dropped file maps to the
+  // `image-unsupported-type` code; its ja cause string is "対応していない画像形式です。".
+  const banner = page.getByTestId('editor-error-banner');
+  await expect(banner).toBeVisible();
+  await expect(banner).toContainText('対応していない画像形式');
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
   ).toBeVisible();

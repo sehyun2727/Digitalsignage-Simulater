@@ -94,9 +94,18 @@ test.describe('canvas object reselection', () => {
     await expect(page.getByRole('button', { name: '画面領域を編集' })).toBeVisible();
   });
 
-  test('a text object is reselectable after being deselected', async ({ page }) => {
+  test('a display carrying text content is reselectable after being deselected', async ({
+    page,
+  }) => {
+    // v2-S2 rewrite (A4-text debt): the standalone 「テキストを追加」 top-level action moved
+    // into the Content section (`editor-add-text-content` testid). Adding text when a display
+    // is selected fills the display's `content` field with a TextContent block (editorStore
+    // `addText` fast path). The original test's semantic — "reselecting a text object
+    // reinstates its editing surface" — is preserved by asserting the テキスト内容 textarea
+    // re-appears after reselection of the display.
     await setup(page);
-    await page.getByRole('button', { name: 'テキストを追加' }).click();
+    await page.getByTestId('editor-add-led').click();
+    await page.getByTestId('editor-add-text-content').click();
     await expect(deleteButton(page)).toBeEnabled();
 
     await deselectViaBlankCanvas(page);
@@ -106,22 +115,31 @@ test.describe('canvas object reselection', () => {
     await expect(page.getByLabel('テキスト内容')).toBeVisible();
   });
 
-  test('an uploaded image object is reselectable after being deselected', async ({ page }) => {
+  test('a display carrying uploaded image content is reselectable after being deselected', async ({
+    page,
+  }) => {
+    // v2-S2 rewrite (A1 debt): the top-level 「画像を追加」 button is gone (pre-v2 refactor
+    // 8cdbd77). Image upload now flows through the Content section after selecting a display,
+    // so this test adds a wall-LED first, uploads an image into its content, deselects, and
+    // asserts the content-replace testid returns on reselection — the stable marker that the
+    // LED has active image content.
     await setup(page);
+    await page.getByTestId('editor-add-led').click();
     const photo = await solidColorPng(page, '#22aa66');
     await page
-      .getByLabel('画像を追加')
+      .getByTestId('editor-content-upload')
       .setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: photo });
+    await expect(page.getByTestId('editor-content-replace')).toBeVisible();
     await expect(deleteButton(page)).toBeEnabled();
 
     await deselectViaBlankCanvas(page);
     await reselectViaCanvasClick(page);
 
     await expect(deleteButton(page)).toBeEnabled();
-    // An image object has no kind-specific properties section, unlike text/display/portable —
-    // its absence, alongside the delete button re-enabling, is the positive signal here.
-    await expect(page.getByLabel('テキスト内容')).toHaveCount(0);
-    await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveCount(0);
+    // After reselection, the Content section's media branch is restored, and the display's own
+    // 「ディスプレイ素材」 selector is also back — the "image is still attached" signal.
+    await expect(page.getByTestId('editor-content-replace')).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toBeVisible();
   });
 
   test('dragging an unselected display selects it and moves it in a single gesture', async ({
@@ -196,17 +214,24 @@ test.describe('canvas object reselection', () => {
   test('clicking the topmost of two overlapping objects selects it, not the one beneath', async ({
     page,
   }) => {
+    // v2-S2 rewrite: 「テキストを追加」 as a top-level action was removed (now inside the
+    // Content section and fills the selected display rather than placing a sibling text
+    // object), so the original "LED + top-of-stack text" setup is no longer reproducible via
+    // the UI. Swapping to LED + LCD keeps the hit-test intent — two overlapping display
+    // objects at the same centered position — and asserts the LCD (added second → topmost in
+    // Konva's stacking order) is the one that becomes selected after a click-through-deselect
+    // -reclick cycle.
     await setup(page);
-    // Both default to the same centered position; addText is added second, so it renders on
-    // top of the LED display in Konva's stacking order.
-    await page.getByRole('button', { name: 'LED', exact: true }).click();
-    await page.getByRole('button', { name: 'テキストを追加' }).click();
+    await page.getByTestId('editor-add-led').click();
+    await page.getByTestId('editor-add-lcd').click();
 
     await deselectViaBlankCanvas(page);
     await reselectViaCanvasClick(page);
 
     await expect(deleteButton(page)).toBeEnabled();
-    await expect(page.getByLabel('テキスト内容')).toBeVisible();
+    // The LCD-topmost assertion: the Material selector carries 'lcd' when the LCD is the
+    // selected one. Picking the LED underneath would show 'led' here.
+    await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
   });
 
   test('exported PNG is byte-identical whether the display was freshly added or reselected by click (no hit-area or selection UI leaks into export)', async ({

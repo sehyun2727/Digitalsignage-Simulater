@@ -47,7 +47,12 @@ describe('OnboardingOverlay', () => {
   beforeEach(() => {
     window.localStorage.clear();
     mockBrowserLocale(['fr-FR']);
-    useUiStore.setState({ comparisonMode: false, onboardingDismissed: false });
+    useUiStore.setState({
+      comparisonMode: false,
+      onboardingDismissed: false,
+      errors: {},
+      requestSequence: { 'space-photo': 0, content: 0, export: 0 },
+    });
     useEditorStore.setState({
       document: createEmptyDocument(),
       selectedId: null,
@@ -151,7 +156,9 @@ describe('OnboardingOverlay', () => {
 
     // The mocked canvas cannot actually export in jsdom, so the reused handler falls into its
     // existing failure path — confirming the same handler ran, not a duplicated export path.
-    expect(await screen.findByText(ja.editorExportErrorAnnouncement)).toBeInTheDocument();
+    // v2-S2: PNG export failure now renders as a `.error-banner` card in the status area.
+    const banner = await screen.findByTestId('editor-error-banner');
+    expect(banner).toHaveTextContent(ja.errorExportPngFailedCause);
   });
 
   it('the dismiss button hides the card and persists the choice to localStorage', async () => {
