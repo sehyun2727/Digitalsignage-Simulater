@@ -37,6 +37,8 @@
 
 ### S3 — 캔버스/패널 레이아웃 (2-1, 2-2, 2-3, 3-1, 2-4, 2-6)
 
+**v2-S2 추가 범위 (ADR 반영 전)**: 2-1 「캔버스 자동 맞춤」을 구현할 때, S2에서 캔버스 아래에 추가된 `.editor-status-area`(힌트 + 에러 배너) 높이를 fit 계산에 포함해야 합니다. 현재 fit은 캔버스 컨테이너 자체 폭에만 반응하지만, 상태 영역이 커지면 세로 공간이 줄어 9:16에서 하단이 다시 잘릴 수 있습니다. `EditorLayout`의 fit 계산이 상태 영역 bounding box를 측정하거나 CSS grid로 상태 영역을 캔버스 가용 영역 바깥에 두는 식으로 처리할 것.
+
 - **수정 예정 파일**: `src/features/editor/EditorLayout.tsx`(fit 계산, 비교 버튼 위치), `src/features/editor/Toolbar.tsx`(아코디언, 상세 설정 섹션 통합), `src/features/editor/AdvancedSettingsModal.tsx`(섹션으로 전환 또는 삭제), `src/styles/global.css`.
 - **새 테스트 파일**:
   - `tests/unit/Toolbar.accordion.test.tsx` — 섹션 접기/펼치기, 선택 전환 시 상태 유지.
@@ -48,6 +50,8 @@
 - **다른 스프린트와의 충돌**: 2-6은 D-9로 명확해졌으므로 S3 안에서 자유롭게 진행 가능.
 
 ### S4 — 편집 기능 (1-1, 1-2, 1-3, C13, C14, C19, C21, C22)
+
+**v2-S2 추가 범위 (ADR 반영 전)**: 포터블에 「파스펙티브 적용」 흐름을 열어 두는 경우, 1-2의 비율 고정 토글이 포터블의 compound 비율(`screenQuad` 겉보기 종횡비)과 어떻게 상호작용하는지 명시해야 합니다. S1 D-14에서 perspective 모드의 幅/高さ 입력은 disabled이지만, 포터블은 사진 교체 → `screenQuad` 재지정 흐름이 있어 "비율 고정 ON + 포터블 사진 변경" 시 어느 쪽을 우선시할지 결정 필요. 현재는 포터블이 compound-model-only라 비율 고정 토글 자체가 포터블에선 숨겨져 있지만, 포터블+파스펙티브 호환성이 열리면 재검토할 것.
 
 - **수정 예정 파일**: `src/store/editorStore.ts`(복사/붙여넣기 액션, 비율 고정 상태, Fit/Cover 상태), `src/features/editor/EditorLayout.tsx`(Ctrl+C/V 핸들러), `src/features/editor/Toolbar.tsx`(비율 고정 토글, Fit/Cover 토글), `src/features/editor/EditorCanvas.tsx`(Transformer keepRatio 토글, 휠 핸들러 — 2-1 캔버스 줌과의 조합), `src/features/editor/SpaceBackgroundView.tsx`, `src/lib/spaceBackgroundFit.ts`(computeContainFit 신규).
 - **새 테스트 파일**:

@@ -281,6 +281,7 @@ HEAD: `4e9659d` (`v2-start` 태그). 조사자는 원문 코드를 읽어 보고
 **확정 원인 (파일:라인)**: `src/features/editor/SignageDisplayView.tsx:74-76`(이전 상태)에서 screen 계산이 `object.width/height`를 입력으로 사용. perspective 모드에서도 동일 입력 사용. 사용자가 리사이즈 없이 바로 パース를 적용하면 사이니지 default(480×270, 종횡비 1.78) 기준 콘텐츠 레이아웃이 결정되고, 겉보기 종횡비가 다른 quad(예: 2.73)로 워프 → letterbox가 사다리꼴로 변형되어 보이는 "비율이 틀어지는" 증상이 발생. PerspectiveScreenView의 width/height prop(이전 `object.width/height`)도 같은 뿌리.
 
 **불변식 B'로 교체 (ADR 0012 D-13)**: perspective 모드에서는 콘텐츠 레이아웃의 논리 화면 종횡비를 **현재 quad의 겉보기 종횡비에서 추정**한다.
+
 - 추정식: quad 4점을 내보내기 해상도 기준 px 좌표로 변환한 뒤
   - `apparent_width = (|top edge| + |bottom edge|) / 2`
   - `apparent_height = (|left edge| + |right edge|) / 2`
@@ -292,6 +293,7 @@ HEAD: `4e9659d` (`v2-start` 태그). 조사자는 원문 코드를 읽어 보고
 **추가 UI 규칙 (ADR 0012 D-14)**: perspective 모드에서 幅/高さ 입력과 Transformer 리사이즈 핸들을 비활성화. 사용자는 네 모서리 핸들로만 크기와 모양을 조정. 접근성: `disabled` 속성 + `aria-describedby="perspective-size-locked-hint"` + i18n 키 `perspectiveSizeLockedHint` 안내.
 
 구현 위치:
+
 - `src/lib/perspectiveLogicalSize.ts`(신규): `perspectiveLogicalAspect(quad, documentSize)`, `getPerspectiveLogicalSize(w, h, quad, docSize)` 두 순수 함수.
 - `src/features/editor/SignageDisplayView.tsx`: perspective 모드일 때 `effectiveSize` 계산 후 `screen`, `getFrameDecorations`, `curvedBodyOutline`, `PerspectiveScreenView width/height prop` 모두 effectiveSize 사용.
 - `src/features/editor/Toolbar.tsx`: SelectedSignageFields의 幅/高さ 입력에 `disabled={perspectiveLocked}` + 안내 span.

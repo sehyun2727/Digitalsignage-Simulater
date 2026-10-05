@@ -120,6 +120,12 @@
 - 의도하지 않은 차이가 생기면 버그로 처리.
 - OS별 스냅샷은 `.gitignore`에 따라 Linux(Docker/CI) 외 금지 (`*-win32.png`, `*-darwin.png` ignored).
 
+### 5-8. 수동 테스트·스크린샷 금지, 자가검증은 측정값으로
+- **사용자에게 수동 테스트를 돌리라고 요청하지 않습니다.** 스크린샷 첨부도 요청하지 않습니다. v2 전체에서 "브라우저로 확인해 주세요" 흐름은 쓰지 않습니다.
+- 스프린트가 "눈으로 확인되어야 하는" 항목(폰트 크기, 대비, 레이아웃)을 요구할 때는 자가검증 항목(V1, V2, ...)을 **Playwright assertion**으로 작성합니다. 폰트 크기는 `getComputedStyle(...).fontSize` 측정, 대비는 relative-luminance 계산, 위치는 `boundingBox` 비중첩으로 검증합니다.
+- 자가검증 테스트는 e2e 스펙 안에 섞어 두되 `v2-xxx-upload.spec.ts` 같이 스프린트별 파일로 묶어서 관리합니다. 보고서에 각 V 항목의 **측정값**(예: `fontSize=16px, contrastRatio=12.63:1`)을 적습니다. 통과·실패만 적지 말 것.
+- 중간 분석·계획을 적는 임시 `.md` 파일은 커밋에서 제외합니다(`docs/v2/*.md`에 들어가는 공식 문서만 커밋).
+
 ## 6. 테스트 규칙
 
 ### 6-1. 사용 명령 (모두 하이픈·오타 없이 그대로)
@@ -188,9 +194,9 @@
 - [ ] `typecheck`, `lint`, `format:check`, `test:run`, `build`, `build:oitemiru` **모두 통과**.
 - [ ] **e2e 판정**(`docs/v2/baseline.md`의 "알려진 e2e 실패" 표):
   - 실패한 테스트가 전부 그 표 안에 있어야 함(새 실패 0건).
-  - 통과 수가 baseline(현재 51)보다 줄면 안 됨.
+  - 통과 수가 baseline(v2-S2 완료 후 **74**)보다 줄면 안 됨.
   - 실패한 테스트는 1회 재실행. 재실행에서 통과하면 flaky로 표시하고 실패로 세지 않음.
-  - 담당 스프린트는 자기 debt를 해소: S2(C7/A1/A4-text/C/A3), S4(B1/B2), S5(F-occlusion), S3 또는 S7(F-download), S7(visual-qa 환경 미실행 포함).
+  - 담당 스프린트는 자기 debt를 해소: S4(B1/B2/perspective hit-test), S5(F-occlusion), S3 또는 S7(F-download), S7(Linux 스냅샷 환경 재측정).
   - **S7 push 전에는 알려진 실패가 0건이어야 함.** 사용자가 승인한 예외만 남길 수 있음.
 - [ ] `qa:visual`: Docker 가능하면 Linux 환경에서 통과. 불가능하면 "환경 미실행" 기록 후 S7에서 반드시 실행.
 - [ ] 사용자 문구는 모두 i18n 키로. ja/ko/en 전부 갱신.

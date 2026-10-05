@@ -69,7 +69,7 @@ but no retranslation of these specific terms is required before starting.
 
 The first S1 attempt (`c31a36b`) proved only "same final state → same output" and
 inadvertently defined the PDF-reported bug ("①追加 → ②パース → ③コンテンツ produces a
-stretched content") as *correct behavior under invariant B*. The rework retracts that
+stretched content") as _correct behavior under invariant B_. The rework retracts that
 conclusion.
 
 In perspective mode the renderer now derives the logical screen's aspect from the perspective
