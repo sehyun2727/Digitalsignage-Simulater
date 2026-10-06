@@ -1,32 +1,47 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { useLocale } from '../../i18n/localeContext';
-import { useUiStore } from '../../store/uiStore';
 
 /**
- * A short, non-blocking first-use guide for the Appearance panel's realism controls (sprint spec
- * sections 15-16): shown above AppearanceFields the first time a display/portable object is
- * selected, until dismissed. Structurally mirrors OnboardingOverlay.tsx (same non-modal card, same
- * localStorage-backed one-time dismissal via uiStore), but scoped inline to this panel rather than
- * fixed-position over the whole page, since it specifically introduces these controls in place.
+ * v2-S3 2-3: in-panel collapsible appearance guide. Was previously a dismissable floating
+ * card tied to `uiStore.realismGuideDismissed`; now a stable, non-dismissable description
+ * block that sits at the top of the Appearance section and summarises each child control in
+ * one line. The dismissal state, its localStorage persistence, and the dismiss button are
+ * all gone — the user instead collapses the block whenever they want (session-only state).
  */
 export function RealismGuideCard() {
   const { messages } = useLocale();
-  const dismissRealismGuide = useUiStore((state) => state.dismissRealismGuide);
   const titleId = useId();
+  const bodyId = useId();
+  const [open, setOpen] = useState(true);
 
   return (
-    <div className="realism-guide-card" role="note" aria-labelledby={titleId}>
-      <h3 id={titleId}>{messages.realismGuideTitle}</h3>
-      <p>{messages.realismGuideDescription}</p>
-      <ul>
-        <li>{messages.realismGuideStepPreset}</li>
-        <li>{messages.realismGuideStepInstallation}</li>
-        <li>{messages.realismGuideStepEnvironment}</li>
-        <li>{messages.realismGuideStepOcclusion}</li>
-      </ul>
-      <button type="button" onClick={dismissRealismGuide}>
-        {messages.realismGuideDismissButton}
+    <section className="realism-guide-card" aria-labelledby={titleId}>
+      <button
+        type="button"
+        className="realism-guide-card-toggle"
+        data-testid="appearance-guide-toggle"
+        aria-expanded={open}
+        aria-controls={bodyId}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <span id={titleId} className="realism-guide-card-title">
+          {messages.realismGuideTitle}
+        </span>
+        <span className="realism-guide-card-chevron" aria-hidden="true">
+          {open ? '▾' : '▸'}
+        </span>
       </button>
-    </div>
+      {open && (
+        <div id={bodyId} className="realism-guide-card-body">
+          <p>{messages.realismGuideDescription}</p>
+          <ul>
+            <li>{messages.realismGuideStepPreset}</li>
+            <li>{messages.realismGuideStepInstallation}</li>
+            <li>{messages.realismGuideStepEnvironment}</li>
+            <li>{messages.realismGuideStepOcclusion}</li>
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }

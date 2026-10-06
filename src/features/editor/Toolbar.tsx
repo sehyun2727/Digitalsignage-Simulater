@@ -104,7 +104,22 @@ import type {
  * `onImageError`/`onContentError`) into direct `useUiStore()` calls inside each section — the
  * error slot is a global UI state now (requirement C7), not a prop.
  */
-export function Toolbar() {
+export interface ToolbarProps {
+  /** v2-S3 2-4: handlers mirrored from the header so the Export section can show the big
+   *  primary PNG/video buttons under the comparison toggle. Both locations call the same
+   *  handler, so a single `isExportingVideo` disables them in unison. */
+  onExport: () => void;
+  onExportVideo: () => void;
+  videoExportSupported: boolean;
+  isExportingVideo: boolean;
+}
+
+export function Toolbar({
+  onExport,
+  onExportVideo,
+  videoExportSupported,
+  isExportingVideo,
+}: ToolbarProps) {
   const { messages } = useLocale();
 
   return (
@@ -114,7 +129,12 @@ export function Toolbar() {
       <SelectedSignageSection />
       <ContentSection />
       <AppearanceSection />
-      <ExportSection />
+      <ExportSection
+        onExport={onExport}
+        onExportVideo={onExportVideo}
+        videoExportSupported={videoExportSupported}
+        isExportingVideo={isExportingVideo}
+      />
     </div>
   );
 }
@@ -1125,11 +1145,12 @@ function ContentFields({ object }: { object: DisplaySignageObject | PortableSign
 function AppearanceSection() {
   const { messages } = useLocale();
   const selected = useEditorStore(selectSelectedObject);
-  const realismGuideDismissed = useUiStore((state) => state.realismGuideDismissed);
+  // v2-S3 2-3: the guide block is now a stable, collapsible section at the top of
+  // Appearance — rendered whenever the Appearance section has fields to describe (a
+  // display or portable selected). The old `realismGuideDismissed` localStorage toggle is
+  // gone; collapse/expand is session-only state inside RealismGuideCard itself.
   const showRealismGuide =
-    !realismGuideDismissed &&
-    !!selected &&
-    (selected.kind === 'display' || selected.kind === 'portable');
+    !!selected && (selected.kind === 'display' || selected.kind === 'portable');
 
   return (
     <ToolbarSection heading={messages.toolbarAppearanceSectionHeading}>
@@ -1912,7 +1933,12 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
   );
 }
 
-function ExportSection() {
+function ExportSection({
+  onExport,
+  onExportVideo,
+  videoExportSupported,
+  isExportingVideo,
+}: ToolbarProps) {
   const { messages } = useLocale();
   const document = useEditorStore((state) => state.document);
   const spaceBackground = useEditorStore((state) => state.document.spaceBackground);
@@ -1955,6 +1981,35 @@ function ExportSection() {
       {comparisonMode && !spaceBackground && (
         <p className="toolbar-notice">{messages.comparisonOriginalNoSpaceHint}</p>
       )}
+
+      {/* v2-S3 2-4: full-width primary export buttons directly under the comparison toggle,
+       *  so a user who is reviewing the composed scene can trigger the download without
+       *  jumping back to the header. Shares `onExport*` / `isExportingVideo` with the header
+       *  buttons; both are disabled while a video export is in flight. */}
+      <div className="toolbar-export-actions">
+        <button
+          type="button"
+          className="toolbar-export-primary"
+          data-testid="toolbar-export-png"
+          onClick={onExport}
+          disabled={!spaceBackground || isExportingVideo}
+        >
+          {messages.editorExportButton}
+        </button>
+        {videoExportSupported && (
+          <button
+            type="button"
+            className="toolbar-export-primary"
+            data-testid="toolbar-export-video"
+            onClick={onExportVideo}
+            disabled={!spaceBackground || isExportingVideo}
+          >
+            {isExportingVideo
+              ? messages.editorExportVideoInProgressButton
+              : messages.editorExportVideoButton}
+          </button>
+        )}
+      </div>
 
       {spaceBackground ? (
         <p className="toolbar-notice">

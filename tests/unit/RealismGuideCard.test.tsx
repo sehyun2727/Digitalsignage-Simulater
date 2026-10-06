@@ -8,6 +8,11 @@ import { useEditorStore } from '../../src/store/editorStore';
 import { useUiStore } from '../../src/store/uiStore';
 import { createEmptyDocument } from '../../src/types/editor';
 
+// v2-S3 2-3 rewrite: the dismissable one-time card is now a stable, collapsible description
+// block at the top of the Appearance section. These tests cover the current behavior —
+// visibility is driven by what's selected (not localStorage), and the only state is a
+// session-only expand/collapse toggle inside the component itself.
+
 vi.mock('../../src/features/editor/EditorCanvas', () => ({
   EditorCanvas: forwardRef(function MockEditorCanvas(_props, ref) {
     useImperativeHandle(ref, () => ({ exportToDataUrl: () => null }));
@@ -43,14 +48,15 @@ async function addSpaceBackground(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByRole('button', { name: ja.editorRemoveSpaceBackgroundButton });
 }
 
-describe('RealismGuideCard', () => {
+describe('RealismGuideCard (v2-S3 collapsible appearance guide)', () => {
   beforeEach(() => {
     window.localStorage.clear();
     mockBrowserLocale(['fr-FR']);
     useUiStore.setState({
       comparisonMode: false,
       onboardingDismissed: true,
-      realismGuideDismissed: false,
+      errors: {},
+      requestSequence: { 'space-photo': 0, content: 0, export: 0 },
     });
     useEditorStore.setState({
       document: createEmptyDocument(),
@@ -70,57 +76,36 @@ describe('RealismGuideCard', () => {
     render(<App />);
     await addSpaceBackground(user);
 
-    expect(screen.queryByRole('note', { name: ja.realismGuideTitle })).not.toBeInTheDocument();
+    expect(screen.queryByText(ja.realismGuideTitle)).not.toBeInTheDocument();
   });
 
-  it('is shown once a display is selected', async () => {
+  it('is shown once a display is selected and the body stays open by default', async () => {
     const user = userEvent.setup();
     render(<App />);
     await addSpaceBackground(user);
 
     await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
 
-    expect(screen.getByRole('note', { name: ja.realismGuideTitle })).toBeInTheDocument();
+    const toggle = screen.getByTestId('appearance-guide-toggle');
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(ja.realismGuideStepPreset)).toBeInTheDocument();
+    expect(screen.getByText(ja.realismGuideStepOcclusion)).toBeInTheDocument();
   });
 
-  // The old "text object with no appearance settings hides the RealismGuideCard" scenario no
-  // longer exists: text is now a real child of a display/portable signage (a TextContent on the
-  // parent's `content` field), not a standalone selectable element. Selecting a signage always
-  // shows the RealismGuideCard, whether the current content is media or text, so there is no
-  // way for the user to reach the "selected but no appearance settings" state through the UI.
-
-  it('the dismiss button hides the card and persists the choice to localStorage', async () => {
+  it('collapses when the toggle is clicked and expands again on the next click', async () => {
     const user = userEvent.setup();
     render(<App />);
     await addSpaceBackground(user);
     await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
 
-    await user.click(screen.getByRole('button', { name: ja.realismGuideDismissButton }));
+    const toggle = screen.getByTestId('appearance-guide-toggle');
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(ja.realismGuideStepPreset)).not.toBeInTheDocument();
 
-    expect(screen.queryByRole('note', { name: ja.realismGuideTitle })).not.toBeInTheDocument();
-    expect(window.localStorage.getItem('signage-canvas.realism-guide-dismissed')).toBe('1');
-  });
-
-  it('does not reappear on a later selection once dismissed', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-    await addSpaceBackground(user);
-    await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
-    await user.click(screen.getByRole('button', { name: ja.realismGuideDismissButton }));
-
-    await user.click(screen.getByRole('button', { name: ja.editorAddLcdButton }));
-
-    expect(screen.queryByRole('note', { name: ja.realismGuideTitle })).not.toBeInTheDocument();
-  });
-
-  it('does not show when the guide was already dismissed in a previous session', async () => {
-    useUiStore.setState({ realismGuideDismissed: true });
-    const user = userEvent.setup();
-    render(<App />);
-    await addSpaceBackground(user);
-
-    await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
-
-    expect(screen.queryByRole('note', { name: ja.realismGuideTitle })).not.toBeInTheDocument();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(ja.realismGuideStepPreset)).toBeInTheDocument();
   });
 });

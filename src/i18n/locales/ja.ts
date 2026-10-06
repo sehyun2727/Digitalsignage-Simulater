@@ -412,24 +412,24 @@ export const ja: Messages = {
   onboardingStep4Description: '完成したモックアップをPNGとして書き出して共有しましょう。',
   onboardingStep4CtaLabel: '今すぐPNGで保存',
 
-  realismGuideTitle: 'リアルさを高める設定',
+  realismGuideTitle: '外観の設定について',
   realismGuideDescription:
-    'この「外観」パネルには、設置イメージをより実写に近づけるための設定がまとまっています。上から順に試してみましょう。',
-  realismGuideStepPreset: 'レンダリングプリセットで、時間帯や明るさの雰囲気を選べます。',
+    'サイネージ本体を「設置場所の写真」に馴染ませるための設定がまとまっています。下の各項目で、明るさ・設置面・環境色・手前の物で隠す（マスク）を調整できます。',
+  realismGuideStepPreset:
+    '明るさ・時間帯：昼・夕方・夜などのプリセットで全体の雰囲気を切り替えます。',
   realismGuideStepInstallation:
-    '設置面と接地シャドウで、壁面・窓面・自立式のどれに設置するかを反映できます。',
+    '設置面と接地シャドウ：壁面・窓面・自立式に合わせて、床や壁への馴染みを整えます。',
   realismGuideStepEnvironment:
-    '空間写真からサンプリングすると、その場の色味に馴染む環境ブレンドを作れます。',
-  realismGuideStepOcclusion: 'モザイクで、柱や什器の手前にサイネージを自然に隠せます。',
-  realismGuideDismissButton: '分かりました',
+    '環境ブレンド：設置場所の写真から色をサンプリングし、周囲の色味に合わせます。',
+  realismGuideStepOcclusion:
+    '手前の物で隠す（マスク）：柱や什器の後ろに回り込んで見えるように、画面の一部を隠します。',
 
   salesReviewEnterButton: '営業レビューモード',
   salesReviewExitButton: '編集に戻る',
   salesReviewModeHint:
     '編集操作を無効にした、お客様にそのままお見せできる表示です。「編集に戻る」を押すといつでも編集を再開できます。',
 
-  userGuideOpenButton: '使い方・このツールについて',
-  userGuideHereHint: '← マニュアルはこちら',
+  userGuideOpenButton: '使い方ガイド',
   userGuideTitle: '使い方・このツールについて',
   userGuideCloseButton: '閉じる',
   userGuideAboutHeading: 'このツールについて',

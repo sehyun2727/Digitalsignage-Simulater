@@ -325,14 +325,12 @@ export interface Messages {
   realismGuideStepInstallation: string;
   realismGuideStepEnvironment: string;
   realismGuideStepOcclusion: string;
-  realismGuideDismissButton: string;
 
   salesReviewEnterButton: string;
   salesReviewExitButton: string;
   salesReviewModeHint: string;
 
   userGuideOpenButton: string;
-  userGuideHereHint: string;
   userGuideTitle: string;
   userGuideCloseButton: string;
   userGuideAboutHeading: string;

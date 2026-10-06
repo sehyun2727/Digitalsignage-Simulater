@@ -79,6 +79,11 @@ export interface UiState {
   clearUploadError: (source: UploadErrorSource, requestId: number) => void;
   /** Dismiss variant for the × button: ignores request ids and clears unconditionally. */
   dismissUploadError: (source: UploadErrorSource) => void;
+  /** v2-S3 2-6: UserGuideModal open state. Lifted into the uiStore so both the header's
+   *  「使い方ガイド」 button (EditorLayout) and the footer's 📖 icon (App shell) toggle a
+   *  single source of truth. Session-only — not persisted to localStorage. */
+  userGuideOpen: boolean;
+  setUserGuideOpen: (value: boolean) => void;
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
@@ -89,6 +94,8 @@ export const useUiStore = create<UiState>((set, get) => ({
   watermarkDisabled: false,
   errors: {},
   requestSequence: { 'space-photo': 0, content: 0, export: 0 },
+  userGuideOpen: false,
+  setUserGuideOpen: (value) => set({ userGuideOpen: value }),
   setComparisonMode: (value) => set({ comparisonMode: value }),
   setSalesReviewMode: (value) => set({ salesReviewMode: value }),
   dismissOnboarding: () => {

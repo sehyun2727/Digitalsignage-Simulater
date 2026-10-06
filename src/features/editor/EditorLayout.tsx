@@ -52,6 +52,7 @@ export function EditorLayout() {
   const setUploadError = useUiStore((state) => state.setUploadError);
   const clearUploadError = useUiStore((state) => state.clearUploadError);
   const dismissUploadError = useUiStore((state) => state.dismissUploadError);
+  const setUserGuideOpen = useUiStore((state) => state.setUserGuideOpen);
   const [onboardingOpen, setOnboardingOpen] = useState(!onboardingDismissed);
   const [isExportingVideo, setIsExportingVideo] = useState(false);
   // Feature support does not change over the page's lifetime, so this is computed once rather
@@ -303,12 +304,31 @@ export function EditorLayout() {
             {salesReviewMode ? messages.salesReviewExitButton : messages.salesReviewEnterButton}
           </button>
           <LanguageSelector />
-          <button type="button" onClick={handleExport} disabled={!spaceBackground}>
+          {/* v2-S3 2-6 (ADR 0012 D-9): always-visible UserGuide entry next to the language
+           *  selector. The footer 📖 icon stays as a secondary entry point. The old
+           *  `userGuideHereHint` 「← マニュアルはこちら」 inline label was removed with this
+           *  button — users now have a persistent, labelled control instead of a decorative
+           *  arrow pointing to a corner icon. */}
+          <button
+            type="button"
+            className="editor-header-guide-button"
+            data-testid="editor-header-user-guide"
+            onClick={() => setUserGuideOpen(true)}
+          >
+            {messages.userGuideOpenButton}
+          </button>
+          <button
+            type="button"
+            data-testid="editor-header-export-png"
+            onClick={handleExport}
+            disabled={!spaceBackground || isExportingVideo}
+          >
             {messages.editorExportButton}
           </button>
           {videoExportSupported && (
             <button
               type="button"
+              data-testid="editor-header-export-video"
               onClick={handleExportVideo}
               disabled={!spaceBackground || isExportingVideo}
             >
@@ -393,7 +413,14 @@ export function EditorLayout() {
             </div>
           </div>
         </div>
-        {!salesReviewMode && <Toolbar />}
+        {!salesReviewMode && (
+          <Toolbar
+            onExport={handleExport}
+            onExportVideo={handleExportVideo}
+            videoExportSupported={videoExportSupported}
+            isExportingVideo={isExportingVideo}
+          />
+        )}
       </div>
 
       {onboardingOpen && (

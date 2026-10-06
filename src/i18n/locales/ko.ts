@@ -403,25 +403,23 @@ export const ko: Messages = {
   onboardingStep4Description: '완성된 목업을 PNG로 내보내 공유하세요.',
   onboardingStep4CtaLabel: '지금 PNG로 저장하기',
 
-  realismGuideTitle: '리얼리티를 높이는 설정',
+  realismGuideTitle: '외관 설정 소개',
   realismGuideDescription:
-    '이 "외관" 패널에는 설치 이미지를 실제 사진에 가깝게 만드는 설정이 모여 있습니다. 위에서부터 차례로 시도해 보세요.',
-  realismGuideStepPreset: '렌더링 프리셋으로 시간대와 밝기 분위기를 선택할 수 있습니다.',
+    '사이네지 본체를 "설치 장소 사진"에 어울리게 하는 설정이 모여 있습니다. 아래의 각 항목에서 밝기·설치면·환경 색·앞 물체로 가리기(마스크)를 조정할 수 있습니다.',
+  realismGuideStepPreset: '밝기·시간대: 낮·저녁·밤 등 프리셋으로 전체 분위기를 바꿉니다.',
   realismGuideStepInstallation:
-    '설치면과 접지 그림자로 벽면·창면·자립형 중 어디에 설치할지 반영할 수 있습니다.',
+    '설치면과 접지 그림자: 벽면·창면·자립형에 맞춰 바닥이나 벽과의 어울림을 조정합니다.',
   realismGuideStepEnvironment:
-    '공간 사진에서 색상을 샘플링하면 그 공간의 색감에 어울리는 환경 블렌드를 만들 수 있습니다.',
+    '환경 블렌드: 설치 장소 사진에서 색을 샘플링해 주변 색감에 맞춥니다.',
   realismGuideStepOcclusion:
-    '모자이크로 기둥이나 집기 앞에 사이네지를 자연스럽게 가릴 수 있습니다.',
-  realismGuideDismissButton: '확인했습니다',
+    '앞 물체로 가리기(마스크): 기둥이나 집기 뒤로 돌아가 보이도록 화면 일부를 가립니다.',
 
   salesReviewEnterButton: '영업 리뷰 모드',
   salesReviewExitButton: '편집으로 돌아가기',
   salesReviewModeHint:
     '편집 기능을 비활성화한, 고객에게 그대로 보여줄 수 있는 화면입니다. "편집으로 돌아가기"를 누르면 언제든 편집을 다시 시작할 수 있습니다.',
 
-  userGuideOpenButton: '사용법 · 이 서비스에 대하여',
-  userGuideHereHint: '← 설명서는 여기',
+  userGuideOpenButton: '사용 가이드',
   userGuideTitle: '사용법 · 이 서비스에 대하여',
   userGuideCloseButton: '닫기',
   userGuideAboutHeading: '이 서비스에 대하여',

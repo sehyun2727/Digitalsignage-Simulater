@@ -720,28 +720,58 @@ a {
   flex-shrink: 0;
 }
 
+/* v2-S3 2-3: in-panel collapsible appearance guide. Replaces the dismissable floating
+ * card. The toggle button spans the full width and uses aria-expanded; the body is a
+ * stacked description + 4 one-line summaries of the controls below (brightness, mounting
+ * surface, environment blend, foreground mask). */
 .realism-guide-card {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   background-color: var(--color-bg);
 }
 
-.realism-guide-card h3 {
-  margin: 0;
-  font-size: 0.9rem;
+.realism-guide-card-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
 }
 
-.realism-guide-card p {
-  margin: 0;
-  font-size: 0.8rem;
+.realism-guide-card-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.realism-guide-card-chevron {
+  font-size: 0.85rem;
   color: var(--color-muted);
 }
 
-.realism-guide-card ul {
+.realism-guide-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.realism-guide-card-body p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.realism-guide-card-body ul {
   margin: 0;
   padding-left: 1.1rem;
   font-size: 0.8rem;
@@ -749,15 +779,6 @@ a {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-}
-
-.realism-guide-card button {
-  align-self: flex-start;
-  padding: 0.35rem 0.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.25rem;
-  background-color: var(--color-bg);
-  cursor: pointer;
 }
 
 .curvature-mode-group,
@@ -888,13 +909,6 @@ a {
   align-items: center;
   gap: 0.4rem;
   padding: 0;
-}
-
-.user-guide-here-hint {
-  font-size: 0.75rem;
-  color: #d32f2f;
-  line-height: 1;
-  white-space: nowrap;
 }
 
 .user-guide-open-button {
@@ -1398,4 +1412,34 @@ a {
   color: #b3261e;
   font-size: 0.85rem;
   margin: 0;
+}
+
+/* v2-S3 2-4: full-width primary export buttons under the Export section's comparison
+ * toggle. ≥44 px tall to meet the "mobile-tappable" bar the sprint spec calls out. */
+.toolbar-export-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.toolbar-export-primary {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  background-color: var(--color-primary, #1565c0);
+  color: #fff;
+  border: 1px solid var(--color-primary, #1565c0);
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+.toolbar-export-primary:hover:not(:disabled) {
+  background-color: #0d47a1;
+  border-color: #0d47a1;
+}
+.toolbar-export-primary:disabled {
+  background-color: #c1c7d1;
+  border-color: #c1c7d1;
+  color: #ffffff;
+  cursor: not-allowed;
 }

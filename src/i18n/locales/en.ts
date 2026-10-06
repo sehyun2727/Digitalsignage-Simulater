@@ -406,24 +406,24 @@ export const en: Messages = {
   onboardingStep4Description: 'Export the finished mockup as a PNG to share.',
   onboardingStep4CtaLabel: 'Save as PNG now',
 
-  realismGuideTitle: 'Realism controls',
+  realismGuideTitle: 'About appearance settings',
   realismGuideDescription:
-    'This Appearance panel gathers the settings that make a placement look more like a real photo. Try them top to bottom.',
-  realismGuideStepPreset: 'Rendering preset sets the overall time-of-day and brightness mood.',
+    'These settings help the signage blend into the installation photo. Each item below adjusts brightness, mounting surface, ambient color, or covering by a foreground object (mask).',
+  realismGuideStepPreset:
+    'Brightness and time of day: pick day / evening / night presets for the overall mood.',
   realismGuideStepInstallation:
-    'Installation surface and contact shadow reflect whether the signage sits on a wall, a window, or freestanding.',
+    'Mounting surface and contact shadow: match a wall, window, or freestanding placement.',
   realismGuideStepEnvironment:
-    'Sampling from the space photo creates an ambient color blend that matches the room.',
-  realismGuideStepOcclusion: 'Mosaics let a pillar or fixture naturally cover part of the signage.',
-  realismGuideDismissButton: 'Got it',
+    'Ambient blend: sample the installation photo to match surrounding colors.',
+  realismGuideStepOcclusion:
+    'Cover by a foreground object (mask): hide part of the screen so the signage sits behind a pillar or fixture.',
 
   salesReviewEnterButton: 'Sales review mode',
   salesReviewExitButton: 'Back to editing',
   salesReviewModeHint:
     'A clean, non-editable view you can show a client as-is. Select "Back to editing" any time to resume editing.',
 
-  userGuideOpenButton: 'About & how to use',
-  userGuideHereHint: '← Manual is here',
+  userGuideOpenButton: 'User guide',
   userGuideTitle: 'About & how to use',
   userGuideCloseButton: 'Close',
   userGuideAboutHeading: 'About this tool',

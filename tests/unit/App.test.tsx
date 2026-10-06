@@ -184,6 +184,9 @@ describe('App', () => {
       onboardingDismissed: true,
       errors: {},
       requestSequence: { 'space-photo': 0, content: 0, export: 0 },
+      // v2-S3 2-6: user-guide open state is session-only in uiStore; reset to false so a
+      // previous test that opened the guide can't leak the <dialog> into the next test.
+      userGuideOpen: false,
     });
     // useEditorStore is also a module-level singleton; reset it so the space background,
     // objects, and history from one test never leak into the next.
@@ -226,9 +229,12 @@ describe('App', () => {
     render(<App />);
 
     expect(document.documentElement.lang).toBe('ja');
-    // The footer previously exposed a JA-specific disclaimer line; that text now lives inside
-    // the user guide modal, so the JA-only footer link stands in as a language-visible marker.
-    expect(screen.getByRole('button', { name: ja.userGuideOpenButton })).toBeInTheDocument();
+    // v2-S3 2-6: the user-guide entry now exists in both the header (text button) and the
+    // footer (📖 icon). Both share the same accessible name, so disambiguate via the
+    // header testid for this "ja is wired up" check.
+    expect(screen.getByTestId('editor-header-user-guide')).toHaveTextContent(
+      ja.userGuideOpenButton,
+    );
   });
 
   it('opens the user guide modal from the footer link and shows the service description', async () => {
@@ -241,7 +247,8 @@ describe('App', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText(ja.userGuideAboutBody)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: ja.userGuideOpenButton }));
+    // Open from the footer entry (📖 icon) — testid disambiguates from the new header entry.
+    await user.click(screen.getByTestId('editor-footer-user-guide'));
 
     // Once opened, the About section and its short service description are reachable.
     expect(
@@ -307,11 +314,12 @@ describe('App', () => {
     render(<App />);
     await addSpaceBackground(user);
 
-    await user.click(screen.getByRole('button', { name: ja.editorExportButton }));
+    // v2-S3 2-4: the Export button now also lives in the Toolbar's Export section as a
+    // full-width primary button. Both call the same handler; targeting the header testid
+    // keeps this test focused on the header path. The toolbar duplicate is covered by the
+    // e2e v2-layout spec.
+    await user.click(screen.getByTestId('editor-header-export-png'));
 
-    // v2-S2: export failures surface as `.error-banner` cards in the status area (no longer as
-    // a polite status announcement). The cause copy for both PNG and video export failures
-    // mentions 書き出し, so matching that keyword covers both without duplicating locale strings.
     const banner = await screen.findByTestId('editor-error-banner');
     expect(banner).toHaveTextContent(ja.errorExportPngFailedCause);
   });
@@ -339,17 +347,18 @@ describe('App', () => {
     await addSpaceBackground(user);
     expect(screen.queryByText(ja.editorExportVideoUnsupportedHint)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: ja.editorExportVideoButton }));
-
-    const inProgressButton = await screen.findByRole('button', {
-      name: ja.editorExportVideoInProgressButton,
-    });
-    expect(inProgressButton).toBeDisabled();
+    // v2-S3 2-4: header + toolbar both expose the video export button; target the header
+    // testid for the click, then verify the in-progress label on the header button only
+    // (the toolbar duplicate is covered in e2e).
+    const headerVideo = screen.getByTestId('editor-header-export-video');
+    await user.click(headerVideo);
+    expect(headerVideo).toHaveTextContent(ja.editorExportVideoInProgressButton);
+    expect(headerVideo).toBeDisabled();
 
     resolveRecording(new Blob(['clip'], { type: 'video/webm' }));
 
     expect(await screen.findByText(ja.editorExportedVideoAnnouncement)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: ja.editorExportVideoButton })).not.toBeDisabled();
+    expect(screen.getByTestId('editor-header-export-video')).not.toBeDisabled();
   });
 
   it('shows an accessible error and does not download when video export fails', async () => {
@@ -358,10 +367,10 @@ describe('App', () => {
     render(<App />);
     await addSpaceBackground(user);
 
-    await user.click(screen.getByRole('button', { name: ja.editorExportVideoButton }));
+    await user.click(screen.getByTestId('editor-header-export-video'));
 
     expect(await screen.findByText(ja.editorExportVideoErrorAnnouncement)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: ja.editorExportVideoButton })).not.toBeDisabled();
+    expect(screen.getByTestId('editor-header-export-video')).not.toBeDisabled();
   });
 
   it('shows an accessible error and revokes the object URL when an uploaded image fails to decode', async () => {
@@ -431,7 +440,7 @@ describe('App', () => {
     render(<App />);
     await addSpaceBackground(user);
 
-    await user.click(screen.getByRole('button', { name: ja.editorExportButton }));
+    await user.click(screen.getByTestId('editor-header-export-png'));
 
     // v2-S2 (requirement C7): success hints go to the polite status element, not the error
     // banner. If a `.error-banner` ever appeared on a successful export path, that would mean
