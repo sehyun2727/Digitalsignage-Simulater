@@ -361,3 +361,138 @@ test('V16: PNG export still works and the exported file is non-empty (S1 regress
   // order.spec.ts and e2e/visual-qa.spec.ts.
   expect(buf.length).toBeGreaterThan(2048);
 });
+
+// --- W1~W6 — missing self-validation items added in the v2-S2 보완 round ------------------
+// Each test prints measured values via `console.log` so the human report can quote the
+// numbers directly (CLAUDE.md §5-8). Playwright captures console output in the JSON reporter.
+
+test('W1: hint and error are different nodes, error above hint, texts do not overlap', async ({
+  page,
+}) => {
+  // Extends V8. Also asserts the two text contents are distinct strings so a bug that funnels
+  // both channels into the same element would be caught here.
+  await bootWithSpaceAndLed(page);
+  await uploadOversizedImage(page.getByTestId('editor-content-upload'));
+
+  const banner = page.getByTestId(FULL_BANNER);
+  const hint = page.getByTestId('editor-status-area-hint');
+  await expect(banner).toBeVisible();
+  await expect(hint).toBeVisible();
+
+  const bannerBox = (await banner.boundingBox())!;
+  const hintBox = (await hint.boundingBox())!;
+  // Error (banner) is positioned above the hint — its top is strictly less than the hint's.
+  expect(bannerBox.y).toBeLessThan(hintBox.y);
+  const bannerText = (await banner.textContent())!.trim();
+  const hintText = (await hint.textContent())!.trim();
+  expect(bannerText).not.toBe(hintText);
+  console.log(
+    `W1 bannerTop=${bannerBox.y} hintTop=${hintBox.y} delta=${hintBox.y - bannerBox.y} bannerText="${bannerText.slice(0, 40)}" hintText="${hintText.slice(0, 40)}"`,
+  );
+});
+
+test('W2: input accept attribute equals the uploadLimits-derived allowed types', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const spaceAccept = (await page
+    .getByTestId('editor-space-background-upload')
+    .getAttribute('accept'))!;
+  // Space photo = image-only (ACCEPTED_IMAGE_TYPES joined).
+  expect(spaceAccept.split(',').sort()).toEqual(['image/jpeg', 'image/png', 'image/webp']);
+
+  await addSpaceBackground(page, SIZE);
+  await page.getByTestId('editor-add-led').click();
+  const contentAccept = (await page.getByTestId('editor-content-upload').getAttribute('accept'))!;
+  // Content = ACCEPTED_IMAGE_TYPES ∪ ACCEPTED_VIDEO_TYPES.
+  expect(contentAccept.split(',').sort()).toEqual([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'video/mp4',
+    'video/webm',
+  ]);
+  console.log(`W2 spaceAccept="${spaceAccept}" contentAccept="${contentAccept}"`);
+});
+
+test('W3: switching to ko with an error visible rebuilds the message in ko and leaves no key/undefined artifact', async ({
+  page,
+}) => {
+  await bootWithSpaceAndLed(page);
+  await uploadOversizedImage(page.getByTestId('editor-content-upload'));
+  await expect(page.getByTestId(FULL_BANNER)).toContainText('画像のファイルサイズ');
+
+  await page.locator('#language-select').selectOption('ko');
+  const bannerText = (await page.getByTestId(FULL_BANNER).textContent())!;
+  // ko rendering: cause mentions 이미지 파일 크기; and literal interpolation tokens / i18n key
+  // names / undefined must not appear anywhere in the displayed text.
+  expect(bannerText).toContain('이미지 파일 크기');
+  expect(bannerText).not.toMatch(/\{[a-zA-Z]+\}/); // leftover `{maxMb}` etc.
+  expect(bannerText.toLowerCase()).not.toContain('undefined');
+  expect(bannerText).not.toContain('errorImage'); // raw i18n key name
+  console.log(`W3 bannerText(ko)="${bannerText.replace(/\s+/g, ' ').slice(0, 160)}"`);
+});
+
+test('W4: at 390×844 the error banner stays within the viewport width and does not scroll horizontally', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    locale: 'ja-JP',
+  });
+  const page = await context.newPage();
+  await bootWithSpaceAndLed(page);
+  await uploadOversizedImage(page.getByTestId('editor-content-upload'));
+
+  const banner = (await page.getByTestId(FULL_BANNER).boundingBox())!;
+  const metrics = await page.$eval('[data-testid="editor-error-banner"]', (el) => ({
+    scrollWidth: (el as HTMLElement).scrollWidth,
+    clientWidth: (el as HTMLElement).clientWidth,
+  }));
+  expect(banner.x + banner.width).toBeLessThanOrEqual(390 + 1);
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
+  console.log(
+    `W4 bannerRight=${banner.x + banner.width} viewportWidth=390 scrollWidth=${metrics.scrollWidth} clientWidth=${metrics.clientWidth}`,
+  );
+  await context.close();
+});
+
+test('W5: canvas top and height change by small deltas when an error toggles on and off', async ({
+  page,
+}) => {
+  await bootWithSpaceAndLed(page);
+  const before = (await page.locator('.editor-canvas-container').boundingBox())!;
+
+  await uploadOversizedImage(page.getByTestId('editor-content-upload'));
+  await expect(page.getByTestId(FULL_BANNER)).toBeVisible();
+  const during = (await page.locator('.editor-canvas-container').boundingBox())!;
+
+  await page.getByTestId(FULL_BANNER).getByRole('button', { name: '閉じる' }).click();
+  await expect(page.getByTestId(FULL_BANNER)).toHaveCount(0);
+  const after = (await page.locator('.editor-canvas-container').boundingBox())!;
+
+  const topDelta = Math.max(Math.abs(during.y - before.y), Math.abs(after.y - before.y));
+  const heightDelta = Math.max(
+    Math.abs(during.height - before.height),
+    Math.abs(after.height - before.height),
+  );
+  // The error banner slots into a dedicated area below the canvas (CSS grid row), so neither
+  // the canvas top nor its height should move noticeably when the banner toggles.
+  expect(topDelta).toBeLessThanOrEqual(2);
+  expect(heightDelta).toBeLessThanOrEqual(2);
+  console.log(
+    `W5 topDelta=${topDelta.toFixed(2)}px heightDelta=${heightDelta.toFixed(2)}px before={y:${before.y},h:${before.height}} during={y:${during.y},h:${during.height}} after={y:${after.y},h:${after.height}}`,
+  );
+});
+
+test('W6: canvas bottom and status area top are measured and non-overlapping', async ({ page }) => {
+  await bootWithSpaceAndLed(page);
+  await uploadOversizedImage(page.getByTestId('editor-content-upload'));
+
+  const canvas = (await page.locator('.editor-canvas-container').boundingBox())!;
+  const statusArea = (await page.getByTestId('editor-status-area').boundingBox())!;
+  expect(statusArea.y).toBeGreaterThanOrEqual(canvas.y + canvas.height - 1);
+  console.log(
+    `W6 canvasBottom=${(canvas.y + canvas.height).toFixed(2)} statusAreaTop=${statusArea.y.toFixed(2)} gap=${(statusArea.y - (canvas.y + canvas.height)).toFixed(2)}`,
+  );
+});

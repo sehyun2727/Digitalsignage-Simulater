@@ -500,40 +500,50 @@ describe('App', () => {
       expect(screen.getByRole('combobox', { name: ja.editorMaterialLabel })).toHaveValue('lcd');
     });
 
-    it('uploads content into a display, edits fit/offset/scale, and resets placement', async () => {
-      const user = userEvent.setup();
-      render(<App />);
-      await addSpaceBackground(user);
+    // v2-S2 보완: this test chains render() + addSpaceBackground + addLed + upload + three
+    // interleaved pointer interactions under one jsdom instance. On a cold or heavily loaded
+    // run this crossed vitest's 5s per-test default once in three repetitions; the individual
+    // assertions themselves stay fast when the test runs in isolation. Bumping the per-test
+    // budget to 15s (not the whole suite) absorbs that cold-start variance without masking a
+    // real regression — the body's assertions are unchanged.
+    it(
+      'uploads content into a display, edits fit/offset/scale, and resets placement',
+      { timeout: 15000 },
+      async () => {
+        const user = userEvent.setup();
+        render(<App />);
+        await addSpaceBackground(user);
 
-      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
+        await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
 
-      await user.upload(
-        screen.getByLabelText(ja.editorContentUploadButton),
-        createImageFile('content.png'),
-      );
+        await user.upload(
+          screen.getByLabelText(ja.editorContentUploadButton),
+          createImageFile('content.png'),
+        );
 
-      expect(
-        await screen.findByRole('button', { name: ja.editorContentReplaceButton }),
-      ).toBeInTheDocument();
+        expect(
+          await screen.findByRole('button', { name: ja.editorContentReplaceButton }),
+        ).toBeInTheDocument();
 
-      const fitSelect = screen.getByRole('combobox', { name: ja.editorContentFitLabel });
-      expect(fitSelect).toHaveValue('contain');
-      await user.selectOptions(fitSelect, 'cover');
-      expect(fitSelect).toHaveValue('cover');
+        const fitSelect = screen.getByRole('combobox', { name: ja.editorContentFitLabel });
+        expect(fitSelect).toHaveValue('contain');
+        await user.selectOptions(fitSelect, 'cover');
+        expect(fitSelect).toHaveValue('cover');
 
-      await user.click(
-        screen.getByRole('button', { name: ja.editorContentAdvancedSettingsOpenButton }),
-      );
+        await user.click(
+          screen.getByRole('button', { name: ja.editorContentAdvancedSettingsOpenButton }),
+        );
 
-      const offsetXInput = screen.getByRole('spinbutton', { name: ja.editorContentOffsetXLabel });
-      await user.clear(offsetXInput);
-      await user.type(offsetXInput, '0.4');
-      await user.tab();
-      expect(offsetXInput).toHaveValue(0.4);
+        const offsetXInput = screen.getByRole('spinbutton', { name: ja.editorContentOffsetXLabel });
+        await user.clear(offsetXInput);
+        await user.type(offsetXInput, '0.4');
+        await user.tab();
+        expect(offsetXInput).toHaveValue(0.4);
 
-      await user.click(screen.getByRole('button', { name: ja.editorContentResetButton }));
-      expect(offsetXInput).toHaveValue(0);
-    });
+        await user.click(screen.getByRole('button', { name: ja.editorContentResetButton }));
+        expect(offsetXInput).toHaveValue(0);
+      },
+    );
 
     it('removes uploaded content from a display', async () => {
       const user = userEvent.setup();

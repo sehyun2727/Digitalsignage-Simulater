@@ -101,6 +101,12 @@ test.describe('four-point perspective placement', () => {
   test('edit/cancel discards draft changes, reset restores the original quad, and undo/redo toggle placement mode', async ({
     page,
   }) => {
+    // v2-S2 rewrite: the pre-S0 fieldset-based "X座標"/"Y座標" numeric inputs were
+    // replaced with per-corner draggable slider handles whose current value is exposed as
+    // `aria-valuetext="X%, Y%"`. We assert that string instead of the removed spinbutton
+    // value. Re-selection after Undo/Redo uses the current hit-area rule: in perspective
+    // mode the warped quad is the selection area (see the hit-testing spec below), so
+    // Redo (which restores perspective mode) must be followed by a click INSIDE the quad.
     await setup(page);
     await page.getByRole('button', { name: 'LED', exact: true }).click();
     await applyTopLeftPerspectiveQuad(page);
@@ -113,71 +119,96 @@ test.describe('four-point perspective placement', () => {
     await expect(page.getByRole('slider', { name: '左上' })).toBeHidden();
 
     await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
-    let topLeftFieldset = page.locator('fieldset').filter({ hasText: '左上' });
-    await expect(topLeftFieldset.getByRole('spinbutton', { name: 'X座標' })).toHaveValue('0.05');
+    // The handle's aria-valuetext is "5%, 5%" for (0.05, 0.05) — the applied TOP_LEFT_QUAD
+    // value — confirming Cancel discarded the (0.2, 0.2) draft without touching the stored
+    // quad.
+    await expect(page.getByRole('slider', { name: '左上' })).toHaveAttribute(
+      'aria-valuetext',
+      '5%, 5%',
+    );
 
     // Change the same corner again, then Reset — the draft must revert without leaving edit mode.
     await setPerspectiveCorner(page, '左上', 0.2, 0.2);
     await page.getByRole('button', { name: 'リセット', exact: true }).click();
-    topLeftFieldset = page.locator('fieldset').filter({ hasText: '左上' });
-    await expect(topLeftFieldset.getByRole('spinbutton', { name: 'X座標' })).toHaveValue('0.05');
+    await expect(page.getByRole('slider', { name: '左上' })).toHaveAttribute(
+      'aria-valuetext',
+      '5%, 5%',
+    );
     await expect(page.getByRole('button', { name: '適用' })).toBeVisible();
     await page.getByRole('button', { name: '適用' }).click();
 
-    // Undo reverts the perspective apply back to normal (rect) placement; the object is
-    // deselected by the undo itself, so it must be reselected via canvas click to check its
-    // properties panel, matching the established reselection-after-undo pattern.
+    // Undo reverts the perspective apply back to normal rect placement; the display's hit
+    // area is then the centered flat rect (720,405)-(1200,675). Click the rect's center to
+    // reselect, matching the established reselection-after-undo pattern.
     await page.getByRole('button', { name: '元に戻す' }).click();
     await expect(deleteButton(page)).toBeDisabled();
-    const center = await documentPointToPagePoint(page, { x: 960, y: 540 });
-    await page.mouse.click(center.x, center.y);
+    const rectCenter = await documentPointToPagePoint(page, { x: 960, y: 540 });
+    await page.mouse.click(rectCenter.x, rectCenter.y);
     await expect(deleteButton(page)).toBeEnabled();
     await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeHidden();
 
+    // Redo re-applies the TOP_LEFT_QUAD perspective; the hit area is now the warped quad
+    // itself, centered at document-space (~432, 243) [midpoint of the (0.05-0.4) × (0.05-0.4)
+    // quad in document coords]. The old flat-rect center (960, 540) is OUTSIDE this quad
+    // and must not reselect; the quad interior does.
     await page.getByRole('button', { name: 'やり直す' }).click();
     await expect(deleteButton(page)).toBeDisabled();
-    await page.mouse.click(center.x, center.y);
+    await page.mouse.click(rectCenter.x, rectCenter.y);
+    await expect(deleteButton(page)).toBeDisabled();
+    const quadCenter = await documentPointToPagePoint(page, { x: 432, y: 243 });
+    await page.mouse.click(quadCenter.x, quadCenter.y);
     await expect(deleteButton(page)).toBeEnabled();
     await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeVisible();
   });
 
-  test('hit-testing follows the perspective object’s flat rect, not its warped visual body, and yields to an overlapping topmost object there', async ({
+  test('hit-testing follows the perspective object’s warped quad, overlapping topmost wins, and clicking inside the original flat rect but outside the quad does nothing', async ({
     page,
   }) => {
+    // v2-S2 decision: in perspective mode the warped quad IS the selection area. The pre-v2
+    // "flat rect stays as hit area" assertion is intentionally replaced here. We also keep
+    // the original overlapping-topmost semantic and add an explicit negative assertion for
+    // the "inside flat rect, outside quad" region that no longer selects anything.
     await setup(page);
     await page.getByRole('button', { name: 'LED', exact: true }).click();
     await applyTopLeftPerspectiveQuad(page);
+    // Fill the LED's content via the add-text-content fast path so this test still exercises
+    // "select → edit text content" — the original A3 intent carried over to the current UI.
+    await page.getByTestId('editor-add-text-content').click();
+    await expect(page.getByLabel('テキスト内容')).toBeVisible();
+    await page.locator('.editor-canvas-container').click({ position: { x: 5, y: 5 } });
+    await expect(deleteButton(page)).toBeDisabled();
 
-    // v2-S2 rewrite: 「テキストを追加」 moved into the Content section and now fills the
-    // selected display's content (editorStore.addText fast path), rather than creating a
-    // sibling text object. The test needs two independent default-centered objects to prove
-    // the flat-hit-area precedence rule — swap the text sibling for an LCD display, which
-    // also centers at the document midpoint and renders on top of the LED (added-later =
-    // topmost in Konva's stacking order). The semantic ("the topmost overlapping object
-    // wins the click") is preserved.
-    await page.getByTestId('editor-add-lcd').click();
-    await expect(deleteButton(page)).toBeEnabled();
-
+    // (A) Negative — flat-rect center (720-1200, 405-675) is OUTSIDE the top-left quad; a
+    // click there must not select the LED under the new quad-based hit rule.
     const flatRectCenter = await documentPointToPagePoint(page, { x: 960, y: 540 });
     await page.mouse.click(flatRectCenter.x, flatRectCenter.y);
-    // LCD selected → its Material selector reads 'lcd'. This is a stable positive signal that
-    // the top of the stack won the click.
-    await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
-
-    await deleteButton(page).click();
     await expect(deleteButton(page)).toBeDisabled();
 
-    // With the LCD gone, the same center point now hits the LED display's flat rect, even
-    // though that display's visible body has been warped away to the top-left quadrant.
-    await page.mouse.click(flatRectCenter.x, flatRectCenter.y);
+    // (B) Positive — the quad's own center is inside the warped quad; the LED selects.
+    const quadCenter = await documentPointToPagePoint(page, { x: 432, y: 243 });
+    await page.mouse.click(quadCenter.x, quadCenter.y);
     await expect(deleteButton(page)).toBeEnabled();
     await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeVisible();
+    // Confirms "select → edit text" works post-selection: the テキスト内容 field is reachable.
+    await expect(page.getByLabel('テキスト内容')).toBeVisible();
 
-    // The warped visual body sits at the quad's own center (~0.225, 0.225 normalized); nothing
-    // is listening there, so clicking it must deselect rather than select the display.
-    const warpedVisualCenter = await documentPointToPagePoint(page, { x: 432, y: 243 });
-    await page.mouse.click(warpedVisualCenter.x, warpedVisualCenter.y);
+    // (C) Topmost-overlapping precedence — add an LCD, which spawns as a centered rect
+    // (720-1200, 405-675) that overlaps the LED's warped quad on the strip (720-768, 405-432).
+    // A click inside that strip must select the LCD (added-later, topmost in Konva stacking).
+    await page.getByTestId('editor-add-lcd').click();
+    await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
+    const overlapStrip = await documentPointToPagePoint(page, { x: 740, y: 420 });
+    await page.locator('.editor-canvas-container').click({ position: { x: 5, y: 5 } });
+    await page.mouse.click(overlapStrip.x, overlapStrip.y);
+    await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
+
+    // (D) Delete the top LCD; the same overlap point then hits the LED's warped quad, so
+    // delete is still enabled and 「通常配置に戻す」 (perspective mode marker) reappears.
+    await deleteButton(page).click();
     await expect(deleteButton(page)).toBeDisabled();
+    await page.mouse.click(overlapStrip.x, overlapStrip.y);
+    await expect(deleteButton(page)).toBeEnabled();
+    await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeVisible();
   });
 });
 
