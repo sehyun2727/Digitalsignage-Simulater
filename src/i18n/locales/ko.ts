@@ -169,8 +169,9 @@ export const ko: Messages = {
   errorImageTooLargeCause: '이미지 파일 크기가 상한({maxMb}MB)을 초과했습니다.',
   errorImageTooLargeRemedy: '{maxMb}MB 이하의 이미지를 다시 선택해 주세요.',
   errorImageDimensionsTooLargeCause:
-    '이미지 해상도가 상한을 초과했습니다. 긴 변 {maxLongEdge}px 이하, 전체 {maxPixels}픽셀 이하여야 합니다.',
-  errorImageDimensionsTooLargeRemedy: '조금 더 작은 크기로 내보낸 이미지를 다시 선택해 주세요.',
+    '이미지 해상도가 상한(긴 변 {maxLongEdge}px / 전체 {maxPixels}픽셀)을 초과했습니다.',
+  errorImageDimensionsTooLargeRemedy:
+    '긴 변 {maxLongEdge}px 이하 · 전체 {maxPixels}픽셀 이하가 되도록 내보낸 이미지를 다시 선택해 주세요.',
   errorImageDecodeErrorCause: '이미지를 불러오지 못했습니다. 파일이 손상되었을 수 있습니다.',
   errorImageDecodeErrorRemedy: '다른 이미지 파일을 다시 선택해 주세요.',
   errorVideoUnsupportedTypeCause: '지원하지 않는 동영상 형식입니다.',
@@ -180,8 +181,9 @@ export const ko: Messages = {
   errorVideoUnsupportedCodecCause: '이 브라우저에서 재생할 수 없는 코덱입니다.',
   errorVideoUnsupportedCodecRemedy: 'H.264 / VP9 등으로 다시 인코딩한 동영상을 선택해 주세요.',
   errorVideoDimensionsTooLargeCause:
-    '동영상 해상도가 상한을 초과했습니다. 긴 변 {maxLongEdge}px 이하, 짧은 변 {maxShortEdge}px 이하여야 합니다.',
-  errorVideoDimensionsTooLargeRemedy: '조금 더 작은 크기로 내보낸 동영상을 다시 선택해 주세요.',
+    '동영상 해상도가 상한(긴 변 {maxLongEdge}px / 짧은 변 {maxShortEdge}px)을 초과했습니다.',
+  errorVideoDimensionsTooLargeRemedy:
+    '긴 변 {maxLongEdge}px 이하 · 짧은 변 {maxShortEdge}px 이하가 되도록 내보낸 동영상을 다시 선택해 주세요.',
   errorVideoDurationTooLongCause: '동영상 길이가 상한({maxSeconds}초)을 초과했습니다.',
   errorVideoDurationTooLongRemedy: '{maxSeconds}초 이하의 동영상을 다시 선택해 주세요.',
   errorVideoDecodeErrorCause: '동영상을 불러오지 못했습니다. 파일이 손상되었을 수 있습니다.',
@@ -191,9 +193,11 @@ export const ko: Messages = {
   errorExportVideoFailedCause: '동영상 내보내기에 실패했습니다.',
   errorExportVideoFailedRemedy: '잠시 후 다시 시도하거나 다른 브라우저를 사용해 주세요.',
 
-  uploadHintSpacePhoto: '{formats} / 최대 {maxMb}MB',
-  uploadHintContentImage: '이미지: {imageFormats} / 최대 {imageMaxMb}MB',
-  uploadHintContentVideo: '동영상: {videoFormats} / 최대 {videoMaxMb}MB·{videoMaxSeconds}초',
+  uploadHintSpacePhoto: '{formats} / 최대 {maxMb}MB · 긴 변 {maxLongEdge}px',
+  uploadHintContentImage:
+    '이미지: {imageFormats} / 최대 {imageMaxMb}MB · 긴 변 {imageMaxLongEdge}px',
+  uploadHintContentVideo:
+    '동영상: {videoFormats} / 최대 {videoMaxMb}MB · 4K({videoMaxLongEdge}×{videoMaxShortEdge}) · {videoMaxSeconds}초',
 
   editorCanvasPresetLabel: '캔버스 크기',
   editorCanvasPresetLandscapeLabel: '가로형 (16:9)',

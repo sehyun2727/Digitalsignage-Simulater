@@ -273,6 +273,7 @@ function SpaceSection() {
         {interpolate(messages.uploadHintSpacePhoto, {
           formats: imageLimits.extensionLabels.join(' / '),
           maxMb: imageLimits.maxMegabytes,
+          maxLongEdge: imageLimits.maxLongEdge,
         })}
       </p>
       <input
@@ -1085,12 +1086,15 @@ function ContentFields({ object }: { object: DisplaySignageObject | PortableSign
             {interpolate(messages.uploadHintContentImage, {
               imageFormats: imageLimits.extensionLabels.join(' / '),
               imageMaxMb: imageLimits.maxMegabytes,
+              imageMaxLongEdge: imageLimits.maxLongEdge,
             })}
           </p>
           <p className="upload-hint" data-testid="editor-content-upload-hint-video">
             {interpolate(messages.uploadHintContentVideo, {
               videoFormats: videoLimits.extensionLabels.join(' / '),
               videoMaxMb: videoLimits.maxMegabytes,
+              videoMaxLongEdge: videoLimits.maxLongEdge,
+              videoMaxShortEdge: videoLimits.maxShortEdge,
               videoMaxSeconds: videoLimits.maxDurationSeconds,
             })}
           </p>

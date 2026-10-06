@@ -19,6 +19,10 @@ import {
   getImageLimits,
   getVideoLimits,
 } from '../../src/lib/uploadLimits';
+import { interpolate } from '../../src/lib/errorBannerMessages';
+import { ja } from '../../src/i18n/locales/ja';
+import { ko } from '../../src/i18n/locales/ko';
+import { en } from '../../src/i18n/locales/en';
 
 describe('v2-S2 uploadLimits — single source of truth', () => {
   describe('image limits', () => {
@@ -88,5 +92,57 @@ describe('v2-S2 uploadLimits — single source of truth', () => {
       expect(err.params.maxLongEdge).toBe(MAX_VIDEO_LONG_EDGE);
       expect(err.params.maxShortEdge).toBe(MAX_VIDEO_SHORT_EDGE);
     });
+  });
+
+  // v2-S2 보완 (0-4): the pre-upload hint strings must now interpolate the resolution caps
+  // too, not only format + megabytes. These assertions pin the drift-check so a future
+  // template rewrite that drops e.g. `{maxLongEdge}` fails here with a clear reason.
+  describe('pre-upload hint templates include resolution limits (3-2 보완)', () => {
+    const imageLimits = getImageLimits();
+    const videoLimits = getVideoLimits();
+    const spaceParams = {
+      formats: imageLimits.extensionLabels.join(' / '),
+      maxMb: imageLimits.maxMegabytes,
+      maxLongEdge: imageLimits.maxLongEdge,
+    };
+    const imageParams = {
+      imageFormats: imageLimits.extensionLabels.join(' / '),
+      imageMaxMb: imageLimits.maxMegabytes,
+      imageMaxLongEdge: imageLimits.maxLongEdge,
+    };
+    const videoParams = {
+      videoFormats: videoLimits.extensionLabels.join(' / '),
+      videoMaxMb: videoLimits.maxMegabytes,
+      videoMaxLongEdge: videoLimits.maxLongEdge,
+      videoMaxShortEdge: videoLimits.maxShortEdge,
+      videoMaxSeconds: videoLimits.maxDurationSeconds,
+    };
+
+    for (const [name, locale] of [
+      ['ja', ja],
+      ['ko', ko],
+      ['en', en],
+    ] as const) {
+      it(`${name}: uploadHintSpacePhoto resolves with maxMb + maxLongEdge`, () => {
+        const out = interpolate(locale.uploadHintSpacePhoto, spaceParams);
+        expect(out).toContain(String(imageLimits.maxMegabytes));
+        expect(out).toContain(String(imageLimits.maxLongEdge));
+        expect(out).not.toMatch(/\{[a-zA-Z]+\}/);
+      });
+      it(`${name}: uploadHintContentImage resolves with imageMaxMb + imageMaxLongEdge`, () => {
+        const out = interpolate(locale.uploadHintContentImage, imageParams);
+        expect(out).toContain(String(imageLimits.maxMegabytes));
+        expect(out).toContain(String(imageLimits.maxLongEdge));
+        expect(out).not.toMatch(/\{[a-zA-Z]+\}/);
+      });
+      it(`${name}: uploadHintContentVideo resolves with every video cap`, () => {
+        const out = interpolate(locale.uploadHintContentVideo, videoParams);
+        expect(out).toContain(String(videoLimits.maxMegabytes));
+        expect(out).toContain(String(videoLimits.maxLongEdge));
+        expect(out).toContain(String(videoLimits.maxShortEdge));
+        expect(out).toContain(String(videoLimits.maxDurationSeconds));
+        expect(out).not.toMatch(/\{[a-zA-Z]+\}/);
+      });
+    }
   });
 });

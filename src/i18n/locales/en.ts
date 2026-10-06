@@ -169,8 +169,9 @@ export const en: Messages = {
   errorImageTooLargeCause: 'The image file exceeds the maximum size of {maxMb} MB.',
   errorImageTooLargeRemedy: 'Please choose an image {maxMb} MB or smaller.',
   errorImageDimensionsTooLargeCause:
-    'The image resolution is too large. The long edge must be {maxLongEdge} px or less and the total must stay under {maxPixels} pixels.',
-  errorImageDimensionsTooLargeRemedy: 'Please choose a smaller version of the image.',
+    'The image resolution exceeds the limit (long edge {maxLongEdge} px / total {maxPixels} px).',
+  errorImageDimensionsTooLargeRemedy:
+    'Please export the image at long edge {maxLongEdge} px or less and total {maxPixels} px or less and try again.',
   errorImageDecodeErrorCause: 'The image could not be loaded. The file may be corrupted.',
   errorImageDecodeErrorRemedy: 'Please choose a different image file.',
   errorVideoUnsupportedTypeCause: 'This video format is not supported.',
@@ -180,8 +181,9 @@ export const en: Messages = {
   errorVideoUnsupportedCodecCause: 'This browser cannot play this video codec.',
   errorVideoUnsupportedCodecRemedy: 'Please re-encode the video (H.264 / VP9) and try again.',
   errorVideoDimensionsTooLargeCause:
-    'The video resolution is too large. The long edge must be {maxLongEdge} px or less and the short edge {maxShortEdge} px or less.',
-  errorVideoDimensionsTooLargeRemedy: 'Please choose a smaller version of the video.',
+    'The video resolution exceeds the limit (long edge {maxLongEdge} px / short edge {maxShortEdge} px).',
+  errorVideoDimensionsTooLargeRemedy:
+    'Please export the video at long edge {maxLongEdge} px or less and short edge {maxShortEdge} px or less and try again.',
   errorVideoDurationTooLongCause: 'The video length exceeds the maximum of {maxSeconds} seconds.',
   errorVideoDurationTooLongRemedy: 'Please choose a video {maxSeconds} seconds or shorter.',
   errorVideoDecodeErrorCause: 'The video could not be loaded. The file may be corrupted.',
@@ -191,9 +193,11 @@ export const en: Messages = {
   errorExportVideoFailedCause: 'Failed to export the video.',
   errorExportVideoFailedRemedy: 'Please wait a moment and try again, or try another browser.',
 
-  uploadHintSpacePhoto: '{formats} / up to {maxMb} MB',
-  uploadHintContentImage: 'Image: {imageFormats} / up to {imageMaxMb} MB',
-  uploadHintContentVideo: 'Video: {videoFormats} / up to {videoMaxMb} MB · {videoMaxSeconds} s',
+  uploadHintSpacePhoto: '{formats} / up to {maxMb} MB · long edge {maxLongEdge} px',
+  uploadHintContentImage:
+    'Image: {imageFormats} / up to {imageMaxMb} MB · long edge {imageMaxLongEdge} px',
+  uploadHintContentVideo:
+    'Video: {videoFormats} / up to {videoMaxMb} MB · 4K ({videoMaxLongEdge}×{videoMaxShortEdge}) · {videoMaxSeconds} s',
 
   editorCanvasPresetLabel: 'Canvas size',
   editorCanvasPresetLandscapeLabel: 'Landscape (16:9)',
