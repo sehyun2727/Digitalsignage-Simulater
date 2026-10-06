@@ -121,6 +121,10 @@
 - 의도하지 않은 차이가 생기면 버그로 처리.
 - OS별 스냅샷은 `.gitignore`에 따라 Linux(Docker/CI) 외 금지 (`*-win32.png`, `*-darwin.png` ignored).
 
+### 5-8bis. e2e 집계는 `test:e2e:core` 기준 (S3 이후)
+- `visual-qa.spec.ts`(golden-image 6건)는 Linux 전용 스냅샷 기반이라 win32에서는 집계 신뢰도가 없음. 그래서 S3~S6의 e2e 판정은 **`npm run test:e2e:core`**(`--grep-invert "golden-image"`) 결과를 기준으로 삼는다.
+- `visual-qa`는 S7 Docker Linux에서 별도 `qa:visual`로 돌리고 거기서만 판정한다. baseline 알려진 실패 표의 "Linux 스냅샷" 행도 S7에서만 평가한다.
+
 ### 5-8. 수동 테스트·스크린샷 금지, 자가검증은 측정값으로
 - **사용자에게 수동 테스트를 돌리라고 요청하지 않습니다.** 스크린샷 첨부도 요청하지 않습니다. v2 전체에서 "브라우저로 확인해 주세요" 흐름은 쓰지 않습니다.
 - 스프린트가 "눈으로 확인되어야 하는" 항목(폰트 크기, 대비, 레이아웃)을 요구할 때는 자가검증 항목(V1, V2, ...)을 **Playwright assertion**으로 작성합니다. 폰트 크기는 `getComputedStyle(...).fontSize` 측정, 대비는 relative-luminance 계산, 위치는 `boundingBox` 비중첩으로 검증합니다.
