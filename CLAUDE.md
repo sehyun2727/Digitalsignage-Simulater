@@ -92,6 +92,7 @@
 - `main` 직접 커밋 허용(1인 작업). 스프린트당 커밋 1개 이상.
 - 메시지 형식: `feat(v2-S{n}): ...`, `fix(v2-S{n}): ...`, `docs(v2-S{n}): ...`, `test(v2-S{n}): ...`, `refactor(v2-S{n}): ...`.
 - 한 파일이 여러 주제에 걸치면 분리하지 말고 묶기. `git add -p` 금지.
+- **태그는 사용자 검수 통과 후에만 붙인다.** AI는 스프린트 완료 보고를 올리는 데서 멈추고, `v2-S{n}-ok` 태그 작업은 사용자가 승인한 뒤 사용자가 지시할 때만 실행합니다.
 
 ### 5-2. push 규칙
 - **S1~S6 중에는 `git push` 금지**. Render 스테이징을 직원이 보기 때문입니다(운영 영향 아님).
@@ -194,9 +195,9 @@
 - [ ] `typecheck`, `lint`, `format:check`, `test:run`, `build`, `build:oitemiru` **모두 통과**.
 - [ ] **e2e 판정**(`docs/v2/baseline.md`의 "알려진 e2e 실패" 표):
   - 실패한 테스트가 전부 그 표 안에 있어야 함(새 실패 0건).
-  - 통과 수가 baseline(v2-S2 완료 후 **74**)보다 줄면 안 됨.
+  - 통과 수가 baseline(v2-S2 보완 후 **87**)보다 줄면 안 됨.
   - 실패한 테스트는 1회 재실행. 재실행에서 통과하면 flaky로 표시하고 실패로 세지 않음.
-  - 담당 스프린트는 자기 debt를 해소: S4(B1/B2/perspective hit-test), S5(F-occlusion), S3 또는 S7(F-download), S7(Linux 스냅샷 환경 재측정).
+  - 담당 스프린트는 자기 debt를 해소: S4(B1/B2), S5(F-occlusion), S3 또는 S7(F-download), S7(Linux 스냅샷 환경 재측정).
   - **S7 push 전에는 알려진 실패가 0건이어야 함.** 사용자가 승인한 예외만 남길 수 있음.
 - [ ] `qa:visual`: Docker 가능하면 Linux 환경에서 통과. 불가능하면 "환경 미실행" 기록 후 S7에서 반드시 실행.
 - [ ] 사용자 문구는 모두 i18n 키로. ja/ko/en 전부 갱신.
