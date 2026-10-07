@@ -1131,6 +1131,34 @@ a {
   word-break: break-all;
 }
 
+/* v2-S3 H: narrow desktop viewports (above the 48rem mobile breakpoint but still narrower than
+ * the editor-header's natural single-line width). The header-actions row carries 9 controls at
+ * HEAD (reset / undo / redo / comparison / sales-review / language / user-guide / png / video)
+ * that together need ≳940 px on their own line, which — combined with the hero's left-column
+ * share — overshoots any viewport below ~1200 px. Pre-S3 behaviour was the same wrap-free row,
+ * but the hero's content-width shrank gracefully so the editor-header height stayed small; with
+ * the extra UserGuide button added in S3 the hero squeezes down to ~37 px wide at 1024 px and
+ * word-break: keep-all walls each kana onto its own line, ballooning the hero (and therefore
+ * the whole header) to ~880 px tall. That pushed the editor-workspace completely below the
+ * viewport.
+ *
+ * Fix: at ≤ 72rem (1152 px) let the header wrap and let its actions row shrink/wrap too — same
+ * relaxations the mobile @media block already applies, but kept scoped so the layout above
+ * this width is untouched. This does NOT move the mobile stacked-layout breakpoint (still
+ * 48rem); the workspace stays side-by-side (canvas + toolbar in a row) all the way down.
+ */
+@media (max-width: 72rem) and (min-width: 48.0001rem) {
+  .editor-header {
+    flex-wrap: wrap;
+  }
+  .editor-header-actions {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    min-width: 0;
+    row-gap: 0.4rem;
+  }
+}
+
 @media (max-width: 48rem) {
   /* Below this width the desktop's fixed-height, no-page-scroll shell gives way to a normal
      stacked, scrollable mobile page: canvas above toolbar, both sized by content instead of by

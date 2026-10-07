@@ -122,10 +122,18 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   //
   // Desktop: fit scale is min(containerW/docW, containerH/docH) — honours both axes of the
   // flex-sized measure box. Coordinate conversion stays correct because scaleX = scaleY.
+  //
+  // v2-S3 H: before the first ResizeObserver fire we return 0 on desktop (not 1). The old
+  // fallback of 1 sized the inline `.editor-canvas-container` to the raw preset (1920×1080
+  // for landscape) on initial render, which overflowed any viewport narrower than 1920 and
+  // pushed the toolbar/footer out of the layout box — observed at 1024×640 as a 1920-wide
+  // container intercepting pointer events across the whole page. Returning 0 keeps the
+  // container collapsed (no inline size) until the measure box has reported its real width
+  // and height, then the second render snaps the container to the fitted stage.
   const MOBILE_BREAKPOINT_PX = 768;
   const isMobile = viewportInnerWidth > 0 && viewportInnerWidth < MOBILE_BREAKPOINT_PX;
   const fitScale = (() => {
-    if (!size) return 1;
+    if (!size) return 0;
     if (isMobile) {
       // v2-S3 B-4 bootstrap: mobile measure box is `flex: 0 0 auto`, so its initial
       // containerWidth starts at ~0 before any inline-style is applied — using that
@@ -135,12 +143,12 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       // honest.
       const shellPadding = 24;
       const widthBasis = containerWidth > 0 ? containerWidth : viewportInnerWidth - shellPadding;
-      if (widthBasis <= 0) return 1;
+      if (widthBasis <= 0) return 0;
       if (viewportInnerHeight <= 0) return widthBasis / size.width;
       return Math.min(widthBasis / size.width, (0.7 * viewportInnerHeight) / size.height);
     }
-    if (containerWidth <= 0) return 1;
-    if (containerHeight <= 0) return 1;
+    if (containerWidth <= 0) return 0;
+    if (containerHeight <= 0) return 0;
     return Math.min(containerWidth / size.width, containerHeight / size.height);
   })();
   const stageWidth = size ? size.width * fitScale : 0;
