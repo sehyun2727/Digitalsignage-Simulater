@@ -275,6 +275,7 @@ export interface Messages {
   toolbarAddSignageSectionHeading: string;
   toolbarAddElementSubheading: string;
   toolbarSelectedSignageSectionHeading: string;
+  toolbarPositionSizeSubheading: string;
   toolbarAppearanceSectionHeading: string;
   toolbarExportSectionHeading: string;
   toolbarContentEmptyHint: string;

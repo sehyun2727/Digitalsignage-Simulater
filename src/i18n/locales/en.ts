@@ -360,6 +360,7 @@ export const en: Messages = {
   toolbarAddSignageSectionHeading: 'Add signage',
   toolbarAddElementSubheading: 'Add content to your signage',
   toolbarSelectedSignageSectionHeading: 'Selected signage',
+  toolbarPositionSizeSubheading: 'Position & size',
   toolbarAppearanceSectionHeading: 'Appearance',
   toolbarExportSectionHeading: 'Export',
   toolbarContentEmptyHint: 'Select a display or portable product to add content to it.',

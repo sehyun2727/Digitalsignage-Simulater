@@ -187,6 +187,16 @@ describe('App', () => {
       // v2-S3 2-6: user-guide open state is session-only in uiStore; reset to false so a
       // previous test that opened the guide can't leak the <dialog> into the next test.
       userGuideOpen: false,
+      // v2-S3 2-2: accordion state is session-only; reset per test so a close/open from one
+      // test never leaks the hidden-body (and therefore invisible controls) into the next.
+      accordionOpen: {
+        space: true,
+        'add-signage': true,
+        selected: null,
+        content: null,
+        appearance: true,
+      },
+      subAccordionOpen: { 'selected-position-size': true },
     });
     // useEditorStore is also a module-level singleton; reset it so the space background,
     // objects, and history from one test never leak into the next.

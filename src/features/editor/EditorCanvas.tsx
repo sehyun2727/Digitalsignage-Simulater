@@ -64,6 +64,11 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
 
   const size = getDocumentSize(document);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  // v2-S3 2-1: the measure box is the full available workspace (fills `.editor-canvas-wrapper`).
+  // The visible container (border + bg) sizes down to the computed Stage width×height so no
+  // dead letterbox space sits inside the editor's own frame — the measure box observes the
+  // outer size for the fit calculation, the inner container snaps to the fitted Stage.
+  const measureRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
   const layerRef = useRef<Konva.Layer | null>(null);
   const transformerRef = useRef<Konva.Transformer | null>(null);
@@ -72,19 +77,32 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   const nodesRef = useRef<Map<string, Konva.Node>>(new Map());
   const captureRestoreRef = useRef<(() => void) | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  // v2-S3 2-1: also track the container's height so the fit calculation can honour BOTH
+  // axes — the pre-S3 math was width-only, which clipped 9:16 canvases at tall viewports.
+  const [containerHeight, setContainerHeight] = useState(0);
 
   useEffect(() => {
-    const element = containerRef.current;
+    const element = measureRef.current;
     if (!element) return;
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
-      if (entry) setContainerWidth(entry.contentRect.width);
+      if (entry) {
+        setContainerWidth(entry.contentRect.width);
+        setContainerHeight(entry.contentRect.height);
+      }
     });
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
 
-  const fitScale = containerWidth > 0 && size ? containerWidth / size.width : 1;
+  // Uniform scale = min of per-axis scales, so both width AND height stay inside the
+  // container. Coordinate conversion stays correct because Konva's Stage uses the same
+  // scalar for scaleX and scaleY (see <Stage scaleX={fitScale} scaleY={fitScale} /> below).
+  const fitScale =
+    containerWidth > 0 && containerHeight > 0 && size
+      ? Math.min(containerWidth / size.width, containerHeight / size.height)
+      : 1;
+  const stageWidth = size ? size.width * fitScale : 0;
   const stageHeight = size ? size.height * fitScale : 0;
 
   useImperativeHandle(ref, () => ({
@@ -358,119 +376,125 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   };
 
   return (
-    <div
-      className="editor-canvas-container"
-      ref={containerRef}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      onWheel={handleWheel}
-    >
-      {containerWidth > 0 && size && (
-        <Stage
-          ref={stageRef}
-          width={containerWidth}
-          height={stageHeight}
-          scaleX={fitScale}
-          scaleY={fitScale}
-          onMouseDown={(event) => {
-            if (
-              !comparisonMode &&
-              !perspectiveEditId &&
-              !occlusionEditObjectId &&
-              !screenQuadEditId &&
-              event.target === event.target.getStage()
-            ) {
-              selectObject(null);
-            }
-          }}
-          onTouchStart={(event) => {
-            if (
-              !comparisonMode &&
-              !perspectiveEditId &&
-              !occlusionEditObjectId &&
-              !screenQuadEditId &&
-              event.target === event.target.getStage()
-            ) {
-              selectObject(null);
-            }
-          }}
-        >
-          <Layer ref={layerRef}>
-            {document.spaceBackground && (
-              <SpaceBackgroundView
-                spaceBackground={document.spaceBackground}
-                width={size.width}
-                height={size.height}
-              />
-            )}
-            <Group
-              ref={objectsGroupRef}
-              visible={!comparisonMode}
-              listening={
-                !comparisonMode && !perspectiveEditId && !occlusionEditObjectId && !screenQuadEditId
+    <div className="editor-canvas-measure" ref={measureRef}>
+      <div
+        className="editor-canvas-container"
+        ref={containerRef}
+        style={size ? { width: `${stageWidth}px`, height: `${stageHeight}px` } : undefined}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onWheel={handleWheel}
+      >
+        {containerWidth > 0 && containerHeight > 0 && size && (
+          <Stage
+            ref={stageRef}
+            width={stageWidth}
+            height={stageHeight}
+            scaleX={fitScale}
+            scaleY={fitScale}
+            onMouseDown={(event) => {
+              if (
+                !comparisonMode &&
+                !perspectiveEditId &&
+                !occlusionEditObjectId &&
+                !screenQuadEditId &&
+                event.target === event.target.getStage()
+              ) {
+                selectObject(null);
               }
-            >
-              {document.objects.map((object) => (
-                <CanvasObjectView
-                  key={object.id}
-                  object={object}
-                  onSelect={selectObject}
-                  onRegisterNode={registerNode}
-                  onDragEnd={handleDragEnd}
-                  onTransformEnd={handleTransformEnd}
-                  documentSize={size}
+            }}
+            onTouchStart={(event) => {
+              if (
+                !comparisonMode &&
+                !perspectiveEditId &&
+                !occlusionEditObjectId &&
+                !screenQuadEditId &&
+                event.target === event.target.getStage()
+              ) {
+                selectObject(null);
+              }
+            }}
+          >
+            <Layer ref={layerRef}>
+              {document.spaceBackground && (
+                <SpaceBackgroundView
                   spaceBackground={document.spaceBackground}
+                  width={size.width}
+                  height={size.height}
                 />
-              ))}
-            </Group>
-            {!comparisonMode && dropTargetObject && dropTargetRect && (
+              )}
               <Group
-                x={dropTargetObject.x}
-                y={dropTargetObject.y}
-                rotation={dropTargetObject.rotation}
-                listening={false}
+                ref={objectsGroupRef}
+                visible={!comparisonMode}
+                listening={
+                  !comparisonMode &&
+                  !perspectiveEditId &&
+                  !occlusionEditObjectId &&
+                  !screenQuadEditId
+                }
               >
-                <Rect
-                  x={dropTargetRect.x}
-                  y={dropTargetRect.y}
-                  width={dropTargetRect.width}
-                  height={dropTargetRect.height}
-                  stroke="#2563eb"
-                  strokeWidth={3}
-                  dash={[10, 6]}
-                  listening={false}
-                />
+                {document.objects.map((object) => (
+                  <CanvasObjectView
+                    key={object.id}
+                    object={object}
+                    onSelect={selectObject}
+                    onRegisterNode={registerNode}
+                    onDragEnd={handleDragEnd}
+                    onTransformEnd={handleTransformEnd}
+                    documentSize={size}
+                    spaceBackground={document.spaceBackground}
+                  />
+                ))}
               </Group>
-            )}
-            {/* Watermark group: always invisible in the live editor; made visible only for the
+              {!comparisonMode && dropTargetObject && dropTargetRect && (
+                <Group
+                  x={dropTargetObject.x}
+                  y={dropTargetObject.y}
+                  rotation={dropTargetObject.rotation}
+                  listening={false}
+                >
+                  <Rect
+                    x={dropTargetRect.x}
+                    y={dropTargetRect.y}
+                    width={dropTargetRect.width}
+                    height={dropTargetRect.height}
+                    stroke="#2563eb"
+                    strokeWidth={3}
+                    dash={[10, 6]}
+                    listening={false}
+                  />
+                </Group>
+              )}
+              {/* Watermark group: always invisible in the live editor; made visible only for the
                 duration of PNG/video export captures so it appears in every exported result. */}
-            <Group ref={watermarkGroupRef} visible={false} listening={false}>
-              <HullWatermarkView canvasWidth={size.width} canvasHeight={size.height} />
-            </Group>
-            <Transformer
-              ref={transformerRef}
-              boundBoxFunc={(oldBox, newBox) =>
-                newBox.width < 10 || newBox.height < 10 ? oldBox : newBox
-              }
-            />
-          </Layer>
-        </Stage>
-      )}
-      {!comparisonMode && size && perspectiveEditId && (
-        <PerspectiveEditOverlay documentSize={size} fitScale={fitScale} />
-      )}
-      {!comparisonMode && size && occlusionEditObjectId && (
-        <OcclusionEditOverlay documentSize={size} fitScale={fitScale} />
-      )}
-      {!comparisonMode &&
-        screenQuadEditId &&
-        (() => {
-          const obj = document.objects.find((o) => o.id === screenQuadEditId);
-          return obj && obj.kind === 'portable' ? (
-            <ScreenQuadEditOverlay object={obj} fitScale={fitScale} />
-          ) : null;
-        })()}
+              <Group ref={watermarkGroupRef} visible={false} listening={false}>
+                <HullWatermarkView canvasWidth={size.width} canvasHeight={size.height} />
+              </Group>
+              <Transformer
+                ref={transformerRef}
+                boundBoxFunc={(oldBox, newBox) =>
+                  newBox.width < 10 || newBox.height < 10 ? oldBox : newBox
+                }
+              />
+            </Layer>
+          </Stage>
+        )}
+        {!comparisonMode && size && perspectiveEditId && (
+          <PerspectiveEditOverlay documentSize={size} fitScale={fitScale} />
+        )}
+        {!comparisonMode && size && occlusionEditObjectId && (
+          <OcclusionEditOverlay documentSize={size} fitScale={fitScale} />
+        )}
+        {!comparisonMode &&
+          screenQuadEditId &&
+          (() => {
+            const obj = document.objects.find((o) => o.id === screenQuadEditId);
+            return obj && obj.kind === 'portable' ? (
+              <ScreenQuadEditOverlay object={obj} fitScale={fitScale} />
+            ) : null;
+          })()}
+      </div>
     </div>
   );
 });

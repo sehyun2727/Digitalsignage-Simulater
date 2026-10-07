@@ -139,11 +139,56 @@ export function Toolbar({
   );
 }
 
-function ToolbarSection({ heading, children }: { heading: string; children: React.ReactNode }) {
+/**
+ * v2-S3 2-2: collapsible toolbar section. Default state per section lives in uiStore
+ * (`accordionOpen`); the heading is a `<button>` with `aria-expanded`/`aria-controls`,
+ * reachable with Enter and Space (native button behaviour). When closed, the body is NOT
+ * rendered, which keeps interactive descendants out of the tab order (spec 2-2 (8)).
+ *
+ * `always`-mode skips the toggle entirely for sections that must stay open and pinned —
+ * only used by `<ExportSection>` to render the 「書き出し」 section (spec 2-2 (4)).
+ */
+function ToolbarSection({
+  id,
+  heading,
+  children,
+  always = false,
+}: {
+  id: string;
+  heading: string;
+  children: React.ReactNode;
+  always?: boolean;
+}) {
+  const openRaw = useUiStore((state) => state.accordionOpen[id]);
+  const toggle = useUiStore((state) => state.toggleAccordion);
+  const open = always ? true : (openRaw ?? false);
+  const bodyId = `toolbar-section-${id}-body`;
   return (
-    <section className="toolbar-section">
-      <h2 className="toolbar-section-heading">{heading}</h2>
-      {children}
+    <section className="toolbar-section" data-testid={`toolbar-section-${id}`}>
+      {always ? (
+        <h2 className="toolbar-section-heading toolbar-section-heading--pinned">{heading}</h2>
+      ) : (
+        <h2 className="toolbar-section-heading">
+          <button
+            type="button"
+            className="toolbar-section-toggle"
+            data-testid={`toolbar-section-${id}-toggle`}
+            aria-expanded={open}
+            aria-controls={bodyId}
+            onClick={() => toggle(id)}
+          >
+            <span>{heading}</span>
+            <span aria-hidden="true" className="toolbar-section-chevron">
+              {open ? '▾' : '▸'}
+            </span>
+          </button>
+        </h2>
+      )}
+      {open && (
+        <div id={bodyId} className="toolbar-section-body">
+          {children}
+        </div>
+      )}
     </section>
   );
 }
@@ -232,7 +277,7 @@ function SpaceSection() {
     : messages.editorAddSpaceBackgroundButton;
 
   return (
-    <ToolbarSection heading={messages.toolbarSpaceSectionHeading}>
+    <ToolbarSection id="space" heading={messages.toolbarSpaceSectionHeading}>
       <div
         className="canvas-preset-group"
         role="group"
@@ -325,7 +370,7 @@ function AddSignageSection() {
   const canAddSignage = document.spaceBackground !== null;
 
   return (
-    <ToolbarSection heading={messages.toolbarAddSignageSectionHeading}>
+    <ToolbarSection id="add-signage" heading={messages.toolbarAddSignageSectionHeading}>
       {!canAddSignage && <p className="toolbar-notice">{messages.toolbarAddSignageDisabledHint}</p>}
 
       <div className="toolbar-actions toolbar-actions-grid">
@@ -424,9 +469,19 @@ function SelectedSignageSection() {
   const { messages } = useLocale();
   const selected = useEditorStore(selectSelectedObject);
   const deleteSelected = useEditorStore((state) => state.deleteSelected);
+  // v2-S3 2-2 (2): the first time a signage is selected in the session, the Selected and
+  // Content sections auto-open (their state goes null → true). Afterwards the user's
+  // explicit toggle is preserved — including across different signage selections.
+  const openAccordionIfAuto = useUiStore((state) => state.openAccordionIfAuto);
+  useEffect(() => {
+    if (selected) {
+      openAccordionIfAuto('selected');
+      openAccordionIfAuto('content');
+    }
+  }, [selected, openAccordionIfAuto]);
 
   return (
-    <ToolbarSection heading={messages.toolbarSelectedSignageSectionHeading}>
+    <ToolbarSection id="selected" heading={messages.toolbarSelectedSignageSectionHeading}>
       {!selected ? (
         <p className="toolbar-notice">{messages.editorPropertiesEmptyHint}</p>
       ) : (
@@ -441,6 +496,112 @@ function SelectedSignageSection() {
         {messages.editorDeleteButton}
       </button>
     </ToolbarSection>
+  );
+}
+
+/**
+ * v2-S3 3-1: inline, collapsible 「位置・サイズ」 fold inside Selected. Default collapsed;
+ * state lives in uiStore.subAccordionOpen['selected-position-size'] so it survives different
+ * signage selections. Perspective-mode width/height lock (D-14) and its aria-describedby
+ * hint are preserved inside the fold.
+ */
+function PositionSizeSubsection({
+  selected,
+  draft,
+  setDraft,
+  commit,
+}: {
+  selected: SignageObject;
+  draft: Draft;
+  setDraft: (d: Draft) => void;
+  commit: (patch: Partial<SignageObject>) => void;
+}) {
+  const { messages } = useLocale();
+  const open = useUiStore((state) => state.subAccordionOpen['selected-position-size']);
+  const toggle = useUiStore((state) => state.toggleSubAccordion);
+  const bodyId = 'toolbar-subsection-position-size-body';
+  const perspectiveLocked =
+    (selected.kind === 'display' || selected.kind === 'portable') &&
+    selected.placementMode === 'perspective' &&
+    selected.perspectiveQuad !== null;
+  return (
+    <section className="toolbar-subsection" data-testid="toolbar-subsection-position-size">
+      <h3 className="toolbar-subsection-heading">
+        <button
+          type="button"
+          className="toolbar-subsection-toggle"
+          data-testid="toolbar-subsection-position-size-toggle"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={() => toggle('selected-position-size')}
+        >
+          <span>{messages.toolbarPositionSizeSubheading}</span>
+          <span aria-hidden="true" className="toolbar-section-chevron">
+            {open ? '▾' : '▸'}
+          </span>
+        </button>
+      </h3>
+      {open && (
+        <div id={bodyId} className="toolbar-subsection-body">
+          <label>
+            <span>{messages.editorPositionXLabel}</span>
+            <input
+              type="number"
+              value={Math.round(draft.x)}
+              onChange={(event) => setDraft({ ...draft, x: Number(event.target.value) })}
+              onBlur={() => commit({ x: draft.x })}
+            />
+          </label>
+          <label>
+            <span>{messages.editorPositionYLabel}</span>
+            <input
+              type="number"
+              value={Math.round(draft.y)}
+              onChange={(event) => setDraft({ ...draft, y: Number(event.target.value) })}
+              onBlur={() => commit({ y: draft.y })}
+            />
+          </label>
+          <label>
+            <span>{messages.editorWidthLabel}</span>
+            <input
+              type="number"
+              min={10}
+              value={Math.round(draft.width)}
+              disabled={perspectiveLocked}
+              aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
+              onChange={(event) => setDraft({ ...draft, width: Number(event.target.value) })}
+              onBlur={() => commit({ width: Math.max(10, draft.width) })}
+            />
+          </label>
+          <label>
+            <span>{messages.editorHeightLabel}</span>
+            <input
+              type="number"
+              min={10}
+              value={Math.round(draft.height)}
+              disabled={perspectiveLocked}
+              aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
+              onChange={(event) => setDraft({ ...draft, height: Number(event.target.value) })}
+              onBlur={() => commit({ height: Math.max(10, draft.height) })}
+            />
+          </label>
+          {perspectiveLocked && (
+            <p id="perspective-size-locked-hint" className="toolbar-notice">
+              {messages.perspectiveSizeLockedHint}
+            </p>
+          )}
+          <label>
+            <span>{messages.editorRotationLabel}</span>
+            <input
+              type="number"
+              value={Math.round(draft.rotation)}
+              onChange={(event) => setDraft({ ...draft, rotation: Number(event.target.value) })}
+              onBlur={() => commit({ rotation: draft.rotation })}
+            />
+          </label>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -476,85 +637,12 @@ function SelectedSignageFields({ object: selected }: { object: SignageObject }) 
         <span>{signageTypeLabel(selected, messages)}</span>
       </p>
 
-      <label>
-        <span>{messages.editorPositionXLabel}</span>
-        <input
-          type="number"
-          value={Math.round(draft.x)}
-          onChange={(event) => setDraft({ ...draft, x: Number(event.target.value) })}
-          onBlur={() => commit({ x: draft.x })}
-        />
-      </label>
-
-      <label>
-        <span>{messages.editorPositionYLabel}</span>
-        <input
-          type="number"
-          value={Math.round(draft.y)}
-          onChange={(event) => setDraft({ ...draft, y: Number(event.target.value) })}
-          onBlur={() => commit({ y: draft.y })}
-        />
-      </label>
-
-      {/* In perspective mode the four corner handles fully determine the warped body — a
-       *  separate width/height number input would both re-introduce the pre-fix PDF 5-2
-       *  distortion (perspective aspect comes from the quad, not from these inputs) and leave
-       *  the user with two UI surfaces that can't agree about the signage's shape (ADR 0012
-       *  D-14). Disable both inputs while perspective is applied and point the user at the
-       *  overlay handles via `aria-describedby`; the Transformer resize handles are already
-       *  detached in perspective mode (EditorCanvas registers no node for the warped Group),
-       *  so this closes the only remaining size-change path. */}
-      {(() => {
-        const perspectiveLocked =
-          (selected.kind === 'display' || selected.kind === 'portable') &&
-          selected.placementMode === 'perspective' &&
-          selected.perspectiveQuad !== null;
-        return (
-          <>
-            <label>
-              <span>{messages.editorWidthLabel}</span>
-              <input
-                type="number"
-                min={10}
-                value={Math.round(draft.width)}
-                disabled={perspectiveLocked}
-                aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
-                onChange={(event) => setDraft({ ...draft, width: Number(event.target.value) })}
-                onBlur={() => commit({ width: Math.max(10, draft.width) })}
-              />
-            </label>
-
-            <label>
-              <span>{messages.editorHeightLabel}</span>
-              <input
-                type="number"
-                min={10}
-                value={Math.round(draft.height)}
-                disabled={perspectiveLocked}
-                aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
-                onChange={(event) => setDraft({ ...draft, height: Number(event.target.value) })}
-                onBlur={() => commit({ height: Math.max(10, draft.height) })}
-              />
-            </label>
-
-            {perspectiveLocked && (
-              <p id="perspective-size-locked-hint" className="toolbar-notice">
-                {messages.perspectiveSizeLockedHint}
-              </p>
-            )}
-          </>
-        );
-      })()}
-
-      <label>
-        <span>{messages.editorRotationLabel}</span>
-        <input
-          type="number"
-          value={Math.round(draft.rotation)}
-          onChange={(event) => setDraft({ ...draft, rotation: Number(event.target.value) })}
-          onBlur={() => commit({ rotation: draft.rotation })}
-        />
-      </label>
+      <PositionSizeSubsection
+        selected={selected}
+        draft={draft}
+        setDraft={setDraft}
+        commit={commit}
+      />
 
       {selected.kind === 'text' && (
         <>
@@ -796,7 +884,7 @@ function ContentSection() {
   const hasContentSupport = selected?.kind === 'display' || selected?.kind === 'portable';
 
   return (
-    <ToolbarSection heading={messages.editorContentLabel}>
+    <ToolbarSection id="content" heading={messages.editorContentLabel}>
       {/* The whole content-adding area only becomes reachable when a signage is selected.
        *  With no selection we only show the hint so the user knows where to click first;
        *  Add Text and Add image/video live *inside* ContentFields where they belong. */}
@@ -1153,7 +1241,7 @@ function AppearanceSection() {
     !!selected && (selected.kind === 'display' || selected.kind === 'portable');
 
   return (
-    <ToolbarSection heading={messages.toolbarAppearanceSectionHeading}>
+    <ToolbarSection id="appearance" heading={messages.toolbarAppearanceSectionHeading}>
       {showRealismGuide && <RealismGuideCard />}
       {!selected ? (
         <p className="toolbar-notice">{messages.toolbarAppearanceEmptyHint}</p>
@@ -1959,7 +2047,7 @@ function ExportSection({
   };
 
   return (
-    <ToolbarSection heading={messages.toolbarExportSectionHeading}>
+    <ToolbarSection id="export" heading={messages.toolbarExportSectionHeading} always>
       <div className="comparison-toggle-group" aria-label={messages.comparisonToggleGroupLabel}>
         <button
           type="button"

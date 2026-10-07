@@ -84,6 +84,19 @@ export interface UiState {
    *  single source of truth. Session-only — not persisted to localStorage. */
   userGuideOpen: boolean;
   setUserGuideOpen: (value: boolean) => void;
+  /** v2-S3 2-2: toolbar section expanded state (session-only, not persisted, not in
+   *  undo/redo). `true` = open, `false` = closed, `null` = auto-open on first qualifying
+   *  event (used for 'selected' + 'content' which auto-open the first time a signage is
+   *  selected in the session, then switch to whatever the user explicitly toggled). */
+  accordionOpen: Record<string, boolean | null>;
+  toggleAccordion: (id: string) => void;
+  /** No-op if the section is already set (true or false). Only promotes a `null` entry to
+   *  `true` — this is what gives "first selection auto-opens, user choice afterwards wins". */
+  openAccordionIfAuto: (id: string) => void;
+  /** v2-S3 3-1: inline sub-accordion state (e.g. the "位置・サイズ" fold inside Selected).
+   *  Separate map so the top-level `accordionOpen` keys stay flat and testable. */
+  subAccordionOpen: Record<string, boolean>;
+  toggleSubAccordion: (id: string) => void;
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
@@ -96,6 +109,29 @@ export const useUiStore = create<UiState>((set, get) => ({
   requestSequence: { 'space-photo': 0, content: 0, export: 0 },
   userGuideOpen: false,
   setUserGuideOpen: (value) => set({ userGuideOpen: value }),
+  accordionOpen: {
+    space: true,
+    'add-signage': true,
+    selected: null,
+    content: null,
+    appearance: false,
+  },
+  toggleAccordion: (id) =>
+    set((state) => {
+      const current = state.accordionOpen[id];
+      const next = current === null ? true : !current;
+      return { accordionOpen: { ...state.accordionOpen, [id]: next } };
+    }),
+  openAccordionIfAuto: (id) =>
+    set((state) => {
+      if (state.accordionOpen[id] !== null) return state;
+      return { accordionOpen: { ...state.accordionOpen, [id]: true } };
+    }),
+  subAccordionOpen: { 'selected-position-size': false },
+  toggleSubAccordion: (id) =>
+    set((state) => ({
+      subAccordionOpen: { ...state.subAccordionOpen, [id]: !state.subAccordionOpen[id] },
+    })),
   setComparisonMode: (value) => set({ comparisonMode: value }),
   setSalesReviewMode: (value) => set({ salesReviewMode: value }),
   dismissOnboarding: () => {

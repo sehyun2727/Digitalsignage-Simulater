@@ -57,6 +57,17 @@ describe('RealismGuideCard (v2-S3 collapsible appearance guide)', () => {
       onboardingDismissed: true,
       errors: {},
       requestSequence: { 'space-photo': 0, content: 0, export: 0 },
+      // v2-S3: force Appearance section open so this spec can measure the inline guide
+      // without first having to click the parent accordion toggle (that behaviour is
+      // covered in e2e/v2-layout L7 "default open sections only include ...").
+      accordionOpen: {
+        space: true,
+        'add-signage': true,
+        selected: null,
+        content: null,
+        appearance: true,
+      },
+      subAccordionOpen: { 'selected-position-size': false },
     });
     useEditorStore.setState({
       document: createEmptyDocument(),

@@ -365,6 +365,7 @@ export const ja: Messages = {
   toolbarAddSignageSectionHeading: 'サイネージを追加',
   toolbarAddElementSubheading: 'サイネージにコンテンツを追加してください',
   toolbarSelectedSignageSectionHeading: '選択中のサイネージ',
+  toolbarPositionSizeSubheading: '位置・サイズ',
   toolbarAppearanceSectionHeading: '外観',
   toolbarExportSectionHeading: '書き出し',
   toolbarContentEmptyHint:

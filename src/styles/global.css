@@ -253,8 +253,11 @@ a {
   min-width: 0;
   min-height: 0;
   display: flex;
-  align-items: safe center;
-  justify-content: safe center;
+  /* v2-S3 2-1: stretch the measure box so it fills the full column; the measure box
+   * ResizeObserver reads this size for the fit calculation. The container inside the
+   * measure box snaps to the computed Stage width×height and self-centers. */
+  align-items: stretch;
+  justify-content: stretch;
   /* The canvas wrapper never scrolls itself — the shell is fixed-height with
    * overflow: hidden, and the toolbar handles all in-app scrolling. On unusually short
    * viewports the workspace's own overflow: hidden clips a too-tall canvas, but on any
@@ -262,9 +265,22 @@ a {
   overflow: visible;
 }
 
+/* v2-S3 2-1: fills the wrapper, observed for the fit calculation. The visible container
+ * (border + bg) sits inside this box, sized to the computed Stage dimensions. */
+.editor-canvas-measure {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .editor-canvas-container {
   position: relative;
-  width: 100%;
+  /* Size is set inline from `stageWidth`/`stageHeight` in EditorCanvas.tsx so the frame
+   * hugs the fitted Stage exactly — no letterbox space. The ResizeObserver target is the
+   * outer `.editor-canvas-measure`, not this element. */
   border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   overflow: hidden;
@@ -525,16 +541,18 @@ a {
  * banner never overlaps the artwork (requirement 2-5 §3-1). Error row renders above the hint
  * row when both are present. */
 .editor-status-area {
-  flex: 0 0 auto;
+  /* v2-S3 2-1 (2): reserve a fixed slot regardless of whether the banner is showing, so
+   * toggling an error on/off never changes the canvas-measure's available height (and
+   * therefore the fit scale). If the error text somehow exceeds the slot, the slot itself
+   * scrolls internally — the canvas height stays stable. */
+  flex: 0 0 5.5rem;
+  min-height: 5.5rem;
+  max-height: 5.5rem;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   padding: 0.5rem 0.75rem 0;
-  min-height: 0;
-}
-
-.editor-status-area:empty {
-  display: none;
 }
 
 .editor-status-area-hint {
@@ -647,6 +665,67 @@ a {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+/* v2-S3 2-2: accordion heading as a button; the chevron rotates by text (▸/▾). The pinned
+ * variant drops the toggle for 「書き出し」. */
+.toolbar-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.1rem 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.toolbar-section-chevron {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+.toolbar-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+/* v2-S3 3-1: inline sub-accordion inside Selected (「位置・サイズ」). Visually subordinate
+ * to the top-level section — smaller type, lighter chevron, flush with the surrounding
+ * fields. */
+.toolbar-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.25rem 0;
+  border-top: 1px solid var(--color-border);
+}
+.toolbar-subsection-heading {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.toolbar-subsection-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.1rem 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.toolbar-subsection-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
 }
 
 .toolbar-section label {
