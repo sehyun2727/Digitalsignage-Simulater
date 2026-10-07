@@ -328,7 +328,7 @@ describe('App', () => {
     // full-width primary button. Both call the same handler; targeting the header testid
     // keeps this test focused on the header path. The toolbar duplicate is covered by the
     // e2e v2-layout spec.
-    await user.click(screen.getByTestId('editor-header-export-png'));
+    await user.click(screen.getByTestId('editor-export-png-header'));
 
     const banner = await screen.findByTestId('editor-error-banner');
     expect(banner).toHaveTextContent(ja.errorExportPngFailedCause);
@@ -360,7 +360,7 @@ describe('App', () => {
     // v2-S3 2-4: header + toolbar both expose the video export button; target the header
     // testid for the click, then verify the in-progress label on the header button only
     // (the toolbar duplicate is covered in e2e).
-    const headerVideo = screen.getByTestId('editor-header-export-video');
+    const headerVideo = screen.getByTestId('editor-export-video-header');
     await user.click(headerVideo);
     expect(headerVideo).toHaveTextContent(ja.editorExportVideoInProgressButton);
     expect(headerVideo).toBeDisabled();
@@ -368,7 +368,7 @@ describe('App', () => {
     resolveRecording(new Blob(['clip'], { type: 'video/webm' }));
 
     expect(await screen.findByText(ja.editorExportedVideoAnnouncement)).toBeInTheDocument();
-    expect(screen.getByTestId('editor-header-export-video')).not.toBeDisabled();
+    expect(screen.getByTestId('editor-export-video-header')).not.toBeDisabled();
   });
 
   it('shows an accessible error and does not download when video export fails', async () => {
@@ -377,10 +377,10 @@ describe('App', () => {
     render(<App />);
     await addSpaceBackground(user);
 
-    await user.click(screen.getByTestId('editor-header-export-video'));
+    await user.click(screen.getByTestId('editor-export-video-header'));
 
     expect(await screen.findByText(ja.editorExportVideoErrorAnnouncement)).toBeInTheDocument();
-    expect(screen.getByTestId('editor-header-export-video')).not.toBeDisabled();
+    expect(screen.getByTestId('editor-export-video-header')).not.toBeDisabled();
   });
 
   it('shows an accessible error and revokes the object URL when an uploaded image fails to decode', async () => {
@@ -450,7 +450,7 @@ describe('App', () => {
     render(<App />);
     await addSpaceBackground(user);
 
-    await user.click(screen.getByTestId('editor-header-export-png'));
+    await user.click(screen.getByTestId('editor-export-png-header'));
 
     // v2-S2 (requirement C7): success hints go to the polite status element, not the error
     // banner. If a `.error-banner` ever appeared on a successful export path, that would mean

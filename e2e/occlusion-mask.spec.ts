@@ -62,7 +62,7 @@ async function drawMaskTriangle(page: Page): Promise<void> {
 
 async function exportAndSample(page: Page, point: [number, number]) {
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const buffer = await fs.readFile((await (await download).path())!);
   const [pixel] = await samplePngPixels(page, buffer, [point]);
   return pixel!;

@@ -358,8 +358,6 @@ export const ko: Messages = {
   toolbarAddElementSubheading: '사이네지에 콘텐츠를 추가하세요',
   toolbarSelectedSignageSectionHeading: '선택한 사이네지',
   toolbarPositionSizeSubheading: '위치·크기',
-  toolbarExportPngPrimaryLabel: '결과 패널에서 이미지 저장',
-  toolbarExportVideoPrimaryLabel: '결과 패널에서 영상 저장',
   toolbarAppearanceSectionHeading: '외관',
   toolbarExportSectionHeading: '내보내기',
   toolbarContentEmptyHint: '사이네지 또는 포터블 제품을 선택하면 콘텐츠를 추가할 수 있습니다.',

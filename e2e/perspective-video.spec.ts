@@ -236,7 +236,7 @@ test.describe('transparent LED window blending', () => {
 
     async function exportAndSampleScreenCenter() {
       const downloadPromise = page.waitForEvent('download');
-      await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+      await page.getByTestId('editor-export-png-header').click();
       const download = await downloadPromise;
       const path = await download.path();
       const buffer = await fs.readFile(path!);
@@ -278,7 +278,7 @@ test.describe('video content preview and export', () => {
       page.getByText('動画は自動再生・ループ再生・ミュートで表示されます。'),
     ).toBeVisible();
 
-    const exportButton = page.getByRole('button', { name: '動画で書き出す' });
+    const exportButton = page.getByTestId('editor-export-video-header');
     await expect(exportButton).toBeVisible();
 
     const downloadPromise = page.waitForEvent('download');
@@ -311,10 +311,10 @@ test.describe('video export unsupported fallback', () => {
 
     await setup(page);
 
-    await expect(page.getByRole('button', { name: '動画で書き出す' })).toHaveCount(0);
+    await expect(page.getByTestId('editor-export-video-header')).toHaveCount(0);
     await expect(page.getByText('このブラウザは動画の書き出しに対応していません。')).toBeVisible();
 
     // The rest of the app must still work — PNG export is unaffected by video-export support.
-    await expect(page.getByRole('button', { name: 'PNGで書き出す' })).toBeEnabled();
+    await expect(page.getByTestId('editor-export-png-header')).toBeEnabled();
   });
 });

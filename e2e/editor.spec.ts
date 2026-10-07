@@ -30,7 +30,7 @@ test('adds a text element inside a selected signage and exports a PNG at the can
   await expect(page.getByRole('button', { name: '削除', exact: true })).toBeEnabled();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
 
   expect(download.suggestedFilename()).toMatch(/^signage-canvas_\d{8}-\d{6}\.png$/);
@@ -92,7 +92,7 @@ test('exports at the default landscape canvas resolution (1920x1080) regardless 
   await page.getByTestId('editor-add-text-content').click();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
 
   const path = await download.path();
@@ -112,7 +112,7 @@ test('exports at the portrait canvas resolution (1080x1920) when that preset is 
   await page.getByTestId('editor-add-text-content').click();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
 
   const path = await download.path();
@@ -133,7 +133,7 @@ test('exported PNG is byte-identical whether the element is selected or not (no 
   // addText via the Content fast path keeps the display selected and simply fills its text
   // content. First export: with LED selected.
   const firstDownloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const firstDownload = await firstDownloadPromise;
   const firstBuffer = await fs.readFile((await firstDownload.path())!);
 
@@ -142,7 +142,7 @@ test('exported PNG is byte-identical whether the element is selected or not (no 
   await expect(page.getByText('要素を選択するとプロパティを編集できます。')).toBeVisible();
 
   const secondDownloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const secondDownload = await secondDownloadPromise;
   const secondBuffer = await fs.readFile((await secondDownload.path())!);
 

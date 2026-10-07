@@ -319,7 +319,7 @@ export function EditorLayout() {
           </button>
           <button
             type="button"
-            data-testid="editor-header-export-png"
+            data-testid="editor-export-png-header"
             onClick={handleExport}
             disabled={!spaceBackground || isExportingVideo}
           >
@@ -328,7 +328,7 @@ export function EditorLayout() {
           {videoExportSupported && (
             <button
               type="button"
-              data-testid="editor-header-export-video"
+              data-testid="editor-export-video-header"
               onClick={handleExportVideo}
               disabled={!spaceBackground || isExportingVideo}
             >

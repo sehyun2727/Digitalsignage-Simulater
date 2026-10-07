@@ -37,7 +37,7 @@ function watermarkRectDocSpace(canvasW: number, canvasH: number) {
 
 async function exportPngBuffer(page: Page): Promise<Buffer> {
   const dl = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const d = await dl;
   const path = await d.path();
   const fs = await import('node:fs/promises');
@@ -120,7 +120,7 @@ test('W-WM-2: video export watermark presence (first frame)', async ({ page }) =
   // Record a 1-second clip. videoExport.recordCanvasToVideo wires an MP4/WebM depending on
   // the browser's MediaRecorder support.
   const dl = page.waitForEvent('download');
-  const videoButton = page.getByRole('button', { name: '動画で書き出す' });
+  const videoButton = page.getByTestId('editor-export-video-header');
   if ((await videoButton.count()) === 0) {
     console.log(
       'W-WM-2 skipped: 「動画で書き出す」 button is not present (MediaRecorder unsupported in this chromium build).',

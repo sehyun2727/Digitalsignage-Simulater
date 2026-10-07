@@ -241,7 +241,7 @@ test.describe('canvas object reselection', () => {
     await page.getByRole('button', { name: 'LED', exact: true }).click();
 
     const firstDownloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+    await page.getByTestId('editor-export-png-header').click();
     const firstBuffer = await fs.readFile((await (await firstDownloadPromise).path())!);
 
     await deselectViaBlankCanvas(page);
@@ -249,7 +249,7 @@ test.describe('canvas object reselection', () => {
     await expect(deleteButton(page)).toBeEnabled();
 
     const secondDownloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+    await page.getByTestId('editor-export-png-header').click();
     const secondBuffer = await fs.readFile((await (await secondDownloadPromise).path())!);
 
     expect(firstBuffer.equals(secondBuffer)).toBe(true);

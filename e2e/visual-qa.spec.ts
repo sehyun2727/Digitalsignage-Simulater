@@ -202,7 +202,7 @@ test.describe('golden-image PNG export validity', () => {
     await deselect(page);
 
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+    await page.getByTestId('editor-export-png-header').click();
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toMatch(/\.png$/);

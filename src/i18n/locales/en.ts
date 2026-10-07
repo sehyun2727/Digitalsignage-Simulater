@@ -361,8 +361,6 @@ export const en: Messages = {
   toolbarAddElementSubheading: 'Add content to your signage',
   toolbarSelectedSignageSectionHeading: 'Selected signage',
   toolbarPositionSizeSubheading: 'Position & size',
-  toolbarExportPngPrimaryLabel: 'Save image from the Result panel',
-  toolbarExportVideoPrimaryLabel: 'Save clip from the Result panel',
   toolbarAppearanceSectionHeading: 'Appearance',
   toolbarExportSectionHeading: 'Export',
   toolbarContentEmptyHint: 'Select a display or portable product to add content to it.',

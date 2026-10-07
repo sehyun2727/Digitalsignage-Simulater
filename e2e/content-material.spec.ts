@@ -111,7 +111,7 @@ test('exported PNG stays at the exact space photo resolution with a display pres
   await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
 
   const path = await download.path();
@@ -147,7 +147,7 @@ test('cover-fit display content is clipped to the screen region and never spills
   await intensitySlider.press('Tab');
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
 
   const path = await download.path();
@@ -182,7 +182,7 @@ test('a newly added LED display has its contact shadow enabled by default and it
   await page.getByRole('button', { name: '閉じる' }).click();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
   const buffer = await fs.readFile((await download.path())!);
 
@@ -232,7 +232,7 @@ test('rendering presets update the material sliders and the export brightness to
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 
   const nightDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const nightBuffer = await fs.readFile((await (await nightDownload).path())!);
 
   const brightButton = page.getByRole('button', { name: '明るい屋外' });
@@ -240,7 +240,7 @@ test('rendering presets update the material sliders and the export brightness to
   await expect(brightButton).toHaveAttribute('aria-pressed', 'true');
 
   const brightDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const brightBuffer = await fs.readFile((await (await brightDownload).path())!);
 
   // Screen center (960, 540) per the cover-fit test above.

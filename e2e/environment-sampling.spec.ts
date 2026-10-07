@@ -30,7 +30,7 @@ test('sampling the space photo tints the screen toward its ambient color as stre
   const samplePoint: [number, number] = [960, 540]; // center of the default LED object's screen
   const exportAndSample = async () => {
     const download = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+    await page.getByTestId('editor-export-png-header').click();
     const buffer = await fs.readFile((await (await download).path())!);
     const [pixel] = await samplePngPixels(page, buffer, [samplePoint]);
     return pixel!;

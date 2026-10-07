@@ -96,7 +96,7 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
 
   // 10. Export PNG.
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
 
   // 11. Confirm the download happened.
@@ -111,8 +111,8 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await expectNoHorizontalOverflow(page);
 
   // 14. Confirm key controls are visible/reachable (scrolled into view without failing).
-  await page.getByRole('button', { name: 'PNGで書き出す' }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole('button', { name: 'PNGで書き出す' })).toBeVisible();
+  await page.getByTestId('editor-export-png-header').scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('editor-export-png-header')).toBeVisible();
   await page.getByRole('button', { name: 'LED', exact: true }).scrollIntoViewIfNeeded();
   await expect(page.getByRole('button', { name: 'LED', exact: true })).toBeVisible();
 
@@ -159,7 +159,7 @@ test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 
   await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
 
   const path = await download.path();
@@ -206,7 +206,7 @@ test('mobile: adds a custom portable product with a screen region and exports it
 
   // 5. Export and confirm the resolution still matches the uploaded space photo exactly.
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
 
   const path = await download.path();
@@ -337,7 +337,7 @@ test('mobile: adds a transparent LED display and blends more of the space backgr
   await page.getByRole('button', { name: '閉じる' }).click();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
   const path = await download.path();
   expect(path).toBeTruthy();
@@ -466,7 +466,7 @@ test('mobile smoke: a real-photo-style scene renders, exports a PNG, and introdu
   expect(canvasBox!.width).toBeGreaterThan(0);
   expect(canvasBox!.height).toBeGreaterThan(0);
 
-  const exportButton = page.getByRole('button', { name: 'PNGで書き出す' });
+  const exportButton = page.getByTestId('editor-export-png-header');
   await exportButton.scrollIntoViewIfNeeded();
   await expect(exportButton).toBeEnabled();
 

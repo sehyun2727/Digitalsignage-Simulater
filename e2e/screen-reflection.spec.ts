@@ -30,7 +30,7 @@ test('a window-mounted display casts a faint reflection below itself', async ({ 
   const samplePoint: [number, number] = [960, 690];
 
   const wallDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const wallBuffer = await fs.readFile((await (await wallDownload).path())!);
   const [wallPixel] = await samplePngPixels(page, wallBuffer, [samplePoint]);
 
@@ -39,7 +39,7 @@ test('a window-mounted display casts a faint reflection below itself', async ({ 
   await page.getByRole('button', { name: '閉じる' }).click();
 
   const windowDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const windowBuffer = await fs.readFile((await (await windowDownload).path())!);
   const [windowPixel] = await samplePngPixels(page, windowBuffer, [samplePoint]);
 

@@ -100,7 +100,7 @@ async function uploadFixtureContent(page: Page): Promise<void> {
 async function exportPng(page: Page): Promise<Buffer> {
   await page.locator('.editor-canvas-container').click({ position: { x: 5, y: 5 } });
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
   const path = await download.path();
   const fs = await import('node:fs/promises');

@@ -215,11 +215,14 @@ a {
   min-height: 0;
   display: flex;
   gap: 1rem;
-  /* flex-start (not stretch) so the canvas wrapper is sized by the canvas's own 16:9 height
-   * and doesn't get inflated into a tall empty box when the toolbar is much longer.
-   * The toolbar itself uses align-self: stretch to fill the full workspace height so its
-   * own overflow-y: auto handles the scroll internally (see .toolbar). */
-  align-items: flex-start;
+  /* v2-S3 2-1: stretch (not flex-start) so the canvas column AND toolbar both inherit the
+   * workspace's constrained height from the shell → `.editor-layout { min-height:0 }` chain,
+   * stopping the canvas column from using its own content height and overflowing the
+   * viewport. The toolbar still handles its own internal scroll via `.toolbar { overflow-y:
+   * auto }`, so stretching it does not create a tall empty box — it just caps at the
+   * workspace height. (Mobile @media below returns to column flex, where this axis is the
+   * cross axis anyway, so the mobile stacked layout is unaffected.) */
+  align-items: stretch;
   overflow: hidden;
   /* Shared breathing room above BOTH the canvas wrapper and the toolbar so their tops start
    * at the same y-position — previously only the canvas wrapper had this padding, so the
@@ -1177,8 +1180,26 @@ a {
     overflow: visible;
   }
 
+  /* v2-S3 2-1 (3): mobile fit rule. The ResizeObserver reads the measure box's content
+   * box, so pinning `min-height: 70svh` here makes the EditorCanvas pick up a height
+   * that follows the user's formula without needing a JS fallback to `window.innerHeight`.
+   * The canvas-column itself is flex 1 1 auto inside the (now column-flow) workspace, so
+   * the measure box naturally fills the column — this min-height just ensures a usable
+   * canvas even when the toolbar is tall enough to flex-grow against it. */
+  .editor-canvas-measure {
+    min-height: 70svh;
+  }
+
   .editor-canvas-wrapper {
     overflow: visible;
+  }
+
+  .toolbar {
+    /* Mobile portrait tends to grow min-content from the longest label (e.g. 「ポータブル
+     * 製品を追加」) past the 390 px viewport. Clipping the toolbar's own overflow stops
+     * that content from pushing the page's scrollWidth past clientWidth, which L2's
+     * `scrollWidth ≤ clientWidth` assertion checks. */
+    overflow-x: hidden;
   }
 
   .toolbar {

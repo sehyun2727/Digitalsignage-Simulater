@@ -138,7 +138,7 @@ test('replaces a portable product photo, resetting its screen region, and undo r
   await expect(replaceDialog).toBeHidden();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const buffer = await fs.readFile((await (await downloadPromise).path())!);
   // (700, 280) sits inside the product photo but outside the (default) screen region - see the
   // uploadPortableProductPhoto doc comment for the placement math.
@@ -238,7 +238,7 @@ test('applies content and material to a portable product; export is clipped to i
   await intensitySlider.press('Tab');
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
 
   const path = await download.path();
@@ -441,7 +441,7 @@ test.describe('export composition (pixel verification)', () => {
     await intensitySlider.press('Tab');
 
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+    await page.getByTestId('editor-export-png-header').click();
     const download = await downloadPromise;
     const buffer = await fs.readFile((await download.path())!);
     expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
@@ -495,7 +495,7 @@ test.describe('export composition (pixel verification)', () => {
     const samplePoint: [number, number] = [895, 475];
 
     const downloadPromise1 = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+    await page.getByTestId('editor-export-png-header').click();
     const defaultBuffer = await fs.readFile((await (await downloadPromise1).path())!);
     const [withHighlight] = await samplePngPixels(page, defaultBuffer, [samplePoint]);
 
@@ -505,7 +505,7 @@ test.describe('export composition (pixel verification)', () => {
     await intensitySlider.press('Tab');
 
     const downloadPromise2 = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+    await page.getByTestId('editor-export-png-header').click();
     const zeroedBuffer = await fs.readFile((await (await downloadPromise2).path())!);
     const [withoutHighlight] = await samplePngPixels(page, zeroedBuffer, [samplePoint]);
 
@@ -531,7 +531,7 @@ test.describe('export composition (pixel verification)', () => {
     await expect(dialog).toBeHidden();
 
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+    await page.getByTestId('editor-export-png-header').click();
     const download = await downloadPromise;
     const buffer = await fs.readFile((await download.path())!);
     expect(readPngDimensions(buffer)).toEqual({ width: 1080, height: 1920 });

@@ -354,7 +354,7 @@ test('V16: PNG export still works and the exported file is non-empty (S1 regress
 }) => {
   await bootWithSpaceAndLed(page);
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const dl = await download;
   const buf = await (await import('node:fs/promises')).readFile((await dl.path())!);
   // A trivial non-empty check — the full export/visual coverage lives in e2e/v2-content-

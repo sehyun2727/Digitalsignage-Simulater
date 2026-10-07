@@ -38,7 +38,7 @@ test('the material glow halo bleeds past the screen edge into the bezel', async 
   const samplePoint: [number, number] = [960, 407];
 
   const glowOnDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const glowOnBuffer = await fs.readFile((await (await glowOnDownload).path())!);
   const [withGlow] = await samplePngPixels(page, glowOnBuffer, [samplePoint]);
 
@@ -49,7 +49,7 @@ test('the material glow halo bleeds past the screen edge into the bezel', async 
   await page.getByRole('button', { name: '閉じる' }).click();
 
   const glowOffDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const glowOffBuffer = await fs.readFile((await (await glowOffDownload).path())!);
   const [withoutGlow] = await samplePngPixels(page, glowOffBuffer, [samplePoint]);
 

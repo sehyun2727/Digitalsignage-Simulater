@@ -184,11 +184,12 @@ function ToolbarSection({
           </button>
         </h2>
       )}
-      {open && (
-        <div id={bodyId} className="toolbar-section-body">
-          {children}
-        </div>
-      )}
+      {/* v2-S3 Step C-1: keep the body in the DOM so `aria-controls` always resolves;
+       *  hide via the HTML `hidden` attribute when collapsed (implies display:none,
+       *  which also removes descendants from the tab order). */}
+      <div id={bodyId} className="toolbar-section-body" hidden={!open}>
+        {children}
+      </div>
     </section>
   );
 }
@@ -541,66 +542,65 @@ function PositionSizeSubsection({
           </span>
         </button>
       </h3>
-      {open && (
-        <div id={bodyId} className="toolbar-subsection-body">
-          <label>
-            <span>{messages.editorPositionXLabel}</span>
-            <input
-              type="number"
-              value={Math.round(draft.x)}
-              onChange={(event) => setDraft({ ...draft, x: Number(event.target.value) })}
-              onBlur={() => commit({ x: draft.x })}
-            />
-          </label>
-          <label>
-            <span>{messages.editorPositionYLabel}</span>
-            <input
-              type="number"
-              value={Math.round(draft.y)}
-              onChange={(event) => setDraft({ ...draft, y: Number(event.target.value) })}
-              onBlur={() => commit({ y: draft.y })}
-            />
-          </label>
-          <label>
-            <span>{messages.editorWidthLabel}</span>
-            <input
-              type="number"
-              min={10}
-              value={Math.round(draft.width)}
-              disabled={perspectiveLocked}
-              aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
-              onChange={(event) => setDraft({ ...draft, width: Number(event.target.value) })}
-              onBlur={() => commit({ width: Math.max(10, draft.width) })}
-            />
-          </label>
-          <label>
-            <span>{messages.editorHeightLabel}</span>
-            <input
-              type="number"
-              min={10}
-              value={Math.round(draft.height)}
-              disabled={perspectiveLocked}
-              aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
-              onChange={(event) => setDraft({ ...draft, height: Number(event.target.value) })}
-              onBlur={() => commit({ height: Math.max(10, draft.height) })}
-            />
-          </label>
-          {perspectiveLocked && (
-            <p id="perspective-size-locked-hint" className="toolbar-notice">
-              {messages.perspectiveSizeLockedHint}
-            </p>
-          )}
-          <label>
-            <span>{messages.editorRotationLabel}</span>
-            <input
-              type="number"
-              value={Math.round(draft.rotation)}
-              onChange={(event) => setDraft({ ...draft, rotation: Number(event.target.value) })}
-              onBlur={() => commit({ rotation: draft.rotation })}
-            />
-          </label>
-        </div>
-      )}
+      {/* Step C-1: keep the sub-section body in the DOM so aria-controls resolves. */}
+      <div id={bodyId} className="toolbar-subsection-body" hidden={!open}>
+        <label>
+          <span>{messages.editorPositionXLabel}</span>
+          <input
+            type="number"
+            value={Math.round(draft.x)}
+            onChange={(event) => setDraft({ ...draft, x: Number(event.target.value) })}
+            onBlur={() => commit({ x: draft.x })}
+          />
+        </label>
+        <label>
+          <span>{messages.editorPositionYLabel}</span>
+          <input
+            type="number"
+            value={Math.round(draft.y)}
+            onChange={(event) => setDraft({ ...draft, y: Number(event.target.value) })}
+            onBlur={() => commit({ y: draft.y })}
+          />
+        </label>
+        <label>
+          <span>{messages.editorWidthLabel}</span>
+          <input
+            type="number"
+            min={10}
+            value={Math.round(draft.width)}
+            disabled={perspectiveLocked}
+            aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
+            onChange={(event) => setDraft({ ...draft, width: Number(event.target.value) })}
+            onBlur={() => commit({ width: Math.max(10, draft.width) })}
+          />
+        </label>
+        <label>
+          <span>{messages.editorHeightLabel}</span>
+          <input
+            type="number"
+            min={10}
+            value={Math.round(draft.height)}
+            disabled={perspectiveLocked}
+            aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
+            onChange={(event) => setDraft({ ...draft, height: Number(event.target.value) })}
+            onBlur={() => commit({ height: Math.max(10, draft.height) })}
+          />
+        </label>
+        {perspectiveLocked && (
+          <p id="perspective-size-locked-hint" className="toolbar-notice">
+            {messages.perspectiveSizeLockedHint}
+          </p>
+        )}
+        <label>
+          <span>{messages.editorRotationLabel}</span>
+          <input
+            type="number"
+            value={Math.round(draft.rotation)}
+            onChange={(event) => setDraft({ ...draft, rotation: Number(event.target.value) })}
+            onBlur={() => commit({ rotation: draft.rotation })}
+          />
+        </label>
+      </div>
     </section>
   );
 }
@@ -2083,8 +2083,7 @@ function ExportSection({
         <button
           type="button"
           className="toolbar-export-primary"
-          data-testid="toolbar-export-png"
-          aria-label={messages.toolbarExportPngPrimaryLabel}
+          data-testid="editor-export-png-panel"
           onClick={onExport}
           disabled={!spaceBackground || isExportingVideo}
         >
@@ -2094,8 +2093,7 @@ function ExportSection({
           <button
             type="button"
             className="toolbar-export-primary"
-            data-testid="toolbar-export-video"
-            aria-label={messages.toolbarExportVideoPrimaryLabel}
+            data-testid="editor-export-video-panel"
             onClick={onExportVideo}
             disabled={!spaceBackground || isExportingVideo}
           >

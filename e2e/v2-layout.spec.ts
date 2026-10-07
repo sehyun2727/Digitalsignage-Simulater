@@ -165,7 +165,7 @@ test('L4 PNG export is identical and preset-sized across two display-scale viewp
     await page.goto('/');
     await addSpaceBackground(page, { width: 1920, height: 1080 });
     const dl = page.waitForEvent('download');
-    await page.getByTestId('editor-header-export-png').click();
+    await page.getByTestId('editor-export-png-header').click();
     const d = await dl;
     const buf = await fs.readFile((await d.path())!);
     buffers.push(buf);
@@ -303,10 +303,10 @@ test('L11 appearance guide is inline, not a modal', async ({ page }) => {
 test('L12 toolbar PNG export button is visible and ≥ 44 px tall', async ({ page }) => {
   await page.goto('/');
   await addSpaceBackground(page, { width: 1920, height: 1080 });
-  const btn = page.getByTestId('toolbar-export-png');
+  const btn = page.getByTestId('editor-export-png-panel');
   await expect(btn).toBeVisible();
   const box = (await btn.boundingBox())!;
-  console.log(`L12 toolbar-export-png height=${box.height.toFixed(1)}`);
+  console.log(`L12 editor-export-png-panel height=${box.height.toFixed(1)}`);
   expect(box.height).toBeGreaterThanOrEqual(44);
   const dl = page.waitForEvent('download');
   await btn.click();
