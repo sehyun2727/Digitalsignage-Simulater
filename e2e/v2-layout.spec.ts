@@ -47,6 +47,17 @@ const L1_VIEWPORTS = [
   { w: 1440, h: 900 },
   { w: 1280, h: 720 },
 ] as const;
+
+// v2-S3 Step G: short-height desktop viewports. The 100dvh+overflow:hidden shell has to
+// cope with these without clipping any critical control. Each viewport is checked twice
+// (preset×2) × error on/off (×2) = 12 extra conditions, assertions mirror L1 + the panel-
+// bottom reachability check (「書き出し」 button must sit within the toolbar's scrollable
+// area, i.e. its bottom ≤ innerHeight + toolbar.scrollTop range).
+const G_VIEWPORTS = [
+  { w: 1366, h: 650 },
+  { w: 1280, h: 600 },
+  { w: 1024, h: 640 },
+] as const;
 const L1_PRESETS = ['landscape', 'portrait'] as const;
 const L1_PHOTOS = [false, true] as const;
 
@@ -110,6 +121,77 @@ for (const vp of L1_VIEWPORTS) {
         if (footer) {
           expect(footer.bottom, `${label} footer.bottom ≤ innerHeight`).toBeLessThanOrEqual(
             vp.h + SLACK,
+          );
+        }
+        await ctx.close();
+      });
+    }
+  }
+}
+
+// --- G short-height desktop ----------------------------------------------------------------
+for (const vp of G_VIEWPORTS) {
+  for (const preset of L1_PRESETS) {
+    for (const err of [false, true] as const) {
+      test(`G ${vp.w}x${vp.h} ${preset} ${err ? 'error' : 'no-error'}: nothing is clipped`, async ({
+        browser,
+      }) => {
+        const ctx = await browser.newContext({
+          viewport: { width: vp.w, height: vp.h },
+          locale: 'ja-JP',
+        });
+        const page = await ctx.newPage();
+        await page.goto('/');
+        if (preset === 'portrait') {
+          await openSection(page, 'space');
+          const portrait = page.getByRole('button', { name: /縦長/ });
+          if ((await portrait.count()) > 0) await portrait.first().click();
+        }
+        if (err) {
+          await page.getByTestId('editor-space-background-upload').setInputFiles({
+            name: 'huge.png',
+            mimeType: 'image/png',
+            buffer: Buffer.alloc(11 * 1024 * 1024, 1),
+          });
+          await expect(page.getByTestId('editor-error-banner')).toBeVisible();
+        }
+        const canvas = (await rect(page, '.editor-canvas-container'))!;
+        const statusArea = await rect(page, '[data-testid="editor-status-area"]');
+        const footer = await rect(page, '.app-footer');
+        // Panel-scroll reach: toolbar is `overflow-y: auto`; scroll it to its max and
+        // measure the export section's bottom in page coordinates. The export heading
+        // must sit at or below the toolbar's top AND at or above its bottom after a
+        // scrollTo(scrollHeight) — i.e. it is reachable without the page itself scrolling.
+        const toolbar = (await rect(page, '.toolbar'))!;
+        const exportReach = await page.evaluate(() => {
+          const t = document.querySelector('.toolbar') as HTMLElement | null;
+          const section = document.querySelector(
+            '[data-testid="toolbar-section-export"]',
+          ) as HTMLElement | null;
+          if (!t || !section) return null;
+          t.scrollTop = t.scrollHeight;
+          const r = section.getBoundingClientRect();
+          return { top: r.top, bottom: r.bottom, scrollTop: t.scrollTop, scrollH: t.scrollHeight };
+        });
+        const label = `G ${vp.w}x${vp.h} ${preset} ${err ? 'error' : 'no-error'}`;
+        console.log(
+          `${label} canvas={top=${canvas.y.toFixed(0)},bottom=${canvas.bottom.toFixed(0)}} ` +
+            `status.bottom=${statusArea ? statusArea.bottom.toFixed(0) : '-'} ` +
+            `footer.bottom=${footer ? footer.bottom.toFixed(0) : '-'} ` +
+            `innerH=${vp.h} toolbar={top=${toolbar.y.toFixed(0)},bottom=${toolbar.bottom.toFixed(0)}} ` +
+            `exportReach=${JSON.stringify(exportReach)}`,
+        );
+        // Everything must stay inside the viewport.
+        expect(canvas.bottom, `${label} canvas.bottom`).toBeLessThanOrEqual(vp.h + SLACK);
+        if (statusArea)
+          expect(statusArea.bottom, `${label} status.bottom`).toBeLessThanOrEqual(vp.h + SLACK);
+        if (footer)
+          expect(footer.bottom, `${label} footer.bottom`).toBeLessThanOrEqual(vp.h + SLACK);
+        // Panel-scroll reach: after scrolling the toolbar to its max, the export section's
+        // top must land at or above the toolbar.bottom (otherwise it is unreachable).
+        if (exportReach) {
+          expect(exportReach.top, `${label} export.top ≤ toolbar.bottom`).toBeLessThanOrEqual(
+            toolbar.bottom + SLACK,
           );
         }
         await ctx.close();
