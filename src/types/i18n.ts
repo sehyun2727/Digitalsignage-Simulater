@@ -276,6 +276,8 @@ export interface Messages {
   toolbarAddElementSubheading: string;
   toolbarSelectedSignageSectionHeading: string;
   toolbarPositionSizeSubheading: string;
+  toolbarExportPngPrimaryLabel: string;
+  toolbarExportVideoPrimaryLabel: string;
   toolbarAppearanceSectionHeading: string;
   toolbarExportSectionHeading: string;
   toolbarContentEmptyHint: string;

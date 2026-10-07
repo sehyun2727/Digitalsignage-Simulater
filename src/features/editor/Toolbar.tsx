@@ -2075,10 +2075,16 @@ function ExportSection({
        *  jumping back to the header. Shares `onExport*` / `isExportingVideo` with the header
        *  buttons; both are disabled while a video export is in flight. */}
       <div className="toolbar-export-actions">
+        {/* v2-S3 2-4: these buttons share click handlers with the header pair, but each
+         *  carries a distinct `aria-label` so existing e2e tests that use
+         *  `getByRole('button', { name: 'PNGで書き出す' })` keep matching exactly one
+         *  element (the header's). Visible text stays unchanged; the accessible-name
+         *  override is applied via `aria-label`. */}
         <button
           type="button"
           className="toolbar-export-primary"
           data-testid="toolbar-export-png"
+          aria-label={messages.toolbarExportPngPrimaryLabel}
           onClick={onExport}
           disabled={!spaceBackground || isExportingVideo}
         >
@@ -2089,6 +2095,7 @@ function ExportSection({
             type="button"
             className="toolbar-export-primary"
             data-testid="toolbar-export-video"
+            aria-label={messages.toolbarExportVideoPrimaryLabel}
             onClick={onExportVideo}
             disabled={!spaceBackground || isExportingVideo}
           >
