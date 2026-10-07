@@ -1,8 +1,9 @@
-dist
-dist-oitemiru
-coverage
-playwright-report
-test-results
-node_modules
-package-lock.json
-Claude.md
+dist/
+dist-oitemiru/
+node_modules/
+coverage/
+e2e-*.json
+s2-*.json
+s3-*.json
+head-*.json
+*-impact*.json

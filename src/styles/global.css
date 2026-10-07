@@ -472,6 +472,13 @@ a {
   position: absolute;
   top: 0.75rem;
   left: 0.75rem;
+  /* v2-S3 B-5: cap width + allow wrap so the long "まずは空間写真をアップロード…"
+   * sentence does not push past a 390 px mobile viewport. `max-width: calc(100% − 1.5rem)`
+   * stays inside the canvas-container's padding; `white-space: normal` and
+   * `overflow-wrap: break-word` let CJK sentences wrap on arbitrary points. */
+  max-width: calc(100% - 1.5rem);
+  white-space: normal;
+  overflow-wrap: break-word;
   z-index: 1;
   margin: 0;
   padding: 0.35rem 0.6rem;
@@ -694,6 +701,12 @@ a {
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 0.4rem;
+}
+/* v2-S3 Step C-1: `display: flex` above wins over the UA default `[hidden] { display: none }`,
+ * so re-assert the hidden-state here. Same pattern for the sub-section body below. */
+.toolbar-section-body[hidden],
+.toolbar-subsection-body[hidden] {
+  display: none;
 }
 
 /* v2-S3 3-1: inline sub-accordion inside Selected (「位置・サイズ」). Visually subordinate
@@ -1180,26 +1193,19 @@ a {
     overflow: visible;
   }
 
-  /* v2-S3 2-1 (3): mobile fit rule. The ResizeObserver reads the measure box's content
-   * box, so pinning `min-height: 70svh` here makes the EditorCanvas pick up a height
-   * that follows the user's formula without needing a JS fallback to `window.innerHeight`.
-   * The canvas-column itself is flex 1 1 auto inside the (now column-flow) workspace, so
-   * the measure box naturally fills the column — this min-height just ensures a usable
-   * canvas even when the toolbar is tall enough to flex-grow against it. */
+  /* v2-S3 B-4: on mobile the fit formula uses `0.7 × window.innerHeight` directly from
+   * EditorCanvas.tsx (not from the measure box's own height). So the measure box only
+   * needs to size to its content — the stage-sized canvas-container — with NO extra flex
+   * growth below it. `flex: 0 0 auto` keeps measure.height == stage.height exactly;
+   * `align-items: flex-start` stops the column flex from stretching it taller. */
   .editor-canvas-measure {
-    min-height: 70svh;
+    flex: 0 0 auto;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   .editor-canvas-wrapper {
     overflow: visible;
-  }
-
-  .toolbar {
-    /* Mobile portrait tends to grow min-content from the longest label (e.g. 「ポータブル
-     * 製品を追加」) past the 390 px viewport. Clipping the toolbar's own overflow stops
-     * that content from pushing the page's scrollWidth past clientWidth, which L2's
-     * `scrollWidth ≤ clientWidth` assertion checks. */
-    overflow-x: hidden;
   }
 
   .toolbar {

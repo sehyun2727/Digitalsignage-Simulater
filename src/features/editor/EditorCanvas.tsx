@@ -80,6 +80,15 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   // v2-S3 2-1: also track the container's height so the fit calculation can honour BOTH
   // axes — the pre-S3 math was width-only, which clipped 9:16 canvases at tall viewports.
   const [containerHeight, setContainerHeight] = useState(0);
+  // v2-S3 B-4: mobile fit formula needs `window.innerHeight` (not just the measure box's
+  // own height) so the stage grows to 0.7 × viewport height regardless of how much space
+  // the stacked toolbar below is currently taking. Track it the same way as container size.
+  const [viewportInnerHeight, setViewportInnerHeight] = useState(
+    typeof window !== 'undefined' ? window.innerHeight : 0,
+  );
+  const [viewportInnerWidth, setViewportInnerWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 0,
+  );
 
   useEffect(() => {
     const element = measureRef.current;
@@ -95,13 +104,45 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     return () => observer.disconnect();
   }, []);
 
-  // Uniform scale = min of per-axis scales, so both width AND height stay inside the
-  // container. Coordinate conversion stays correct because Konva's Stage uses the same
-  // scalar for scaleX and scaleY (see <Stage scaleX={fitScale} scaleY={fitScale} /> below).
-  const fitScale =
-    containerWidth > 0 && containerHeight > 0 && size
-      ? Math.min(containerWidth / size.width, containerHeight / size.height)
-      : 1;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onResize = () => {
+      setViewportInnerHeight(window.innerHeight);
+      setViewportInnerWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // v2-S3 B-4: pick the fit formula based on the viewport, not on the measure box. The
+  // mobile breakpoint matches the shell's `@media (max-width: 48rem)` block (768 px);
+  // below that the layout is stacked (canvas above the toolbar) and the measure box's
+  // height is capped at the stage height by the mobile @media rule in global.css, so
+  // the formula uses `0.7 × window.innerHeight` as the vertical bound instead.
+  //
+  // Desktop: fit scale is min(containerW/docW, containerH/docH) — honours both axes of the
+  // flex-sized measure box. Coordinate conversion stays correct because scaleX = scaleY.
+  const MOBILE_BREAKPOINT_PX = 768;
+  const isMobile = viewportInnerWidth > 0 && viewportInnerWidth < MOBILE_BREAKPOINT_PX;
+  const fitScale = (() => {
+    if (!size) return 1;
+    if (isMobile) {
+      // v2-S3 B-4 bootstrap: mobile measure box is `flex: 0 0 auto`, so its initial
+      // containerWidth starts at ~0 before any inline-style is applied — using that
+      // directly would pin fitScale at 0 forever (measure stays 0 → container stays 0).
+      // Fall back to `window.innerWidth − shellPadding` for the width term so the first
+      // render already has a non-zero scale; afterwards the ResizeObserver keeps us
+      // honest.
+      const shellPadding = 24;
+      const widthBasis = containerWidth > 0 ? containerWidth : viewportInnerWidth - shellPadding;
+      if (widthBasis <= 0) return 1;
+      if (viewportInnerHeight <= 0) return widthBasis / size.width;
+      return Math.min(widthBasis / size.width, (0.7 * viewportInnerHeight) / size.height);
+    }
+    if (containerWidth <= 0) return 1;
+    if (containerHeight <= 0) return 1;
+    return Math.min(containerWidth / size.width, containerHeight / size.height);
+  })();
   const stageWidth = size ? size.width * fitScale : 0;
   const stageHeight = size ? size.height * fitScale : 0;
 
@@ -380,7 +421,17 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       <div
         className="editor-canvas-container"
         ref={containerRef}
-        style={size ? { width: `${stageWidth}px`, height: `${stageHeight}px` } : undefined}
+        /* v2-S3 B-5: pin the inline size once a non-zero width is known. For desktop that
+         * means `containerWidth > 0` (ResizeObserver landed); for mobile the formula also
+         * accepts `viewportInnerWidth > 0` as a bootstrap, so the first mobile paint can
+         * already size the stage from `window.innerWidth − shellPadding` without waiting
+         * for the ResizeObserver — otherwise `.editor-canvas-measure { flex: 0 0 auto }`
+         * would shrink the measure box to 0 and the stage would never grow. */
+        style={
+          size && stageWidth > 0 && stageHeight > 0
+            ? { width: `${stageWidth}px`, height: `${stageHeight}px` }
+            : undefined
+        }
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}

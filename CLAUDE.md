@@ -34,11 +34,13 @@
 ## 3. 아키텍처 핵심 규칙
 
 ### 3-1. 상태 분리
+
 - **문서 상태**: `editorStore` — `document`(공간 배경 + 캔버스 프리셋 + 객체 배열), `selectedId`, `past`/`future` 히스토리(50 한도), 각종 편집 드래프트(perspective/occlusion/screenQuad).
 - **세션 UI 상태**: `uiStore` — `comparisonMode`, `salesReviewMode`, `onboardingDismissed`(localStorage), `realismGuideDismissed`(localStorage), `watermarkDisabled`.
 - 두 스토어의 상태는 섞지 마세요. 특히 비교 모드·세일즈 리뷰 모드를 문서 히스토리에 넣지 마세요.
 
 ### 3-2. 렌더링 레이어 순서 (하 → 상)
+
 1. `SpaceBackgroundView` (Cover-fit + offsetY 세로 팬)
 2. objects(각 `CanvasObjectView` → `SignageDisplayView`/`PortableProductView`/Konva Text/Image) + 각 객체의 `ContactShadowView`·`OcclusionMaskLayer`·`ScreenReflection` 등
 3. 공용 `Transformer` (선택 UI)
@@ -46,25 +48,30 @@
 5. 편집 모드 오버레이(`PerspectiveEditOverlay`·`OcclusionEditOverlay`·`ScreenQuadEditOverlay`)
 
 ### 3-3. 편집 표시 배율과 출력 해상도 분리
+
 - `fitScale = containerWidth / documentSize.width`가 표시 배율. **출력은 캔버스 프리셋(1920×1080 또는 1080×1920) 고정**. `exportPixelRatio = devicePixelRatio × (documentSize / containerWidth)`로 보정.
 - 레이아웃 변경(S3)·확대/축소(S4) 도입 후에도 **PNG/동영상 출력 해상도는 불변**이어야 합니다 (C12).
 
 ### 3-4. 포터블 compound model
+
 - `PortableSignageObject`는 `BaseSignageObject` + `templateView`(front/angled/side) + `productPhotoSourceId: string | null` + `screenQuad: NormalizedQuad | null`.
 - 사용자가 제품 사진을 업로드하면 `productPhotoSourceId`가 생기고, 그 안에서 `ScreenQuadEditOverlay`로 `screenQuad`를 지정. 사진 없을 때는 템플릿 뷰별 preset 값을 fallback으로 사용.
 - `WarpedScreenContent`가 콘텐츠를 `screenQuad`로 워프, `PortableTemplateBody`(또는 productPhoto)가 상단 프레임을 덮음.
 
 ### 3-5. **포터블 `screenQuad`와 모자이크(Occlusion) 4점은 공유 금지**
+
 - 서로 다른 타입: `screenQuad: NormalizedQuad`(4점) vs `OcclusionMask { kind:'polygon', points: NormalizedPoint[] }`(3~24점).
 - 서로 다른 drafts (`screenQuadDraftQuad` vs `occlusionDraftPoints`), 서로 다른 오버레이·레이어·좌표계. 유틸 함수(`clampPoint01`, `normalizedQuadToDocument`)만 공유.
 - 이 둘을 합치려 하지 마세요.
 
 ### 3-6. HULL 워터마크
+
 - `src/features/editor/HullWatermarkView.tsx` + `src/lib/hullWatermark.ts`.
 - `HULL_WATERMARK_SRC = \`${import.meta.env.BASE_URL}assets/brand/hull-watermark.svg\`` — 두 base에서 자동 대응.
 - 미리보기·PNG·동영상에 **같은 layout 함수**로 항상 최상단. 선택·이동·삭제 불가. 토글은 `uiStore.watermarkDisabled`만.
 
 ### 3-7. 서브 경로(`/oitemiru/`) 처리
+
 - `vite.config.ts`에 **`base`를 하드코딩하지 말 것**. 환경별 차이는 `package.json` scripts의 `--base`로만 처리:
   - `npm run build` → base `/`, 출력 `dist/` (Render용)
   - `npm run build:oitemiru` → base `/oitemiru/`, 출력 `dist-oitemiru/` (본서버용)
@@ -73,6 +80,7 @@
 - 상세: `docs/v2/deployment.md`, `docs/runbooks/render-static-site.md`.
 
 ### 3-8. object URL / HTMLVideoElement 생명주기
+
 - 모든 업로드 자산은 `src/lib/assetRegistry.ts`를 통해 디코드 후 `sourceId`로 참조. Object URL은 레지스트리가 관리.
 - 객체 삭제·히스토리 폐기 후 `sweepUnusedAssets()`가 참조 수를 세어 revoke.
 - 복사·붙여넣기(S4) 구현 시 `sourceId` 공유 참조의 revoke 거동을 반드시 테스트(C13).
@@ -89,43 +97,52 @@
 ## 5. 작업 방식 (v2)
 
 ### 5-1. 브랜치·커밋
+
 - `main` 직접 커밋 허용(1인 작업). 스프린트당 커밋 1개 이상.
 - 메시지 형식: `feat(v2-S{n}): ...`, `fix(v2-S{n}): ...`, `docs(v2-S{n}): ...`, `test(v2-S{n}): ...`, `refactor(v2-S{n}): ...`.
 - 한 파일이 여러 주제에 걸치면 분리하지 말고 묶기. `git add -p` 금지.
 - **태그는 사용자 검수 통과 후에만 붙인다.** AI는 스프린트 완료 보고를 올리는 데서 멈추고, `v2-S{n}-ok` 태그 작업은 사용자가 승인한 뒤 사용자가 지시할 때만 실행합니다.
 
 ### 5-2. push 규칙
+
 - **S1~S6 중에는 `git push` 금지**. Render 스테이징을 직원이 보기 때문입니다(운영 영향 아님).
 - S7 완료 후 사용자 지시가 있을 때만 1회 push.
 - `--force` 계열 금지. non-fast-forward가 나면 멈추고 보고.
 
 ### 5-3. 본서버 배포는 AI가 하지 않습니다
+
 - AI는 `npm run build:oitemiru`를 실행해 `dist-oitemiru/`를 만드는 데까지만. 서버 업로드는 사용자가 수동.
 - 상세 절차: `docs/v2/deployment.md`.
 
 ### 5-4. 범위 밖 변경 금지
+
 - 스프린트 범위에 없는 리팩터, 디자인 변경, 의존성 추가, 포매팅 자동 수정(`prettier --write`, `eslint --fix`)을 범위 작업과 섞지 마세요.
 - 범위 밖이 꼭 필요하면 멈추고 보고.
 
 ### 5-5. 불확실하면 추측 구현 금지
+
 - 사용자 요구가 불분명하면 가장 작은 가역 구현을 제안하거나, 집중 질문을 1개 하고 중단.
 - 코드에서 확인 안 된 사실을 보고에 쓰지 말 것("미확인"이라고 적기).
 
 ### 5-6. 버그 수정은 실패 테스트 선행
+
 - 버그 수정은 **실패하는 테스트를 먼저 작성**하고 그 테스트가 통과하도록 수정.
 - 의도된 UI 변경으로 테스트가 깨지면 그 스프린트의 범위 안에서 테스트도 함께 갱신.
 
 ### 5-7. visual-qa 스냅샷 갱신 규칙
+
 - 스냅샷 갱신은 **의도된 변경에 한해** `npm run qa:visual:update`.
 - 갱신한 스냅샷 파일 목록과 이유를 보고서에 기록.
 - 의도하지 않은 차이가 생기면 버그로 처리.
 - OS별 스냅샷은 `.gitignore`에 따라 Linux(Docker/CI) 외 금지 (`*-win32.png`, `*-darwin.png` ignored).
 
 ### 5-8bis. e2e 집계는 `test:e2e:core` 기준 (S3 이후)
+
 - `visual-qa.spec.ts`(golden-image 6건)는 Linux 전용 스냅샷 기반이라 win32에서는 집계 신뢰도가 없음. 그래서 S3~S6의 e2e 판정은 **`npm run test:e2e:core`**(`--grep-invert "golden-image"`) 결과를 기준으로 삼는다.
 - `visual-qa`는 S7 Docker Linux에서 별도 `qa:visual`로 돌리고 거기서만 판정한다. baseline 알려진 실패 표의 "Linux 스냅샷" 행도 S7에서만 평가한다.
 
 ### 5-8. 수동 테스트·스크린샷 금지, 자가검증은 측정값으로
+
 - **사용자에게 수동 테스트를 돌리라고 요청하지 않습니다.** 스크린샷 첨부도 요청하지 않습니다. v2 전체에서 "브라우저로 확인해 주세요" 흐름은 쓰지 않습니다.
 - 스프린트가 "눈으로 확인되어야 하는" 항목(폰트 크기, 대비, 레이아웃)을 요구할 때는 자가검증 항목(V1, V2, ...)을 **Playwright assertion**으로 작성합니다. 폰트 크기는 `getComputedStyle(...).fontSize` 측정, 대비는 relative-luminance 계산, 위치는 `boundingBox` 비중첩으로 검증합니다.
 - 자가검증 테스트는 e2e 스펙 안에 섞어 두되 `v2-xxx-upload.spec.ts` 같이 스프린트별 파일로 묶어서 관리합니다. 보고서에 각 V 항목의 **측정값**(예: `fontSize=16px, contrastRatio=12.63:1`)을 적습니다. 통과·실패만 적지 말 것.
@@ -134,26 +151,29 @@
 ## 6. 테스트 규칙
 
 ### 6-1. 사용 명령 (모두 하이픈·오타 없이 그대로)
-| 명령 | 용도 | 비고 |
-|---|---|---|
-| `npm run typecheck` | `tsc -b` 전체 체크 | |
-| `npm run lint` | `eslint .` | |
-| `npm run format:check` | `prettier --check .` | pass가 기본 |
-| `npm run test:run` | Vitest 단일 실행 | **`npm test`는 watch 모드이므로 쓰지 말 것** |
-| `npm run build` | 루트 base 빌드(Render용) | |
-| `npm run build:oitemiru` | `/oitemiru/` base 빌드(본서버용) | |
-| `npm run test:e2e` | Playwright 전체 | `E2E_PORT=4175` 등으로 포트 지정 가능 |
-| `npm run qa:visual` | visual-qa 스펙만 | |
-| `npm run qa:visual:update` | 스냅샷 갱신 | 범위 안 의도된 변경만 |
-| `npm run preview` / `preview:oitemiru` | 로컬 preview | base 각각 다름 |
+
+| 명령                                   | 용도                             | 비고                                         |
+| -------------------------------------- | -------------------------------- | -------------------------------------------- |
+| `npm run typecheck`                    | `tsc -b` 전체 체크               |                                              |
+| `npm run lint`                         | `eslint .`                       |                                              |
+| `npm run format:check`                 | `prettier --check .`             | pass가 기본                                  |
+| `npm run test:run`                     | Vitest 단일 실행                 | **`npm test`는 watch 모드이므로 쓰지 말 것** |
+| `npm run build`                        | 루트 base 빌드(Render용)         |                                              |
+| `npm run build:oitemiru`               | `/oitemiru/` base 빌드(본서버용) |                                              |
+| `npm run test:e2e`                     | Playwright 전체                  | `E2E_PORT=4175` 등으로 포트 지정 가능        |
+| `npm run qa:visual`                    | visual-qa 스펙만                 |                                              |
+| `npm run qa:visual:update`             | 스냅샷 갱신                      | 범위 안 의도된 변경만                        |
+| `npm run preview` / `preview:oitemiru` | 로컬 preview                     | base 각각 다름                               |
 
 ### 6-2. 테스트 작성
+
 - 단위 테스트 위치: **`tests/unit/*.test.{ts,tsx}`**. 다른 위치는 pick-up 안 됨.
 - e2e 위치: `e2e/*.spec.ts`.
 - 선택자: **role / label / data-testid 우선**. getByText는 문구가 자주 바뀌는 UI 요소에 쓰지 말 것.
 - jsdom 환경 경고(`HTMLCanvasElement.getContext`, `HTMLMediaElement.pause`, `Window.scrollTo` "Not implemented")는 무시.
 
 ### 6-3. 실행하지 않은 검사를 통과했다고 쓰지 않기
+
 - 보고서에 명령별 실제 실행 결과만 기록. 추정으로 ✅ 쓰지 마세요.
 
 ## 7. 스프린트 완료 보고서 형식

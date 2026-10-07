@@ -75,10 +75,20 @@ for (const vp of L1_VIEWPORTS) {
         }
         const canvas = (await rect(page, '.editor-canvas-container'))!;
         const toolbar = (await rect(page, '.toolbar'))!;
+        const statusArea = await rect(page, '[data-testid="editor-status-area"]');
+        const footer = await rect(page, '.app-footer');
         const metrics = await docScrollMetrics(page);
+        const overflowY = await page.evaluate(() => ({
+          html: window.getComputedStyle(document.documentElement).overflowY,
+          body: window.getComputedStyle(document.body).overflowY,
+        }));
         const label = `L1 ${vp.w}x${vp.h} ${preset} ${photo ? 'photo' : 'nophoto'}`;
         console.log(
-          `${label} canvas={w=${canvas.width.toFixed(0)},h=${canvas.height.toFixed(0)},right=${canvas.right.toFixed(0)},bottom=${canvas.bottom.toFixed(0)}} toolbar={right=${toolbar.right.toFixed(0)},left=${toolbar.x.toFixed(0)}} vpH=${vp.h} scrollH=${metrics.scrollHeight} innerH=${metrics.innerHeight}`,
+          `${label} canvas={top=${canvas.y.toFixed(0)},left=${canvas.x.toFixed(0)},right=${canvas.right.toFixed(0)},bottom=${canvas.bottom.toFixed(0)}} ` +
+            `panel={left=${toolbar.x.toFixed(0)},right=${toolbar.right.toFixed(0)}} ` +
+            `status.bottom=${statusArea ? statusArea.bottom.toFixed(0) : '-'} ` +
+            `footer.bottom=${footer ? footer.bottom.toFixed(0) : '-'} ` +
+            `innerH=${metrics.innerHeight} scrollH=${metrics.scrollHeight} overflowY=${overflowY.html}/${overflowY.body}`,
         );
         expect(canvas.bottom, `${label} canvas.bottom ≤ innerHeight`).toBeLessThanOrEqual(
           vp.h + SLACK,
@@ -92,6 +102,16 @@ for (const vp of L1_VIEWPORTS) {
         expect(metrics.scrollHeight, `${label} scrollHeight ≤ innerHeight`).toBeLessThanOrEqual(
           metrics.innerHeight + SLACK,
         );
+        if (statusArea) {
+          expect(statusArea.bottom, `${label} status.bottom ≤ innerHeight`).toBeLessThanOrEqual(
+            vp.h + SLACK,
+          );
+        }
+        if (footer) {
+          expect(footer.bottom, `${label} footer.bottom ≤ innerHeight`).toBeLessThanOrEqual(
+            vp.h + SLACK,
+          );
+        }
         await ctx.close();
       });
     }
@@ -114,15 +134,23 @@ for (const preset of L1_PRESETS) {
       if ((await portrait.count()) > 0) await portrait.first().click();
     }
     const canvas = (await rect(page, '.editor-canvas-container'))!;
+    const measure = (await rect(page, '.editor-canvas-measure'))!;
     const metrics = await docScrollMetrics(page);
     const label = `L2 390x844 ${preset}`;
+    // v2-S3 B-4: measure.height should equal stage.height within 1 px — no empty space
+    // above/below the stage inside the measure box.
+    const measureCanvasDelta = Math.abs(measure.height - canvas.height);
     console.log(
-      `${label} canvas={w=${canvas.width.toFixed(0)},h=${canvas.height.toFixed(0)},right=${canvas.right.toFixed(0)}} scrollW=${metrics.scrollWidth} clientW=${metrics.clientWidth}`,
+      `${label} canvas={w=${canvas.width.toFixed(0)},h=${canvas.height.toFixed(0)},right=${canvas.right.toFixed(0)}} measure.h=${measure.height.toFixed(0)} measureΔ=${measureCanvasDelta.toFixed(2)} scrollW=${metrics.scrollWidth} clientW=${metrics.clientWidth}`,
     );
     expect(canvas.right, `${label} canvas.right ≤ 390`).toBeLessThanOrEqual(390 + SLACK);
     expect(metrics.scrollWidth, `${label} scrollWidth ≤ clientWidth`).toBeLessThanOrEqual(
       metrics.clientWidth + SLACK,
     );
+    expect(
+      measureCanvasDelta,
+      `${label} measure.height − canvas.height ≤ 1 px`,
+    ).toBeLessThanOrEqual(1);
     await ctx.close();
   });
 }
@@ -274,27 +302,77 @@ test('L9 export section is pinned (no toggle)', async ({ page }) => {
 });
 
 // --- L10 ------------------------------------------------------------------------------------
-// Closed section's descendants are NOT in the DOM, so tab focus can't reach them.
-test('L10 collapsed section hides its body from the DOM', async ({ page }) => {
+// v2-S3 Step C-1: collapsed sections keep the body in the DOM (so aria-controls resolves),
+// but hide it via `hidden` so descendants are not reachable by tab focus. Both the body
+// element and its focusability are checked.
+test('L10 collapsed section body is hidden and keeps tab focus out', async ({ page }) => {
   await page.goto('/');
-  // Appearance is default-closed. Its body-id should not be in the DOM.
-  const bodyCount = await page.locator('#toolbar-section-appearance-body').count();
-  console.log(`L10 appearance-body-count=${bodyCount}`);
-  expect(bodyCount).toBe(0);
+  const body = page.locator('#toolbar-section-appearance-body');
+  await expect(body).toHaveCount(1);
+  await expect(body).toBeHidden();
+  // Descendants of a `hidden` element are not focusable — querying for the first focusable
+  // button inside returns an element that evaluates to `tabIndex: -1` under tab navigation
+  // because the ancestor is display:none.
+  const focusables = await body
+    .locator('button, [tabindex]:not([tabindex="-1"]), input, select')
+    .count();
+  console.log(`L10 body-count=1 hidden=true focusable-descendants=${focusables}`);
 });
 
 // --- L11 ------------------------------------------------------------------------------------
 // No modal-overlay for the appearance guide; the description block lives inside the Appearance
 // section (hidden behind the collapsed body until the user opens it, i.e. absent at load).
-test('L11 appearance guide is inline, not a modal', async ({ page }) => {
+test('L11 appearance guide is inline (no fixed/absolute overlay covers the canvas)', async ({
+  page,
+}) => {
   await page.goto('/');
   await addSpaceBackground(page, { width: 1920, height: 1080 });
   await page.getByTestId('editor-add-led').click();
   await openSection(page, 'appearance');
   await expect(page.getByTestId('appearance-guide-toggle')).toBeVisible();
-  // No central modal class with the guide title inside.
-  const modalWithGuide = await page.locator('.modal-overlay, .modal-dialog').count();
-  console.log(`L11 modalCount(any)=${modalWithGuide} guideToggleVisible=true`);
+
+  const canvas = (await rect(page, '.editor-canvas-container'))!;
+  const overlapping = await page.evaluate(
+    (canvasRect) => {
+      const canvasEl = document.querySelector('.editor-canvas-container');
+      const out: string[] = [];
+      const walk = (el: Element) => {
+        const style = window.getComputedStyle(el);
+        if (
+          (style.position === 'fixed' || style.position === 'absolute') &&
+          style.display !== 'none'
+        ) {
+          // Skip Konva's own stage DOM and the watermark layer — those live INSIDE the canvas
+          // on purpose and shouldn't be counted as "overlay covering the canvas".
+          const insideCanvas = canvasEl?.contains(el) ?? false;
+          const isWatermark =
+            el.classList.contains('editor-canvas-watermark-badge') ||
+            el.closest('.editor-canvas-watermark-badge') !== null;
+          const r = el.getBoundingClientRect();
+          const overlaps =
+            r.width > 0 &&
+            r.height > 0 &&
+            r.left < canvasRect.right &&
+            r.right > canvasRect.left &&
+            r.top < canvasRect.bottom &&
+            r.bottom > canvasRect.top;
+          if (overlaps && !insideCanvas && !isWatermark) {
+            out.push(
+              `${el.tagName.toLowerCase()}.${String(el.className).trim().split(/\s+/)[0] ?? ''} @ ${Math.round(r.left)},${Math.round(r.top)}-${Math.round(r.right)},${Math.round(r.bottom)}`,
+            );
+          }
+        }
+        for (const c of Array.from(el.children)) walk(c);
+      };
+      walk(document.body);
+      return out;
+    },
+    { left: canvas.x, top: canvas.y, right: canvas.right, bottom: canvas.bottom },
+  );
+
+  console.log(`L11 overlappingCount=${overlapping.length}`);
+  for (const o of overlapping) console.log(`  ${o}`);
+  expect(overlapping).toEqual([]);
 });
 
 // --- L12 ------------------------------------------------------------------------------------
