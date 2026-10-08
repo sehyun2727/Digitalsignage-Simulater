@@ -94,6 +94,45 @@
 - **상수 하드코딩 금지**: 「10MB」「3840」 같은 수치는 로케일 문자열에 넣지 말고 UI 레이어에서 상수를 포맷해 넣기.
 - 신규 문구는 **role/label/data-testid**로 테스트가 조회하도록 설계. getByText는 라벨 변경에 취약.
 
+## 4bis. 캔버스 동결 (v2-S4 Step 0-3)
+
+v2-S3-ok(태그 `v2-S3-ok`, 커밋 `18d9fe4`) 시점의 캔버스 표시 방식을 **기준 상태**로 못 박습니다. 기준 상태의 정의:
+
+- 문서 크기 1920×1080 / 1080×1920.
+- 폭·높이 안에 비율을 유지한 채 맞춤(미려 확대/축소·오버패닝 없음).
+
+### 동결 대상 (수정 금지)
+
+| id                      | 파일                                   | 내용                                                                                                                                  |
+| ----------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `preset-sizes`          | `src/types/editor.ts`                  | `CanvasPresetId` + `CANVAS_PRESET_SIZES` + `DEFAULT_CANVAS_PRESET`                                                                    |
+| `fit-scale`             | `src/features/editor/EditorCanvas.tsx` | fitScale IIFE + stageWidth/stageHeight 계산, 측정 전 fallback(desktop 0 / mobile viewport bootstrap)                                  |
+| `coord-convert`         | `src/features/editor/EditorCanvas.tsx` | `clientPointToDocumentPoint` (화면 → 문서 좌표)                                                                                       |
+| `measure-container-jsx` | `src/features/editor/EditorCanvas.tsx` | `.editor-canvas-measure` + `.editor-canvas-container` 래퍼 JSX 구조와 inline-style gate                                               |
+| `root-overflow`         | `src/styles/global.css`                | 데스크톱 `html, body, #root { overflow: hidden; height: 100dvh }`                                                                     |
+| `workspace-grid`        | `src/styles/global.css`                | `.editor-workspace` / `.editor-canvas-column` / `.editor-canvas-wrapper` / `.editor-canvas-measure` / `.editor-canvas-container` 규칙 |
+| `status-area`           | `src/styles/global.css`                | `.editor-status-area { flex: 0 0 5.5rem }` + min/max-height 등                                                                        |
+| `media-breakpoint-72`   | `src/styles/global.css`                | `@media (max-width: 72rem) and (min-width: 48.0001rem)` 블록(헤더 wrap)                                                               |
+| `media-breakpoint-48`   | `src/styles/global.css`                | `@media (max-width: 48rem)` 열림 라인(모바일 stacked 전환)                                                                            |
+
+### 허용 대상 (수정 자유)
+
+- Stage 안에서 그리는 오브젝트·레이어·효과(새 레이어, 셰이더, 콘텐츠 매핑 등).
+- 패널(Toolbar) 내용·구조.
+- 내보내기 로직 전반. **단 출력 해상도는 문서 크기 그대로**(C12).
+
+### 수정 절차 ([canvas-approved])
+
+동결 대상을 바꿔야 하면 CC는 **직접 수정하지 말고 멈춰서** 보고합니다. 보고에는 ① 이유, ② 변경 전후 수치, ③ 대안을 반드시 넣습니다. 사용자가 승인한 뒤에만 수정하며, 그 커밋 메시지에 `[canvas-approved]`를 붙입니다.
+
+승인된 수정 커밋은 **같은 커밋**에서 `docs/v2/canvas-freeze.json`의 해당 id도 새 SHA로 갱신합니다. 두 파일을 분리하면 CI(`npm run check:canvas`)가 바로 깨집니다.
+
+### 강제 장치
+
+1. **코드 마커**: 동결 블록을 `CANVAS-FREEZE:BEGIN <id>` / `CANVAS-FREEZE:END <id>` 주석으로 감싸 둡니다(ts/tsx는 `//`, css는 `/* */`). 마커 자체는 블록의 **내용**이 아니므로 수정해도 SHA에 영향 없음.
+2. **해시 검증**: `scripts/check-canvas-freeze.mjs`가 마커 사이 바이트의 SHA-256을 `docs/v2/canvas-freeze.json`과 비교. 미스매치 시 exit 1. `npm run check:canvas`로 호출.
+3. **런타임 측정**: `e2e/canvas-freeze.spec.ts`가 v2-S3-ok 측정값(Stage left/top/width/height)과 ±0.5 px 범위에서 일치하는지 확인(1920×1080 / 1440×900 / 1280×720 / 1024×640 / 390×844 × 16:9/9:16).
+
 ## 5. 작업 방식 (v2)
 
 ### 5-1. 브랜치·커밋

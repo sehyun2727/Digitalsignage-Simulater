@@ -1,0 +1,136 @@
+{
+  "zones": {
+    "fit-scale": {
+      "file": "src/features/editor/EditorCanvas.tsx",
+      "sha256": "9de6225a513f3a111cc2be906b5f4c8c908f2a0064fe6ed337c87fdca81374a3",
+      "length": 1264
+    },
+    "coord-convert": {
+      "file": "src/features/editor/EditorCanvas.tsx",
+      "sha256": "b743b282244ba43afd3fae5d0a1f52a7d6e1ba922abf5289a92760d4afdefb07",
+      "length": 336
+    },
+    "measure-container-jsx": {
+      "file": "src/features/editor/EditorCanvas.tsx",
+      "sha256": "70d95de734f96826b2ced3572ee17e9ed1cbeb8cc180c9796b9c22c9e30ceeb0",
+      "length": 992
+    },
+    "root-overflow": {
+      "file": "src/styles/global.css",
+      "sha256": "87525590b402d7ce4ccd4fa04a249c43f546efb72baa8b3e6e2c7a01f972f80a",
+      "length": 788
+    },
+    "workspace-grid": {
+      "file": "src/styles/global.css",
+      "sha256": "bc8d64f7bd4b471ce8b1834218ca9ebaff467d7d6f3e7a6feff783a2ace9c9f1",
+      "length": 3857
+    },
+    "status-area": {
+      "file": "src/styles/global.css",
+      "sha256": "30339c9648896f9b8eff2dab4941c80c20fd2dbcf421011f22301d8e7bd95c07",
+      "length": 525
+    },
+    "media-breakpoint-72": {
+      "file": "src/styles/global.css",
+      "sha256": "516f95894e012a5986d9511d18d7aaa4165341e7bafc8ccbd6f50ec8ff927100",
+      "length": 213
+    },
+    "media-breakpoint-48": {
+      "file": "src/styles/global.css",
+      "sha256": "764fbd0f07791b12168274b1e7fed0f4cd4e6064c47ab04c5a4cbb5d31f091ef",
+      "length": 28
+    },
+    "preset-sizes": {
+      "file": "src/types/editor.ts",
+      "sha256": "423f2efc88008d1c056f3c2cf55e46bd74be8aee870e8add7dc7192b536c55d0",
+      "length": 436
+    }
+  },
+  "stage": {
+    "comment": "Fixed Stage (.konvajs-content) bounding boxes measured at v2-S3-ok (commit 18d9fe4) with the ko-KR shell, with a space photo loaded so the Stage renders. Scenario naming: '<vpW>x<vpH>-<preset>'. Values are CSS px (page coordinates). Any drift beyond ±0.5 px fails e2e/canvas-freeze.spec.ts.",
+    "selector": ".konvajs-content",
+    "tolerance_px": 0.5,
+    "scenarios": [
+      {
+        "viewport": { "w": 1920, "h": 1080 },
+        "preset": "landscape",
+        "x": 57.78,
+        "y": 142.69,
+        "width": 1438.44,
+        "height": 809.13
+      },
+      {
+        "viewport": { "w": 1920, "h": 1080 },
+        "preset": "portrait",
+        "x": 549.44,
+        "y": 142.69,
+        "width": 455.13,
+        "height": 809.13
+      },
+      {
+        "viewport": { "w": 1440, "h": 900 },
+        "preset": "landscape",
+        "x": 13,
+        "y": 162.5,
+        "width": 1048,
+        "height": 589.5
+      },
+      {
+        "viewport": { "w": 1440, "h": 900 },
+        "preset": "portrait",
+        "x": 360.06,
+        "y": 142.69,
+        "width": 353.88,
+        "height": 629.13
+      },
+      {
+        "viewport": { "w": 1280, "h": 720 },
+        "preset": "landscape",
+        "x": 76.33,
+        "y": 163.56,
+        "width": 761.33,
+        "height": 428.25
+      },
+      {
+        "viewport": { "w": 1280, "h": 720 },
+        "preset": "portrait",
+        "x": 336.55,
+        "y": 163.56,
+        "width": 240.89,
+        "height": 428.25
+      },
+      {
+        "viewport": { "w": 1024, "h": 640 },
+        "preset": "landscape",
+        "x": 46.03,
+        "y": 193.47,
+        "width": 565.94,
+        "height": 318.34
+      },
+      {
+        "viewport": { "w": 1024, "h": 640 },
+        "preset": "portrait",
+        "x": 239.47,
+        "y": 193.47,
+        "width": 179.06,
+        "height": 318.34
+      },
+      {
+        "viewport": { "w": 390, "h": 844 },
+        "preset": "landscape",
+        "x": 13,
+        "y": 270.66,
+        "width": 366,
+        "height": 205.88
+      },
+      {
+        "viewport": { "w": 390, "h": 844 },
+        "preset": "portrait",
+        "x": 13,
+        "y": 270.66,
+        "width": 332.31,
+        "height": 590.77
+      }
+    ]
+  }
+}

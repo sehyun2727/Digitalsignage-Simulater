@@ -1,9 +1,10 @@
 name: CI
 
-# v2-S4 Step 0 — Step 8: active work happens on the `v2` branch, so push CI only runs there
-# (removing the pre-v2 sprint-* branch list). `main` sees commits exclusively via the S7
-# `v2 → main` pull request, so we route the heavier e2e gate to `pull_request` and keep the
-# fast gate on push. Docker build is gated on PR too so the push loop stays snappy.
+# v2-S4 Step 0-6: pinned to ubuntu-24.04 so Node 20 actions (checkout@v5, setup-node@v5)
+# have a stable base. v2-S4 Step 0-8: active work happens on the `v2` branch, so push CI
+# only runs there. `main` sees commits exclusively via the S7 `v2 → main` pull request,
+# so the heavier e2e gate runs on pull_request only. Docker build is gated on PR too so
+# the push loop stays snappy.
 on:
   pull_request:
     branches: [main]
@@ -16,13 +17,13 @@ permissions:
 jobs:
   quality:
     name: Format, lint, typecheck, test, build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -41,6 +42,9 @@ jobs:
 
       - name: Unit and component tests
         run: npm run test:run
+
+      - name: Canvas freeze
+        run: npm run check:canvas
 
       - name: Production build (default base)
         run: npm run build
@@ -64,7 +68,7 @@ jobs:
 
       - name: Upload Playwright report
         if: failure() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: playwright-report
           path: playwright-report/
@@ -75,10 +79,10 @@ jobs:
     # Docker is reproducibility insurance for the S7 release-notes dry-run, not needed on
     # every push into v2. Pull_request only.
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

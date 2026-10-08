@@ -12,6 +12,7 @@
   box-sizing: border-box;
 }
 
+/* CANVAS-FREEZE:BEGIN root-overflow */
 html,
 body,
 #root {
@@ -28,6 +29,7 @@ body,
    * re-enables scrolling in its own @media block below (the stacked layout needs it). */
   overflow: hidden;
 }
+/* CANVAS-FREEZE:END root-overflow */
 
 body {
   margin: 0;
@@ -210,6 +212,7 @@ a {
   color: #fff;
 }
 
+/* CANVAS-FREEZE:BEGIN workspace-grid */
 .editor-workspace {
   flex: 1 1 auto;
   min-height: 0;
@@ -293,6 +296,7 @@ a {
      page scroll/zoom. The rest of the page still scrolls normally. */
   touch-action: none;
 }
+/* CANVAS-FREEZE:END workspace-grid */
 
 /* Sales review mode (sprint spec section 17): blocks every pointer/touch/drag interaction with
    the canvas, including Konva's own native-DOM listeners which no React prop can reach from
@@ -550,6 +554,7 @@ a {
 /* v2-S2 status area under the canvas — separate box from the canvas container so the error
  * banner never overlaps the artwork (requirement 2-5 §3-1). Error row renders above the hint
  * row when both are present. */
+/* CANVAS-FREEZE:BEGIN status-area */
 .editor-status-area {
   /* v2-S3 2-1 (2): reserve a fixed slot regardless of whether the banner is showing, so
    * toggling an error on/off never changes the canvas-measure's available height (and
@@ -564,6 +569,7 @@ a {
   gap: 0.4rem;
   padding: 0.5rem 0.75rem 0;
 }
+/* CANVAS-FREEZE:END status-area */
 
 .editor-status-area-hint {
   font-size: 0.85rem;
@@ -1147,6 +1153,7 @@ a {
  * this width is untouched. This does NOT move the mobile stacked-layout breakpoint (still
  * 48rem); the workspace stays side-by-side (canvas + toolbar in a row) all the way down.
  */
+/* CANVAS-FREEZE:BEGIN media-breakpoint-72 */
 @media (max-width: 72rem) and (min-width: 48.0001rem) {
   .editor-header {
     flex-wrap: wrap;
@@ -1158,8 +1165,11 @@ a {
     row-gap: 0.4rem;
   }
 }
+/* CANVAS-FREEZE:END media-breakpoint-72 */
 
+/* CANVAS-FREEZE:BEGIN media-breakpoint-48 */
 @media (max-width: 48rem) {
+  /* CANVAS-FREEZE:END media-breakpoint-48 */
   /* Below this width the desktop's fixed-height, no-page-scroll shell gives way to a normal
      stacked, scrollable mobile page: canvas above toolbar, both sized by content instead of by
      the remaining flex space, so nothing gets clipped on short mobile viewports. */

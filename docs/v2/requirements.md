@@ -102,7 +102,7 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
   - 폭·높이 옆 비율 고정 버튼(1-2와 동일 UI 재사용)
   - 캔버스 조작 ↔ 입력값 즉시 상호 반영
   - 다른 사이니지를 선택해도 접힘·펼침 상태 유지(현재 선택 사이니지의 상태)
-- **현재 상태**: **완료 — 비율 고정 버튼은 S4(1-2)** — Toolbar의 `PositionSizeSubsection` (data-testid 접두 `toolbar-subsection-position-size`): X座標/Y座標/幅/高さ/回転 입력을 모두 담은 인라인 접이식 서브-아코디언. 기본 접힘(`subAccordionOpen['selected-position-size']: false`), 사이니지 전환 후에도 상태 유지 (L14 검증). 캔버스 drag/resize/perspective/click이 입력값에 1 CSS px 이내로 반영됨 (L5 at 1920×1080과 1280×720 — 측정값: drag got=(819~821 vs 820 expected). perspective 모드에서는 幅/高さ가 `disabled` + `#perspective-size-locked-hint` 안내 표시 (L15 검증, 섹션 열림/접힘 양쪽). perspective 핸들 (+40, +30) CSS px 드래그 결과는 bbox-oracle 기준 0 doc px, aria-valuetext oracle 기준 ≤ 6.87 doc px (whole-% 라운딩 플로어 10.8 이내). **비율 고정 토글(🔗)은 S4의 1-2 범위.**
+- **현재 상태**: **완료 — 비율 고정 버튼은 S4(1-2)** — Toolbar의 `PositionSizeSubsection` (data-testid 접두 `toolbar-subsection-position-size`): X座標/Y座標/幅/高さ/回転 입력을 모두 담은 인라인 접이식 서브-아코디언. 기본 접힘(`subAccordionOpen['selected-position-size']: false`), 사이니지 전환 후에도 상태 유지 (L14 검증). 캔버스 drag/resize/perspective/click이 입력값에 1 CSS px 이내로 반영됨 (L5 at 1920×1080과 1280×720 — 측정값: drag got=(819~821 vs 820 expected). perspective 모드에서는 幅/高さ가 `disabled` + `#perspective-size-locked-hint` 안내 표시 (L15 검증, 섹션 열림/접힘 양쪽). perspective 핸들 (+40, +30) CSS px 드래그는 **v2-S4 Step 0-5에서 aria-valuetext를 1 자리 소수(`toFixed(1)`)로 전환**해 store 환산값 기준으로 ariaErr ≤ 1.92 doc px x / 1.08 doc px y 범위 안에 들어오는 걸 확인(실측 ariaErr 좌상 1.55/0.08 at 1920, 1.04/0.06 at 1280; bbox 보조 oracle은 1/scale CSS-px 플로어 안쪽). **비율 고정 토글(🔗)은 S4의 1-2 범위.**
 
 ### 3-2 이미지·영상 추가 버튼 근처 제한 사전 표시
 

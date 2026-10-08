@@ -130,6 +130,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   // container intercepting pointer events across the whole page. Returning 0 keeps the
   // container collapsed (no inline size) until the measure box has reported its real width
   // and height, then the second render snaps the container to the fitted stage.
+  // CANVAS-FREEZE:BEGIN fit-scale
   const MOBILE_BREAKPOINT_PX = 768;
   const isMobile = viewportInnerWidth > 0 && viewportInnerWidth < MOBILE_BREAKPOINT_PX;
   const fitScale = (() => {
@@ -153,6 +154,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   })();
   const stageWidth = size ? size.width * fitScale : 0;
   const stageHeight = size ? size.height * fitScale : 0;
+  // CANVAS-FREEZE:END fit-scale
 
   useImperativeHandle(ref, () => ({
     exportToDataUrl: () => {
@@ -324,12 +326,14 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   // DOM event (not Konva's pointer state, which native drags don't update), so they're mapped
   // into document space the same way Konva itself does: relative to the container's own
   // bounding box, divided by the Stage's uniform fit scale.
+  // CANVAS-FREEZE:BEGIN coord-convert
   const clientPointToDocumentPoint = (clientX: number, clientY: number): Point | null => {
     const container = containerRef.current;
     if (!container || fitScale <= 0) return null;
     const bounds = container.getBoundingClientRect();
     return { x: (clientX - bounds.left) / fitScale, y: (clientY - bounds.top) / fitScale };
   };
+  // CANVAS-FREEZE:END coord-convert
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     if (comparisonMode || !event.dataTransfer.types.includes('Files')) return;
@@ -425,6 +429,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   };
 
   return (
+    // CANVAS-FREEZE:BEGIN measure-container-jsx
     <div className="editor-canvas-measure" ref={measureRef}>
       <div
         className="editor-canvas-container"
@@ -445,6 +450,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
         onDrop={handleDrop}
         onWheel={handleWheel}
       >
+        {/* CANVAS-FREEZE:END measure-container-jsx */}
         {containerWidth > 0 && containerHeight > 0 && size && (
           <Stage
             ref={stageRef}

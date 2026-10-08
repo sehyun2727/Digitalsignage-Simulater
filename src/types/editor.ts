@@ -428,6 +428,7 @@ export interface SpaceBackground {
  * photo's own pixel dimensions, which made the canvas awkwardly resize to whatever ratio the
  * uploaded photo happened to have).
  */
+// CANVAS-FREEZE:BEGIN preset-sizes
 export type CanvasPresetId = 'landscape-16-9' | 'portrait-9-16';
 
 export const CANVAS_PRESET_IDS: readonly CanvasPresetId[] = ['landscape-16-9', 'portrait-9-16'];
@@ -438,6 +439,7 @@ export const CANVAS_PRESET_SIZES: Record<CanvasPresetId, { width: number; height
 };
 
 export const DEFAULT_CANVAS_PRESET: CanvasPresetId = 'landscape-16-9';
+// CANVAS-FREEZE:END preset-sizes
 
 export interface EditorDocument {
   spaceBackground: SpaceBackground | null;

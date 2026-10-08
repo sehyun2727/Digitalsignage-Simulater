@@ -120,12 +120,13 @@ test.describe('four-point perspective placement', () => {
     await expect(page.getByRole('slider', { name: '左上' })).toBeHidden();
 
     await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
-    // The handle's aria-valuetext is "5%, 5%" for (0.05, 0.05) — the applied TOP_LEFT_QUAD
-    // value — confirming Cancel discarded the (0.2, 0.2) draft without touching the stored
-    // quad.
+    // The handle's aria-valuetext is "5.0%, 5.0%" for (0.05, 0.05) — the applied
+    // TOP_LEFT_QUAD value — confirming Cancel discarded the (0.2, 0.2) draft without
+    // touching the stored quad. v2-S4 Step 0-5: precision tightened to 1 decimal so the
+    // L5 oracle can verify ≤ 1 doc px drift from the store value.
     await expect(page.getByRole('slider', { name: '左上' })).toHaveAttribute(
       'aria-valuetext',
-      '5%, 5%',
+      '5.0%, 5.0%',
     );
 
     // Change the same corner again, then Reset — the draft must revert without leaving edit mode.
@@ -133,7 +134,7 @@ test.describe('four-point perspective placement', () => {
     await page.getByRole('button', { name: 'リセット', exact: true }).click();
     await expect(page.getByRole('slider', { name: '左上' })).toHaveAttribute(
       'aria-valuetext',
-      '5%, 5%',
+      '5.0%, 5.0%',
     );
     await expect(page.getByRole('button', { name: '適用' })).toBeVisible();
     await page.getByRole('button', { name: '適用' }).click();
