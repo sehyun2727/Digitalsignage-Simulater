@@ -5,6 +5,30 @@ that mirrors the current `main` branch. The production site at
 `https://hull-inc.jp/oitemiru/` is a separate manual upload described at the bottom of
 this document, not a Render deploy.
 
+## Branches and deployment (v2 workflow)
+
+- Active development happens on the **`v2`** branch. All feature commits and all CC pushes
+  target `origin v2`.
+- `main` only advances when the S7 **`v2 → main` pull request** is merged. Render redeploys
+  from `main`, so merging the PR is what releases the sprint into staging.
+- Direct pushes to `main` from a developer workstation are forbidden. The local pre-push
+  hook under `.git/hooks/pre-push` rejects:
+  1. any push whose remote ref is `refs/heads/main`,
+  2. non-fast-forward pushes to any ref (so `--force` cannot sneak around guard 1),
+  3. remote-ref deletions (local sha all-zeros).
+- **Re-installing the hook on a new clone**: the hook lives inside `.git/`, which git does
+  not track, so a fresh clone has no guard. After cloning, copy `pre-push` into
+  `.git/hooks/pre-push`, then `chmod +x .git/hooks/pre-push`. (The canonical copy of the
+  hook body is reproduced in `docs/runbooks/pre-push-hook.sh` for easy restoration — if
+  that file is missing, the latest version lives in the sprint retrospective tagged
+  `v2-S4-ok` or later.) Verify with a direct stdin test:
+  ```
+  echo "refs/heads/v2 c0f4196 refs/heads/main 4e9659d" | .git/hooks/pre-push origin x
+  # expected: refusing push to refs/heads/main; exit 1
+  ```
+  `git push --dry-run` intentionally skips `pre-push` per git design, so direct stdin is
+  the only self-contained way to confirm installation.
+
 ## Two build targets
 
 The same codebase produces two dist outputs depending on which URL path serves them.
