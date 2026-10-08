@@ -316,10 +316,16 @@ test.describe('video export unsupported fallback', () => {
 
     await setup(page);
 
+    // Both export surfaces (header + toolbar panel) must drop the video button together — a
+    // header-only check would pass even if the panel kept a dead button under an inoperable
+    // MediaRecorder. v2-S4 Step 6 sed audit added the explicit panel assertion.
     await expect(page.getByTestId('editor-export-video-header')).toHaveCount(0);
+    await expect(page.getByTestId('editor-export-video-panel')).toHaveCount(0);
     await expect(page.getByText('このブラウザは動画の書き出しに対応していません。')).toBeVisible();
 
     // The rest of the app must still work — PNG export is unaffected by video-export support.
+    // Both PNG buttons stay enabled.
     await expect(page.getByTestId('editor-export-png-header')).toBeEnabled();
+    await expect(page.getByTestId('editor-export-png-panel')).toBeEnabled();
   });
 });

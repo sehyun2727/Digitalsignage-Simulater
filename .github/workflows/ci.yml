@@ -1,18 +1,14 @@
 name: CI
 
+# v2-S4 Step 0 — Step 8: active work happens on the `v2` branch, so push CI only runs there
+# (removing the pre-v2 sprint-* branch list). `main` sees commits exclusively via the S7
+# `v2 → main` pull request, so we route the heavier e2e gate to `pull_request` and keep the
+# fast gate on push. Docker build is gated on PR too so the push loop stays snappy.
 on:
   pull_request:
     branches: [main]
   push:
-    branches:
-      [
-        chore/sprint-0-project-foundation,
-        feature/sprint-1-image-editor-mvp,
-        feature/sprint-3-custom-portable,
-        feature/sprint-4-3-perspective-video,
-        feature/sprint-4-4-photorealistic-rendering,
-        feature/sprint-4-5-scene-integration-qa,
-      ]
+    branches: [v2]
 
 permissions:
   contents: read
@@ -46,19 +42,28 @@ jobs:
       - name: Unit and component tests
         run: npm run test:run
 
-      - name: Production build
+      - name: Production build (default base)
         run: npm run build
 
+      - name: Production build (/oitemiru/ base)
+        run: npm run build:oitemiru
+
+      # The e2e suite (including golden-image visual QA) only runs on the S7 pull_request
+      # into main — pushing to v2 just needs the fast gates above. Keeping Playwright off
+      # the push path cuts CI time by ~3 min and avoids spending free-tier minutes on every
+      # intermediate commit.
       - name: Install Playwright browsers
+        if: github.event_name == 'pull_request'
         run: npx playwright install --with-deps chromium
 
       - name: End-to-end tests (Playwright, includes golden-image visual QA)
+        if: github.event_name == 'pull_request'
         run: npm run test:e2e
         env:
           CI: true
 
       - name: Upload Playwright report
-        if: failure()
+        if: failure() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
@@ -67,6 +72,9 @@ jobs:
 
   docker:
     name: Docker build
+    # Docker is reproducibility insurance for the S7 release-notes dry-run, not needed on
+    # every push into v2. Pull_request only.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

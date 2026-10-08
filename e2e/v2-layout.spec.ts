@@ -9,7 +9,14 @@ import fs from 'node:fs/promises';
 // printed via console.log so the human report quotes the numbers directly.
 
 const PAGE_PADDING = 12; // 0.75rem shell padding each side on 16 px base
-const SLACK = 2;
+// v2-S4 Step 4: layout guards tightened. SLACK is now reserved for sub-pixel float rounding
+// only; previous +2 CSS px of play was a smell that papered over real overflow at narrow
+// desktop widths (see Step 5's 1160/1200/1279 boundary). Any assertion needing more than
+// 0.5 px of head-room is a real regression and must be reported.
+const SLACK = 0.5;
+// Workspace flex gap between the canvas column and the toolbar (1rem). canvas.right must
+// clear this gap, not just reach toolbar.left.
+const WORKSPACE_GAP = 16;
 
 interface Rect {
   x: number;
@@ -96,18 +103,21 @@ for (const vp of L1_VIEWPORTS) {
         }));
         const label = `L1 ${vp.w}x${vp.h} ${preset} ${photo ? 'photo' : 'nophoto'}`;
         console.log(
-          `${label} canvas={top=${canvas.y.toFixed(0)},left=${canvas.x.toFixed(0)},right=${canvas.right.toFixed(0)},bottom=${canvas.bottom.toFixed(0)}} ` +
-            `panel={left=${toolbar.x.toFixed(0)},right=${toolbar.right.toFixed(0)}} ` +
-            `status.bottom=${statusArea ? statusArea.bottom.toFixed(0) : '-'} ` +
-            `footer.bottom=${footer ? footer.bottom.toFixed(0) : '-'} ` +
+          `${label} canvas={top=${canvas.y.toFixed(1)},left=${canvas.x.toFixed(1)},right=${canvas.right.toFixed(1)},bottom=${canvas.bottom.toFixed(1)}} ` +
+            `panel={left=${toolbar.x.toFixed(1)},right=${toolbar.right.toFixed(1)}} ` +
+            `status={top=${statusArea ? statusArea.y.toFixed(1) : '-'},bottom=${statusArea ? statusArea.bottom.toFixed(1) : '-'}} ` +
+            `footer.bottom=${footer ? footer.bottom.toFixed(1) : '-'} ` +
             `innerH=${metrics.innerHeight} scrollH=${metrics.scrollHeight} overflowY=${overflowY.html}/${overflowY.body}`,
         );
-        expect(canvas.bottom, `${label} canvas.bottom ≤ innerHeight`).toBeLessThanOrEqual(
-          vp.h + SLACK,
-        );
-        expect(canvas.right, `${label} canvas.right ≤ toolbar.left`).toBeLessThanOrEqual(
-          toolbar.x + SLACK,
-        );
+        // v2-S4 Step 4 strengthened criteria:
+        //   canvas.right  ≤ panel.left − 16 (workspace gap)
+        //   canvas.bottom ≤ status.top       (status region reserves its own strip)
+        //   status.bottom ≤ innerHeight
+        //   footer.bottom ≤ innerHeight
+        expect(
+          canvas.right,
+          `${label} canvas.right ≤ panel.left − ${WORKSPACE_GAP}`,
+        ).toBeLessThanOrEqual(toolbar.x - WORKSPACE_GAP + SLACK);
         expect(toolbar.right, `${label} toolbar.right ≥ vpW − margin`).toBeGreaterThanOrEqual(
           vp.w - PAGE_PADDING - SLACK,
         );
@@ -115,6 +125,9 @@ for (const vp of L1_VIEWPORTS) {
           metrics.innerHeight + SLACK,
         );
         if (statusArea) {
+          expect(canvas.bottom, `${label} canvas.bottom ≤ status.top`).toBeLessThanOrEqual(
+            statusArea.y + SLACK,
+          );
           expect(statusArea.bottom, `${label} status.bottom ≤ innerHeight`).toBeLessThanOrEqual(
             vp.h + SLACK,
           );
@@ -176,16 +189,23 @@ for (const vp of G_VIEWPORTS) {
         });
         const label = `G ${vp.w}x${vp.h} ${preset} ${err ? 'error' : 'no-error'}`;
         console.log(
-          `${label} canvas={top=${canvas.y.toFixed(0)},bottom=${canvas.bottom.toFixed(0)}} ` +
-            `status.bottom=${statusArea ? statusArea.bottom.toFixed(0) : '-'} ` +
-            `footer.bottom=${footer ? footer.bottom.toFixed(0) : '-'} ` +
-            `innerH=${vp.h} toolbar={top=${toolbar.y.toFixed(0)},bottom=${toolbar.bottom.toFixed(0)}} ` +
+          `${label} canvas={top=${canvas.y.toFixed(1)},right=${canvas.right.toFixed(1)},bottom=${canvas.bottom.toFixed(1)}} ` +
+            `status={top=${statusArea ? statusArea.y.toFixed(1) : '-'},bottom=${statusArea ? statusArea.bottom.toFixed(1) : '-'}} ` +
+            `footer.bottom=${footer ? footer.bottom.toFixed(1) : '-'} ` +
+            `innerH=${vp.h} toolbar={left=${toolbar.x.toFixed(1)},top=${toolbar.y.toFixed(1)},bottom=${toolbar.bottom.toFixed(1)}} ` +
             `exportReach=${JSON.stringify(exportReach)}`,
         );
-        // Everything must stay inside the viewport.
-        expect(canvas.bottom, `${label} canvas.bottom`).toBeLessThanOrEqual(vp.h + SLACK);
-        if (statusArea)
+        // v2-S4 Step 4 strengthened criteria (same as L1).
+        expect(
+          canvas.right,
+          `${label} canvas.right ≤ panel.left − ${WORKSPACE_GAP}`,
+        ).toBeLessThanOrEqual(toolbar.x - WORKSPACE_GAP + SLACK);
+        if (statusArea) {
+          expect(canvas.bottom, `${label} canvas.bottom ≤ status.top`).toBeLessThanOrEqual(
+            statusArea.y + SLACK,
+          );
           expect(statusArea.bottom, `${label} status.bottom`).toBeLessThanOrEqual(vp.h + SLACK);
+        }
         if (footer)
           expect(footer.bottom, `${label} footer.bottom`).toBeLessThanOrEqual(vp.h + SLACK);
         // Panel-scroll reach: after scrolling the toolbar to its max, the export section's
@@ -198,6 +218,70 @@ for (const vp of G_VIEWPORTS) {
         await ctx.close();
       });
     }
+  }
+}
+
+// --- B boundary ---------------------------------------------------------------------------
+// v2-S4 Step 5. The S3 H fix wraps the 9-button editor-header-actions at ≤ 72 rem (1152 px);
+// above that the row stays on one line and the hero gets whatever leftover width is left.
+// This exercises widths just above the breakpoint (1160, 1200, 1279) × 16:9/9:16 so a future
+// edit of the header or hero that bumps the natural single-line width past the viewport
+// cannot regress silently — the strengthened Step 4 criteria (canvas.right ≤ panel.left − 16,
+// canvas.bottom ≤ status.top) apply here too.
+const B_VIEWPORTS = [
+  { w: 1160, h: 700 },
+  { w: 1200, h: 700 },
+  { w: 1279, h: 700 },
+] as const;
+for (const vp of B_VIEWPORTS) {
+  for (const preset of L1_PRESETS) {
+    test(`B ${vp.w}x${vp.h} ${preset}: header-wrap boundary stays within strengthened criteria`, async ({
+      browser,
+    }) => {
+      const ctx = await browser.newContext({
+        viewport: { width: vp.w, height: vp.h },
+        locale: 'ja-JP',
+      });
+      const page = await ctx.newPage();
+      await page.goto('/');
+      if (preset === 'portrait') {
+        await openSection(page, 'space');
+        const portrait = page.getByRole('button', { name: /縦長/ });
+        if ((await portrait.count()) > 0) await portrait.first().click();
+      }
+      const header = (await rect(page, '.editor-header'))!;
+      const canvas = (await rect(page, '.editor-canvas-container'))!;
+      const toolbar = (await rect(page, '.toolbar'))!;
+      const statusArea = await rect(page, '[data-testid="editor-status-area"]');
+      const footer = await rect(page, '.app-footer');
+      const label = `B ${vp.w}x${vp.h} ${preset}`;
+      console.log(
+        `${label} header.h=${header.height.toFixed(1)} ` +
+          `canvas={top=${canvas.y.toFixed(1)},right=${canvas.right.toFixed(1)},bottom=${canvas.bottom.toFixed(1)}} ` +
+          `panel.left=${toolbar.x.toFixed(1)} ` +
+          `status={top=${statusArea ? statusArea.y.toFixed(1) : '-'},bottom=${statusArea ? statusArea.bottom.toFixed(1) : '-'}} ` +
+          `footer.bottom=${footer ? footer.bottom.toFixed(1) : '-'} innerH=${vp.h}`,
+      );
+      // Step 4 criteria.
+      expect(
+        canvas.right,
+        `${label} canvas.right ≤ panel.left − ${WORKSPACE_GAP}`,
+      ).toBeLessThanOrEqual(toolbar.x - WORKSPACE_GAP + SLACK);
+      if (statusArea) {
+        expect(canvas.bottom, `${label} canvas.bottom ≤ status.top`).toBeLessThanOrEqual(
+          statusArea.y + SLACK,
+        );
+        expect(statusArea.bottom, `${label} status.bottom ≤ innerHeight`).toBeLessThanOrEqual(
+          vp.h + SLACK,
+        );
+      }
+      if (footer) {
+        expect(footer.bottom, `${label} footer.bottom ≤ innerHeight`).toBeLessThanOrEqual(
+          vp.h + SLACK,
+        );
+      }
+      await ctx.close();
+    });
   }
 }
 
@@ -378,16 +462,96 @@ for (const vp of L5_VIEWPORTS) {
     expect(afterResize.w).toBe(600);
     expect(afterResize.h).toBe(400);
 
-    // --- perspective: enter the perspective overlay, read a corner handle's aria-valuetext
-    //     (which is the single declared selection surface for perspective coordinates per
-    //     perspective-video.spec.ts), then exit without applying so the drag side-effects
-    //     revert.
+    // --- perspective: enter the overlay, drag the top-left and bottom-right handles by
+    //     (+40, +30) CSS px each, and compare the handle positions after each drag against
+    //     the expected normalized position. aria-valuetext is the user-declared oracle
+    //     (per perspective-video.spec.ts); handle.boundingBox().center is the sub-% oracle
+    //     needed to assert the ≤ 1 doc-px tolerance because aria-valuetext itself is
+    //     Math.round-ed to whole percent (1 % x = 19.2 doc px, 1 % y = 10.8 doc px — see
+    //     src/features/editor/PerspectiveEditOverlay.tsx:130). Both oracles are reported.
+    //
+    //     Conversion formula (both axes identical):
+    //       aria "X%, Y%" → doc_x = X / 100 * documentSize.width
+    //                       doc_y = Y / 100 * documentSize.height
+    //       handle.center_x → doc_x = (center_x − containerBox.x) / scale
+    //       drag (+dx, +dy) CSS px  →  Δdoc = (dx, dy) / scale
+    //
+    //     The LED was resized above to 600×400 at (820, 465). Its screen rect (2 % inset) is
+    //     (832, 473)–(1408, 857), so beginPerspectiveEdit seeds the quad from that rect; TL
+    //     = (832/1920, 473/1080) ≈ (43 %, 44 %) and BR ≈ (73 %, 79 %).
     await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
     const topLeftHandle = page.getByRole('slider', { name: '左上' });
+    const bottomRightHandle = page.getByRole('slider', { name: '右下' });
     await expect(topLeftHandle).toBeVisible();
-    const topLeftValue = await topLeftHandle.getAttribute('aria-valuetext');
-    const perspectiveLog = `L5 ${vp.w}x${vp.h} perspective 左上 aria-valuetext=${topLeftValue}`;
-    expect(topLeftValue).toMatch(/^\d+%, \d+%$/);
+    await expect(bottomRightHandle).toBeVisible();
+    // The initial container box is still what pageOf used above (adding/applying nothing
+    // relayouts the canvas), but refresh to be defensive against any late React effects.
+    const canvasBoxP = (await canvas.boundingBox())!;
+    const scaleP = canvasBoxP.width / 1920;
+
+    const perspectiveDragLogs: string[] = [];
+    const dragHandle = async (handleName: '左上' | '右下', dx: number, dy: number) => {
+      const h = page.getByRole('slider', { name: handleName });
+      const before = (await h.boundingBox())!;
+      const beforeCenter = { x: before.x + before.width / 2, y: before.y + before.height / 2 };
+      const beforeDocCenter = {
+        x: (beforeCenter.x - canvasBoxP.x) / scaleP,
+        y: (beforeCenter.y - canvasBoxP.y) / scaleP,
+      };
+      await page.mouse.move(beforeCenter.x, beforeCenter.y);
+      await page.mouse.down();
+      await page.mouse.move(beforeCenter.x + dx, beforeCenter.y + dy, { steps: 5 });
+      await page.mouse.up();
+
+      // After the drag, aria-valuetext reports Math.round(point * 100). Handle bbox center
+      // reports the live rendered position with sub-pixel precision.
+      const afterAria = await h.getAttribute('aria-valuetext');
+      const after = (await h.boundingBox())!;
+      const afterCenter = { x: after.x + after.width / 2, y: after.y + after.height / 2 };
+      const actualDoc = {
+        x: (afterCenter.x - canvasBoxP.x) / scaleP,
+        y: (afterCenter.y - canvasBoxP.y) / scaleP,
+      };
+      const expectedDoc = {
+        x: beforeDocCenter.x + dx / scaleP,
+        y: beforeDocCenter.y + dy / scaleP,
+      };
+      const bboxErr = {
+        x: Math.abs(actualDoc.x - expectedDoc.x),
+        y: Math.abs(actualDoc.y - expectedDoc.y),
+      };
+      // aria-based doc coord (coarse). Compute the floor imposed by Math.round-to-%:
+      //   max rounding error on x = 0.5 % × documentWidth = 9.6 doc px (1920×1080)
+      //   max rounding error on y = 0.5 % × documentHeight = 5.4 doc px (1920×1080)
+      const match = afterAria?.match(/^(\d+)%, (\d+)%$/);
+      const ariaDoc = match
+        ? { x: (Number(match[1]) / 100) * 1920, y: (Number(match[2]) / 100) * 1080 }
+        : null;
+      const ariaErr = ariaDoc
+        ? { x: Math.abs(ariaDoc.x - expectedDoc.x), y: Math.abs(ariaDoc.y - expectedDoc.y) }
+        : null;
+      perspectiveDragLogs.push(
+        `${handleName} dx=${dx} dy=${dy} scale=${scaleP.toFixed(4)} ` +
+          `expectedDoc=(${expectedDoc.x.toFixed(2)},${expectedDoc.y.toFixed(2)}) ` +
+          `bboxDoc=(${actualDoc.x.toFixed(2)},${actualDoc.y.toFixed(2)}) bboxErr=(${bboxErr.x.toFixed(2)},${bboxErr.y.toFixed(2)}) ` +
+          `aria=${afterAria} ariaErr=${ariaErr ? `(${ariaErr.x.toFixed(2)},${ariaErr.y.toFixed(2)})` : 'n/a'}`,
+      );
+      // bbox center is sub-% precision → the user-stated 1 doc-px tolerance is enforced
+      // here. aria-valuetext is Math.round-ed to whole percent (0.5 % max rounding error =
+      // 9.6 doc px x / 5.4 doc px y at 1920×1080), so it cannot verify 1 doc px directly;
+      // we assert it stays below the next whole-percent boundary (19.2 doc px x / 10.8
+      // doc px y) so a real scale-mapping regression that shifts the handle by multiple
+      // whole percents still trips the test.
+      expect(bboxErr.x).toBeLessThanOrEqual(1);
+      expect(bboxErr.y).toBeLessThanOrEqual(1);
+      if (ariaErr) {
+        expect(ariaErr.x).toBeLessThanOrEqual(19.2);
+        expect(ariaErr.y).toBeLessThanOrEqual(10.8);
+      }
+    };
+    await dragHandle('左上', 40, 30);
+    await dragHandle('右下', 40, 30);
+    const perspectiveLog = `L5 ${vp.w}x${vp.h} perspective | ${perspectiveDragLogs.join(' | ')}`;
     await page.getByRole('button', { name: 'キャンセル' }).click();
 
     // --- click selection: deselect via a blank-canvas click, then click on the LED again
@@ -529,8 +693,11 @@ test('L7 default sections include only space, add-signage, and export', async ({
 });
 
 // --- L8 ------------------------------------------------------------------------------------
-// First signage selection auto-opens selected + content; user collapse persists across
-// different signage selections.
+// Scope: top-level TOOLBAR-SECTION state (selected · content). After the session's first
+// selection auto-opens them, a user-initiated COLLAPSE must survive switching to a different
+// signage. (The paired case — user-opened sub-section surviving signage switch — belongs to
+// L14 below. L8 is "collapse persistence of a top-level section"; L14 is "open persistence
+// of a sub-section". Different scope, no contradiction.)
 test('L8 user-collapsed content state survives changing the selected signage', async ({ page }) => {
   await page.goto('/');
   await addSpaceBackground(page, { width: 1920, height: 1080 });
@@ -674,8 +841,11 @@ test('L13 user-guide opens from header AND footer, old hint label is gone', asyn
 });
 
 // --- L14 ------------------------------------------------------------------------------------
-// Position/size subsection defaults to collapsed; toggling opens; state survives selection
-// changes.
+// Scope: inline SUB-ACCORDION state inside Selected (currently only `position-size`). Starts
+// collapsed (confirmed by first assertion). After the user explicitly opens it, the open
+// state must survive a signage switch. Paired with L8 (collapse persistence of a top-level
+// section) — different scope, together they describe both directions of "user intent
+// outlives the next selection".
 test('L14 position/size subsection stays open after switching signage', async ({ page }) => {
   await page.goto('/');
   await addSpaceBackground(page, { width: 1920, height: 1080 });

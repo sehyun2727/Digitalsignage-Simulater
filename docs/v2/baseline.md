@@ -159,7 +159,15 @@ e2e 스펙 17줄이 아직도 옛 라벨을 찾습니다:
 - Linux 스냅샷 (5) → **0** (S2 보완에서 로컬 win32 PNG 재생성으로 처리): 캔버스 레이아웃 변경에 맞춰 `--update-snapshots`로 재생성. win32 PNG는 gitignored라 커밋 안 됨. **S7은 Docker Linux에서 Linux PNG 재생성 필수**.
 - freestanding-portable (visual-qa) → **1** (유지): 포터블 다이얼로그 B1 하류. S4. (test:e2e:core에는 포함되지 않음 — visual-qa는 S7에서 별도 집계)
 
-**합계**: 25(7079e0f baseline) − 4(S3 F-download 해소) = **21 failed** = 현재 실측. visual-qa 1건은 CLAUDE.md §5-8bis에 따라 S7 집계로 이월.
+**합계**: 25(7079e0f baseline) − 4(S3 F-download 해소) = **21 failed** = 현재 실측. visual-qa 1건은 CLAUDE.md §5-11에 따라 S7 집계로 이월.
+
+**21건 세부 분해** (v2-S4 Step 0 보완):
+
+- portable.spec.ts **14**건 (B1/B2 — S4): spec:65/114/159/179/190/210 + describe "direct region move/resize" 6건(286/322/350/382/403) + describe "export composition" 3건(414/477/518).
+- mobile.spec.ts **3**건: `adds a custom portable product` (B2 — S4) + `dragging the portable screen region` (B1 — S4) + `draws a foreground occlusion mask via tap-to-add points` (F-occlusion — S5).
+- occlusion-mask.spec.ts **3**건 (F-occlusion — S5): spec:80/128/144.
+- reselection.spec.ts **1**건 (B1 — S4): `a custom portable product is reselectable after being deselected`.
+- 14 + 3 + 3 + 1 = **21** ✓. (이전 보고서의 "15+2+1+3+1=22" 중 portable은 15가 아니라 14, mobile은 "B1/B2 2 + F-occlusion 1 = 3"으로 묶여 합계 21. 오탈자 교정.)
 
 ## Playwright 브라우저 상태
 

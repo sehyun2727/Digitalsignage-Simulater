@@ -64,7 +64,7 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
   - `AdvancedSettingsModal`을 외관 섹션 안 접이식으로 전환
   - 남는 모달이 있다면 사이니지를 가리지 않는 위치로
 - **결정 사항 (glossary.md ③)**: 중앙 모달은 오른쪽 패널로 통합한다.
-- **현재 상태**: **부분 완료 (v2-S3)** — Toolbar의 `AppearanceFields` 안에 「詳細設定」(editorAdvancedSettingsOpenButton) 버튼을 두어 `AdvancedSettingsModal`을 호출. 모달 자체는 아직 중앙 다이얼로그로 남아 있으나 외관 섹션(아코디언)의 하위 액션으로 재배치되어 "사이니지를 가리지 않는 위치"는 L11 (overlapping count = 0)으로 검증됨. 완전 인라인 전환은 S5의 외관 섹션 리팩터 범위로 이월 (3-3/3-4 상세 설정 통합과 함께).
+- **현재 상태**: **부분 완료 — `詳細設定` 모달 인라인화는 S5 이월(3-5와 함께)** — Toolbar의 `AppearanceFields` 안에 「詳細設定」(editorAdvancedSettingsOpenButton) 버튼을 두어 `AdvancedSettingsModal`을 호출. 모달 자체는 아직 중앙 다이얼로그로 남아 있으나 외관 섹션(아코디언)의 하위 액션으로 재배치되어 "사이니지를 가리지 않는 위치"는 L11 (overlapping count = 0)으로 검증됨. 완전 인라인 전환은 S5의 외관 섹션 리팩터 범위로 이월(3-3/3-4/3-5 상세 설정 통합과 함께).
 
 ### 2-4 「結果/オリジナル」 아래 큰 PNG/동영상 버튼
 
@@ -102,7 +102,7 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
   - 폭·높이 옆 비율 고정 버튼(1-2와 동일 UI 재사용)
   - 캔버스 조작 ↔ 입력값 즉시 상호 반영
   - 다른 사이니지를 선택해도 접힘·펼침 상태 유지(현재 선택 사이니지의 상태)
-- **현재 상태**: **완료 (v2-S3, 비율 고정은 S4 이월)** — Toolbar의 `PositionSizeSubsection` (data-testid 접두 `toolbar-subsection-position-size`): X座標/Y座標/幅/高さ/回転 입력을 모두 담은 인라인 접이식 서브-아코디언. 기본 접힘(`subAccordionOpen['selected-position-size']: false`), 사이니지 전환 후에도 상태 유지 (L14 검증). 캔버스 drag/resize/perspective/click이 입력값에 1 CSS px 이내로 반영됨 (L5 at 1920×1080과 1280×720 검증 — 측정값: drag got=(819~821 vs 820 expected), 다른 축은 완전 일치). perspective 모드에서는 幅/高さ가 `disabled` + `#perspective-size-locked-hint` 안내 표시 (L15 검증, 섹션 열림/접힘 양쪽). **비율 고정 토글(🔗)은 1-2와 묶여 S4 범위** — 토글 UI 추가 전제 조건이 1-2 비율 고정 기능이므로 S3에서는 입력만 접이식화하고 토글은 미반영.
+- **현재 상태**: **완료 — 비율 고정 버튼은 S4(1-2)** — Toolbar의 `PositionSizeSubsection` (data-testid 접두 `toolbar-subsection-position-size`): X座標/Y座標/幅/高さ/回転 입력을 모두 담은 인라인 접이식 서브-아코디언. 기본 접힘(`subAccordionOpen['selected-position-size']: false`), 사이니지 전환 후에도 상태 유지 (L14 검증). 캔버스 drag/resize/perspective/click이 입력값에 1 CSS px 이내로 반영됨 (L5 at 1920×1080과 1280×720 — 측정값: drag got=(819~821 vs 820 expected). perspective 모드에서는 幅/高さ가 `disabled` + `#perspective-size-locked-hint` 안내 표시 (L15 검증, 섹션 열림/접힘 양쪽). perspective 핸들 (+40, +30) CSS px 드래그 결과는 bbox-oracle 기준 0 doc px, aria-valuetext oracle 기준 ≤ 6.87 doc px (whole-% 라운딩 플로어 10.8 이내). **비율 고정 토글(🔗)은 S4의 1-2 범위.**
 
 ### 3-2 이미지·영상 추가 버튼 근처 제한 사전 표시
 
@@ -141,6 +141,7 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
 
 - **담당 스프린트**: S6
 - **수용 기준**: `docs/v2/glossary.md` ①의 변경 용어를 ja/ko/en에 모두 반영.
+- **S6 추가 검토 항목 (v2-S4 Step 0 기록)**: `userGuideOpenButton` 라벨이 커밋 `d06ecfd feat(v2-S3): …` (2026-10-06)에서 `使い方・このツールについて` → `使い方ガイド`로 변경되었음(글로서리 반영 없이). 헤더 버튼은 가시 텍스트가 라벨과 동일하므로 WCAG 2.5.3 통과, footer 📖 버튼은 아이콘-only(가시 텍스트 없음)이므로 2.5.3 적용 외. S6에서 ja/ko/en의 `userGuideOpenButton` 값을 glossary.md ①에 맞춰 재검토할 것.
 - **현재 상태**: **없음**.
 
 ### 4-2 외관 섹션 설명문 교체
