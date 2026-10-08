@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openSection, openSubsection } from './support/accordion.js';
 import { addSpaceBackground } from './support/spaceBackground.js';
 
 test.use({ locale: 'ja-JP' });
@@ -101,6 +102,8 @@ test('dropping onto a rotated display screen region still hits it correctly', as
   await setup(page);
   await page.getByRole('button', { name: 'LED', exact: true }).click();
 
+  // v2-S3 3-1: 回転 is in the Position/Size sub-accordion (collapsed by default).
+  await openSubsection(page, 'position-size');
   const rotationInput = page.getByRole('spinbutton', { name: '回転' });
   await rotationInput.fill('40');
   await rotationInput.blur();
@@ -140,6 +143,9 @@ test('dropping onto the topmost of two overlapping displays assigns content only
 
   // A successful drop also selects its target, so the material combobox identifies which
   // object received the content without any extra canvas click.
+  // v2-S3: Appearance accordion is collapsed by default; open once to make the material
+  // combobox the original "identify receiver" assertion targets visible in the DOM.
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
   await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
@@ -149,6 +155,7 @@ test('dropping onto the topmost of two overlapping displays assigns content only
   const center = (await page.locator('.editor-canvas-container').boundingBox())!;
   await page.mouse.click(center.x + center.width / 2, center.y + center.height / 2);
 
+  // Appearance stays open across the delete/reselect, so the material combobox is still here.
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('led');
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),

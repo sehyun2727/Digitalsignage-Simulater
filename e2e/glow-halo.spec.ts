@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { openSection } from './support/accordion.js';
 import { samplePngPixels } from './support/pixels.js';
 import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
 
@@ -25,6 +26,8 @@ test('the material glow halo bleeds past the screen edge into the bezel', async 
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 
+  // v2-S3: 詳細設定 lives inside the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   const glowSlider = page.getByRole('slider', { name: '発光の強さ（詳細設定）' });
   await glowSlider.focus();

@@ -1,5 +1,9 @@
-import fs from 'node:fs/promises';
 import { devices, expect, test } from '@playwright/test';
+import { openSection } from './support/accordion.js';
+import {
+  clickExportAndCapturePng,
+  installMobileExportCapture,
+} from './support/mobileExport.js';
 import { readPngDimensions } from './support/png.js';
 import { addScenePhotoBackground, solidColorPng } from './support/spaceBackground.js';
 
@@ -45,6 +49,12 @@ async function addSpaceBackground(
 
 test('full mobile content and export workflow at 390x844 (LED)', async ({ page }) => {
   // 1. Open the app.
+  // v2-S3 D rewrite (F-download): the iPhone userAgent sends handleExport down its
+  // `window.open(dataUrl, '_blank')` branch (see EditorLayout.tsx), which never fires a DOM
+  // Download event — so Playwright's waitForEvent('download') hangs. installMobileExportCapture
+  // installs a window.open interceptor that stores the dataUrl, and clickExportAndCapturePng
+  // reads it back as a Buffer. The remaining assertions on PNG dimensions carry over as-is.
+  await installMobileExportCapture(page);
   await page.goto('/');
 
   // 2. Confirm the Japanese default (default locale, no stored preference).
@@ -76,6 +86,9 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await expect(fitSelect).toHaveValue('cover');
 
   // 8. Change material LED -> LCD -> back to LED.
+  // v2-S3 3-1: material + sliders + 詳細設定 all live inside the Appearance accordion
+  // (collapsed by default; same mobile layout as desktop here).
+  await openSection(page, 'appearance');
   const materialSelect = page.getByRole('combobox', { name: 'ディスプレイ素材' });
   await expect(materialSelect).toHaveValue('led');
   await materialSelect.selectOption('lcd');
@@ -94,17 +107,13 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await brightnessSlider.press('Home');
   await brightnessSlider.press('Tab');
 
-  // 10. Export PNG.
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByTestId('editor-export-png-header').click();
-  const download = await downloadPromise;
+  // 10. Export PNG via the iOS fallback path (see installMobileExportCapture above).
+  const buffer = await clickExportAndCapturePng(
+    page,
+    page.getByTestId('editor-export-png-header'),
+  );
 
-  // 11. Confirm the download happened.
-  const path = await download.path();
-  expect(path).toBeTruthy();
-  const buffer = await fs.readFile(path!);
-
-  // 12. Confirm the exported PNG matches the uploaded space photo's resolution.
+  // 11. Confirm the exported PNG matches the uploaded space photo's resolution.
   expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
 
   // 13. Confirm no horizontal overflow at this viewport.
@@ -131,16 +140,20 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await expect(hullLink).toHaveAttribute('rel', 'noopener noreferrer');
 
   // 17. Confirm the footer user-guide link is present and opens the modal on tap.
-  const guideLink = page.getByRole('button', { name: '使い方・このツールについて' });
+  // v2-S3 2-6: footer control collapsed to the 📖 icon-only button with aria-label
+  // '使い方ガイド' (same key as the header button). The modal heading is still
+  // 'このツールについて' per userGuideAboutHeading.
+  const guideLink = page.getByTestId('editor-footer-user-guide');
   await guideLink.scrollIntoViewIfNeeded();
   await expect(guideLink).toBeVisible();
   await guideLink.click();
-  await expect(page.getByRole('heading', { name: 'このツールについて' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'このツールについて', exact: true })).toBeVisible();
 });
 
 test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 390x844', async ({
   page,
 }) => {
+  await installMobileExportCapture(page);
   await page.goto('/');
 
   // A lighter-weight companion to the LED flow above: a portrait canvas preset drives a
@@ -150,6 +163,8 @@ test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 
   await page.getByRole('button', { name: '縦長 (9:16)' }).click();
 
   await page.getByRole('button', { name: 'LCD' }).click();
+  // v2-S3: material combobox lives in the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
 
   const content = await solidColorPng(page, '#ff8800');
@@ -158,12 +173,10 @@ test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByTestId('editor-export-png-header').click();
-  const download = await downloadPromise;
-
-  const path = await download.path();
-  const buffer = await fs.readFile(path!);
+  const buffer = await clickExportAndCapturePng(
+    page,
+    page.getByTestId('editor-export-png-header'),
+  );
   expect(readPngDimensions(buffer)).toEqual({ width: 1080, height: 1920 });
 
   await expectNoHorizontalOverflow(page);
@@ -172,6 +185,7 @@ test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 
 test('mobile: adds a custom portable product with a screen region and exports it at 390x844', async ({
   page,
 }) => {
+  await installMobileExportCapture(page);
   await page.goto('/');
   await addSpaceBackground(page, 1920, 1080);
 
@@ -205,12 +219,10 @@ test('mobile: adds a custom portable product with a screen region and exports it
   await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   // 5. Export and confirm the resolution still matches the uploaded space photo exactly.
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByTestId('editor-export-png-header').click();
-  const download = await downloadPromise;
-
-  const path = await download.path();
-  const buffer = await fs.readFile(path!);
+  const buffer = await clickExportAndCapturePng(
+    page,
+    page.getByTestId('editor-export-png-header'),
+  );
   expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
 
   // 6. No horizontal overflow was introduced by the portable toolbar section or properties.
@@ -302,6 +314,8 @@ test('mobile: an LED display is reselectable by tap after being deselected at 39
 
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(deleteButton(page)).toBeEnabled();
+  // v2-S3: material combobox lives in the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
@@ -313,10 +327,13 @@ test('mobile: adds a transparent LED display and blends more of the space backgr
   // Companion to the desktop coverage in e2e/perspective-video.spec.ts's "transparent LED
   // window blending" describe block: confirms the material select, the two sliders, and the
   // PNG export flow all stay usable/reachable at the narrow touch-viewport width.
+  await installMobileExportCapture(page);
   await page.goto('/');
   await addSpaceBackground(page, 1920, 1080);
 
   await page.getByTestId('editor-add-transparent-led').click();
+  // v2-S3: Appearance accordion holds material, sliders, and 詳細設定.
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue(
     'transparent-led',
   );
@@ -336,11 +353,11 @@ test('mobile: adds a transparent LED display and blends more of the space backgr
   await transparencySlider.press('Tab');
   await page.getByRole('button', { name: '閉じる' }).click();
 
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByTestId('editor-export-png-header').click();
-  const download = await downloadPromise;
-  const path = await download.path();
-  expect(path).toBeTruthy();
+  const buffer = await clickExportAndCapturePng(
+    page,
+    page.getByTestId('editor-export-png-header'),
+  );
+  expect(buffer.length).toBeGreaterThan(0);
 
   await expectNoHorizontalOverflow(page);
 });
@@ -449,6 +466,7 @@ test('mobile smoke: a real-photo-style scene renders, exports a PNG, and introdu
   // Companion to the desktop real-photo-style golden-image scenarios in e2e/visual-qa.spec.ts:
   // confirms the same procedurally-generated (non-solid-color) fixture also works through this
   // narrow touch-viewport, rather than only ever being exercised against flat solid-color photos.
+  await installMobileExportCapture(page);
   await page.goto('/');
   await addScenePhotoBackground(page, 'bright-interior', 1920, 1080);
   await expect(page.getByRole('button', { name: '空間写真を削除' })).toBeVisible();
@@ -470,13 +488,7 @@ test('mobile smoke: a real-photo-style scene renders, exports a PNG, and introdu
   await exportButton.scrollIntoViewIfNeeded();
   await expect(exportButton).toBeEnabled();
 
-  const downloadPromise = page.waitForEvent('download');
-  await exportButton.click();
-  const download = await downloadPromise;
-
-  const path = await download.path();
-  expect(path).toBeTruthy();
-  const buffer = await fs.readFile(path!);
+  const buffer = await clickExportAndCapturePng(page, exportButton);
   expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
 
   await expectNoHorizontalOverflow(page);

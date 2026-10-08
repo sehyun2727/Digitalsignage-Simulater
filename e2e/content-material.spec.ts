@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { openSection } from './support/accordion.js';
 import { readPngDimensions } from './support/png.js';
 import { samplePngPixels } from './support/pixels.js';
 import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
@@ -28,6 +29,8 @@ test('adds an LED display defaulting to led material', async ({ page }) => {
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
   ).toBeVisible();
+  // v2-S3 3-1: material combobox lives in the Appearance accordion, closed by default.
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('led');
 });
 
@@ -37,6 +40,7 @@ test('adds an LCD display defaulting to LCD material', async ({ page }) => {
 
   await page.getByRole('button', { name: 'LCD' }).click();
 
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
 });
 
@@ -141,6 +145,8 @@ test('cover-fit display content is clipped to the screen region and never spills
   // Drive the LED-pattern-grid intensity to zero so the grid overlay doesn't perturb the
   // sampled screen-center pixel; Home sends the range input to its min and fires a native
   // input event, then Tab blurs it to commit the final value.
+  // v2-S3: 質感の強さ slider is inside the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   const intensitySlider = page.getByRole('slider', { name: '質感の強さ' });
   await intensitySlider.focus();
   await intensitySlider.press('Home');
@@ -177,6 +183,8 @@ test('a newly added LED display has its contact shadow enabled by default and it
 
   // Regression check for the "shadow disabled by default" defect: a freshly added display must
   // already have a contact shadow, not require the user to opt in.
+  // v2-S3: 詳細設定 button is inside the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   await expect(page.getByRole('checkbox', { name: '接地シャドウを有効にする' })).toBeChecked();
   await page.getByRole('button', { name: '閉じる' }).click();
@@ -208,6 +216,8 @@ test('rendering presets update the material sliders and the export brightness to
   await addSpaceBackground(page);
   await page.getByRole('button', { name: 'LED', exact: true }).click();
 
+  // v2-S3: brightness slider + rendering preset buttons live inside the Appearance accordion.
+  await openSection(page, 'appearance');
   const brightnessSlider = page.getByRole('slider', { name: '明るさ' });
   const naturalBrightness = await brightnessSlider.inputValue();
 

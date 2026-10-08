@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { openSection } from './support/accordion.js';
 import { samplePngPixels } from './support/pixels.js';
 import { addSpaceBackground } from './support/spaceBackground.js';
 import { addVideoContent } from './support/video.js';
@@ -196,6 +197,8 @@ test.describe('four-point perspective placement', () => {
     // (720-1200, 405-675) that overlaps the LED's warped quad on the strip (720-768, 405-432).
     // A click inside that strip must select the LCD (added-later, topmost in Konva stacking).
     await page.getByTestId('editor-add-lcd').click();
+    // v2-S3: material combobox lives in the Appearance accordion, collapsed by default.
+    await openSection(page, 'appearance');
     await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
     const overlapStrip = await documentPointToPagePoint(page, { x: 740, y: 420 });
     await page.locator('.editor-canvas-container').click({ position: { x: 5, y: 5 } });
@@ -221,6 +224,8 @@ test.describe('transparent LED window blending', () => {
     // (more transparency -> more background showing through -> higher red channel) robust.
     await addSpaceBackground(page, { ...DOCUMENT_SIZE, color: '#ff0000' });
     await page.getByTestId('editor-add-transparent-led').click();
+    // v2-S3: material + sliders + 詳細設定 all live inside the Appearance accordion.
+    await openSection(page, 'appearance');
     await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue(
       'transparent-led',
     );

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { openSection } from './support/accordion.js';
 import { samplePngPixels } from './support/pixels.js';
 import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
 
@@ -34,6 +35,8 @@ test('a window-mounted display casts a faint reflection below itself', async ({ 
   const wallBuffer = await fs.readFile((await (await wallDownload).path())!);
   const [wallPixel] = await samplePngPixels(page, wallBuffer, [samplePoint]);
 
+  // v2-S3: 詳細設定 lives inside the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   await page.getByRole('combobox', { name: '設置面' }).selectOption('window');
   await page.getByRole('button', { name: '閉じる' }).click();

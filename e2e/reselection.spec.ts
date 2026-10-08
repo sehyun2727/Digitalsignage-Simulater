@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { openSection, openSubsection } from './support/accordion.js';
 import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
 
 test.use({ locale: 'ja-JP', viewport: { width: 1280, height: 1700 } });
@@ -55,6 +56,12 @@ test.describe('canvas object reselection', () => {
     await reselectViaCanvasClick(page);
 
     await expect(deleteButton(page)).toBeEnabled();
+    // v2-S3 3-1 / 2-2: material lives in the Appearance accordion (collapsed by default) and
+    // width/height live in the Position/Size sub-accordion (also collapsed by default). The
+    // original "reselecting an LED exposes material + width + height" assertions still hold —
+    // open the sections so the DOM carries the controls the assertions already target.
+    await openSection(page, 'appearance');
+    await openSubsection(page, 'position-size');
     await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toBeVisible();
     await expect(page.getByRole('spinbutton', { name: '幅' })).toHaveValue('480');
     await expect(page.getByRole('spinbutton', { name: '高さ' })).toHaveValue('270');
@@ -69,6 +76,8 @@ test.describe('canvas object reselection', () => {
     await reselectViaCanvasClick(page);
 
     await expect(deleteButton(page)).toBeEnabled();
+    await openSection(page, 'appearance');
+    await openSubsection(page, 'position-size');
     await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
     await expect(page.getByRole('spinbutton', { name: '幅' })).toHaveValue('480');
     await expect(page.getByRole('spinbutton', { name: '高さ' })).toHaveValue('270');
@@ -139,6 +148,10 @@ test.describe('canvas object reselection', () => {
     // After reselection, the Content section's media branch is restored, and the display's own
     // 「ディスプレイ素材」 selector is also back — the "image is still attached" signal.
     await expect(page.getByTestId('editor-content-replace')).toBeVisible();
+    // v2-S3: Appearance is collapsed by default; open it so the material combobox the original
+    // assertion targets is in the DOM. Content section auto-opens on first selection so the
+    // content-replace testid above does not need an openSection call.
+    await openSection(page, 'appearance');
     await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toBeVisible();
   });
 
@@ -156,6 +169,8 @@ test.describe('canvas object reselection', () => {
     await page.mouse.up();
 
     await expect(deleteButton(page)).toBeEnabled();
+    // v2-S3 3-1: X座標 lives in the Position/Size sub-accordion (collapsed by default).
+    await openSubsection(page, 'position-size');
     const xValue = Number(await page.getByRole('spinbutton', { name: 'X座標' }).inputValue());
     // Started at size.width/2 - width/2 = 960 - 240 = 720; a +60px drag must move it, not
     // leave it in place (which would mean the drag started a fresh, unselected pan instead of
@@ -231,6 +246,9 @@ test.describe('canvas object reselection', () => {
     await expect(deleteButton(page)).toBeEnabled();
     // The LCD-topmost assertion: the Material selector carries 'lcd' when the LCD is the
     // selected one. Picking the LED underneath would show 'led' here.
+    // v2-S3: Appearance accordion is collapsed by default; open it so the material combobox is
+    // in the DOM for the original assertion.
+    await openSection(page, 'appearance');
     await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
   });
 

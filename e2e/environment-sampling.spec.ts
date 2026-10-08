@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { openSection } from './support/accordion.js';
 import { samplePngPixels } from './support/pixels.js';
 import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
 
@@ -42,6 +43,10 @@ test('sampling the space photo tints the screen toward its ambient color as stre
 
   // Environment integration controls live behind the "詳細設定" modal; the export button sits
   // outside it, so the modal must be closed again before each export can be clicked.
+  // v2-S3: the 詳細設定 button that opens the modal lives inside the Appearance accordion
+  // (collapsed by default); open it before the first click. Later re-opens of the modal below
+  // reuse the already-open accordion.
+  await openSection(page, 'appearance');
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
 
   const sampleButton = page.getByRole('button', { name: '空間写真からサンプリング' });
