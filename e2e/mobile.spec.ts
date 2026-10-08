@@ -1,9 +1,6 @@
 import { devices, expect, test } from '@playwright/test';
 import { openSection } from './support/accordion.js';
-import {
-  clickExportAndCapturePng,
-  installMobileExportCapture,
-} from './support/mobileExport.js';
+import { clickExportAndCapturePng, installMobileExportCapture } from './support/mobileExport.js';
 import { readPngDimensions } from './support/png.js';
 import { addScenePhotoBackground, solidColorPng } from './support/spaceBackground.js';
 
@@ -108,10 +105,7 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await brightnessSlider.press('Tab');
 
   // 10. Export PNG via the iOS fallback path (see installMobileExportCapture above).
-  const buffer = await clickExportAndCapturePng(
-    page,
-    page.getByTestId('editor-export-png-header'),
-  );
+  const buffer = await clickExportAndCapturePng(page, page.getByTestId('editor-export-png-header'));
 
   // 11. Confirm the exported PNG matches the uploaded space photo's resolution.
   expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
@@ -147,7 +141,9 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await guideLink.scrollIntoViewIfNeeded();
   await expect(guideLink).toBeVisible();
   await guideLink.click();
-  await expect(page.getByRole('heading', { name: 'このツールについて', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'このツールについて', exact: true }),
+  ).toBeVisible();
 });
 
 test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 390x844', async ({
@@ -173,10 +169,7 @@ test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
-  const buffer = await clickExportAndCapturePng(
-    page,
-    page.getByTestId('editor-export-png-header'),
-  );
+  const buffer = await clickExportAndCapturePng(page, page.getByTestId('editor-export-png-header'));
   expect(readPngDimensions(buffer)).toEqual({ width: 1080, height: 1920 });
 
   await expectNoHorizontalOverflow(page);
@@ -219,10 +212,7 @@ test('mobile: adds a custom portable product with a screen region and exports it
   await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   // 5. Export and confirm the resolution still matches the uploaded space photo exactly.
-  const buffer = await clickExportAndCapturePng(
-    page,
-    page.getByTestId('editor-export-png-header'),
-  );
+  const buffer = await clickExportAndCapturePng(page, page.getByTestId('editor-export-png-header'));
   expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
 
   // 6. No horizontal overflow was introduced by the portable toolbar section or properties.
@@ -353,10 +343,7 @@ test('mobile: adds a transparent LED display and blends more of the space backgr
   await transparencySlider.press('Tab');
   await page.getByRole('button', { name: '閉じる' }).click();
 
-  const buffer = await clickExportAndCapturePng(
-    page,
-    page.getByTestId('editor-export-png-header'),
-  );
+  const buffer = await clickExportAndCapturePng(page, page.getByTestId('editor-export-png-header'));
   expect(buffer.length).toBeGreaterThan(0);
 
   await expectNoHorizontalOverflow(page);

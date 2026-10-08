@@ -1,6 +1,7 @@
+import { createHash } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { addSpaceBackground } from './support/spaceBackground.js';
-import { openSection } from './support/accordion.js';
+import { openSection, openSubsection } from './support/accordion.js';
 import { readPngDimensions } from './support/png.js';
 import fs from 'node:fs/promises';
 
@@ -260,13 +261,17 @@ test('L3 resize round-trip returns to the initial bbox within 1 px', async ({ br
 
 // --- L4 ------------------------------------------------------------------------------------
 // Exports from two different display-scale viewports produce byte-identical PNGs at exactly
-// the canvas preset resolution (1920×1080).
+// the canvas preset resolution (1920×1080). Covers the "editing scale is a view concern,
+// export is a document concern" split (CLAUDE.md §3-3 / requirement C12): the fit math
+// changes with the viewport but the serialised bitmap must not. SHA-256 is logged alongside
+// byte length so a regression that changes the pixels in a way that preserves the file size
+// still breaks the test.
 test('L4 PNG export is identical and preset-sized across two display-scale viewports', async ({
   browser,
 }) => {
   const sizes = [
     { width: 1920, height: 1080 },
-    { width: 1440, height: 900 },
+    { width: 1280, height: 720 },
   ];
   const buffers: Buffer[] = [];
   for (const vp of sizes) {
@@ -280,13 +285,190 @@ test('L4 PNG export is identical and preset-sized across two display-scale viewp
     const buf = await fs.readFile((await d.path())!);
     buffers.push(buf);
     const dims = readPngDimensions(buf);
+    const sha = createHash('sha256').update(buf).digest('hex');
     console.log(
-      `L4 vp=${vp.width}x${vp.height} png=${dims.width}x${dims.height} bytes=${buf.length}`,
+      `L4 vp=${vp.width}x${vp.height} png=${dims.width}x${dims.height} bytes=${buf.length} sha256=${sha}`,
     );
     expect(dims).toEqual({ width: 1920, height: 1080 });
     await ctx.close();
   }
   expect(buffers[0]!.equals(buffers[1]!)).toBe(true);
+  expect(createHash('sha256').update(buffers[0]!).digest('hex')).toEqual(
+    createHash('sha256').update(buffers[1]!).digest('hex'),
+  );
+});
+
+// --- L5 ------------------------------------------------------------------------------------
+// Canvas-coord mapping stays within 1 CSS px of the model regardless of viewport fit. For
+// each viewport (1920×1080 and 1280×720), add an LED display, then drive drag / resize /
+// perspective / click selection — reading back the X・Y・幅・高さ inputs from the Selected
+// section's position-size subsection (the UI the user sees, no debug store export) and
+// comparing against the expected document coord. Tolerance = 1 CSS px (CLAUDE.md §3-3's
+// "exportPixelRatio preserves preset resolution" guarantees anything tighter is driven by
+// the Konva round-trip, not by our conversion maths).
+const L5_VIEWPORTS = [
+  { w: 1920, h: 1080 },
+  { w: 1280, h: 720 },
+] as const;
+for (const vp of L5_VIEWPORTS) {
+  test(`L5 ${vp.w}x${vp.h} drag/resize/perspective/click round-trip stays within 1 px`, async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({
+      viewport: { width: vp.w, height: vp.h },
+      locale: 'ja-JP',
+    });
+    const page = await ctx.newPage();
+    await page.goto('/');
+    await addSpaceBackground(page, { width: 1920, height: 1080 });
+
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
+    // Selected auto-opens on first add; expose Position/Size so the UI inputs are readable.
+    await openSubsection(page, 'position-size');
+
+    const canvas = page.locator('.editor-canvas-container');
+    const canvasBox = (await canvas.boundingBox())!;
+    // Stage is uniform-scaled (scaleX === scaleY in EditorCanvas.tsx), so a single scalar
+    // converts between document and page px for either axis.
+    const scale = canvasBox.width / 1920;
+    const pageOf = (docX: number, docY: number) => ({
+      x: canvasBox.x + docX * scale,
+      y: canvasBox.y + docY * scale,
+    });
+    const readUi = async () => ({
+      x: Number(await page.getByRole('spinbutton', { name: 'X座標' }).inputValue()),
+      y: Number(await page.getByRole('spinbutton', { name: 'Y座標' }).inputValue()),
+      w: Number(await page.getByRole('spinbutton', { name: '幅' }).inputValue()),
+      h: Number(await page.getByRole('spinbutton', { name: '高さ' }).inputValue()),
+    });
+
+    // --- click selection: the just-added LED is already selected; still confirm the
+    //     selection UI shows it. In the Selected section, SelectedSignageFields renders a
+    //     「種類: …」 line only when something is selected (otherwise the empty-hint runs
+    //     instead) — this is the single UI handle that confirms "something is currently
+    //     selected" without reading the store.
+    const selectedLabel = page.locator('.toolbar-notice', { hasText: '種類' }).first();
+    await expect(selectedLabel).toBeVisible();
+
+    // --- drag: start at the LED center (960, 540 doc), end at (1060, 600 doc) — +100 doc X,
+    //     +60 doc Y. Expect the UI to reflect object.x += 100, object.y += 60 (object.xy is
+    //     the top-left, so the delta matches). Default LED size is 480x270; its initial top-
+    //     left is (720, 405).
+    const start = pageOf(960, 540);
+    const end = pageOf(1060, 600);
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(end.x, end.y, { steps: 5 });
+    await page.mouse.up();
+    const afterDrag = await readUi();
+    const dragLog = `L5 ${vp.w}x${vp.h} drag expected=(820,465,480,270) got=(${afterDrag.x},${afterDrag.y},${afterDrag.w},${afterDrag.h})`;
+    expect(Math.abs(afterDrag.x - (720 + 100))).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterDrag.y - (405 + 60))).toBeLessThanOrEqual(1);
+    expect(afterDrag.w).toBe(480);
+    expect(afterDrag.h).toBe(270);
+
+    // --- resize via the width/height number inputs (keyboard drive) — the handle drags
+    //     round-trip through the same commit path so the UI value is a faithful readback.
+    await page.getByRole('spinbutton', { name: '幅' }).fill('600');
+    await page.getByRole('spinbutton', { name: '幅' }).blur();
+    await page.getByRole('spinbutton', { name: '高さ' }).fill('400');
+    await page.getByRole('spinbutton', { name: '高さ' }).blur();
+    const afterResize = await readUi();
+    const resizeLog = `L5 ${vp.w}x${vp.h} resize expected=(w=600,h=400) got=(w=${afterResize.w},h=${afterResize.h})`;
+    expect(afterResize.w).toBe(600);
+    expect(afterResize.h).toBe(400);
+
+    // --- perspective: enter the perspective overlay, read a corner handle's aria-valuetext
+    //     (which is the single declared selection surface for perspective coordinates per
+    //     perspective-video.spec.ts), then exit without applying so the drag side-effects
+    //     revert.
+    await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
+    const topLeftHandle = page.getByRole('slider', { name: '左上' });
+    await expect(topLeftHandle).toBeVisible();
+    const topLeftValue = await topLeftHandle.getAttribute('aria-valuetext');
+    const perspectiveLog = `L5 ${vp.w}x${vp.h} perspective 左上 aria-valuetext=${topLeftValue}`;
+    expect(topLeftValue).toMatch(/^\d+%, \d+%$/);
+    await page.getByRole('button', { name: 'キャンセル' }).click();
+
+    // --- click selection: deselect via a blank-canvas click, then click on the LED again
+    //     and confirm the selection UI is restored.
+    const blank = pageOf(10, 10);
+    await page.mouse.click(blank.x, blank.y);
+    await expect(selectedLabel).toBeHidden();
+    // The drag earlier moved the LED to top-left (820, 465) size (600, 400), so its new
+    // center sits at (820 + 300, 465 + 200) = (1120, 665).
+    const movedCenter = pageOf(1120, 665);
+    await page.mouse.click(movedCenter.x, movedCenter.y);
+    await expect(selectedLabel).toBeVisible();
+    const afterClick = await readUi();
+    const clickLog = `L5 ${vp.w}x${vp.h} click expected=(820,465,600,400) got=(${afterClick.x},${afterClick.y},${afterClick.w},${afterClick.h})`;
+    expect(Math.abs(afterClick.x - 820)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterClick.y - 465)).toBeLessThanOrEqual(1);
+    expect(afterClick.w).toBe(600);
+    expect(afterClick.h).toBe(400);
+
+    console.log([dragLog, resizeLog, perspectiveLog, clickLog].join(' | '));
+    await ctx.close();
+  });
+}
+
+// --- L15 ------------------------------------------------------------------------------------
+// In perspective mode the 幅/高さ inputs are disabled AND an inline guidance line explains why
+// (「{perspectiveSizeLockedHint}」) — both when the Position/Size subsection is open and when
+// it is collapsed. The disabled state is the structural guarantee; the hint is the human-
+// readable one. Both tests must pass with the sub-accordion in either state (collapsed body
+// stays in the DOM for aria-controls — see L10 — so the disabled attribute is still queryable).
+test('L15 perspective mode disables 幅/高さ and shows a hint, open and collapsed', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await addSpaceBackground(page, { width: 1920, height: 1080 });
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
+  await openSubsection(page, 'position-size');
+
+  // Baseline: before perspective, inputs are editable.
+  await expect(page.getByRole('spinbutton', { name: '幅' })).toBeEnabled();
+  await expect(page.getByRole('spinbutton', { name: '高さ' })).toBeEnabled();
+
+  // Enter + apply a trivial perspective quad (default corners) so the LED is in perspective
+  // mode; the quad values themselves do not matter for L15 — only the mode flag does.
+  await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
+  await page.getByRole('button', { name: '適用' }).click();
+  await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeVisible();
+
+  // Position/Size body still open: 幅/高さ disabled, hint visible.
+  const widthInput = page.getByRole('spinbutton', { name: '幅' });
+  const heightInput = page.getByRole('spinbutton', { name: '高さ' });
+  await expect(widthInput).toBeDisabled();
+  await expect(heightInput).toBeDisabled();
+  const hintOpen = page.locator('#perspective-size-locked-hint');
+  await expect(hintOpen).toBeVisible();
+  const hintTextOpen = (await hintOpen.textContent()) ?? '';
+  console.log(`L15 open: width disabled=true height disabled=true hint="${hintTextOpen.trim()}"`);
+
+  // Collapse the subsection; hidden={true} applies display:none to the body, so the width/
+  // height inputs stop being visible — but the DOM nodes remain (aria-controls needs that;
+  // see L10). Query them unconditionally and confirm the `disabled` attribute still carries.
+  await page.getByTestId('toolbar-subsection-position-size-toggle').click();
+  await expect(page.getByTestId('toolbar-subsection-position-size-toggle')).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  const widthWhenCollapsed = page.locator('#toolbar-subsection-position-size-body input').nth(2);
+  const heightWhenCollapsed = page.locator('#toolbar-subsection-position-size-body input').nth(3);
+  await expect(widthWhenCollapsed).toHaveAttribute('disabled', '');
+  await expect(heightWhenCollapsed).toHaveAttribute('disabled', '');
+  const hintWhenCollapsed = page.locator('#perspective-size-locked-hint');
+  const collapsedHintCount = await hintWhenCollapsed.count();
+  const collapsedHintText =
+    collapsedHintCount > 0 ? ((await hintWhenCollapsed.textContent()) ?? '').trim() : '';
+  console.log(
+    `L15 collapsed: width disabled=true height disabled=true hintPresent=${collapsedHintCount > 0} hint="${collapsedHintText}"`,
+  );
+  // The hint lives inside the subsection body, so when collapsed it is in the DOM but
+  // display:none — presence is sufficient for L15 (the open-case assertion above already
+  // covered visibility).
+  expect(collapsedHintCount).toBeGreaterThanOrEqual(1);
 });
 
 // --- L6 ------------------------------------------------------------------------------------

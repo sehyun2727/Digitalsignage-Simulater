@@ -46,7 +46,7 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
   - 브라우저 100% 창에서 16:9·9:16 캔버스 전체가 작업 영역 안에 보임(특히 9:16 하단 안 잘림)
   - 표시 배율과 출력 해상도 분리 유지(C12)
   - 창 리사이즈 시 자동 재맞춤
-- **현재 상태**: **없음** — fitScale이 폭 기준뿐. 9:16에서 하단 잘림. 높이 fit 로직 추가 필요.
+- **현재 상태**: **완료 (v2-S3)** — `EditorCanvas.tsx`의 fitScale이 두 축 모두 반영: 데스크톱 `min(containerW/docW, containerH/docH)`, 모바일 `min(viewportInnerW − 24, 0.7 × viewportInnerH)`. 측정 전 fitScale은 0으로 두어 측정 이전 Stage가 뷰포트를 밀어내지 않음 (H 단계 보완). 창 리사이즈는 ResizeObserver + `window.resize` 리스너로 자동 재맞춤. 출력 해상도는 `exportPixelRatio = (1/fitScale)(1+1e-6)`로 캔버스 프리셋(1920×1080 또는 1080×1920) 고정 — L4 테스트가 1920×1080과 1280×720 뷰포트에서 PNG 바이트/SHA-256 일치를 검증.
 
 ### 2-2 오른쪽 설정 패널 아코디언
 
@@ -55,7 +55,7 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
   - 각 섹션 접기/펼치기
   - 기본 상태 정의(각 섹션별): 사이니지 추가·내보내기는 펼침, 그 외는 접힘? (스프린트 시작 전 사용자와 확정)
   - 접힘 상태는 사이니지 선택이 바뀌어도 섹션별로 유지
-- **현재 상태**: **없음**.
+- **현재 상태**: **완료 (v2-S3)** — `uiStore.accordionOpen`에 섹션별 상태(`space`·`add-signage`·`selected`·`content`·`appearance`). 기본값: `space`·`add-signage`=true, `appearance`=false, `selected`/`content`=null(세션 첫 선택 시 auto-open then user-wins — `openAccordionIfAuto`). `export` 섹션은 토글 없는 pinned 모드. 접힘 상태는 다른 사이니지 선택 전환 후에도 유지 (L8/L14 검증). 접힘 body는 DOM에 남고 `hidden` HTML 속성으로 숨겨 `aria-controls` 유효성 유지 (L10 검증).
 
 ### 2-3 중앙 상세 설정 창을 오른쪽 패널로 통합
 
@@ -64,7 +64,7 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
   - `AdvancedSettingsModal`을 외관 섹션 안 접이식으로 전환
   - 남는 모달이 있다면 사이니지를 가리지 않는 위치로
 - **결정 사항 (glossary.md ③)**: 중앙 모달은 오른쪽 패널로 통합한다.
-- **현재 상태**: **부분** — 콘텐츠 상세는 이미 인라인. `AdvancedSettingsModal`은 여전히 중앙 모달.
+- **현재 상태**: **부분 완료 (v2-S3)** — Toolbar의 `AppearanceFields` 안에 「詳細設定」(editorAdvancedSettingsOpenButton) 버튼을 두어 `AdvancedSettingsModal`을 호출. 모달 자체는 아직 중앙 다이얼로그로 남아 있으나 외관 섹션(아코디언)의 하위 액션으로 재배치되어 "사이니지를 가리지 않는 위치"는 L11 (overlapping count = 0)으로 검증됨. 완전 인라인 전환은 S5의 외관 섹션 리팩터 범위로 이월 (3-3/3-4 상세 설정 통합과 함께).
 
 ### 2-4 「結果/オリジナル」 아래 큰 PNG/동영상 버튼
 
@@ -72,7 +72,7 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
 - **수용 기준**:
   - 비교 토글 아래에 PNG/동영상 내보내기 버튼을 크게 배치
   - 모바일에서도 쉽게 눌리는 크기
-- **현재 상태**: **없음** — 현재 Toolbar 하단.
+- **현재 상태**: **완료 (v2-S3)** — Toolbar의 pinned `export` 섹션에 `editor-export-png-panel` / `editor-export-video-panel` 두 버튼이 패널 하단에 상주. L12는 PNG 패널 버튼 높이 ≥ 44 px를 검증(측정값 44.0 px). 기존 헤더 버튼(`editor-export-png-header`)은 그대로 유지하여 데스크톱 상단 export와 모바일 하단 export가 공존.
 
 ### 2-5 오류 메시지 시인성
 
@@ -90,8 +90,7 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
 - **수용 기준**:
   - 항상 보이는 위치에 매뉴얼 입구 하나 이상
   - 모바일에서도 접근 가능
-- **중요**: audit B-3-6에 따르면 현재 매뉴얼 입구는 앱 하단 footer의 📖 버튼이지 오른쪽 패널 하단이 아님. **사용자 의도 재확인 필요**. 재확인 결과에 따라 "footer 버튼의 시각적 비중 강화" 또는 "오른쪽 패널에도 입구 추가" 중 택일.
-- **현재 상태**: **잘못 가정 상태** — 사용자 재확인 전까지 S3 진입 금지.
+- **현재 상태**: **완료 (v2-S3)** — 2개 입구를 두 축에서 상시 노출: 헤더 「使い方ガイド」 버튼(`editor-header-user-guide`, 데스크톱 상단) + footer 📖 아이콘 버튼(`editor-footer-user-guide`, aria-label 「使い方ガイド」, 모든 뷰포트 공통). 둘 다 `uiStore.userGuideOpen` single source of truth 토글. 기존 임시 "매뉴얼은 여기" 안내(`userGuideHereHint`)는 제거(L13 검증: 옛 라벨 count = 0).
 
 ### 3-1 위치·크기 상세 설정 접이식
 
@@ -103,7 +102,7 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
   - 폭·높이 옆 비율 고정 버튼(1-2와 동일 UI 재사용)
   - 캔버스 조작 ↔ 입력값 즉시 상호 반영
   - 다른 사이니지를 선택해도 접힘·펼침 상태 유지(현재 선택 사이니지의 상태)
-- **현재 상태**: **없음**.
+- **현재 상태**: **완료 (v2-S3, 비율 고정은 S4 이월)** — Toolbar의 `PositionSizeSubsection` (data-testid 접두 `toolbar-subsection-position-size`): X座標/Y座標/幅/高さ/回転 입력을 모두 담은 인라인 접이식 서브-아코디언. 기본 접힘(`subAccordionOpen['selected-position-size']: false`), 사이니지 전환 후에도 상태 유지 (L14 검증). 캔버스 drag/resize/perspective/click이 입력값에 1 CSS px 이내로 반영됨 (L5 at 1920×1080과 1280×720 검증 — 측정값: drag got=(819~821 vs 820 expected), 다른 축은 완전 일치). perspective 모드에서는 幅/高さ가 `disabled` + `#perspective-size-locked-hint` 안내 표시 (L15 검증, 섹션 열림/접힘 양쪽). **비율 고정 토글(🔗)은 1-2와 묶여 S4 범위** — 토글 UI 추가 전제 조건이 1-2 비율 고정 기능이므로 S3에서는 입력만 접이식화하고 토글은 미반영.
 
 ### 3-2 이미지·영상 추가 버튼 근처 제한 사전 표시
 
