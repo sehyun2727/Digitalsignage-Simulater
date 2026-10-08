@@ -116,6 +116,7 @@
 
 - 태그 생성·push는 **사용자 검수 합격 후 사용자가 명시적으로 지시**했을 때만 수행합니다. 지시받은 태그만 개별로 push하고 `--tags`는 쓰지 않습니다.
 - 자동으로 `v2-S{n}-ok` 류의 태그를 미리 만들지 마세요.
+- **아카이브 태그로 복구**: 2026-10-09 정리에서 v1 시절 9개 feature/chore 브랜치는 삭제되고 각 tip은 `archive/v1/<원래브랜치명>` annotated 태그로 보존됐습니다. 되살리려면 `git switch -c <원래브랜치명> archive/v1/<원래브랜치명>` — 예: `git switch -c feature/sprint-4-5-scene-integration-qa archive/v1/feature/sprint-4-5-scene-integration-qa`. 아카이브 태그는 push 금지 목록이 아니지만, S7 외에는 새 태그를 만들지 않습니다.
 
 ### 5-4. S3 교훈 (반드시 지킬 것)
 

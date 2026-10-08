@@ -29,6 +29,29 @@ this document, not a Render deploy.
   `git push --dry-run` intentionally skips `pre-push` per git design, so direct stdin is
   the only self-contained way to confirm installation.
 
+## v1 branch cleanup (archive tags, 2026-10-09)
+
+The nine pre-v2 feature/chore branches (chore/sprint-0-project-foundation + the eight
+feature/sprint-* branches that pre-dated the v2 workflow) were removed from `origin` on
+2026-10-09 after user approval. Each branch tip was preserved as an annotated tag under
+`refs/tags/archive/v1/<original-branch-name>` so no history is lost.
+
+- **Recover a branch**: `git fetch --tags && git switch -c <original-name> archive/v1/<original-name>`
+  — the tag resolves to the exact tip the branch had at deletion.
+- **List archive tags**: `git ls-remote origin 'refs/tags/archive/v1/*'`.
+- **Pre-push hook exception**: `V2_BRANCH_CLEANUP=1 git push origin --delete <branch>`
+  allows deletion of `refs/heads/(chore|feature)/sprint-*` ONLY. `main`, `v2`, and every
+  tag are still blocked. Keep the exception off during normal work:
+  ```
+  V2_BRANCH_CLEANUP=1 git push origin --delete feature/sprint-4-5-scene-integration-qa
+  ```
+  Verify the exception is one-off with:
+  ```
+  echo "x 00..0 refs/heads/v2 18d9fe4" | V2_BRANCH_CLEANUP=1 .git/hooks/pre-push origin x
+  # expected: refusing remote-ref deletion of refs/heads/v2; exit 1
+  ```
+  (v2 does not match sprint-* so the exception does not cover it.)
+
 ## Two build targets
 
 The same codebase produces two dist outputs depending on which URL path serves them.

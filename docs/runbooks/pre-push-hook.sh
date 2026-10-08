@@ -5,12 +5,28 @@
 ZERO_SHA="0000000000000000000000000000000000000000"
 remote="$1"
 
+# One-off v1-branch cleanup exception (see docs/runbooks/render-static-site.md "v1 branch
+# cleanup"). Enable with V2_BRANCH_CLEANUP=1 for the single git push --delete call. Only
+# refs under refs/heads/(chore|feature)/sprint-* are allowed through; main, v2, and tags
+# never match this exception.
+cleanup_mode="${V2_BRANCH_CLEANUP:-0}"
+is_sprint_branch_delete() {
+    case "$1" in
+        refs/heads/chore/sprint-*|refs/heads/feature/sprint-*) return 0 ;;
+    esac
+    return 1
+}
+
 while read -r local_ref local_sha remote_ref remote_sha; do
     if [ "$remote_ref" = "refs/heads/main" ]; then
         echo "pre-push: refusing push to $remote_ref (v2 workflow forbids direct main pushes)." >&2
         exit 1
     fi
     if [ "$local_sha" = "$ZERO_SHA" ]; then
+        if [ "$cleanup_mode" = "1" ] && is_sprint_branch_delete "$remote_ref"; then
+            echo "pre-push: V2_BRANCH_CLEANUP=1 → allowing deletion of $remote_ref." >&2
+            continue
+        fi
         echo "pre-push: refusing remote-ref deletion of $remote_ref." >&2
         exit 1
     fi
