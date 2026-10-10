@@ -28,6 +28,29 @@ export function computeCoverFit(
 }
 
 /**
+ * v2-S4-b 1-3. "Contain" fit: scales the photo so it is fully visible inside the target box,
+ * centered, with letterbox bars on whichever axis has leftover room. Reused by SpaceBackgroundView
+ * for the new Fit mode and by the e2e PNG pixel verification (which computes expected letterbox
+ * widths against this same function to avoid duplicating the formula).
+ */
+export function computeContainFit(
+  naturalWidth: number,
+  naturalHeight: number,
+  width: number,
+  height: number,
+): CoverFitRect {
+  const scale = Math.min(width / naturalWidth, height / naturalHeight);
+  const drawWidth = naturalWidth * scale;
+  const drawHeight = naturalHeight * scale;
+  return {
+    x: (width - drawWidth) / 2,
+    y: (height - drawHeight) / 2,
+    width: drawWidth,
+    height: drawHeight,
+  };
+}
+
+/**
  * Clamps a raw offsetY to the valid pan range for the cover-fitted photo, so the photo's edges
  * never leave the canvas box. The valid range is [-overflow/2, +overflow/2] centered at 0
  * (which matches the default centered cover-fit); a photo whose cover-fit already fits the

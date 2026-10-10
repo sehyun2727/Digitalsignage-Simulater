@@ -91,15 +91,22 @@ e2e 스펙 17줄이 아직도 옛 라벨을 찾습니다:
 
 **보수적 해석**: qa:visual 7 failed를 기준선의 알려진 회귀로 등록합니다. S2 이후에서 "コンテンツを追加" 라벨(또는 그 대체명)이 어떤 UI에 실제로 존재하는지 확인하고, e2e 헬퍼를 실제 라벨로 갱신해야 합니다. 이 실패는 코드 회귀가 아니라 **테스트 코드와 UI 라벨의 불일치**로 판단합니다(pre-v2 refactor 8cdbd77에서 라벨 변경).
 
-## 알려진 e2e 실패 (21건, v2-S3 완료 후 기준) — 새 판정 기준
+## 알려진 e2e 실패 (21건, v2-S4-a 통과 수 146 기준) — 판정 기준
 
-**v2-S3 완료 시점의 상태입니다. 이후 스프린트의 e2e 판정은 다음을 따릅니다.**
+**v2-S4-a 완료 시점의 상태입니다. 이후 스프린트의 e2e 판정은 다음을 따릅니다.**
 
 1. 실패한 테스트가 전부 아래 표 안에 있어야 합니다(새 실패 0건).
-2. 통과 수가 128 미만으로 줄면 안 됩니다.
+2. 통과 수가 **146 + 신규 테스트 수 미만**으로 줄면 안 됩니다. (v2-S4-b 추가 테스트 13건 포함, S4-b 완료 후 기대값 **159**.)
 3. 실패한 테스트는 1회 재실행합니다. 재실행에서 통과하면 flaky로 표시하고 실패로 세지 않습니다.
-4. 담당 스프린트가 끝나면 자기 debt를 해소합니다.
+4. 담당 스프린트가 끝나면 자기 debt를 해소합니다. **S4-a a-3(portable 17건)은 a-0 매핑 결정 대기로 S5에서 매핑 결정이 내려진 뒤 처리**합니다.
 5. **S7 push 전에는 알려진 실패가 0건이어야 합니다.** 사용자가 승인한 예외만 남길 수 있습니다.
+
+### v2-S4-b 상태 (2026-10-10)
+
+- 통과 수 158 (147 + 13 신규 S4-b)와 L5 1280x720 flaky(단독 재실행 통과) 합산 → 효과적 **159 pass / 21 fail / 180 total**.
+- 알려진 실패 21건은 전부 아래 표와 테스트 이름 단위 일치, 새 실패 0건.
+- 「portable 14 + mobile 2 + reselection 1 = 17」(a-3 담당 B1/B2) + 「mobile F-occlusion 1 + occlusion-mask 3 = 4」(S5 담당 F-occlusion) = 합계 21.
+- 신규 S4-b 테스트 13건: `e2e/v2-s4b.spec.ts` (1-1 4종 × Ctrl+C/V + 3-paste + input guard + 複製 + 1-2 ratio-lock + D-14 + 1-3 Fit letterbox + Cover coord preservation + wheel-pan guard + Undo = 13).
 
 **v2-S2에서 해소된 debt (15건, 참조용)**: editor.spec.ts 7(C 1 + A4-text 6), image-upload.spec.ts 2(A1), reselection.spec.ts 3(LED A4-text + text A1 + image B1 보너스), smoke.spec.ts 1(A4-text), perspective-video.spec.ts 2(hit-testing A3 + edit/cancel A4-delete — "quad = 선택 영역" 결정 아래 테스트 재작성으로 처리).
 

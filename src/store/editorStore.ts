@@ -77,11 +77,24 @@ export interface ApplyOcclusionEditResult {
   reason?: OcclusionInvalidReason;
 }
 
+/**
+ * v2-S4-b 1-1 clipboard entry. In-memory only (resets on page reload), per-tab (not shared with
+ * the OS clipboard — browser security would require async user-gesture-scoped Clipboard API calls
+ * for that, and the spec explicitly says "앱 내부 클립보드"). `pasteCount` tracks how many times
+ * this specific capture has been pasted so the next paste's (+20n, +20n) offset actually staggers.
+ */
+export interface EditorClipboardEntry {
+  object: SignageObject;
+  pasteCount: number;
+}
+
 export interface EditorState {
   document: EditorDocument;
   selectedId: ElementId | null;
   past: EditorDocument[];
   future: EditorDocument[];
+  /** v2-S4-b 1-1: in-memory clipboard holding the last-copied signage object. */
+  clipboard: EditorClipboardEntry | null;
   /** Id of the display/portable object currently in "Fit to space" perspective edit mode, if any. */
   perspectiveEditId: ElementId | null;
   /** Live in-progress quad while perspective edit mode is open; not yet committed to the document. */
@@ -127,6 +140,13 @@ export interface EditorState {
    *  the canvas height clamps to 0 automatically. Non-history mutation (viewport-like), so
    *  panning doesn't fill the undo stack one wheel-tick at a time. */
   setSpaceBackgroundOffsetY: (offsetY: number) => void;
+  /**
+   * v2-S4-b 1-3. Toggles between Fit (contain) and Cover for the space photo. Switching to Fit
+   * also zeroes the stored `offsetY` so a later switch back to Cover starts centered (the spec
+   * explicitly forbids restoring the previous offset on return). Committed as a single history
+   * entry so Undo reverts the mode (and offsetY) in one step.
+   */
+  setSpaceBackgroundFit: (fit: 'contain' | 'cover') => void;
   /** Switches the fixed document/export frame to a different preset, re-mapping every existing
    *  object's geometry (preserving normalized center/size) in the same history entry. */
   setCanvasPreset: (preset: CanvasPresetId) => void;
@@ -148,6 +168,27 @@ export interface EditorState {
    */
   sampleEnvironmentColor: (id: ElementId) => void;
   deleteSelected: () => void;
+  /**
+   * v2-S4-b 1-1. Deep-copies the currently selected signage object into the in-memory
+   * clipboard, resetting `pasteCount` to 0. No-op if there is no selection. The clipboard
+   * entry is held by *reference* to a cloned object, so later edits to the original don't
+   * leak into the clipboard — and a future paste gets a fresh clone again.
+   */
+  copySelected: () => void;
+  /**
+   * v2-S4-b 1-1. Clones the clipboard object, assigns a fresh id (and fresh ids for every
+   * occlusion mask inside), shifts it by (+20n, +20n) document pixels where n = pasteCount+1,
+   * clamps the whole thing inside the document, and inserts it as a new object. Perspective
+   * quads are translated by the same amount in normalized coordinates. Selects the new object
+   * and records a single history entry. No-op if the clipboard is empty.
+   */
+  pasteFromClipboard: () => void;
+  /**
+   * v2-S4-b 1-1 「複製」. Copy-then-paste in a single history entry, so a keyboard-less user
+   * (toolbar button) gets the same net effect as Ctrl+C followed by Ctrl+V without having to
+   * think about the clipboard. Overwrites the clipboard — matches the spec's "복사+붙여넣기 1회".
+   */
+  duplicateSelected: () => void;
   undo: () => void;
   redo: () => void;
   /**
@@ -272,11 +313,136 @@ function collectAssetSourceIds(document: EditorDocument, into: Set<string>): voi
   }
 }
 
+/**
+ * v2-S4-b 1-1. Deep-copies a signage object so later mutations of the original (or the clone)
+ * do not reach the other. Inner records that the SignageObject union holds — `content`,
+ * `materialSettings`, `curvature`, `contactShadow`, `environmentIntegration`, `perspectiveQuad`
+ * (whose corners are NormalizedPoints), `occlusionMasks` (each with its own `points` array) —
+ * are all cloned explicitly. Nothing in the object is a decoded Blob/Image/function; everything
+ * is plain JSON-shaped data, so this covers the whole shape.
+ *
+ * Content asset *sourceId* strings stay shared on purpose: the asset registry's reference-counted
+ * `collectAssetSourceIds` sweep (subscribed below) sees them as reachable and keeps the decoded
+ * image alive for both the original and the clone, which matches the spec's "콘텐츠 이미지는
+ * 참조를 공유해도 됩니다".
+ */
+function cloneSignageObject(source: SignageObject): SignageObject {
+  const base = {
+    id: source.id,
+    x: source.x,
+    y: source.y,
+    width: source.width,
+    height: source.height,
+    rotation: source.rotation,
+  };
+  if (source.kind === 'text') {
+    return {
+      ...base,
+      kind: 'text',
+      text: source.text,
+      fontSize: source.fontSize,
+      color: source.color,
+      align: source.align,
+    };
+  }
+  if (source.kind === 'image') {
+    return {
+      ...base,
+      kind: 'image',
+      sourceId: source.sourceId,
+      naturalWidth: source.naturalWidth,
+      naturalHeight: source.naturalHeight,
+    };
+  }
+  const commonDisplayFields = {
+    content: source.content ? { ...source.content } : null,
+    material: source.material,
+    materialSettings: { ...source.materialSettings },
+    curvature: { ...source.curvature },
+    placementMode: source.placementMode,
+    perspectiveQuad: source.perspectiveQuad
+      ? {
+          topLeft: { ...source.perspectiveQuad.topLeft },
+          topRight: { ...source.perspectiveQuad.topRight },
+          bottomRight: { ...source.perspectiveQuad.bottomRight },
+          bottomLeft: { ...source.perspectiveQuad.bottomLeft },
+        }
+      : null,
+    contactShadow: { ...source.contactShadow },
+    environmentIntegration: { ...source.environmentIntegration },
+    installationMode: source.installationMode,
+    occlusionMasks: source.occlusionMasks.map((mask) => ({
+      ...mask,
+      points: mask.points.map((point) => ({ ...point })),
+    })),
+  };
+  if (source.kind === 'display') {
+    return { ...base, kind: 'display', frameId: source.frameId, ...commonDisplayFields };
+  }
+  return {
+    ...base,
+    kind: 'portable',
+    templateView: source.templateView,
+    productPhotoSourceId: source.productPhotoSourceId,
+    screenQuad: source.screenQuad
+      ? {
+          topLeft: { ...source.screenQuad.topLeft },
+          topRight: { ...source.screenQuad.topRight },
+          bottomRight: { ...source.screenQuad.bottomRight },
+          bottomLeft: { ...source.screenQuad.bottomLeft },
+        }
+      : null,
+    ...commonDisplayFields,
+  };
+}
+
+/** v2-S4-b 1-1. Reassigns the id (and every nested occlusion-mask id) so the pasted object is
+ *  independent from the original even for id-keyed UI operations (select, delete, Transformer). */
+function reidentify(source: SignageObject): SignageObject {
+  const clone = cloneSignageObject(source);
+  clone.id = createId();
+  if (clone.kind === 'display' || clone.kind === 'portable') {
+    clone.occlusionMasks = clone.occlusionMasks.map((mask) => ({ ...mask, id: createId() }));
+  }
+  return clone;
+}
+
+/** v2-S4-b 1-1 paste geometry. Translate the rect bounding box AND any perspective quad corners
+ *  by the same (deltaDocX, deltaDocY) shift, then clamp the whole thing so the rect's top-left
+ *  stays inside the document — oversized objects (bigger than the document) just stick at 0.
+ *  Perspective quad corners are clamped to [0,1] per-axis after the normalized translation. */
+function shiftAndClamp(
+  object: SignageObject,
+  deltaDocX: number,
+  deltaDocY: number,
+  docSize: { width: number; height: number },
+): SignageObject {
+  const maxX = Math.max(0, docSize.width - object.width);
+  const maxY = Math.max(0, docSize.height - object.height);
+  const nextX = Math.min(maxX, Math.max(0, object.x + deltaDocX));
+  const nextY = Math.min(maxY, Math.max(0, object.y + deltaDocY));
+  const next = { ...object, x: nextX, y: nextY };
+  if (supportsPerspective(next) && next.perspectiveQuad) {
+    const dxNorm = deltaDocX / docSize.width;
+    const dyNorm = deltaDocY / docSize.height;
+    const shift = (point: NormalizedPoint): NormalizedPoint =>
+      clampQuadPoint01({ x: point.x + dxNorm, y: point.y + dyNorm });
+    next.perspectiveQuad = {
+      topLeft: shift(next.perspectiveQuad.topLeft),
+      topRight: shift(next.perspectiveQuad.topRight),
+      bottomRight: shift(next.perspectiveQuad.bottomRight),
+      bottomLeft: shift(next.perspectiveQuad.bottomLeft),
+    };
+  }
+  return next;
+}
+
 export const useEditorStore = create<EditorState>((set, get) => ({
   document: createEmptyDocument(),
   selectedId: null,
   past: [],
   future: [],
+  clipboard: null,
   perspectiveEditId: null,
   perspectiveDraftQuad: null,
   perspectiveEditOriginalQuad: null,
@@ -421,6 +587,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       width,
       height,
       rotation: 0,
+      // v2-S4-b 1-2 / C19. Portable products ship with aspect lock ON — their on-screen
+      // silhouette only looks right at the template photo's own aspect ratio, so a free resize
+      // would stretch the device photo. The Transformer also forces keepRatio for portables
+      // (EditorCanvas), but setting the field explicitly means the width/height input commit
+      // path keeps the pair coordinated too, and the 🔗 toggle reads "pressed" on the first
+      // view of a newly added portable.
+      aspectLocked: true,
       templateView: DEFAULT_PORTABLE_TEMPLATE_VIEW,
       content: null,
       material: 'lcd',
@@ -458,6 +631,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Reset the pan on every new/replaced photo: the previous offsetY was computed against a
       // different photo's overflow range and would clamp to a stale-looking position otherwise.
       offsetY: 0,
+      // v2-S4-b 1-3 default: new uploads land in Fit (ADR 0012 D-11). Older photos already in
+      // the document that predate this field keep their legacy cover rendering (view treats
+      // `undefined` as cover) until the user explicitly toggles the mode.
+      fit: 'contain',
     };
     set({
       document: { ...document, spaceBackground },
@@ -482,6 +659,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { document } = get();
     const { spaceBackground } = document;
     if (!spaceBackground) return;
+    // v2-S4-b 1-3: Fit mode has no pan range; ignore any wheel/scroll that reaches this action.
+    const fitMode = spaceBackground.fit ?? 'cover';
+    if (fitMode === 'contain') return;
     const asset = getRegisteredAsset(spaceBackground.sourceId);
     if (!asset) return;
     const canvas = getDocumentSize(document);
@@ -498,6 +678,26 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         ...document,
         spaceBackground: { ...spaceBackground, offsetY: clamped },
       },
+    });
+  },
+
+  setSpaceBackgroundFit: (fit) => {
+    const { document, past } = get();
+    const { spaceBackground } = document;
+    if (!spaceBackground) return;
+    const currentFit = spaceBackground.fit ?? 'cover';
+    if (currentFit === fit) return;
+    // Switching to Fit also resets offsetY (nothing to pan). Switching to Cover from Fit lands
+    // centered — the spec explicitly forbids restoring any prior offset.
+    const nextSpaceBackground: SpaceBackground = {
+      ...spaceBackground,
+      fit,
+      offsetY: 0,
+    };
+    set({
+      document: { ...document, spaceBackground: nextSpaceBackground },
+      past: pushHistory(past, document),
+      future: [],
     });
   },
 
@@ -661,6 +861,49 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       screenQuadEditId: clearScreenQuad ? null : screenQuadEditId,
       screenQuadDraftQuad: clearScreenQuad ? null : get().screenQuadDraftQuad,
       screenQuadEditOriginalQuad: clearScreenQuad ? null : get().screenQuadEditOriginalQuad,
+    });
+  },
+
+  copySelected: () => {
+    const { document, selectedId } = get();
+    if (!selectedId) return;
+    const target = document.objects.find((object) => object.id === selectedId);
+    if (!target) return;
+    set({ clipboard: { object: cloneSignageObject(target), pasteCount: 0 } });
+  },
+
+  pasteFromClipboard: () => {
+    const { document, clipboard, past } = get();
+    if (!clipboard) return;
+    const docSize = getDocumentSize(document);
+    const nextPasteCount = clipboard.pasteCount + 1;
+    const delta = 20 * nextPasteCount;
+    const prepared = shiftAndClamp(reidentify(clipboard.object), delta, delta, docSize);
+    set({
+      document: { ...document, objects: [...document.objects, prepared] },
+      selectedId: prepared.id,
+      past: pushHistory(past, document),
+      future: [],
+      clipboard: { ...clipboard, pasteCount: nextPasteCount },
+    });
+  },
+
+  duplicateSelected: () => {
+    const { document, selectedId, past } = get();
+    if (!selectedId) return;
+    const target = document.objects.find((object) => object.id === selectedId);
+    if (!target) return;
+    const docSize = getDocumentSize(document);
+    const captured = cloneSignageObject(target);
+    const nextPasteCount = 1;
+    const delta = 20 * nextPasteCount;
+    const prepared = shiftAndClamp(reidentify(captured), delta, delta, docSize);
+    set({
+      document: { ...document, objects: [...document.objects, prepared] },
+      selectedId: prepared.id,
+      past: pushHistory(past, document),
+      future: [],
+      clipboard: { object: captured, pasteCount: nextPasteCount },
     });
   },
 

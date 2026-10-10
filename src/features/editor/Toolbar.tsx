@@ -237,6 +237,7 @@ function SpaceSection() {
   const setSpaceBackground = useEditorStore((state) => state.setSpaceBackground);
   const removeSpaceBackground = useEditorStore((state) => state.removeSpaceBackground);
   const setCanvasPreset = useEditorStore((state) => state.setCanvasPreset);
+  const setSpaceBackgroundFit = useEditorStore((state) => state.setSpaceBackgroundFit);
   const spaceBackgroundInputRef = useRef<HTMLInputElement | null>(null);
   const spaceError = useUiStore((state) => state.errors['space-photo']);
   const beginUploadRequest = useUiStore((state) => state.beginUploadRequest);
@@ -312,6 +313,42 @@ function SpaceSection() {
           {spaceBackground.downscaled && (
             <p className="toolbar-notice">{messages.editorSpaceBackgroundDownscaledNotice}</p>
           )}
+          {/* v2-S4-b 1-3 / ADR 0012 D-11. Fit (contain) vs Cover segment. aria-pressed is
+              bound to the stored fit mode so screen readers announce the active option; the
+              existing legacy pre-S4b cover-only photos are rendered as `fit=cover` by default. */}
+          <div
+            className="canvas-preset-group"
+            role="group"
+            aria-label={messages.editorSpaceBackgroundFitLabel}
+            data-testid="editor-space-background-fit-group"
+          >
+            <span>{messages.editorSpaceBackgroundFitLabel}</span>
+            <div className="toolbar-actions">
+              <button
+                type="button"
+                data-testid="editor-space-background-fit-contain"
+                className={(spaceBackground.fit ?? 'cover') === 'contain' ? 'is-active' : undefined}
+                aria-pressed={(spaceBackground.fit ?? 'cover') === 'contain'}
+                onClick={() => setSpaceBackgroundFit('contain')}
+              >
+                {messages.editorSpaceBackgroundFitContainOption}
+              </button>
+              <button
+                type="button"
+                data-testid="editor-space-background-fit-cover"
+                className={(spaceBackground.fit ?? 'cover') === 'cover' ? 'is-active' : undefined}
+                aria-pressed={(spaceBackground.fit ?? 'cover') === 'cover'}
+                onClick={() => setSpaceBackgroundFit('cover')}
+              >
+                {messages.editorSpaceBackgroundFitCoverOption}
+              </button>
+            </div>
+            {(spaceBackground.fit ?? 'cover') === 'cover' && (
+              <p className="toolbar-notice" data-testid="editor-space-background-cover-hint">
+                {messages.editorSpaceBackgroundCoverHint}
+              </p>
+            )}
+          </div>
         </>
       )}
       <p className="toolbar-notice">{messages.editorSpaceBackgroundPrivacyNotice}</p>
@@ -525,6 +562,28 @@ function PositionSizeSubsection({
     (selected.kind === 'display' || selected.kind === 'portable') &&
     selected.placementMode === 'perspective' &&
     selected.perspectiveQuad !== null;
+  // v2-S4-b 1-2. The 🔗 toggle is disabled whenever the size inputs it coordinates are
+  // disabled (perspective D-14 lock), since there would be nothing for the lock to coordinate.
+  // Portables sized via screenQuad still use rect fields for their outer bbox, so the toggle
+  // stays available for them in rect mode (ADR 0012 D-14 only locks perspective).
+  const aspectLocked = selected.aspectLocked === true;
+  const aspectRatio =
+    selected.width > 0 && selected.height > 0 ? selected.width / selected.height : 1;
+  const commitWithLockedPair = (changedField: 'width' | 'height', nextValue: number) => {
+    // Keep the un-touched dimension in sync with the typed one when the lock is on, so a
+    // user editing just width still produces a resize that preserves the ratio. Tolerance
+    // of 0.5 doc px is well below any visible snap and matches the H3 gate ceiling.
+    const safe = Math.max(10, nextValue);
+    if (!aspectLocked) {
+      commit(changedField === 'width' ? { width: safe } : { height: safe });
+      return;
+    }
+    if (changedField === 'width') {
+      commit({ width: safe, height: safe / aspectRatio });
+    } else {
+      commit({ width: safe * aspectRatio, height: safe });
+    }
+  };
   return (
     <section className="toolbar-subsection" data-testid="toolbar-subsection-position-size">
       <h3 className="toolbar-subsection-heading">
@@ -571,7 +630,7 @@ function PositionSizeSubsection({
             disabled={perspectiveLocked}
             aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
             onChange={(event) => setDraft({ ...draft, width: Number(event.target.value) })}
-            onBlur={() => commit({ width: Math.max(10, draft.width) })}
+            onBlur={() => commitWithLockedPair('width', draft.width)}
           />
         </label>
         <label>
@@ -583,9 +642,25 @@ function PositionSizeSubsection({
             disabled={perspectiveLocked}
             aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
             onChange={(event) => setDraft({ ...draft, height: Number(event.target.value) })}
-            onBlur={() => commit({ height: Math.max(10, draft.height) })}
+            onBlur={() => commitWithLockedPair('height', draft.height)}
           />
         </label>
+        {/* v2-S4-b 1-2 / 3-1. 🔗 aspect-ratio lock. aria-pressed is store-rooted (bound to the
+            object's own aspectLocked field) so the toggle survives selection changes. Disabled
+            when perspective D-14 locks the whole size pair; the existing shared hint explains
+            why. */}
+        <button
+          type="button"
+          data-testid="toolbar-aspect-lock-toggle"
+          className="toolbar-row-button"
+          aria-pressed={aspectLocked}
+          disabled={perspectiveLocked}
+          aria-describedby={perspectiveLocked ? 'perspective-size-locked-hint' : undefined}
+          onClick={() => commit({ aspectLocked: !aspectLocked })}
+        >
+          <span aria-hidden="true">🔗</span>
+          <span>{messages.editorAspectLockToggleLabel}</span>
+        </button>
         {perspectiveLocked && (
           <p id="perspective-size-locked-hint" className="toolbar-notice">
             {messages.perspectiveSizeLockedHint}
@@ -609,6 +684,7 @@ function SelectedSignageFields({ object: selected }: { object: SignageObject }) 
   const { messages } = useLocale();
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const updateObjectTransient = useEditorStore((state) => state.updateObjectTransient);
+  const duplicateSelected = useEditorStore((state) => state.duplicateSelected);
   const [draft, setDraft] = useState<Draft>(() => toDraft(selected));
 
   // Reflect store-side changes (canvas drag/rotate/resize, undo, redo) back into the numeric
@@ -636,6 +712,18 @@ function SelectedSignageFields({ object: selected }: { object: SignageObject }) 
         {messages.toolbarSelectedSignageTypeLabel}:{' '}
         <span>{signageTypeLabel(selected, messages)}</span>
       </p>
+
+      {/* v2-S4-b 1-1: keyboard-less entry point for Ctrl+C → Ctrl+V. The handler is
+          `duplicateSelected`, not `copySelected`, because the spec says this button must
+          perform "복사+붙여넣기 1회" as a single net action. */}
+      <button
+        type="button"
+        className="toolbar-row-button"
+        data-testid="editor-duplicate-object"
+        onClick={() => duplicateSelected()}
+      >
+        {messages.editorDuplicateObjectButton}
+      </button>
 
       <PositionSizeSubsection
         selected={selected}

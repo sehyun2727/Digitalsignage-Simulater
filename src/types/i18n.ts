@@ -282,6 +282,16 @@ export interface Messages {
   toolbarAppearanceEmptyHint: string;
   toolbarAppearanceUnsupportedHint: string;
   toolbarSelectedSignageTypeLabel: string;
+  /** v2-S4-b 1-1: visible label for the toolbar's 「複製」 button (copy + paste in one click). */
+  editorDuplicateObjectButton: string;
+  /** v2-S4-b 1-2: visible label next to the 🔗 ratio-lock toggle in position-size subsection. */
+  editorAspectLockToggleLabel: string;
+  /** v2-S4-b 1-3: visible labels for the Space section's Fit/Cover segment control. */
+  editorSpaceBackgroundFitLabel: string;
+  editorSpaceBackgroundFitContainOption: string;
+  editorSpaceBackgroundFitCoverOption: string;
+  /** v2-S4-b 1-3: Cover 모드에서 사진의 일부가 잘릴 수 있음을 안내 (ADR 0012 D-11). */
+  editorSpaceBackgroundCoverHint: string;
   toolbarExportDisabledReason: string;
   signageTypeText: string;
   signageTypeImage: string;

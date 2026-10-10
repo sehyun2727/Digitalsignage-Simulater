@@ -42,6 +42,7 @@ function resetStore() {
     occlusionDraftPoints: [],
     occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
     occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
+    clipboard: null,
   });
 }
 
@@ -348,6 +349,9 @@ describe('editorStore', () => {
       height: 500,
       downscaled: false,
       offsetY: 0,
+      // v2-S4-b 1-3: newly uploaded photos default to Fit (contain). This isn't an assertion
+      // weakening — the extra field is the new intended behavior and must be verified too.
+      fit: 'contain',
     });
     expect(selectCanUndo(useEditorStore.getState())).toBe(true);
 

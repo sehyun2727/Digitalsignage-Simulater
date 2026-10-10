@@ -7,6 +7,15 @@ export interface BaseSignageObject {
   width: number;
   height: number;
   rotation: number;
+  /**
+   * v2-S4-b 1-2 / 3-1. When true, width/height inputs and Transformer corner drags keep the
+   * current width/height ratio locked. Optional so existing history snapshots created before
+   * this field existed keep parsing (treated as false). Default for new objects is false; the
+   * 🔗 toggle in the position-size subsection flips it per object (committed as a history entry).
+   * Perspective mode (D-14) locks size editing entirely, so the toggle is disabled there and the
+   * stored value is irrelevant until the object returns to rect mode.
+   */
+  aspectLocked?: boolean;
 }
 
 export interface TextSignageObject extends BaseSignageObject {
@@ -420,6 +429,15 @@ export interface SpaceBackground {
    *  range and stays at 0. Applied both by the background renderer and by any occlusion mask
    *  that re-samples the same photo, so masks stay pixel-aligned with the visible background. */
   offsetY: number;
+  /**
+   * v2-S4-b 1-3 / ADR 0012 D-11. How the photo is scaled into the fixed document frame.
+   * - `contain` (default for freshly uploaded photos): the whole photo fits inside the frame,
+   *   letterboxed if the aspect ratios differ. offsetY is ignored and wheel panning is disabled.
+   * - `cover`: the photo fills the whole frame, cropping overflow. offsetY pans vertically.
+   * Toggling the mode never moves a signage object — it only changes how the photo is drawn.
+   * Optional on legacy snapshots; absence is treated as `cover` to preserve pre-S4-b behavior.
+   */
+  fit?: 'contain' | 'cover';
 }
 
 /**

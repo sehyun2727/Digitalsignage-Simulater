@@ -27,6 +27,8 @@ export function EditorLayout() {
   const deleteSelected = useEditorStore((state) => state.deleteSelected);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
+  const copySelected = useEditorStore((state) => state.copySelected);
+  const pasteFromClipboard = useEditorStore((state) => state.pasteFromClipboard);
   const resetDocument = useEditorStore((state) => state.resetDocument);
   const canUndo = useEditorStore(selectCanUndo);
   const canRedo = useEditorStore(selectCanRedo);
@@ -85,12 +87,22 @@ export function EditorLayout() {
       } else if (event.key.toLowerCase() === 'y') {
         event.preventDefault();
         redo();
+      } else if (event.key.toLowerCase() === 'c') {
+        // v2-S4-b 1-1. preventDefault() is deliberately omitted: Ctrl+C typically copies the
+        // page's text selection, which does nothing here (nothing selectable sits over the
+        // canvas), and keeping it ensures the browser's native copy still works if the user
+        // has text highlighted outside the canvas. The isEditableTarget guard above already
+        // prevents us from clobbering an input/textarea Ctrl+C.
+        copySelected();
+      } else if (event.key.toLowerCase() === 'v') {
+        event.preventDefault();
+        pasteFromClipboard();
       }
     }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [deleteSelected, undo, redo, salesReviewMode]);
+  }, [deleteSelected, undo, redo, copySelected, pasteFromClipboard, salesReviewMode]);
 
   const handleExport = useCallback(() => {
     // EditorCanvas.exportToDataUrl() always captures the composed result, never the

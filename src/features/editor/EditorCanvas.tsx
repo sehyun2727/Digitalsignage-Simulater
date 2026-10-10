@@ -276,11 +276,14 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     // A portable object's screen region is authored against its photo's own aspect ratio, so
     // any free (non-uniform) resize would distort the photo and desync the region from what
     // the user marked. Restrict resizing to corner handles with keepRatio so every resize
-    // scales width/height together; other object kinds keep full free-resize behavior.
+    // scales width/height together; other object kinds keep full free-resize behavior unless
+    // v2-S4-b 1-2 「縦横比を固定」 is on, which also forces corner-only + keepRatio.
     const isPortable = selectedObject?.kind === 'portable';
-    transformer.keepRatio(isPortable);
+    const userAspectLocked = selectedObject?.aspectLocked === true;
+    const keepRatio = isPortable || userAspectLocked;
+    transformer.keepRatio(keepRatio);
     transformer.enabledAnchors(
-      isPortable
+      keepRatio
         ? ['top-left', 'top-right', 'bottom-left', 'bottom-right']
         : [
             'top-left',
@@ -358,6 +361,9 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   const spaceBackgroundOffsetY = document.spaceBackground?.offsetY ?? 0;
   const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     if (!document.spaceBackground || comparisonMode || fitScale <= 0) return;
+    // v2-S4-b 1-3: Fit mode disables wheel panning (nothing to pan — the photo is fully visible).
+    // Returning before the store call avoids both the no-op write and consuming the wheel event.
+    if ((document.spaceBackground.fit ?? 'cover') === 'contain') return;
     // A positive deltaY (wheel scrolled toward user) reveals lower parts of the photo, which
     // means shifting the photo UP in canvas coords — so the offset decreases.
     const delta = event.deltaY / fitScale;
