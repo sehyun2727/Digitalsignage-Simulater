@@ -1,115 +1,113 @@
-# v2-S4 Step 0 → S4-a handoff (session change, 2026-10-09)
+# v2-S4 Step 0 + S4-a a-pre → S4-a a-0 handoff (2026-10-10)
 
-본 문서는 **S4 Step 0은 완료, S4-a는 미착수** 상태에서 세션이 끝나 다음 세션에 넘기는
-상태 요약이다. CLAUDE.md §5-4 "S3 교훈" 2번(세션이 부족하면 끝낸 단계까지 커밋 → handoff
-작성 → push)에 따라 작성됐다.
+본 문서는 **S4 Step 0 + S4-a a-pre는 완료, S4-a a-0 매핑 결정 대기** 상태에서 다음 세션에
+넘기는 상태 요약이다. CLAUDE.md §5-4 "S3 교훈" 2번(세션이 부족하거나 결정이 필요하면
+끝낸 단계까지 커밋 → handoff 작성 → push)에 따라 작성됐다.
+
+## 멈춤 지점 — a-0 매핑 모호
+
+프롬프트의 멈춤 조건 (4) "a-0의 에셋 매핑이 애매한 경우"에 걸려 멈춤.
+
+- `src/assets/portable/` 안에 angled-left로 가능한 소스가 **두 개 존재**: `angled.png`
+  (1024×1536 PNG, 투명 0 px, flood-fill 필요) 와 `docodemo.webp` (1300×1900 WebP,
+  네이티브 alpha). `front.png` (1024×1536 PNG, 투명 0 px) 는 front-only 라 모호성 없음.
+- `src/features/editor/PortableTemplateBody.tsx:51`은 production 렌더링에서
+  `isAngled ? docodemoUrl : frontUrl` — 즉 **docodemo.webp 사용**. angled-right 는 같은
+  docodemo 를 `scaleX={-1}`로 좌우 미러.
+- `src/lib/portableTemplate.ts:48-55`의 `PORTABLE_PRESET_SCREEN_QUADS['angled-left']`
+  주석은 "docodemo WebP (1300×1900)" 에서 측정했다고 명시. 현재 값은 docodemo 쪽을
+  반영한 것으로 추정.
+- 그러나 `scripts/measure-portable-screen-quad.mjs:40`은 측정 대상으로 `angled.png`
+  (docodemo 아님) 를 사용. 실행해 보면 angled.png 에서 완전히 다른 quad 가 나옴
+  (아래 a-0 보고서 표 참조). a-1 "오차 2 px 교정" 판정이 이 상태에서는 의미 없음.
+
+### 세 가지 옵션 (사용자 결정 대기)
+
+| 옵션 | 설명 | 작업 범위 | 영향 |
+| --- | --- | --- | --- |
+| **A (권장)** | measure 스크립트 소스를 `angled.png` → `docodemo.webp`로 교체 (sharp 또는 pngjs 변환 경유), angled.png는 레거시 자산으로 제거 | 스크립트 수정 + 자산 1개 삭제 + 측정 재실행 | production·측정·주석이 모두 docodemo.webp 로 통일. 가장 깨끗함. |
+| **B** | production 소스를 `docodemo.webp` → `angled.png`로 교체. docodemo.webp 제거. 측정 스크립트는 유지. | PortableTemplateBody.tsx, portableTemplate.ts 주석, 자산 하나 삭제, quad 상수 재측정. | 네이티브 alpha 를 잃고 flood-fill 품질에 의존하게 됨. 바디 외곽선 품질 하락 가능. |
+| **C** | 두 자산 모두 유지, 측정 스크립트와 production 이 서로 다른 소스를 쓰는 현상 유지 | 변경 없음 | a-1 측정값과 production quad 사이에 영구적 drift. 비권장. |
+
+사용자가 A/B/C 하나를 지시한 뒤에만 a-1~a-5 를 진행할 수 있다.
 
 ## 지금까지 끝난 범위 (push 완료)
 
-v2 브랜치 HEAD = `5a16c4e feat(v2-S4): canvas-freeze guard, L1 Stage target, L5 1-decimal
-aria oracle, CI pin, export-disable spec`. origin/v2에 push 완료.
+v2 브랜치 HEAD = `9c21512 docs(v2-S4): handoff — Step 0 complete, S4-a next` + 이 세션의
+a-pre 커밋 (아래 "커밋 목록" 참조). origin/v2에 push 완료.
 
-### Step 0
+### Step 0 (이전 세션에서 완료, 커밋 `5a16c4e`)
 
-- **0-1**: `v2-S3-ok` annotated 태그를 `18d9fe4`에 생성·push. 커밋 `735a582`.
-- **0-2**: 9개 v1 feature/chore 브랜치 삭제. 각 tip은 `archive/v1/<원래브랜치명>` 태그로
-  보존. 모두 origin/main의 조상(ahead=0). 재구성 명령은
-  `git switch -c <원래브랜치명> archive/v1/<원래브랜치명>`. 열린 PR 상태는 `gh` 미설치로
-  미확인(사용자 사전 승인). pre-push 훅에 `V2_BRANCH_CLEANUP=1` 예외 추가(sprint-*
-  브랜치 삭제만 허용). 커밋 `735a582`.
-- **0-3**: 캔버스 동결 선언. CLAUDE.md §4bis 추가. `CANVAS-FREEZE:BEGIN/END` 마커 9개
-  존(`preset-sizes`, `fit-scale`, `coord-convert`, `measure-container-jsx`,
-  `root-overflow`, `workspace-grid`, `status-area`, `media-breakpoint-72`,
-  `media-breakpoint-48`). `scripts/check-canvas-freeze.mjs` + `npm run check:canvas` +
-  `e2e/canvas-freeze.spec.ts`(10 scenarios × ±0.5 CSS px). 측정값은
-  `docs/v2/canvas-freeze.json`에 저장. 커밋 `5a16c4e`.
-- **0-4**: L1/G/B/L2 측정 셀렉터를 `.editor-canvas-container`로 통일(Stage의 border-box
-  frame; `.konvajs-content`는 1 CSS px 유출로 측정에 부적합). 커밋 `5a16c4e`.
-- **0-5**: perspective 핸들 `aria-valuetext` → `toFixed(1)%` 전환. L5 gate는 store-oracle
-  (ariaErr ≤ 0.1% 플로어 1.92 doc-px x / 1.08 doc-px y) + bbox 보조 oracle(1/scaleP + 1
-  doc-px). 1920×1080 측정 ariaErr=(1.55, 0.08), 1280×720 측정 ariaErr=(1.04, 0.06).
-  bboxErr 모두 scale-aware budget 안쪽. 커밋 `5a16c4e`.
-- **0-6**: CI `runs-on: ubuntu-24.04` 고정, `actions/{checkout,setup-node,upload-artifact}`
-  v5 상승, push job에 `npm run check:canvas` 추가. 커밋 `5a16c4e`.
-- **0-7**: `e2e/v2-export-disable.spec.ts` 신규(2 tests). PNG 동기 export 중 4버튼 enabled
-  유지 + 비디오 export in-flight 중 4버튼 disabled → 완료 후 재-enable. 커밋 `5a16c4e`.
-- **0-8**: 전체 검사 통과(typecheck / lint / format:check / test:run / build /
-  build:oitemiru / check:canvas / test:e2e:core 146 pass / 21 fail / 0 flaky / 167 total,
-  새 실패 0건). push 완료.
+생략 (이전 handoff 참조).
 
-### 통과 수 식
+### S4-a a-pre (이번 세션에서 완료)
+
+- **a-pre.1 canvas-freeze.spec.ts 보강**
+  - 조건부 `if ((await portraitBtn.count()) > 0)` → `await expect(portraitBtn).toHaveCount(1)` 로 교체 (silent skip 금지).
+  - preset 전환 확인: `portraitBtn.getAttribute('aria-pressed')` 가 `'true'` 가 될 때까지 기다림 (store-rooted 판정).
+  - `page.waitForTimeout(100)` 제거 → `waitForStableBbox()` 로 교체: bbox 가 2 프레임 연속 ε<0.01 차이면 settled.
+- **a-pre.2 canvas-freeze.json 재측정** — 셀렉터 `.konvajs-content` → `.editor-canvas-container` 통일 (border-box frame; L1/G/B/L2 가 이미 쓰는 것과 동일). 10 scenarios 전부 (x,y) 가 **정확히 1.00 CSS px** 안쪽으로 이동했고 (w,h) 는 **0 변화**. 1 px 이내 허용폭 안.
+- **a-pre.3 check-canvas-freeze.mjs 확장** — SHA guard 외에 CSS selector guard 추가.
+  - 스캔: `src/**/*.css`.
+  - 매칭: `.(editor-workspace|editor-canvas-(column|wrapper|measure|container)|editor-status-area)` + 음성 lookahead `(?![\w-])` (BEM `--review` 와 `-area-hint` 는 매치 안 됨).
+  - 주석 안에 적힌 프로즈는 `stripCssComments()` 로 공백으로 치환 후 매칭 (예: "collapses `.editor-canvas-wrapper`" 는 플래그 안 됨).
+  - freeze zone 밖 매치는 allowlist 와 비교, 없으면 exit 1. allowlist: `canvas-freeze.json → cssSelectorGuard.allowlist` 6 entries (global.css:304,1223,1239,1245,1354,1363 — 모두 기존 코드).
+  - fixture 기반 unit test `tests/unit/checkCanvasFreeze.test.ts` 5 개 (freeze 안 패스 / 밖 위반 / 주석 무시 / BEM 무시 / allowlist 적용).
+- **a-pre.4 G 12 + L1 12 수치표** — 보고서 §2 참조.
+
+### 통과 수 식 (현재)
 
 - v2-S3-ok 기준: 155 total / 134 pass / 21 fail.
 - Step 0 추가 테스트: canvas-freeze.spec.ts(10) + v2-export-disable.spec.ts(2) = 12.
-- 현재: 155 + 12 = **167 total / 146 pass / 21 fail** ✓.
+- a-pre 추가 unit test: checkCanvasFreeze.test.ts(5).
+- e2e core 재측정: **167 total / 146 pass / 21 fail**, L5 1280x720 1회 재실행에서 pass → flaky. 새 e2e 실패 0건. (checkCanvasFreeze는 unit test 범위, test:run 에 반영됨.)
 
-### 알려진 실패 21건 (전부 pre-S3 debt — S4-a·S5가 해소 대상)
+### 알려진 실패 21건 (전부 pre-S3 debt — S4-a a-3·S5가 해소 대상)
 
-baseline.md의 "알려진 e2e 실패" 표 그대로:
+변경 없음 — baseline.md "알려진 e2e 실패" 표 그대로.
 
-- portable.spec.ts 14건 (B1/B2 — S4-a a-3이 해소)
-- mobile.spec.ts 3건 (`adds a custom portable product` B2, `dragging the portable screen
-region` B1, `draws a foreground occlusion mask via tap-to-add points` F-occlusion — S5)
-- occlusion-mask.spec.ts 3건 (F-occlusion — S5)
-- reselection.spec.ts 1건 (`a custom portable product is reselectable` B1 — S4-a a-3)
+## 남은 범위 (사용자 결정 후 다음 세션)
 
-## 남은 범위 (다음 세션 S4-a)
+### a-1. 포터블 preset 4점 정합 — **a-0 결정 선행**
 
-### a-1. 포터블 preset 4점 정합
+사용자가 옵션 A/B/C 를 지시한 뒤:
+- 측정 스크립트의 소스 결정 반영.
+- 각 점이 현재 상수 대비 ≤ 2 source px 안쪽인지 재측정 (피팅 잔차 RMS 포함).
+- 픽셀 검증 테스트: 마젠타 cover-fit × (기본, 이동, 크기 변경, 회전 15°) × 3 preset = 12 조건.
+- 디버그 오버레이 (`PortableQuadDebugOverlay`) 는 개발 플래그 뒤에 있는지 확인 (현재 CLAUDE.md §1 "일반 UI에서 PortableQuadDebugOverlay를 노출하지 마세요" 가 이미 걸려 있음).
 
-- `scripts/measure-portable-screen-quad.mjs`가 이미 존재. 다음 세션에서 돌려 결과를
-  보고서에 표로 정리:
-  - `front.png` (1024×1536) — 현재 PORTABLE_PRESET_SCREEN_QUADS.front 과 비교.
-  - `angled.png` 또는 `docodemo.webp` (어떤 자산이 "실제" angled-right로 쓰이는지는
-    `PortableTemplateBody.tsx`를 재확인; `portableTemplate.ts` 주석은 docodemo를
-    언급하지만 측정 스크립트는 angled.png를 사용 — **다음 세션에서 자산 매핑을 먼저
-    확정**).
-  - angled-right(+60°)는 angled-left의 수평 미러로 유지되는지 확인.
-- 각 점이 현재 상수 대비 ≤ 2 source px 안쪽인지 검사. 넘으면 값을 교정하고 그 커밋에
-  `[canvas-approved]` 를 붙여야 하는지 사용자에게 확인 — **PORTABLE_PRESET_SCREEN_QUADS는
-  현재 freeze 대상이 아님(마커로 감싸지 않았음)**. 따라서 `[canvas-approved]` 불필요하지만,
-  "포터블 compound model" 자체는 CLAUDE.md §3-4의 핵심 모델이므로 교정 전 사용자에게
-  보고하는 쪽을 권장.
-- 픽셀 검증 테스트(마젠타 cover-fit): 추가 조건·측정법은 프롬프트 a-1 그대로. 신규 e2e
-  spec으로 추가하면 됨.
+### a-2. 포터블 비율 (S1 debt)
 
-### a-2. 포터블 콘텐츠 비율(S1 debt)
-
-- 포터블의 콘텐츠 레터박스/커버 계산 경로가 일반 원근 사이니지와 다른 상태라고 프롬프트가
-  명시. 다음 세션에서 `WarpedScreenContent`·`ScreenComposition`·`perspectiveLogicalSize`
-  (lib/contentLayout.ts 추정)를 비교해 포터블이 공통 경로를 쓰도록 통일.
-- 16:9 콘텐츠를 Fit으로 넣었을 때 letterbox 비율 ±1% 테스트.
+`WarpedScreenContent`가 `perspectiveLogicalSize` 를 쓰도록 통일. 16:9 Fit 레터박스 ±1% × 3 preset.
 
 ### a-3. 기존 실패 17건 해소
 
-- 위 "알려진 실패 21건" 중 S4-a 담당(portable 14 + mobile 2 + reselection 1 = **17**)을
-  하나씩 열어 분류·고침.
-- 어서션은 유지, T(테스트 전제가 compound model 이전)만 재작성.
+portable 14 + mobile 2 + reselection 1 = 17 건. T(테스트 전제가 compound model 이전) / R(앱 회귀) 분류 후 수정. 삭제·skip·어서션 약화 금지.
 
 ### a-4. 문서
 
-- `docs/v2/requirements.md`: 포터블 debt(1-1·1-2·1-3·3-x 중 포터블 영역 상태 갱신, a-1
-  4점 표).
-- `docs/v2/baseline.md`: 알려진 실패 목록을 (S4-a 완료 후) F-occlusion 4건만 남도록 갱신.
+- `docs/v2/requirements.md`: 포터블 debt + 4점 표.
+- `docs/v2/baseline.md`: 알려진 실패 목록을 (a-3 완료 후) F-occlusion 4건만 남도록 갱신.
 - `docs/v2/sprint-plan.md`: S4-a 완료 상태로 갱신.
-- **s4-handoff.md는 삭제**.
+- **s4-handoff.md 는 삭제**.
 
 ### a-5. 전체 검사 → push
 
-- typecheck / lint / format:check / test:run / build / build:oitemiru / check:canvas /
-  test:e2e:core. 통과 수 계산식 = 146 + 해소된 debt(17) + a-1 신규 픽셀 검증 테스트 수.
-- 통과하면 `git push origin v2`. 태그는 만들지 않음.
+typecheck / lint / format:check / test:run / build / build:oitemiru / check:canvas /
+test:e2e:core. 통과 수 계산식 = 146 + 해소된 debt(17) + a-1 신규 픽셀 검증 테스트 수.
+통과하면 `git push origin v2`. 태그 (`v2-S4a-ok`) 는 사용자 승인 후 사용자가 지시할 때만 생성.
 
 ## 현재 상태 체크
 
-- 로컬 작업 트리 clean. v2 브랜치 up-to-date with origin/v2.
-- `main` 브랜치는 `origin/main`(4e9659d) 그대로. 로컬 커밋 없음.
-- 태그: v2-start, v2-S1-ok, v2-S2-ok, v2-S3-ok + archive/v1/<9개> 전부 원격 반영.
-- pre-push 훅 작동 중(main / NFF / 삭제 거부, `V2_BRANCH_CLEANUP=1` 예외만 sprint-* 삭제).
+- 로컬 작업 트리 clean (이 handoff + a-pre 커밋 push 완료 가정).
+- `main` 브랜치는 `origin/main` 그대로. 로컬 커밋 없음.
+- 태그: 변경 없음. (`v2-S4a-ok` 는 S4-a 완료 + 사용자 지시 후에만.)
+- pre-push 훅 작동 중.
 
-## 다음 세션에서 가장 먼저 확인할 것
+## 다음 세션에서 가장 먼저 할 것
 
-1. `git status -sb` → `## v2...origin/v2` 인지.
-2. `git rev-parse HEAD` → `5a16c4e` 또는 그 이후 push(이 handoff 커밋을 포함)인지.
-3. `npm run check:canvas` → 9 zones OK.
-4. `npm run test:e2e:core` 결과가 146 pass / 21 fail / 0 flaky 유지되는지.
+1. 사용자에게 a-0 옵션 A/B/C 결정 확인.
+2. `git status -sb` → `## v2...origin/v2` 인지.
+3. `npm run check:canvas` → 9 zones + CSS selector allowlist 통과.
+4. `npm run test:e2e:core` 결과가 146 pass / 21 fail 유지되는지.
+5. 결정에 따라 a-1 재개.

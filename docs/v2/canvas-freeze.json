@@ -1,4 +1,23 @@
 {
+  "cssSelectorGuard": {
+    "comment": "The freeze-selector guard scans src/**/*.css and flags any rule whose selector targets `.editor-workspace`, `.editor-canvas-(column|wrapper|measure|container)`, or `.editor-status-area` — classes whose layout contract is pinned by CLAUDE.md §4bis. Matches outside freeze zones (`CANVAS-FREEZE:BEGIN/END` markers) are errors unless listed below with the exact file+line where the pre-existing rule lives. New additions require [canvas-approved] + updating this allowlist (not silently extending it). Line numbers are 1-indexed and must point at the exact line containing the first character of the matched selector.",
+    "classes": [
+      "editor-workspace",
+      "editor-canvas-column",
+      "editor-canvas-wrapper",
+      "editor-canvas-measure",
+      "editor-canvas-container",
+      "editor-status-area"
+    ],
+    "allowlist": [
+      { "file": "src/styles/global.css", "line": 304, "selector": ".editor-canvas-container" },
+      { "file": "src/styles/global.css", "line": 1223, "selector": ".editor-workspace" },
+      { "file": "src/styles/global.css", "line": 1239, "selector": ".editor-canvas-measure" },
+      { "file": "src/styles/global.css", "line": 1245, "selector": ".editor-canvas-wrapper" },
+      { "file": "src/styles/global.css", "line": 1354, "selector": ".editor-workspace" },
+      { "file": "src/styles/global.css", "line": 1363, "selector": ".editor-canvas-wrapper" }
+    ]
+  },
   "zones": {
     "fit-scale": {
       "file": "src/features/editor/EditorCanvas.tsx",
@@ -47,87 +66,87 @@
     }
   },
   "stage": {
-    "comment": "Fixed Stage (.konvajs-content) bounding boxes measured at v2-S3-ok (commit 18d9fe4) with the ko-KR shell, with a space photo loaded so the Stage renders. Scenario naming: '<vpW>x<vpH>-<preset>'. Values are CSS px (page coordinates). Any drift beyond ±0.5 px fails e2e/canvas-freeze.spec.ts.",
-    "selector": ".konvajs-content",
+    "comment": "Fixed Stage frame (.editor-canvas-container border-box) bounding boxes re-measured at v2-S4-a (ja-JP shell, space photo loaded). The v2-S3-ok table under .konvajs-content was superseded here because the inner Konva wrapper leaks exactly one CSS px past its container on both axes at non-integer fit scales — the border-box is the single rect every L/G/B/L2 e2e in the suite already queries. Each (x, y) is 1.00 px smaller than the v2-S3-ok konvajs-content value; widths and heights are unchanged. Values are CSS px (page coordinates). Any drift beyond ±0.5 px fails e2e/canvas-freeze.spec.ts.",
+    "selector": ".editor-canvas-container",
     "tolerance_px": 0.5,
     "scenarios": [
       {
         "viewport": { "w": 1920, "h": 1080 },
         "preset": "landscape",
-        "x": 57.78,
-        "y": 142.69,
+        "x": 56.78,
+        "y": 141.69,
         "width": 1438.44,
         "height": 809.13
       },
       {
         "viewport": { "w": 1920, "h": 1080 },
         "preset": "portrait",
-        "x": 549.44,
-        "y": 142.69,
+        "x": 548.44,
+        "y": 141.69,
         "width": 455.13,
         "height": 809.13
       },
       {
         "viewport": { "w": 1440, "h": 900 },
         "preset": "landscape",
-        "x": 13,
-        "y": 162.5,
+        "x": 12,
+        "y": 161.5,
         "width": 1048,
         "height": 589.5
       },
       {
         "viewport": { "w": 1440, "h": 900 },
         "preset": "portrait",
-        "x": 360.06,
-        "y": 142.69,
+        "x": 359.06,
+        "y": 141.69,
         "width": 353.88,
         "height": 629.13
       },
       {
         "viewport": { "w": 1280, "h": 720 },
         "preset": "landscape",
-        "x": 76.33,
-        "y": 163.56,
+        "x": 75.33,
+        "y": 162.56,
         "width": 761.33,
         "height": 428.25
       },
       {
         "viewport": { "w": 1280, "h": 720 },
         "preset": "portrait",
-        "x": 336.55,
-        "y": 163.56,
+        "x": 335.55,
+        "y": 162.56,
         "width": 240.89,
         "height": 428.25
       },
       {
         "viewport": { "w": 1024, "h": 640 },
         "preset": "landscape",
-        "x": 46.03,
-        "y": 193.47,
+        "x": 45.03,
+        "y": 192.47,
         "width": 565.94,
         "height": 318.34
       },
       {
         "viewport": { "w": 1024, "h": 640 },
         "preset": "portrait",
-        "x": 239.47,
-        "y": 193.47,
+        "x": 238.47,
+        "y": 192.47,
         "width": 179.06,
         "height": 318.34
       },
       {
         "viewport": { "w": 390, "h": 844 },
         "preset": "landscape",
-        "x": 13,
-        "y": 270.66,
+        "x": 12,
+        "y": 269.66,
         "width": 366,
         "height": 205.88
       },
       {
         "viewport": { "w": 390, "h": 844 },
         "preset": "portrait",
-        "x": 13,
-        "y": 270.66,
+        "x": 12,
+        "y": 269.66,
         "width": 332.31,
         "height": 590.77
       }
