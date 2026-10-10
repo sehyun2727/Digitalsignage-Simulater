@@ -23,11 +23,11 @@
 
 ### 세 가지 옵션 (사용자 결정 대기)
 
-| 옵션 | 설명 | 작업 범위 | 영향 |
-| --- | --- | --- | --- |
-| **A (권장)** | measure 스크립트 소스를 `angled.png` → `docodemo.webp`로 교체 (sharp 또는 pngjs 변환 경유), angled.png는 레거시 자산으로 제거 | 스크립트 수정 + 자산 1개 삭제 + 측정 재실행 | production·측정·주석이 모두 docodemo.webp 로 통일. 가장 깨끗함. |
-| **B** | production 소스를 `docodemo.webp` → `angled.png`로 교체. docodemo.webp 제거. 측정 스크립트는 유지. | PortableTemplateBody.tsx, portableTemplate.ts 주석, 자산 하나 삭제, quad 상수 재측정. | 네이티브 alpha 를 잃고 flood-fill 품질에 의존하게 됨. 바디 외곽선 품질 하락 가능. |
-| **C** | 두 자산 모두 유지, 측정 스크립트와 production 이 서로 다른 소스를 쓰는 현상 유지 | 변경 없음 | a-1 측정값과 production quad 사이에 영구적 drift. 비권장. |
+| 옵션         | 설명                                                                                                                          | 작업 범위                                                                             | 영향                                                                              |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **A (권장)** | measure 스크립트 소스를 `angled.png` → `docodemo.webp`로 교체 (sharp 또는 pngjs 변환 경유), angled.png는 레거시 자산으로 제거 | 스크립트 수정 + 자산 1개 삭제 + 측정 재실행                                           | production·측정·주석이 모두 docodemo.webp 로 통일. 가장 깨끗함.                   |
+| **B**        | production 소스를 `docodemo.webp` → `angled.png`로 교체. docodemo.webp 제거. 측정 스크립트는 유지.                            | PortableTemplateBody.tsx, portableTemplate.ts 주석, 자산 하나 삭제, quad 상수 재측정. | 네이티브 alpha 를 잃고 flood-fill 품질에 의존하게 됨. 바디 외곽선 품질 하락 가능. |
+| **C**        | 두 자산 모두 유지, 측정 스크립트와 production 이 서로 다른 소스를 쓰는 현상 유지                                              | 변경 없음                                                                             | a-1 측정값과 production quad 사이에 영구적 drift. 비권장.                         |
 
 사용자가 A/B/C 하나를 지시한 뒤에만 a-1~a-5 를 진행할 수 있다.
 
@@ -71,6 +71,7 @@ a-pre 커밋 (아래 "커밋 목록" 참조). origin/v2에 push 완료.
 ### a-1. 포터블 preset 4점 정합 — **a-0 결정 선행**
 
 사용자가 옵션 A/B/C 를 지시한 뒤:
+
 - 측정 스크립트의 소스 결정 반영.
 - 각 점이 현재 상수 대비 ≤ 2 source px 안쪽인지 재측정 (피팅 잔차 RMS 포함).
 - 픽셀 검증 테스트: 마젠타 cover-fit × (기본, 이동, 크기 변경, 회전 15°) × 3 preset = 12 조건.

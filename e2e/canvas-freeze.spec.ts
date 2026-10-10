@@ -88,10 +88,17 @@ for (const scenario of freeze.stage.scenarios as Scenario[]) {
       const portraitBtn = page.getByRole('button', { name: /縦長/ });
       await expect(portraitBtn).toHaveCount(1);
       await portraitBtn.click();
-      // Confirm the preset actually switched by reading the button's own aria-pressed
-      // (store-rooted — Toolbar binds aria-pressed to canvasPreset directly). This replaces
-      // a time-based wait with a state assertion, so the test can't race the store update.
+      // Store-rooted click acknowledgement: Toolbar binds aria-pressed to canvasPreset.
       await expect(portraitBtn).toHaveAttribute('aria-pressed', 'true');
+      // Document-size check: once the preset switch has propagated through the fit math, the
+      // Stage container's own aspect ratio must flip from landscape (w/h > 1) to portrait
+      // (w/h < 1). This asserts the document actually resized, not just that the button toggled.
+      await expect
+        .poll(async () => {
+          const box = await page.locator(SELECTOR).boundingBox();
+          return box ? box.width / box.height : null;
+        })
+        .toBeLessThan(1);
     }
     // Load a photo so the Stage renders at its full fitted box (nophoto still renders the
     // Stage, but with the shell's status-area/hint area layout the position is the same —
