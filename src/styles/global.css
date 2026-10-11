@@ -559,10 +559,14 @@ a {
   /* v2-S3 2-1 (2): reserve a fixed slot regardless of whether the banner is showing, so
    * toggling an error on/off never changes the canvas-measure's available height (and
    * therefore the fit scale). If the error text somehow exceeds the slot, the slot itself
-   * scrolls internally — the canvas height stays stable. */
-  flex: 0 0 5.5rem;
-  min-height: 5.5rem;
-  max-height: 5.5rem;
+   * scrolls internally — the canvas height stays stable.
+   * v2-S4 [canvas-approved] 2026-10-11: slot shrunk 5.5rem → 3rem to give the canvas +40 CSS
+   * px of vertical breathing room (fitScale 0.749 → 0.800 at 1920×1080). ErrorBanner (~69 px)
+   * now overflows the slot and the internal overflow-y:auto handles the scroll — the hint row
+   * is still inline below it and may also overflow when a banner is live, same as before. */
+  flex: 0 0 3rem;
+  min-height: 3rem;
+  max-height: 3rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

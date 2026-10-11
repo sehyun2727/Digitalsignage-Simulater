@@ -11,11 +11,11 @@
     ],
     "allowlist": [
       { "file": "src/styles/global.css", "line": 304, "selector": ".editor-canvas-container" },
-      { "file": "src/styles/global.css", "line": 1223, "selector": ".editor-workspace" },
-      { "file": "src/styles/global.css", "line": 1239, "selector": ".editor-canvas-measure" },
-      { "file": "src/styles/global.css", "line": 1245, "selector": ".editor-canvas-wrapper" },
-      { "file": "src/styles/global.css", "line": 1354, "selector": ".editor-workspace" },
-      { "file": "src/styles/global.css", "line": 1363, "selector": ".editor-canvas-wrapper" }
+      { "file": "src/styles/global.css", "line": 1227, "selector": ".editor-workspace" },
+      { "file": "src/styles/global.css", "line": 1243, "selector": ".editor-canvas-measure" },
+      { "file": "src/styles/global.css", "line": 1249, "selector": ".editor-canvas-wrapper" },
+      { "file": "src/styles/global.css", "line": 1358, "selector": ".editor-workspace" },
+      { "file": "src/styles/global.css", "line": 1367, "selector": ".editor-canvas-wrapper" }
     ]
   },
   "zones": {
@@ -46,8 +46,8 @@
     },
     "status-area": {
       "file": "src/styles/global.css",
-      "sha256": "30339c9648896f9b8eff2dab4941c80c20fd2dbcf421011f22301d8e7bd95c07",
-      "length": 525
+      "sha256": "f43e06f22f2cdbbc71c81ffe46ad5f89edfec138181376e26e078964d5f4b4f2",
+      "length": 901
     },
     "media-breakpoint-72": {
       "file": "src/styles/global.css",
@@ -66,73 +66,73 @@
     }
   },
   "stage": {
-    "comment": "Fixed Stage frame (.editor-canvas-container border-box) bounding boxes re-measured at v2-S4-a (ja-JP shell, space photo loaded). The v2-S3-ok table under .konvajs-content was superseded here because the inner Konva wrapper leaks exactly one CSS px past its container on both axes at non-integer fit scales — the border-box is the single rect every L/G/B/L2 e2e in the suite already queries. Each (x, y) is 1.00 px smaller than the v2-S3-ok konvajs-content value; widths and heights are unchanged. Values are CSS px (page coordinates). Any drift beyond ±0.5 px fails e2e/canvas-freeze.spec.ts.",
+    "comment": "Fixed Stage frame (.editor-canvas-container border-box) bounding boxes re-measured at v2-S4 [canvas-approved] 2026-10-11 after shrinking status-area 5.5rem → 3rem (ja-JP shell, space photo loaded). The 40-CSS-px vertical reclaim lifts fitScale on every height-limited viewport: at 1920×1080 landscape the canvas grows from 1438×809 to 1509×849 (56% → 61.8% viewport share). 1440×900 landscape is width-limited at this VP so its scenario is unchanged. 390×844 (mobile) uses a separate fit path (0.7 × window.innerHeight) and is also unchanged. Any drift beyond ±0.5 px fails e2e/canvas-freeze.spec.ts.",
     "selector": ".editor-canvas-container",
     "tolerance_px": 0.5,
     "scenarios": [
       {
         "viewport": { "w": 1920, "h": 1080 },
         "preset": "landscape",
-        "x": 56.78,
+        "x": 21.22,
         "y": 141.69,
-        "width": 1438.44,
-        "height": 809.13
+        "width": 1509.55,
+        "height": 849.13
       },
       {
         "viewport": { "w": 1920, "h": 1080 },
         "preset": "portrait",
-        "x": 548.44,
+        "x": 537.19,
         "y": 141.69,
-        "width": 455.13,
-        "height": 809.13
+        "width": 477.63,
+        "height": 849.13
       },
       {
         "viewport": { "w": 1440, "h": 900 },
         "preset": "landscape",
         "x": 12,
-        "y": 161.5,
+        "y": 181.5,
         "width": 1048,
         "height": 589.5
       },
       {
         "viewport": { "w": 1440, "h": 900 },
         "preset": "portrait",
-        "x": 359.06,
+        "x": 347.81,
         "y": 141.69,
-        "width": 353.88,
-        "height": 629.13
+        "width": 376.38,
+        "height": 669.13
       },
       {
         "viewport": { "w": 1280, "h": 720 },
         "preset": "landscape",
-        "x": 75.33,
+        "x": 39.78,
         "y": 162.56,
-        "width": 761.33,
-        "height": 428.25
+        "width": 832.44,
+        "height": 468.25
       },
       {
         "viewport": { "w": 1280, "h": 720 },
         "preset": "portrait",
-        "x": 335.55,
+        "x": 324.3,
         "y": 162.56,
-        "width": 240.89,
-        "height": 428.25
+        "width": 263.39,
+        "height": 468.25
       },
       {
         "viewport": { "w": 1024, "h": 640 },
         "preset": "landscape",
-        "x": 45.03,
-        "y": 192.47,
-        "width": 565.94,
-        "height": 318.34
+        "x": 12,
+        "y": 193.89,
+        "width": 632,
+        "height": 355.5
       },
       {
         "viewport": { "w": 1024, "h": 640 },
         "preset": "portrait",
-        "x": 238.47,
+        "x": 227.22,
         "y": 192.47,
-        "width": 179.06,
-        "height": 318.34
+        "width": 201.56,
+        "height": 358.34
       },
       {
         "viewport": { "w": 390, "h": 844 },
