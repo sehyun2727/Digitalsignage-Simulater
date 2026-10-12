@@ -287,7 +287,7 @@ test('mobile: adds a transparent LED display and blends more of the space backgr
   await transparencySlider.focus();
   await transparencySlider.press('End');
   await transparencySlider.press('Tab');
-  await page.getByRole('button', { name: '閉じる' }).click();
+  // v2-S5 U4: inline accordion — no 「閉じる」 button.
 
   const buffer = await clickExportAndCapturePng(page, page.getByTestId('editor-export-png-header'));
   expect(buffer.length).toBeGreaterThan(0);

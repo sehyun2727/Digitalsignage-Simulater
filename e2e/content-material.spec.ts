@@ -187,7 +187,7 @@ test('a newly added LED display has its contact shadow enabled by default and it
   await openSection(page, 'appearance');
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   await expect(page.getByRole('checkbox', { name: '接地シャドウを有効にする' })).toBeChecked();
-  await page.getByRole('button', { name: '閉じる' }).click();
+  // v2-S5 U4: inline accordion — no 「閉じる」 modal button.
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByTestId('editor-export-png-header').click();

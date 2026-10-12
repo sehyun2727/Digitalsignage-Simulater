@@ -58,7 +58,7 @@ test('sampling the space photo tints the screen toward its ambient color as stre
   await strengthSlider.focus();
   await strengthSlider.press('End'); // max strength for a maximally visible tint
 
-  await page.getByRole('button', { name: '閉じる' }).click();
+  // v2-S5 U4: inline accordion — no 「閉じる」 button.
   const afterSample = await exportAndSample();
 
   // The red photo's sampled color pulls the pixel's red channel up and its green channel down,
@@ -66,10 +66,9 @@ test('sampling the space photo tints the screen toward its ambient color as stre
   expect(afterSample.r).toBeGreaterThan(beforeSample.r);
   expect(afterSample.g).toBeLessThan(beforeSample.g);
 
-  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
+  // v2-S5 U4: detail section still open from the first click; re-clicking would CLOSE it.
   await page.getByRole('button', { name: 'なじませをリセット' }).click();
   await expect(strengthSlider).toHaveValue('15'); // back to the natural preset's default strength
-  await page.getByRole('button', { name: '閉じる' }).click();
 
   const afterReset = await exportAndSample();
   expect(afterReset.r).toBeLessThan(afterSample.r);

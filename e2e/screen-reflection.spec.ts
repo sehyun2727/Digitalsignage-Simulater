@@ -39,7 +39,7 @@ test('a window-mounted display casts a faint reflection below itself', async ({ 
   await openSection(page, 'appearance');
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   await page.getByRole('combobox', { name: '設置面' }).selectOption('window');
-  await page.getByRole('button', { name: '閉じる' }).click();
+  // v2-S5 U4: inline accordion — no 「閉じる」 button.
 
   const windowDownload = page.waitForEvent('download');
   await page.getByTestId('editor-export-png-header').click();

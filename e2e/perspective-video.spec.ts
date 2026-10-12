@@ -254,14 +254,12 @@ test.describe('transparent LED window blending', () => {
     await transparencySlider.focus();
     await transparencySlider.press('Home');
     await transparencySlider.press('Tab');
-    await page.getByRole('button', { name: '閉じる' }).click();
     const lowTransparencyPixel = await exportAndSampleScreenCenter();
 
-    await page.getByRole('button', { name: '詳細設定', exact: true }).click();
+    // v2-S5 U4: section stays open — no re-click needed.
     await transparencySlider.focus();
     await transparencySlider.press('End');
     await transparencySlider.press('Tab');
-    await page.getByRole('button', { name: '閉じる' }).click();
     const highTransparencyPixel = await exportAndSampleScreenCenter();
 
     // The space background is bright red (#334455 default is not red — see below); the backing
