@@ -75,7 +75,7 @@ import {
   supportsPerspective,
 } from '../../types/editor';
 import { PORTABLE_TEMPLATE_VIEWS, type PortableTemplateView } from '../../lib/portableTemplate';
-import { AdvancedSettingsModal } from './AdvancedSettingsModal';
+import { AdvancedSettingsSection } from './AdvancedSettingsSection';
 import { RealismGuideCard } from './RealismGuideCard';
 import type {
   CanvasPresetId,
@@ -1154,89 +1154,89 @@ function ContentFields({ object }: { object: DisplaySignageObject | PortableSign
             </select>
           </label>
 
-          <div className="editor-properties-actions">
-            <button type="button" onClick={() => setSettingsOpen(true)}>
-              {messages.editorContentAdvancedSettingsOpenButton}
-            </button>
-          </div>
+          {/* v2-S5 U4 (2-3). The former AdvancedSettingsModal (role=dialog center-of-screen)
+              is now an inline accordion section — no modal, no overlay, keyboard-reachable
+              through natural tab order. settingsOpen state kept so the toggle fold persists
+              across re-renders. */}
+          <AdvancedSettingsSection
+            open={settingsOpen}
+            onToggle={() => setSettingsOpen((prev) => !prev)}
+            variant="content"
+          >
+            <label>
+              <span>{messages.editorContentOffsetXLabel}</span>
+              <input
+                type="number"
+                step={0.05}
+                min={-1}
+                max={1}
+                value={offsetXDraft}
+                onChange={(event) => setOffsetXDraft(Number(event.target.value))}
+                onBlur={() => {
+                  commit({
+                    content: { ...mediaContent, offsetX: clampContentOffset(offsetXDraft) },
+                  });
+                }}
+              />
+            </label>
 
-          {settingsOpen && (
-            <AdvancedSettingsModal onClose={() => setSettingsOpen(false)}>
-              <label>
-                <span>{messages.editorContentOffsetXLabel}</span>
-                <input
-                  type="number"
-                  step={0.05}
-                  min={-1}
-                  max={1}
-                  value={offsetXDraft}
-                  onChange={(event) => setOffsetXDraft(Number(event.target.value))}
-                  onBlur={() => {
-                    commit({
-                      content: { ...mediaContent, offsetX: clampContentOffset(offsetXDraft) },
-                    });
-                  }}
-                />
-              </label>
+            <label>
+              <span>{messages.editorContentOffsetYLabel}</span>
+              <input
+                type="number"
+                step={0.05}
+                min={-1}
+                max={1}
+                value={offsetYDraft}
+                onChange={(event) => setOffsetYDraft(Number(event.target.value))}
+                onBlur={() => {
+                  commit({
+                    content: { ...mediaContent, offsetY: clampContentOffset(offsetYDraft) },
+                  });
+                }}
+              />
+            </label>
 
-              <label>
-                <span>{messages.editorContentOffsetYLabel}</span>
-                <input
-                  type="number"
-                  step={0.05}
-                  min={-1}
-                  max={1}
-                  value={offsetYDraft}
-                  onChange={(event) => setOffsetYDraft(Number(event.target.value))}
-                  onBlur={() => {
-                    commit({
-                      content: { ...mediaContent, offsetY: clampContentOffset(offsetYDraft) },
-                    });
-                  }}
-                />
-              </label>
-
-              {/* v2-S5 U2 (3-4). Zoom input is user-facing % — a `scale: 1` multiplier is
+            {/* v2-S5 U2 (3-4). Zoom input is user-facing % — a `scale: 1` multiplier is
                   "100%", 1.5 is "150%", 3 is "300%". Store continues to hold the raw
                   multiplier (0.5–3 range per MIN/MAX_CONTENT_SCALE) so no downstream code
                   changes. The input shows an integer percent and converts both ways. The
                   trailing <span>%</span> is the visible unit suffix. */}
-              <label className="toolbar-percent-field">
-                <span>{messages.editorContentScaleLabel}</span>
-                <span className="toolbar-percent-field-group">
-                  <input
-                    type="number"
-                    step={10}
-                    min={Math.round(MIN_CONTENT_SCALE * 100)}
-                    max={Math.round(MAX_CONTENT_SCALE * 100)}
-                    value={Math.round(scaleDraft * 100)}
-                    onChange={(event) => setScaleDraft(Number(event.target.value) / 100)}
-                    onBlur={() => {
-                      commit({
-                        content: { ...mediaContent, scale: clampContentScale(scaleDraft) },
-                      });
-                    }}
-                    data-testid="editor-content-scale-input"
-                  />
-                  <span aria-hidden="true" className="toolbar-percent-suffix">
-                    %
-                  </span>
+            <label className="toolbar-percent-field">
+              <span>{messages.editorContentScaleLabel}</span>
+              <span className="toolbar-percent-field-group">
+                <input
+                  type="number"
+                  step={10}
+                  min={Math.round(MIN_CONTENT_SCALE * 100)}
+                  max={Math.round(MAX_CONTENT_SCALE * 100)}
+                  value={Math.round(scaleDraft * 100)}
+                  onChange={(event) => setScaleDraft(Number(event.target.value) / 100)}
+                  onBlur={() => {
+                    commit({
+                      content: { ...mediaContent, scale: clampContentScale(scaleDraft) },
+                    });
+                  }}
+                  data-testid="editor-content-scale-input"
+                />
+                <span aria-hidden="true" className="toolbar-percent-suffix">
+                  %
                 </span>
-              </label>
+              </span>
+            </label>
 
-              <button
-                type="button"
-                onClick={() => {
-                  commit({ content: { ...mediaContent, offsetX: 0, offsetY: 0, scale: 1 } });
-                  setOffsetXDraft(0);
-                  setOffsetYDraft(0);
-                  setScaleDraft(1);
-                }}
-              >
-                {messages.editorContentResetButton}
-              </button>
-            </AdvancedSettingsModal>
-          )}
+            <button
+              type="button"
+              onClick={() => {
+                commit({ content: { ...mediaContent, offsetX: 0, offsetY: 0, scale: 1 } });
+                setOffsetXDraft(0);
+                setOffsetYDraft(0);
+                setScaleDraft(1);
+              }}
+            >
+              {messages.editorContentResetButton}
+            </button>
+          </AdvancedSettingsSection>
         </>
       ) : textContent ? (
         <>
@@ -1762,186 +1762,176 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
         )}
       </div>
 
-      <div className="editor-properties-actions">
-        <button type="button" onClick={() => setSettingsOpen(true)}>
-          {messages.editorAdvancedSettingsOpenButton}
-        </button>
-      </div>
-
-      {settingsOpen && (
-        <AdvancedSettingsModal onClose={() => setSettingsOpen(false)}>
-          {isTransparentLed && (
-            <label>
-              <span>{messages.editorMaterialTransparencyLabel}</span>
-              <input
-                type="range"
-                min={MIN_MATERIAL_SETTING}
-                max={MAX_MATERIAL_SETTING}
-                value={transparencyDraft}
-                onInput={(event) => {
-                  const transparency = Number((event.target as HTMLInputElement).value);
-                  setTransparencyDraft(transparency);
-                  previewMaterialSettings({ transparency });
-                }}
-                onPointerUp={() =>
-                  commitMaterialSettings({ transparency: clampMaterialSetting(transparencyDraft) })
-                }
-                onBlur={() =>
-                  commitMaterialSettings({ transparency: clampMaterialSetting(transparencyDraft) })
-                }
-              />
-              <SliderValueDisplay value={transparencyDraft} unit="%" />
-            </label>
-          )}
-
-          {supportsGridAndGlow && (
-            <label>
-              <span>{messages.editorMaterialGridDensityLabel}</span>
-              <input
-                type="range"
-                min={MIN_MATERIAL_SETTING}
-                max={MAX_MATERIAL_SETTING}
-                value={gridDensityDraft}
-                onInput={(event) => {
-                  const gridDensity = Number((event.target as HTMLInputElement).value);
-                  setGridDensityDraft(gridDensity);
-                  previewMaterialSettings({ gridDensity });
-                }}
-                onPointerUp={() =>
-                  commitMaterialSettings({ gridDensity: clampMaterialSetting(gridDensityDraft) })
-                }
-                onBlur={() =>
-                  commitMaterialSettings({ gridDensity: clampMaterialSetting(gridDensityDraft) })
-                }
-              />
-              <SliderValueDisplay value={gridDensityDraft} unit="%" />
-            </label>
-          )}
-
-          {supportsGridAndGlow && (
-            <label>
-              <span>{messages.editorMaterialGlowLabel}</span>
-              <input
-                type="range"
-                min={MIN_MATERIAL_SETTING}
-                max={MAX_MATERIAL_SETTING}
-                value={glowDraft}
-                onInput={(event) => {
-                  const glow = Number((event.target as HTMLInputElement).value);
-                  setGlowDraft(glow);
-                  previewMaterialSettings({ glow });
-                }}
-                onPointerUp={() =>
-                  commitMaterialSettings({ glow: clampMaterialSetting(glowDraft) })
-                }
-                onBlur={() => commitMaterialSettings({ glow: clampMaterialSetting(glowDraft) })}
-              />
-              <SliderValueDisplay value={glowDraft} unit="%" />
-            </label>
-          )}
-
+      {/* v2-S5 U4 (2-3). Inline accordion replaces AdvancedSettingsModal; no role=dialog. */}
+      <AdvancedSettingsSection
+        open={settingsOpen}
+        onToggle={() => setSettingsOpen((prev) => !prev)}
+        variant="appearance"
+      >
+        {isTransparentLed && (
           <label>
-            <span>{messages.editorMaterialContrastLabel}</span>
+            <span>{messages.editorMaterialTransparencyLabel}</span>
             <input
               type="range"
               min={MIN_MATERIAL_SETTING}
               max={MAX_MATERIAL_SETTING}
-              value={contrastDraft}
+              value={transparencyDraft}
               onInput={(event) => {
-                const contrast = Number((event.target as HTMLInputElement).value);
-                setContrastDraft(contrast);
-                previewMaterialSettings({ contrast });
+                const transparency = Number((event.target as HTMLInputElement).value);
+                setTransparencyDraft(transparency);
+                previewMaterialSettings({ transparency });
               }}
               onPointerUp={() =>
-                commitMaterialSettings({ contrast: clampMaterialSetting(contrastDraft) })
+                commitMaterialSettings({ transparency: clampMaterialSetting(transparencyDraft) })
               }
               onBlur={() =>
-                commitMaterialSettings({ contrast: clampMaterialSetting(contrastDraft) })
+                commitMaterialSettings({ transparency: clampMaterialSetting(transparencyDraft) })
               }
             />
-            <SliderValueDisplay value={contrastDraft} unit="%" />
+            <SliderValueDisplay value={transparencyDraft} unit="%" />
           </label>
+        )}
 
-          <button type="button" onClick={resetMaterial}>
-            {messages.editorMaterialResetButton}
-          </button>
+        {supportsGridAndGlow && (
+          <label>
+            <span>{messages.editorMaterialGridDensityLabel}</span>
+            <input
+              type="range"
+              min={MIN_MATERIAL_SETTING}
+              max={MAX_MATERIAL_SETTING}
+              value={gridDensityDraft}
+              onInput={(event) => {
+                const gridDensity = Number((event.target as HTMLInputElement).value);
+                setGridDensityDraft(gridDensity);
+                previewMaterialSettings({ gridDensity });
+              }}
+              onPointerUp={() =>
+                commitMaterialSettings({ gridDensity: clampMaterialSetting(gridDensityDraft) })
+              }
+              onBlur={() =>
+                commitMaterialSettings({ gridDensity: clampMaterialSetting(gridDensityDraft) })
+              }
+            />
+            <SliderValueDisplay value={gridDensityDraft} unit="%" />
+          </label>
+        )}
 
-          <div
-            className="curvature-mode-group"
-            role="group"
-            aria-label={messages.editorCurvatureModeLabel}
-          >
-            <span>{messages.editorCurvatureModeLabel}</span>
-            <div className="toolbar-actions">
-              {CURVATURE_MODES.map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  disabled={!curvatureSupported}
-                  className={object.curvature.mode === mode ? 'is-active' : undefined}
-                  aria-pressed={object.curvature.mode === mode}
-                  onClick={() => commitCurvature({ mode })}
-                >
-                  {curvatureModeLabel(mode, messages)}
-                </button>
-              ))}
-            </div>
-          </div>
+        {supportsGridAndGlow && (
+          <label>
+            <span>{messages.editorMaterialGlowLabel}</span>
+            <input
+              type="range"
+              min={MIN_MATERIAL_SETTING}
+              max={MAX_MATERIAL_SETTING}
+              value={glowDraft}
+              onInput={(event) => {
+                const glow = Number((event.target as HTMLInputElement).value);
+                setGlowDraft(glow);
+                previewMaterialSettings({ glow });
+              }}
+              onPointerUp={() => commitMaterialSettings({ glow: clampMaterialSetting(glowDraft) })}
+              onBlur={() => commitMaterialSettings({ glow: clampMaterialSetting(glowDraft) })}
+            />
+            <SliderValueDisplay value={glowDraft} unit="%" />
+          </label>
+        )}
 
-          {!curvatureSupported && (
-            <p className="toolbar-notice">{messages.editorCurvatureUnsupportedHint}</p>
-          )}
+        <label>
+          <span>{messages.editorMaterialContrastLabel}</span>
+          <input
+            type="range"
+            min={MIN_MATERIAL_SETTING}
+            max={MAX_MATERIAL_SETTING}
+            value={contrastDraft}
+            onInput={(event) => {
+              const contrast = Number((event.target as HTMLInputElement).value);
+              setContrastDraft(contrast);
+              previewMaterialSettings({ contrast });
+            }}
+            onPointerUp={() =>
+              commitMaterialSettings({ contrast: clampMaterialSetting(contrastDraft) })
+            }
+            onBlur={() => commitMaterialSettings({ contrast: clampMaterialSetting(contrastDraft) })}
+          />
+          <SliderValueDisplay value={contrastDraft} unit="%" />
+        </label>
 
-          {curvatureSupported && object.curvature.mode !== 'flat' && (
-            <label>
-              <span>{messages.editorCurvatureAmountLabel}</span>
-              <input
-                type="range"
-                min={MIN_CURVATURE_AMOUNT}
-                max={MAX_CURVATURE_AMOUNT}
-                value={curvatureAmountDraft}
-                onInput={(event) => {
-                  const amount = Number((event.target as HTMLInputElement).value);
-                  setCurvatureAmountDraft(amount);
-                  updateObjectTransient(object.id, { curvature: { ...object.curvature, amount } });
-                }}
-                onPointerUp={() =>
-                  commitCurvature({ amount: clampCurvatureAmount(curvatureAmountDraft) })
-                }
-                onBlur={() =>
-                  commitCurvature({ amount: clampCurvatureAmount(curvatureAmountDraft) })
-                }
-              />
-              <SliderValueDisplay value={curvatureAmountDraft} unit="%" />
-            </label>
-          )}
+        <button type="button" onClick={resetMaterial}>
+          {messages.editorMaterialResetButton}
+        </button>
 
-          {curvatureSupported && (
-            <button type="button" onClick={resetCurvature}>
-              {messages.editorCurvatureResetButton}
-            </button>
-          )}
-
-          <div className="toolbar-subsection">
-            <span className="toolbar-subsection-heading">
-              {messages.editorInstallationModeLabel}
-            </span>
-            <label>
-              <span>{messages.editorInstallationModeLabel}</span>
-              <select
-                value={object.installationMode}
-                onChange={(event) =>
-                  commit({ installationMode: event.target.value as InstallationMode })
-                }
+        <div
+          className="curvature-mode-group"
+          role="group"
+          aria-label={messages.editorCurvatureModeLabel}
+        >
+          <span>{messages.editorCurvatureModeLabel}</span>
+          <div className="toolbar-actions">
+            {CURVATURE_MODES.map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                disabled={!curvatureSupported}
+                className={object.curvature.mode === mode ? 'is-active' : undefined}
+                aria-pressed={object.curvature.mode === mode}
+                onClick={() => commitCurvature({ mode })}
               >
-                <option value="wall">{messages.editorInstallationModeWall}</option>
-                <option value="window">{messages.editorInstallationModeWindow}</option>
-                <option value="freestanding">{messages.editorInstallationModeFreestanding}</option>
-              </select>
-            </label>
+                {curvatureModeLabel(mode, messages)}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* v2-S5 U3 (3-5): the 「手前の物で隠す（マスク）」 subsection was inside this
+        {!curvatureSupported && (
+          <p className="toolbar-notice">{messages.editorCurvatureUnsupportedHint}</p>
+        )}
+
+        {curvatureSupported && object.curvature.mode !== 'flat' && (
+          <label>
+            <span>{messages.editorCurvatureAmountLabel}</span>
+            <input
+              type="range"
+              min={MIN_CURVATURE_AMOUNT}
+              max={MAX_CURVATURE_AMOUNT}
+              value={curvatureAmountDraft}
+              onInput={(event) => {
+                const amount = Number((event.target as HTMLInputElement).value);
+                setCurvatureAmountDraft(amount);
+                updateObjectTransient(object.id, { curvature: { ...object.curvature, amount } });
+              }}
+              onPointerUp={() =>
+                commitCurvature({ amount: clampCurvatureAmount(curvatureAmountDraft) })
+              }
+              onBlur={() => commitCurvature({ amount: clampCurvatureAmount(curvatureAmountDraft) })}
+            />
+            <SliderValueDisplay value={curvatureAmountDraft} unit="%" />
+          </label>
+        )}
+
+        {curvatureSupported && (
+          <button type="button" onClick={resetCurvature}>
+            {messages.editorCurvatureResetButton}
+          </button>
+        )}
+
+        <div className="toolbar-subsection">
+          <span className="toolbar-subsection-heading">{messages.editorInstallationModeLabel}</span>
+          <label>
+            <span>{messages.editorInstallationModeLabel}</span>
+            <select
+              value={object.installationMode}
+              onChange={(event) =>
+                commit({ installationMode: event.target.value as InstallationMode })
+              }
+            >
+              <option value="wall">{messages.editorInstallationModeWall}</option>
+              <option value="window">{messages.editorInstallationModeWindow}</option>
+              <option value="freestanding">{messages.editorInstallationModeFreestanding}</option>
+            </select>
+          </label>
+        </div>
+
+        {/* v2-S5 U3 (3-5): the 「手前の物で隠す（マスク）」 subsection was inside this
               AdvancedSettingsModal in S4, but entering edit mode closed the modal so Apply
               / Cancel / feather / opacity became invisible — the user had to re-open the
               modal (「追加→4点→詳細設定再オープン→適用」, 2 extra clicks). S5 moves the
@@ -1949,229 +1939,228 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
               inserted right before this modal). Mask list, Add, feather/opacity, and
               Apply/Cancel are all reachable without ever reopening a modal. */}
 
-          <div className="toolbar-subsection">
-            <span className="toolbar-subsection-heading">{messages.editorContactShadowLabel}</span>
+        <div className="toolbar-subsection">
+          <span className="toolbar-subsection-heading">{messages.editorContactShadowLabel}</span>
 
-            <label className="toolbar-checkbox-field">
-              <input
-                type="checkbox"
-                checked={object.contactShadow.enabled}
-                onChange={(event) => commitContactShadow({ enabled: event.target.checked })}
-              />
-              <span>{messages.editorContactShadowEnableLabel}</span>
-            </label>
+          <label className="toolbar-checkbox-field">
+            <input
+              type="checkbox"
+              checked={object.contactShadow.enabled}
+              onChange={(event) => commitContactShadow({ enabled: event.target.checked })}
+            />
+            <span>{messages.editorContactShadowEnableLabel}</span>
+          </label>
 
-            {object.contactShadow.enabled && (
-              <>
-                <label>
-                  <span>{messages.editorContactShadowStrengthLabel}</span>
-                  <input
-                    type="range"
-                    min={MIN_CONTACT_SHADOW_SETTING}
-                    max={MAX_CONTACT_SHADOW_SETTING}
-                    value={shadowStrengthDraft}
-                    onInput={(event) => {
-                      const strength = Number((event.target as HTMLInputElement).value);
-                      setShadowStrengthDraft(strength);
-                      previewContactShadow({ strength });
-                    }}
-                    onPointerUp={() =>
-                      commitContactShadow({
-                        strength: clampContactShadowSetting(shadowStrengthDraft),
-                      })
-                    }
-                    onBlur={() =>
-                      commitContactShadow({
-                        strength: clampContactShadowSetting(shadowStrengthDraft),
-                      })
-                    }
-                  />
-                  <SliderValueDisplay value={shadowStrengthDraft} unit="%" />
-                </label>
-
-                <label>
-                  <span>{messages.editorContactShadowBlurLabel}</span>
-                  <input
-                    type="range"
-                    min={MIN_CONTACT_SHADOW_SETTING}
-                    max={MAX_CONTACT_SHADOW_SETTING}
-                    value={shadowBlurDraft}
-                    onInput={(event) => {
-                      const blur = Number((event.target as HTMLInputElement).value);
-                      setShadowBlurDraft(blur);
-                      previewContactShadow({ blur });
-                    }}
-                    onPointerUp={() =>
-                      commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
-                    }
-                    onBlur={() =>
-                      commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
-                    }
-                  />
-                  <SliderValueDisplay value={shadowBlurDraft} unit="%" />
-                </label>
-
-                <label>
-                  <span>{messages.editorContactShadowOffsetXLabel}</span>
-                  <input
-                    type="number"
-                    step={0.05}
-                    min={-1}
-                    max={1}
-                    value={shadowOffsetXDraft}
-                    onChange={(event) => setShadowOffsetXDraft(Number(event.target.value))}
-                    onBlur={() =>
-                      commitContactShadow({ offsetX: clampContactShadowOffset(shadowOffsetXDraft) })
-                    }
-                  />
-                </label>
-
-                <label>
-                  <span>{messages.editorContactShadowOffsetYLabel}</span>
-                  <input
-                    type="number"
-                    step={0.05}
-                    min={-1}
-                    max={1}
-                    value={shadowOffsetYDraft}
-                    onChange={(event) => setShadowOffsetYDraft(Number(event.target.value))}
-                    onBlur={() =>
-                      commitContactShadow({ offsetY: clampContactShadowOffset(shadowOffsetYDraft) })
-                    }
-                  />
-                </label>
-
-                <label>
-                  <span>{messages.editorContactShadowSpreadLabel}</span>
-                  <input
-                    type="range"
-                    min={MIN_CONTACT_SHADOW_SPREAD}
-                    max={MAX_CONTACT_SHADOW_SPREAD}
-                    value={shadowSpreadDraft}
-                    onInput={(event) => {
-                      const spread = Number((event.target as HTMLInputElement).value);
-                      setShadowSpreadDraft(spread);
-                      previewContactShadow({ spread });
-                    }}
-                    onPointerUp={() =>
-                      commitContactShadow({ spread: clampContactShadowSpread(shadowSpreadDraft) })
-                    }
-                    onBlur={() =>
-                      commitContactShadow({ spread: clampContactShadowSpread(shadowSpreadDraft) })
-                    }
-                  />
-                  <SliderValueDisplay value={shadowSpreadDraft} unit="px" />
-                </label>
-
-                <label>
-                  <span>{messages.editorContactShadowDepthLabel}</span>
-                  <input
-                    type="range"
-                    min={MIN_CONTACT_SHADOW_SPREAD}
-                    max={MAX_CONTACT_SHADOW_SPREAD}
-                    value={shadowDepthDraft}
-                    onInput={(event) => {
-                      const depth = Number((event.target as HTMLInputElement).value);
-                      setShadowDepthDraft(depth);
-                      previewContactShadow({ depth });
-                    }}
-                    onPointerUp={() =>
-                      commitContactShadow({ depth: clampContactShadowSpread(shadowDepthDraft) })
-                    }
-                    onBlur={() =>
-                      commitContactShadow({ depth: clampContactShadowSpread(shadowDepthDraft) })
-                    }
-                  />
-                  <SliderValueDisplay value={shadowDepthDraft} unit="px" />
-                </label>
-
-                <label>
-                  <span>{messages.editorContactShadowTintLabel}</span>
-                  <input
-                    type="range"
-                    min={MIN_CONTACT_SHADOW_TINT}
-                    max={MAX_CONTACT_SHADOW_TINT}
-                    value={shadowTintDraft}
-                    onInput={(event) => {
-                      const tint = Number((event.target as HTMLInputElement).value);
-                      setShadowTintDraft(tint);
-                      previewContactShadow({ tint });
-                    }}
-                    onPointerUp={() =>
-                      commitContactShadow({ tint: clampContactShadowTint(shadowTintDraft) })
-                    }
-                    onBlur={() =>
-                      commitContactShadow({ tint: clampContactShadowTint(shadowTintDraft) })
-                    }
-                  />
-                  <SliderValueDisplay value={shadowTintDraft} unit="" />
-                </label>
-              </>
-            )}
-
-            <button type="button" onClick={resetContactShadow}>
-              {messages.editorContactShadowResetButton}
-            </button>
-          </div>
-
-          <div className="toolbar-subsection">
-            <span className="toolbar-subsection-heading">
-              {messages.editorEnvironmentIntegrationLabel}
-            </span>
-
-            <label>
-              <span>{messages.editorEnvironmentIntegrationStrengthLabel}</span>
-              <input
-                type="range"
-                min={MIN_ENVIRONMENT_INTEGRATION}
-                max={MAX_ENVIRONMENT_INTEGRATION}
-                value={environmentStrengthDraft}
-                onInput={(event) => {
-                  const strength = Number((event.target as HTMLInputElement).value);
-                  setEnvironmentStrengthDraft(strength);
-                  previewEnvironmentIntegration({ strength });
-                }}
-                onPointerUp={() =>
-                  commitEnvironmentIntegration({
-                    strength: clampEnvironmentIntegration(environmentStrengthDraft),
-                  })
-                }
-                onBlur={() =>
-                  commitEnvironmentIntegration({
-                    strength: clampEnvironmentIntegration(environmentStrengthDraft),
-                  })
-                }
-              />
-              <SliderValueDisplay value={environmentStrengthDraft} unit="%" />
-            </label>
-
-            <div className="toolbar-actions">
-              <button
-                type="button"
-                onClick={() => sampleEnvironmentColor(object.id)}
-                disabled={!spaceBackground}
-              >
-                {messages.editorEnvironmentSampleButton}
-              </button>
-              {object.environmentIntegration.sampledColor && (
-                <span
-                  className="toolbar-color-swatch"
-                  style={{ backgroundColor: object.environmentIntegration.sampledColor }}
-                  aria-label={messages.editorEnvironmentSampledSwatchLabel}
-                  role="img"
+          {object.contactShadow.enabled && (
+            <>
+              <label>
+                <span>{messages.editorContactShadowStrengthLabel}</span>
+                <input
+                  type="range"
+                  min={MIN_CONTACT_SHADOW_SETTING}
+                  max={MAX_CONTACT_SHADOW_SETTING}
+                  value={shadowStrengthDraft}
+                  onInput={(event) => {
+                    const strength = Number((event.target as HTMLInputElement).value);
+                    setShadowStrengthDraft(strength);
+                    previewContactShadow({ strength });
+                  }}
+                  onPointerUp={() =>
+                    commitContactShadow({
+                      strength: clampContactShadowSetting(shadowStrengthDraft),
+                    })
+                  }
+                  onBlur={() =>
+                    commitContactShadow({
+                      strength: clampContactShadowSetting(shadowStrengthDraft),
+                    })
+                  }
                 />
-              )}
-            </div>
-            {!spaceBackground && (
-              <p className="toolbar-notice">{messages.editorEnvironmentSampleNoSpaceHint}</p>
-            )}
+                <SliderValueDisplay value={shadowStrengthDraft} unit="%" />
+              </label>
 
-            <button type="button" onClick={resetEnvironmentIntegration}>
-              {messages.editorEnvironmentIntegrationResetButton}
+              <label>
+                <span>{messages.editorContactShadowBlurLabel}</span>
+                <input
+                  type="range"
+                  min={MIN_CONTACT_SHADOW_SETTING}
+                  max={MAX_CONTACT_SHADOW_SETTING}
+                  value={shadowBlurDraft}
+                  onInput={(event) => {
+                    const blur = Number((event.target as HTMLInputElement).value);
+                    setShadowBlurDraft(blur);
+                    previewContactShadow({ blur });
+                  }}
+                  onPointerUp={() =>
+                    commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
+                  }
+                  onBlur={() =>
+                    commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
+                  }
+                />
+                <SliderValueDisplay value={shadowBlurDraft} unit="%" />
+              </label>
+
+              <label>
+                <span>{messages.editorContactShadowOffsetXLabel}</span>
+                <input
+                  type="number"
+                  step={0.05}
+                  min={-1}
+                  max={1}
+                  value={shadowOffsetXDraft}
+                  onChange={(event) => setShadowOffsetXDraft(Number(event.target.value))}
+                  onBlur={() =>
+                    commitContactShadow({ offsetX: clampContactShadowOffset(shadowOffsetXDraft) })
+                  }
+                />
+              </label>
+
+              <label>
+                <span>{messages.editorContactShadowOffsetYLabel}</span>
+                <input
+                  type="number"
+                  step={0.05}
+                  min={-1}
+                  max={1}
+                  value={shadowOffsetYDraft}
+                  onChange={(event) => setShadowOffsetYDraft(Number(event.target.value))}
+                  onBlur={() =>
+                    commitContactShadow({ offsetY: clampContactShadowOffset(shadowOffsetYDraft) })
+                  }
+                />
+              </label>
+
+              <label>
+                <span>{messages.editorContactShadowSpreadLabel}</span>
+                <input
+                  type="range"
+                  min={MIN_CONTACT_SHADOW_SPREAD}
+                  max={MAX_CONTACT_SHADOW_SPREAD}
+                  value={shadowSpreadDraft}
+                  onInput={(event) => {
+                    const spread = Number((event.target as HTMLInputElement).value);
+                    setShadowSpreadDraft(spread);
+                    previewContactShadow({ spread });
+                  }}
+                  onPointerUp={() =>
+                    commitContactShadow({ spread: clampContactShadowSpread(shadowSpreadDraft) })
+                  }
+                  onBlur={() =>
+                    commitContactShadow({ spread: clampContactShadowSpread(shadowSpreadDraft) })
+                  }
+                />
+                <SliderValueDisplay value={shadowSpreadDraft} unit="px" />
+              </label>
+
+              <label>
+                <span>{messages.editorContactShadowDepthLabel}</span>
+                <input
+                  type="range"
+                  min={MIN_CONTACT_SHADOW_SPREAD}
+                  max={MAX_CONTACT_SHADOW_SPREAD}
+                  value={shadowDepthDraft}
+                  onInput={(event) => {
+                    const depth = Number((event.target as HTMLInputElement).value);
+                    setShadowDepthDraft(depth);
+                    previewContactShadow({ depth });
+                  }}
+                  onPointerUp={() =>
+                    commitContactShadow({ depth: clampContactShadowSpread(shadowDepthDraft) })
+                  }
+                  onBlur={() =>
+                    commitContactShadow({ depth: clampContactShadowSpread(shadowDepthDraft) })
+                  }
+                />
+                <SliderValueDisplay value={shadowDepthDraft} unit="px" />
+              </label>
+
+              <label>
+                <span>{messages.editorContactShadowTintLabel}</span>
+                <input
+                  type="range"
+                  min={MIN_CONTACT_SHADOW_TINT}
+                  max={MAX_CONTACT_SHADOW_TINT}
+                  value={shadowTintDraft}
+                  onInput={(event) => {
+                    const tint = Number((event.target as HTMLInputElement).value);
+                    setShadowTintDraft(tint);
+                    previewContactShadow({ tint });
+                  }}
+                  onPointerUp={() =>
+                    commitContactShadow({ tint: clampContactShadowTint(shadowTintDraft) })
+                  }
+                  onBlur={() =>
+                    commitContactShadow({ tint: clampContactShadowTint(shadowTintDraft) })
+                  }
+                />
+                <SliderValueDisplay value={shadowTintDraft} unit="" />
+              </label>
+            </>
+          )}
+
+          <button type="button" onClick={resetContactShadow}>
+            {messages.editorContactShadowResetButton}
+          </button>
+        </div>
+
+        <div className="toolbar-subsection">
+          <span className="toolbar-subsection-heading">
+            {messages.editorEnvironmentIntegrationLabel}
+          </span>
+
+          <label>
+            <span>{messages.editorEnvironmentIntegrationStrengthLabel}</span>
+            <input
+              type="range"
+              min={MIN_ENVIRONMENT_INTEGRATION}
+              max={MAX_ENVIRONMENT_INTEGRATION}
+              value={environmentStrengthDraft}
+              onInput={(event) => {
+                const strength = Number((event.target as HTMLInputElement).value);
+                setEnvironmentStrengthDraft(strength);
+                previewEnvironmentIntegration({ strength });
+              }}
+              onPointerUp={() =>
+                commitEnvironmentIntegration({
+                  strength: clampEnvironmentIntegration(environmentStrengthDraft),
+                })
+              }
+              onBlur={() =>
+                commitEnvironmentIntegration({
+                  strength: clampEnvironmentIntegration(environmentStrengthDraft),
+                })
+              }
+            />
+            <SliderValueDisplay value={environmentStrengthDraft} unit="%" />
+          </label>
+
+          <div className="toolbar-actions">
+            <button
+              type="button"
+              onClick={() => sampleEnvironmentColor(object.id)}
+              disabled={!spaceBackground}
+            >
+              {messages.editorEnvironmentSampleButton}
             </button>
+            {object.environmentIntegration.sampledColor && (
+              <span
+                className="toolbar-color-swatch"
+                style={{ backgroundColor: object.environmentIntegration.sampledColor }}
+                aria-label={messages.editorEnvironmentSampledSwatchLabel}
+                role="img"
+              />
+            )}
           </div>
-        </AdvancedSettingsModal>
-      )}
+          {!spaceBackground && (
+            <p className="toolbar-notice">{messages.editorEnvironmentSampleNoSpaceHint}</p>
+          )}
+
+          <button type="button" onClick={resetEnvironmentIntegration}>
+            {messages.editorEnvironmentIntegrationResetButton}
+          </button>
+        </div>
+      </AdvancedSettingsSection>
     </>
   );
 }

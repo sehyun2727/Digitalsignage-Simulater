@@ -6,38 +6,38 @@ S5 범위 중 다수 완료, 두 항목(K2, U4)은 "이어서 하기" 로 남김
 
 ## 상태 요약
 
-| 범위     | 상태           | 비고                                                                                           |
-| -------- | -------------- | ---------------------------------------------------------------------------------------------- |
-| P0 (0-1) | 완료           | CLAUDE.md §4bis, canvas-freeze.json changeLog, requirements.md 2-1 전부 갱신                   |
-| P0 (0-2) | 완료           | 배너 overlay 적용 (approved-by-user 커밋 `8756a0f`). cutoff 57→0, 124→0 (12/12 cell)           |
-| P0 (0-3) | 완료           | CLAUDE.md §4bis 수정 절차에 (a)(b)(c) 3개 규칙 추가                                            |
-| P0 (0-4) | 완료           | a-1 잔차는 실제 ≤ 0.001 (정규화), 소스-px 기준 max ≈ 1.0 px, RMS ≈ 0.84 px. 아래 상세 표 참조. |
-| K1       | 완료           | 12/12 scenario 통과 (3 view × 4 condition)                                                     |
-| K2       | **이어서 하기** | perspectiveLogicalSize 를 WarpedScreenContent 에 적용하는 production 변경 필요 (상세 아래)     |
-| K3       | 완료           | 21/21 known failures → 0 failures (14 portable + 2 mobile + 3 occlusion + 1 reselection + m-03)|
-| K4       | 완료           | C12-video 해결. 영상 raw 해상도 1920×1080 / 1080×1920, 8px 줄무늬 period 8.00, 대비 1.000      |
-| K5       | 완료           | mask 추가 / 4점 edit / 적용 / 삭제 전부 1 Undo-step                                            |
-| U1       | 완료           | 16/16 slider 에 가시 값 label (SliderValueDisplay). ArrowRight×5 아리아 ↔ 가시 일치           |
-| U2       | 완료           | 콘텐츠 zoom 100/150/300%, store 는 raw multiplier 유지, Undo OK                                |
-| U3       | 완료           | 「手前の物で隠す（マスク）」 패널 인라인화. click 8 → 6, F-occlusion 4 해결                    |
-| U4       | **이어서 하기** | AdvancedSettingsModal 인라인 전환 미완 (상세 아래)                                             |
-| Z        | 부분 완료      | typecheck/lint/format/unit/build/build:oitemiru/check:canvas 전부 통과; e2e core 결과 포함     |
+| 범위     | 상태            | 비고                                                                                            |
+| -------- | --------------- | ----------------------------------------------------------------------------------------------- |
+| P0 (0-1) | 완료            | CLAUDE.md §4bis, canvas-freeze.json changeLog, requirements.md 2-1 전부 갱신                    |
+| P0 (0-2) | 완료            | 배너 overlay 적용 (approved-by-user 커밋 `8756a0f`). cutoff 57→0, 124→0 (12/12 cell)            |
+| P0 (0-3) | 완료            | CLAUDE.md §4bis 수정 절차에 (a)(b)(c) 3개 규칙 추가                                             |
+| P0 (0-4) | 완료            | a-1 잔차는 실제 ≤ 0.001 (정규화), 소스-px 기준 max ≈ 1.0 px, RMS ≈ 0.84 px. 아래 상세 표 참조.  |
+| K1       | 완료            | 12/12 scenario 통과 (3 view × 4 condition)                                                      |
+| K2       | **이어서 하기** | perspectiveLogicalSize 를 WarpedScreenContent 에 적용하는 production 변경 필요 (상세 아래)      |
+| K3       | 완료            | 21/21 known failures → 0 failures (14 portable + 2 mobile + 3 occlusion + 1 reselection + m-03) |
+| K4       | 완료            | C12-video 해결. 영상 raw 해상도 1920×1080 / 1080×1920, 8px 줄무늬 period 8.00, 대비 1.000       |
+| K5       | 완료            | mask 추가 / 4점 edit / 적용 / 삭제 전부 1 Undo-step                                             |
+| U1       | 완료            | 16/16 slider 에 가시 값 label (SliderValueDisplay). ArrowRight×5 아리아 ↔ 가시 일치             |
+| U2       | 완료            | 콘텐츠 zoom 100/150/300%, store 는 raw multiplier 유지, Undo OK                                 |
+| U3       | 완료            | 「手前の物で隠す（マスク）」 패널 인라인화. click 8 → 6, F-occlusion 4 해결                     |
+| U4       | **이어서 하기** | AdvancedSettingsModal 인라인 전환 미완 (상세 아래)                                              |
+| Z        | 부분 완료       | typecheck/lint/format/unit/build/build:oitemiru/check:canvas 전부 통과; e2e core 결과 포함      |
 
 ## P0 0-4: a-1 잔차 정정표
 
 S4 보고의 "≤0.0001" 표기 오류. 실제 측정 결과 (각 corner 정규화 좌표의 저장값과 측정값
 diff + source px 로 환산):
 
-| view         | corner | measured norm       | stored norm         | Δ norm             | Δ source px |
-| ------------ | ------ | ------------------- | ------------------- | ------------------ | ----------- |
-| front        | TL     | (0.22461, 0.06771)  | (0.22461, 0.06706)  | (0.0000, +0.00065) | (0.0, +1.0) |
-| front        | TR     | (0.77344, 0.06771)  | (0.77441, 0.06706)  | (−0.00097, +0.00065) | (−1.0, +1.0) |
-| front        | BR     | (0.77441, 0.75651)  | (0.77539, 0.75651)  | (−0.00098, 0.0000) | (−1.0, 0.0) |
-| front        | BL     | (0.22461, 0.75716)  | (0.22363, 0.75716)  | (+0.00098, 0.0000) | (+1.0, 0.0) |
-| angled-left  | TL     | (0.27231, 0.08947)  | (0.27231, 0.09000)  | (0.0000, −0.00053) | (0.0, −1.0) |
-| angled-left  | TR     | (0.63462, 0.14737)  | (0.63538, 0.14789)  | (−0.00076, −0.00052) | (−1.0, −1.0) |
-| angled-left  | BR     | (0.78385, 0.71474)  | (0.78308, 0.71474)  | (+0.00077, 0.0000) | (+1.0, 0.0) |
-| angled-left  | BL     | (0.42000, 0.75316)  | (0.42077, 0.75368)  | (−0.00077, −0.00052) | (−1.0, −1.0) |
+| view        | corner | measured norm      | stored norm        | Δ norm               | Δ source px  |
+| ----------- | ------ | ------------------ | ------------------ | -------------------- | ------------ |
+| front       | TL     | (0.22461, 0.06771) | (0.22461, 0.06706) | (0.0000, +0.00065)   | (0.0, +1.0)  |
+| front       | TR     | (0.77344, 0.06771) | (0.77441, 0.06706) | (−0.00097, +0.00065) | (−1.0, +1.0) |
+| front       | BR     | (0.77441, 0.75651) | (0.77539, 0.75651) | (−0.00098, 0.0000)   | (−1.0, 0.0)  |
+| front       | BL     | (0.22461, 0.75716) | (0.22363, 0.75716) | (+0.00098, 0.0000)   | (+1.0, 0.0)  |
+| angled-left | TL     | (0.27231, 0.08947) | (0.27231, 0.09000) | (0.0000, −0.00053)   | (0.0, −1.0)  |
+| angled-left | TR     | (0.63462, 0.14737) | (0.63538, 0.14789) | (−0.00076, −0.00052) | (−1.0, −1.0) |
+| angled-left | BR     | (0.78385, 0.71474) | (0.78308, 0.71474) | (+0.00077, 0.0000)   | (+1.0, 0.0)  |
+| angled-left | BL     | (0.42000, 0.75316) | (0.42077, 0.75368) | (−0.00077, −0.00052) | (−1.0, −1.0) |
 
 (angled-right 는 angled-left 를 x→1−x 로 반사한 derived — residual 패턴 동일)
 
@@ -60,7 +60,7 @@ content.fit 을 전혀 처리하지 않고 content image 를 quad 전체로 stre
 
 1. `WarpedScreenContent.tsx` 에 `content.fit` prop 추가 (parent 가 넘기도록).
 2. `objectLocalQuad` 계산 뒤 `fit === 'contain'` 이면 `perspectiveLogicalAspect(quad,
-   docSize)` 로 quad 의 apparent aspect 계산.
+docSize)` 로 quad 의 apparent aspect 계산.
 3. Content 자체의 naturalWidth / naturalHeight 로 content aspect 산출.
 4. 두 aspect 비교해 축을 하나 선택, letterbox 사이즈로 "sub-quad" 를 중앙에 재구성.
 5. 그 sub-quad 로 warp.

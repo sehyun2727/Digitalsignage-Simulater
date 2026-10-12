@@ -7,10 +7,78 @@ import {
   type PortableTemplateView,
 } from '../../lib/portableTemplate';
 import { buildQuadMesh, normalizedQuadToDocument } from '../../lib/quadGeometry';
+import type { NormalizedQuad } from '../../types/editor';
 import type { QuadMeshCell } from '../../lib/quadGeometry';
 import { drawWarpedImageMesh } from '../../lib/warpMesh';
 import type { SignageContent } from '../../types/editor';
 import { useVideoPlaybackRedraw } from './useVideoPlaybackRedraw';
+
+// v2-S5 K2 (a-2 perspectiveLogicalSize 공통화). Quad apparent aspect in object-local
+// pixel coords, same formula as src/lib/perspectiveLogicalSize.ts's
+// `perspectiveLogicalAspect`. Returns null for a degenerate quad.
+function quadApparentAspect(q: {
+  topLeft: { x: number; y: number };
+  topRight: { x: number; y: number };
+  bottomRight: { x: number; y: number };
+  bottomLeft: { x: number; y: number };
+}): number | null {
+  const topEdge = Math.hypot(q.topRight.x - q.topLeft.x, q.topRight.y - q.topLeft.y);
+  const bottomEdge = Math.hypot(q.bottomRight.x - q.bottomLeft.x, q.bottomRight.y - q.bottomLeft.y);
+  const leftEdge = Math.hypot(q.bottomLeft.x - q.topLeft.x, q.bottomLeft.y - q.topLeft.y);
+  const rightEdge = Math.hypot(q.bottomRight.x - q.topRight.x, q.bottomRight.y - q.topRight.y);
+  const apparentW = (topEdge + bottomEdge) / 2;
+  const apparentH = (leftEdge + rightEdge) / 2;
+  if (apparentW <= 0 || apparentH <= 0) return null;
+  return apparentW / apparentH;
+}
+
+/** v2-S5 K2. Produce an inset sub-quad whose apparent aspect matches `contentAspect`,
+ *  letterboxing proportionally within the source quad. Linear interpolation along
+ *  opposite edges — approximates perspective inset well for near-axis-aligned quads
+ *  (front) and shears to the correct direction for the angled views. */
+function computeContainSubQuad(
+  quad: NormalizedQuad,
+  objWidth: number,
+  objHeight: number,
+  contentAspect: number,
+): NormalizedQuad {
+  const localQuad = {
+    topLeft: { x: quad.topLeft.x * objWidth, y: quad.topLeft.y * objHeight },
+    topRight: { x: quad.topRight.x * objWidth, y: quad.topRight.y * objHeight },
+    bottomRight: { x: quad.bottomRight.x * objWidth, y: quad.bottomRight.y * objHeight },
+    bottomLeft: { x: quad.bottomLeft.x * objWidth, y: quad.bottomLeft.y * objHeight },
+  };
+  const quadAspect = quadApparentAspect(localQuad);
+  if (quadAspect == null || contentAspect <= 0) return quad;
+  if (Math.abs(contentAspect - quadAspect) < 1e-4) return quad;
+
+  const lerp = (
+    a: { x: number; y: number },
+    b: { x: number; y: number },
+    t: number,
+  ): { x: number; y: number } => ({ x: a.x * (1 - t) + b.x * t, y: a.y * (1 - t) + b.y * t });
+
+  if (contentAspect > quadAspect) {
+    // Content is wider than the quad → letterbox top/bottom. Shrink along vertical axis.
+    const ratio = quadAspect / contentAspect;
+    const inset = (1 - ratio) / 2;
+    return {
+      topLeft: lerp(quad.topLeft, quad.bottomLeft, inset),
+      topRight: lerp(quad.topRight, quad.bottomRight, inset),
+      bottomRight: lerp(quad.bottomRight, quad.topRight, inset),
+      bottomLeft: lerp(quad.bottomLeft, quad.topLeft, inset),
+    };
+  }
+  // Content is narrower than the quad → pillarbox left/right. Shrink along horizontal axis.
+  const ratio = contentAspect / quadAspect;
+  const inset = (1 - ratio) / 2;
+  return {
+    topLeft: lerp(quad.topLeft, quad.topRight, inset),
+    topRight: lerp(quad.topRight, quad.topLeft, inset),
+    bottomRight: lerp(quad.bottomRight, quad.bottomLeft, inset),
+    bottomLeft: lerp(quad.bottomLeft, quad.bottomRight, inset),
+  };
+}
 
 const MESH_SUBDIVISIONS = 8;
 
@@ -43,14 +111,30 @@ export function WarpedScreenContent({ view, width, height, content }: WarpedScre
 
   const asset = mediaContent ? getRegisteredAsset(mediaContent.sourceId) : undefined;
 
+  // v2-S5 K2. The dark backing always fills the FULL preset quad. The content mesh covers
+  // either (a) the full quad in cover mode or when aspects already match, or (b) an inset
+  // sub-quad in contain mode so the content letterboxes within the quad. The outer region
+  // of the quad shows the dark backing — matching the behavior of a real signage screen
+  // showing letterboxed content.
+  const presetQuadNorm = PORTABLE_PRESET_SCREEN_QUADS[view];
   const objectLocalQuad = useMemo(
-    () => normalizedQuadToDocument(PORTABLE_PRESET_SCREEN_QUADS[view], { width, height }),
-    [view, width, height],
+    () => normalizedQuadToDocument(presetQuadNorm, { width, height }),
+    [presetQuadNorm, width, height],
+  );
+  const contentQuadNorm = useMemo(() => {
+    if (!asset || !mediaContent || mediaContent.fit !== 'contain') return presetQuadNorm;
+    if (asset.naturalWidth <= 0 || asset.naturalHeight <= 0) return presetQuadNorm;
+    const contentAspect = asset.naturalWidth / asset.naturalHeight;
+    return computeContainSubQuad(presetQuadNorm, width, height, contentAspect);
+  }, [asset, mediaContent, presetQuadNorm, width, height]);
+  const contentQuadLocal = useMemo(
+    () => normalizedQuadToDocument(contentQuadNorm, { width, height }),
+    [contentQuadNorm, width, height],
   );
 
   const mesh: QuadMeshCell[] | null = useMemo(
-    () => buildQuadMesh(objectLocalQuad, MESH_SUBDIVISIONS),
-    [objectLocalQuad],
+    () => buildQuadMesh(contentQuadLocal, MESH_SUBDIVISIONS),
+    [contentQuadLocal],
   );
 
   const quadPoints = [
