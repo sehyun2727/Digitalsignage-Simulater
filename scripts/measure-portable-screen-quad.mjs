@@ -475,7 +475,8 @@ const jsonOut = {
   _comment:
     'v2-S5 K1. Measured by scripts/measure-portable-screen-quad.mjs. Consumers (e2e tests) should NOT read PORTABLE_PRESET_SCREEN_QUADS — read THIS file so the pixel verification is independent.',
   generatedAt: new Date().toISOString(),
-  views: /** @type {Record<string, { source: { width:number, height:number }, pixel: Record<string, {x:number,y:number}>, normalized: Record<string, {x:number,y:number}> }>} */ ({}),
+  views:
+    /** @type {Record<string, { source: { width:number, height:number }, pixel: Record<string, {x:number,y:number}>, normalized: Record<string, {x:number,y:number}> }>} */ ({}),
 };
 
 for (const { name, path } of IMAGES) {

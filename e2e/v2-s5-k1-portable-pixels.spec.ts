@@ -63,19 +63,6 @@ function quadCentroid(q: NormalizedQuad): { x: number; y: number } {
   };
 }
 
-function rotatePointAroundCenter(
-  p: { x: number; y: number },
-  center: { x: number; y: number },
-  degrees: number,
-): { x: number; y: number } {
-  const rad = (degrees * Math.PI) / 180;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-  const dx = p.x - center.x;
-  const dy = p.y - center.y;
-  return { x: center.x + dx * cos - dy * sin, y: center.y + dx * sin + dy * cos };
-}
-
 /** Convert a normalized quad point (0–1 in the portable's own bbox) to a doc-pixel coord,
  *  given the portable object's current x/y/w/h and rotation (degrees). Konva's default
  *  rotation origin for a Group with no offset is the (x, y) top-left corner, so we rotate

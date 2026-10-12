@@ -145,9 +145,7 @@ test('U2 zoom input displays and accepts %, store keeps raw multiplier, Undo wor
     const i = (parsed.width * midY + x) * 4;
     if (isMagenta(i)) magentaRun++;
   }
-  console.log(
-    `U2 PNG magenta sweep at y=${midY}: magentaWidth=${magentaRun} (store scale=1.5)`,
-  );
+  console.log(`U2 PNG magenta sweep at y=${midY}: magentaWidth=${magentaRun} (store scale=1.5)`);
   expect(magentaRun).toBeGreaterThan(0);
 
   // Undo rolls scale 1.5 → 1.0 (one history step). Undo also deselects the LED in editorStore,

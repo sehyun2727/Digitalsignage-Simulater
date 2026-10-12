@@ -186,9 +186,7 @@ test.describe('direct region move/resize (real pointer drags)', () => {
   }) => {
     await setup(page);
     await addPortable(page);
-    const baselineUndoEnabled = await page
-      .getByRole('button', { name: '元に戻す' })
-      .isEnabled();
+    const baselineUndoEnabled = await page.getByRole('button', { name: '元に戻す' }).isEnabled();
     // Swap view = 1 history entry (one commitObjectChange).
     await openAppearance(page);
     const viewSelect = page.getByLabel(/ビュー|View|뷰/);

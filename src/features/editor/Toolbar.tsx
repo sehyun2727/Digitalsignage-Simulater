@@ -1734,16 +1734,10 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                       </span>
                     </label>
                     <div className="toolbar-actions">
-                      <button
-                        type="button"
-                        onClick={() => beginOcclusionEdit(object.id, mask.id)}
-                      >
+                      <button type="button" onClick={() => beginOcclusionEdit(object.id, mask.id)}>
                         {messages.editorOcclusionEditButton}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteOcclusionMask(object.id, mask.id)}
-                      >
+                      <button type="button" onClick={() => deleteOcclusionMask(object.id, mask.id)}>
                         {messages.editorOcclusionDeleteButton}
                       </button>
                     </div>

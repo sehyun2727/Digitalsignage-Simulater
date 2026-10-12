@@ -163,7 +163,10 @@ test.describe('K4 video capture at document resolution', () => {
     // Thresholded transitions: dark→bright crossings at luminance midpoint 128.
     const transitions: number[] = [];
     for (let x = 1; x < w; x++) {
-      if ((lumRow[x - 1]! < 128 && lumRow[x]! >= 128) || (lumRow[x - 1]! >= 128 && lumRow[x]! < 128)) {
+      if (
+        (lumRow[x - 1]! < 128 && lumRow[x]! >= 128) ||
+        (lumRow[x - 1]! >= 128 && lumRow[x]! < 128)
+      ) {
         transitions.push(x);
       }
     }
@@ -232,9 +235,7 @@ test.describe('K4 video capture at document resolution', () => {
       return video.duration;
     }, base64);
     const wallClock = (t1 - t0) / 1000;
-    console.log(
-      `K4 duration: encoded=${duration.toFixed(2)}s wallClock=${wallClock.toFixed(2)}s`,
-    );
+    console.log(`K4 duration: encoded=${duration.toFixed(2)}s wallClock=${wallClock.toFixed(2)}s`);
     expect(wallClock).toBeGreaterThanOrEqual(4.5);
     expect(wallClock).toBeLessThanOrEqual(8.0);
   });
