@@ -469,6 +469,15 @@ function fmtNorm(pt, w, h) {
   return `{ x: ${(pt.x / w).toFixed(4)}, y: ${(pt.y / h).toFixed(4)} }`;
 }
 
+// v2-S5 K1: also emit a machine-readable JSON file so e2e tests can consume the measured
+// quads directly, without round-tripping through PORTABLE_PRESET_SCREEN_QUADS (circular).
+const jsonOut = {
+  _comment:
+    'v2-S5 K1. Measured by scripts/measure-portable-screen-quad.mjs. Consumers (e2e tests) should NOT read PORTABLE_PRESET_SCREEN_QUADS — read THIS file so the pixel verification is independent.',
+  generatedAt: new Date().toISOString(),
+  views: /** @type {Record<string, { source: { width:number, height:number }, pixel: Record<string, {x:number,y:number}>, normalized: Record<string, {x:number,y:number}> }>} */ ({}),
+};
+
 for (const { name, path } of IMAGES) {
   const { img, count, corners } = await measure(name, path);
   console.log(`\n=== ${name} (${img.width} x ${img.height}, ${count}px screen region) ===`);
@@ -482,4 +491,46 @@ for (const { name, path } of IMAGES) {
   console.log('  topRight:   ', fmtNorm(corners.topRight, img.width, img.height));
   console.log('  bottomRight:', fmtNorm(corners.bottomRight, img.width, img.height));
   console.log('  bottomLeft: ', fmtNorm(corners.bottomLeft, img.width, img.height));
+  jsonOut.views[name] = {
+    source: { width: img.width, height: img.height },
+    pixel: {
+      topLeft: { x: corners.topLeft.x, y: corners.topLeft.y },
+      topRight: { x: corners.topRight.x, y: corners.topRight.y },
+      bottomRight: { x: corners.bottomRight.x, y: corners.bottomRight.y },
+      bottomLeft: { x: corners.bottomLeft.x, y: corners.bottomLeft.y },
+    },
+    normalized: {
+      topLeft: { x: corners.topLeft.x / img.width, y: corners.topLeft.y / img.height },
+      topRight: { x: corners.topRight.x / img.width, y: corners.topRight.y / img.height },
+      bottomRight: { x: corners.bottomRight.x / img.width, y: corners.bottomRight.y / img.height },
+      bottomLeft: { x: corners.bottomLeft.x / img.width, y: corners.bottomLeft.y / img.height },
+    },
+  };
 }
+
+// angled-right is the horizontal mirror of angled-left (per portableTemplate.ts). Derive
+// it so the test can look up all three views from one file.
+if (jsonOut.views['angled-left']) {
+  const al = jsonOut.views['angled-left'];
+  const mirrorPx = (p) => ({ x: al.source.width - p.x, y: p.y });
+  const mirrorNm = (p) => ({ x: 1 - p.x, y: p.y });
+  jsonOut.views['angled-right'] = {
+    source: { ...al.source },
+    pixel: {
+      topLeft: mirrorPx(al.pixel.topRight),
+      topRight: mirrorPx(al.pixel.topLeft),
+      bottomRight: mirrorPx(al.pixel.bottomLeft),
+      bottomLeft: mirrorPx(al.pixel.bottomRight),
+    },
+    normalized: {
+      topLeft: mirrorNm(al.normalized.topRight),
+      topRight: mirrorNm(al.normalized.topLeft),
+      bottomRight: mirrorNm(al.normalized.bottomLeft),
+      bottomLeft: mirrorNm(al.normalized.bottomRight),
+    },
+  };
+}
+
+const jsonPath = resolve(REPO_ROOT, 'tmp/quad-debug/portable-screen-quads.json');
+writeFileSync(jsonPath, JSON.stringify(jsonOut, null, 2));
+console.log(`\n  JSON output: ${jsonPath}`);
