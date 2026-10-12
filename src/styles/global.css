@@ -580,6 +580,30 @@ a {
   color: var(--color-muted);
 }
 
+/* v2-S5 Part 0-2 (approved-by-user: S5 prompt 2026-10-12 (0-2 banner)). The error banner
+ * stack is anchored to the bottom of `.editor-canvas-wrapper` as an absolute overlay so a
+ * tall banner (69 px desktop / 114 px mobile) never gets clipped by the 3rem (48 px) frozen
+ * status-area slot. `pointer-events: none` on the container plus `pointer-events: auto` on
+ * each banner lets Konva Transformer anchors underneath stay clickable in the gaps between
+ * banners; the dismiss × and the banner body stay clickable as normal. z-index 2 sits above
+ * the Konva canvas (z=0) and the watermark badge (z=1) but below any modal dialog. */
+.editor-banner-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0 0.75rem 0.5rem;
+  pointer-events: none;
+}
+
+.editor-banner-overlay .error-banner {
+  pointer-events: auto;
+}
+
 /* v2-S2 error banner (requirement 2-5): cause + remedy on separate lines, warning icon on the
  * left, dismiss × on the right. Dark red text on a light red tint gives a WCAG AA pass against
  * #ffeeee at 4.5:1 while staying visually distinct from the standard body text. */

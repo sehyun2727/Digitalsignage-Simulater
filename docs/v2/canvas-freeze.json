@@ -1,4 +1,21 @@
 {
+  "changeLog": [
+    {
+      "commit": "3e30038",
+      "date": "2026-10-11",
+      "zone": "status-area",
+      "change": ".editor-status-area height 5.5rem (88px) -> 3rem (48px) -- canvas reclaims +40 CSS px vertical.",
+      "approvedBy": "user 2026-10-11 prompt (3-option enlarge-canvas; option S1 selected)",
+      "canvasHeightDelta": {
+        "1920x1080": "+40.00",
+        "1440x900": "0 (width-limited)",
+        "1280x720": "+40.00",
+        "1024x640": "+37.16",
+        "390x844": "0 (mobile 0.7xinnerHeight path)"
+      },
+      "note": "Baseline for all subsequent canvas-freeze measurements. Earlier baseline (18d9fe4 / v2-S3-ok) is kept for reference only."
+    }
+  ],
   "cssSelectorGuard": {
     "comment": "The freeze-selector guard scans src/**/*.css and flags any rule whose selector targets `.editor-workspace`, `.editor-canvas-(column|wrapper|measure|container)`, or `.editor-status-area` — classes whose layout contract is pinned by CLAUDE.md §4bis. Matches outside freeze zones (`CANVAS-FREEZE:BEGIN/END` markers) are errors unless listed below with the exact file+line where the pre-existing rule lives. New additions require [canvas-approved] + updating this allowlist (not silently extending it). Line numbers are 1-indexed and must point at the exact line containing the first character of the matched selector.",
     "classes": [
@@ -11,11 +28,11 @@
     ],
     "allowlist": [
       { "file": "src/styles/global.css", "line": 304, "selector": ".editor-canvas-container" },
-      { "file": "src/styles/global.css", "line": 1227, "selector": ".editor-workspace" },
-      { "file": "src/styles/global.css", "line": 1243, "selector": ".editor-canvas-measure" },
-      { "file": "src/styles/global.css", "line": 1249, "selector": ".editor-canvas-wrapper" },
-      { "file": "src/styles/global.css", "line": 1358, "selector": ".editor-workspace" },
-      { "file": "src/styles/global.css", "line": 1367, "selector": ".editor-canvas-wrapper" }
+      { "file": "src/styles/global.css", "line": 1251, "selector": ".editor-workspace" },
+      { "file": "src/styles/global.css", "line": 1267, "selector": ".editor-canvas-measure" },
+      { "file": "src/styles/global.css", "line": 1273, "selector": ".editor-canvas-wrapper" },
+      { "file": "src/styles/global.css", "line": 1382, "selector": ".editor-workspace" },
+      { "file": "src/styles/global.css", "line": 1391, "selector": ".editor-canvas-wrapper" }
     ]
   },
   "zones": {

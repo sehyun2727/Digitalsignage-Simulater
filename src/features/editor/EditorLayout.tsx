@@ -385,36 +385,48 @@ export function EditorLayout() {
                 </span>
               </div>
             )}
+            {/* v2-S5 Part 0-2 (approved-by-user: S5 prompt 2026-10-12 (0-2 banner)): error
+                banners float as an absolute overlay anchored to the canvas-wrapper bottom.
+                Before this change the three banners sat inside `.editor-status-area` whose
+                height is frozen at 3rem (48 px) — a 69 px desktop banner / 114 px mobile
+                banner was clipped to 48 px with inner scrollbar, hiding 57 / 124 px of
+                content. The overlay keeps `.editor-status-area` at 3rem (freeze intact) and
+                keeps `canvasBbox Δ=0.00` when banners appear/disappear. `pointer-events:none`
+                on the overlay container plus `pointer-events:auto` on each banner lets the
+                Transformer anchors underneath stay clickable in the gaps between banners. */}
+            {(errors['space-photo'] || errors.content || errors.export) && (
+              <div className="editor-banner-overlay" data-testid="editor-banner-overlay">
+                {errors['space-photo'] && (
+                  <ErrorBanner
+                    error={errors['space-photo']}
+                    announce
+                    onDismiss={dismissUploadError}
+                    variant="full"
+                  />
+                )}
+                {errors.content && (
+                  <ErrorBanner
+                    error={errors.content}
+                    announce={!errors['space-photo']}
+                    onDismiss={dismissUploadError}
+                    variant="full"
+                  />
+                )}
+                {errors.export && (
+                  <ErrorBanner
+                    error={errors.export}
+                    announce={!errors['space-photo'] && !errors.content}
+                    onDismiss={dismissUploadError}
+                    variant="full"
+                  />
+                )}
+              </div>
+            )}
           </div>
-          {/* v2-S2 status area below the canvas (requirement 2-5 §3-1, C7). Error banner above
-              the polite status hint when both are present — order is enforced by DOM order, not
-              CSS. The error banner lives here (not inside the canvas container) so its bounding
-              box never overlaps the canvas. */}
+          {/* v2-S2 status area below the canvas (requirement 2-5 §3-1, C7). Only hint lives
+              here now — the ErrorBanner moved into the canvas-wrapper overlay above so the
+              3rem (48 px) status-area height can never clip it (v2-S5 Part 0-2). */}
           <div className="editor-status-area" data-testid="editor-status-area">
-            {errors['space-photo'] && (
-              <ErrorBanner
-                error={errors['space-photo']}
-                announce
-                onDismiss={dismissUploadError}
-                variant="full"
-              />
-            )}
-            {errors.content && (
-              <ErrorBanner
-                error={errors.content}
-                announce={!errors['space-photo']}
-                onDismiss={dismissUploadError}
-                variant="full"
-              />
-            )}
-            {errors.export && (
-              <ErrorBanner
-                error={errors.export}
-                announce={!errors['space-photo'] && !errors.content}
-                onDismiss={dismissUploadError}
-                variant="full"
-              />
-            )}
             <div
               className="editor-status-area-hint"
               role="status"

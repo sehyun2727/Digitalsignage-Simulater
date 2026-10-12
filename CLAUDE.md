@@ -94,12 +94,25 @@
 - **상수 하드코딩 금지**: 「10MB」「3840」 같은 수치는 로케일 문자열에 넣지 말고 UI 레이어에서 상수를 포맷해 넣기.
 - 신규 문구는 **role/label/data-testid**로 테스트가 조회하도록 설계. getByText는 라벨 변경에 취약.
 
-## 4bis. 캔버스 동결 (v2-S4 Step 0-3)
+## 4bis. 캔버스 동결 (v2-S4 Step 0-3, 2026-10-11 사용자 지시로 갱신)
 
-v2-S3-ok(태그 `v2-S3-ok`, 커밋 `18d9fe4`) 시점의 캔버스 표시 방식을 **기준 상태**로 못 박습니다. 기준 상태의 정의:
+**기준 = 커밋 `3e30038`** (status-area 5.5rem→3rem 축소, 사용자 지시로 캔버스 확대 적용). 2026-10-11 사용자 메시지에서 세 가지 옵션 중 S1 안이 승인되어 반영됨. 이전 기준이던 `18d9fe4`(v2-S3-ok)은 참조용으로만 보관.
+
+기준 상태의 정의:
 
 - 문서 크기 1920×1080 / 1080×1920.
 - 폭·높이 안에 비율을 유지한 채 맞춤(미려 확대/축소·오버패닝 없음).
+- `.editor-status-area` 는 **3rem (48px)** 고정 — 그 자리를 캔버스가 가져갔음.
+
+### 캔버스 h 변경 이력 (`18d9fe4` 기준값 → `3e30038` 적용 후, landscape 기준)
+
+| 해상도    | 변경 전 h | 변경 후 h | Δ      |
+| --------- | --------- | --------- | ------ |
+| 1920×1080 | 809.13    | 849.13    | +40.00 |
+| 1440×900  | 589.50    | 589.50    | 0 (width-limited) |
+| 1280×720  | 428.25    | 468.25    | +40.00 |
+| 1024×640  | 318.34    | 355.50    | +37.16 |
+| 390×844   | 590.77    | 590.77    | 0 (mobile 0.7 × window.innerHeight 경로) |
 
 ### 동결 대상 (수정 금지)
 
@@ -111,7 +124,7 @@ v2-S3-ok(태그 `v2-S3-ok`, 커밋 `18d9fe4`) 시점의 캔버스 표시 방식�
 | `measure-container-jsx` | `src/features/editor/EditorCanvas.tsx` | `.editor-canvas-measure` + `.editor-canvas-container` 래퍼 JSX 구조와 inline-style gate                                               |
 | `root-overflow`         | `src/styles/global.css`                | 데스크톱 `html, body, #root { overflow: hidden; height: 100dvh }`                                                                     |
 | `workspace-grid`        | `src/styles/global.css`                | `.editor-workspace` / `.editor-canvas-column` / `.editor-canvas-wrapper` / `.editor-canvas-measure` / `.editor-canvas-container` 규칙 |
-| `status-area`           | `src/styles/global.css`                | `.editor-status-area { flex: 0 0 5.5rem }` + min/max-height 등                                                                        |
+| `status-area`           | `src/styles/global.css`                | `.editor-status-area { flex: 0 0 3rem }` + min/max-height 등 (3e30038 승인)                                                           |
 | `media-breakpoint-72`   | `src/styles/global.css`                | `@media (max-width: 72rem) and (min-width: 48.0001rem)` 블록(헤더 wrap)                                                               |
 | `media-breakpoint-48`   | `src/styles/global.css`                | `@media (max-width: 48rem)` 열림 라인(모바일 stacked 전환)                                                                            |
 
@@ -124,6 +137,12 @@ v2-S3-ok(태그 `v2-S3-ok`, 커밋 `18d9fe4`) 시점의 캔버스 표시 방식�
 ### 수정 절차 ([canvas-approved])
 
 동결 대상을 바꿔야 하면 CC는 **직접 수정하지 말고 멈춰서** 보고합니다. 보고에는 ① 이유, ② 변경 전후 수치, ③ 대안을 반드시 넣습니다. 사용자가 승인한 뒤에만 수정하며, 그 커밋 메시지에 `[canvas-approved]`를 붙입니다.
+
+#### 추가 규칙 (v2-S5 prompt 2026-10-12에서 추가)
+
+- **(a) 자가 승인 금지.** 동결 구역은 사용자 메시지에 명시 승인이 있을 때만 수정합니다. 커밋 본문에 승인 출처(날짜, 지시 내용)를 그대로 적습니다. CC가 "작업 범위를 위해 필요하다" 는 식으로 자가 승인하는 것은 금지입니다.
+- **(b) 게이트 ID는 변경 불가.** 프롬프트에 정의된 게이트 ID(P0, P1, K1~K5, U1~U4, Z, L1, L5, G1~G7, H1~H6' 등)는 바꾸거나 다른 게이트로 대체할 수 없습니다. 이름을 바꾸면 보고서 전체가 NG입니다.
+- **(c) 이월은 사용자 승인 사항.** 다음 스프린트로 넘기려면 사용자에게 명시 승인을 받고 그 근거를 보고서에 적습니다. "범위가 크다"·"일정이 모자라다" 는 이월 사유가 아닙니다. 세션이 모자라면 끝낸 데까지 커밋/handoff/push 하고 중간 보고로 끝내세요 — 이건 이월이 아니라 이어서 하기 입니다.
 
 승인된 수정 커밋은 **같은 커밋**에서 `docs/v2/canvas-freeze.json`의 해당 id도 새 SHA로 갱신합니다. 두 파일을 분리하면 CI(`npm run check:canvas`)가 바로 깨집니다.
 
