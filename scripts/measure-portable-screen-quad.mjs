@@ -28,29 +28,53 @@
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, extname, resolve } from 'node:path';
 import pngjs from 'pngjs';
+import sharp from 'sharp';
 
 const { PNG } = pngjs;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 
+// v2-S4 A안 (2026-10-11): single-source assets. `front` keeps front.png (AI-generated,
+// opaque white background → flood-fill in-browser via maskWhiteBackground). `angled-left`
+// is the raw docodemo.webp (real product shot, native alpha). `angled-right` is derived at
+// render time via scaleX={-1} mirror of `angled-left`, so there is no separate asset or
+// quad to measure here. If docodemo-right.webp / docodemo-front.webp are later added, this
+// list is where to wire them in.
 const IMAGES = [
   { name: 'front', path: resolve(REPO_ROOT, 'src/assets/portable/front.png') },
-  { name: 'angled-left', path: resolve(REPO_ROOT, 'src/assets/portable/angled.png') },
+  { name: 'angled-left', path: resolve(REPO_ROOT, 'src/assets/portable/docodemo.webp') },
 ];
 
-/** Pure-white background pixel (PNG canvas) AND the product's white bezel share
- *  the same "very bright + no chroma" fingerprint. That's fine — we distinguish
- *  them by connectivity, not appearance. */
-function isBezelOrBackground(r, g, b) {
+/** v2-S4 A안: dual-mode body-ish classifier that handles both the AI-generated front.png
+ *  (bright-white background + white bezel) and the docodemo.webp (native alpha + dark-gray
+ *  body). Returns true for pixels that are NOT part of the colorful screen opening — i.e.
+ *  background or bezel/body — so the screen mask then flips to the inverse. */
+function isBezelOrBackground(r, g, b, a) {
+  // Transparent pixel in native-alpha image → outside the product entirely.
+  if (a !== undefined && a < 128) return true;
   const brightness = (r + g + b) / 3;
   const chroma = Math.max(r, g, b) - Math.min(r, g, b);
-  return brightness > 235 && chroma < 18;
+  // Very bright + no chroma = white (front.png background OR bezel).
+  if (brightness > 235 && chroma < 18) return true;
+  // Low chroma + mid/dark brightness = device body (docodemo gray stand/frame). Screen area
+  // is a colorful food photo (chroma well above 25), so this clean threshold separates them.
+  if (chroma < 20) return true;
+  return false;
 }
 
-function decode(path) {
+// v2-S4 A안: PNG goes through pngjs synchronously; WebP (docodemo) is routed through sharp
+// which decodes to raw RGBA so the downstream pixel-sweeping code (floodFillOutside,
+// buildScreenMask, …) can run against the same uniform (R,G,B,A) layout.
+async function decode(path) {
   const buf = readFileSync(path);
+  if (extname(path).toLowerCase() === '.webp') {
+    const image = sharp(buf).ensureAlpha();
+    const metadata = await image.metadata();
+    const { data } = await image.raw().toBuffer({ resolveWithObject: true });
+    return { width: metadata.width, height: metadata.height, data };
+  }
   const png = PNG.sync.read(buf);
   return { width: png.width, height: png.height, data: png.data };
 }
@@ -68,7 +92,7 @@ function floodFillOutside(img) {
     const flat = y * width + x;
     if (outside[flat]) continue;
     const i = flat * 4;
-    if (!isBezelOrBackground(data[i], data[i + 1], data[i + 2])) continue;
+    if (!isBezelOrBackground(data[i], data[i + 1], data[i + 2], data[i + 3])) continue;
     outside[flat] = 1;
     stack.push(x - 1, y, x + 1, y, x, y - 1, x, y + 1);
   }
@@ -87,7 +111,7 @@ function buildScreenMask(img, outside) {
       const flat = y * width + x;
       if (outside[flat]) continue;
       const i = flat * 4;
-      if (isBezelOrBackground(data[i], data[i + 1], data[i + 2])) continue;
+      if (isBezelOrBackground(data[i], data[i + 1], data[i + 2], data[i + 3])) continue;
       mask[flat] = 1;
     }
   }
@@ -421,8 +445,8 @@ function findCornersByDiagonals(mask, width, height) {
   return { topLeft: tl, topRight: tr, bottomRight: br, bottomLeft: bl };
 }
 
-function measure(name, path) {
-  const img = decode(path);
+async function measure(name, path) {
+  const img = await decode(path);
   const outside = floodFillOutside(img);
   const raw = buildScreenMask(img, outside);
   const { mask: seedMask } = largestComponent(raw, img.width, img.height);
@@ -446,7 +470,7 @@ function fmtNorm(pt, w, h) {
 }
 
 for (const { name, path } of IMAGES) {
-  const { img, count, corners } = measure(name, path);
+  const { img, count, corners } = await measure(name, path);
   console.log(`\n=== ${name} (${img.width} x ${img.height}, ${count}px screen region) ===`);
   console.log('Pixel:');
   console.log('  topLeft:    ', fmtPx(corners.topLeft));

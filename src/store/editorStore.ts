@@ -327,6 +327,12 @@ function collectAssetSourceIds(document: EditorDocument, into: Set<string>): voi
  * 참조를 공유해도 됩니다".
  */
 function cloneSignageObject(source: SignageObject): SignageObject {
+  // v2-S4 보완 2026-10-12: carry aspectLocked (BaseSignageObject-level flag) through the
+  // clone — otherwise the paste loses the 🔗 state and portables (default-ON) land in the
+  // document with aspectLocked = undefined, which the Transformer and the width/height
+  // commit path both read as "free resize." The e2e spec
+  // `1-2 aspectLocked state carries into the clipboard copy` and the matrix unit test
+  // `deep compare` are the two gates for this.
   const base = {
     id: source.id,
     x: source.x,
@@ -334,6 +340,7 @@ function cloneSignageObject(source: SignageObject): SignageObject {
     width: source.width,
     height: source.height,
     rotation: source.rotation,
+    aspectLocked: source.aspectLocked,
   };
   if (source.kind === 'text') {
     return {

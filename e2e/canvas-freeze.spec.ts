@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { openSection } from './support/accordion.js';
 import { addSpaceBackground } from './support/spaceBackground.js';
+import { waitForStableBbox } from './support/waitForStableBbox.js';
 
 // v2-S4 Step 0-3 / a-pre. The frozen Stage frame — the editor's `.editor-canvas-container`
 // div (the border-box the Stage mounts inside, which is the single on-screen rectangle the
@@ -33,45 +34,7 @@ interface Scenario {
   height: number;
 }
 
-/** Awaits one browser animation frame. Replaces a magic-number waitForTimeout — the Stage's
- *  ResizeObserver fires on the next frame after a layout change, so a single rAF yields the
- *  settled bbox far more reliably than a fixed sleep (and finishes instantly in CI). */
-async function nextFrame(page: Page): Promise<void> {
-  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
-}
-
-/** Polls `locator.boundingBox()` once per animation frame until two consecutive reads match
- *  within 0.01 px on every edge, then returns that bbox. Guards against mid-layout reads: the
- *  measurement is only accepted once the box has stopped changing. */
-async function waitForStableBbox(
-  page: Page,
-  locator: Locator,
-): Promise<{ x: number; y: number; width: number; height: number }> {
-  const MAX_FRAMES = 120;
-  const EPS = 0.01;
-  let prev: { x: number; y: number; width: number; height: number } | null = null;
-  for (let i = 0; i < MAX_FRAMES; i++) {
-    const box = await locator.boundingBox();
-    if (box == null) {
-      await nextFrame(page);
-      continue;
-    }
-    if (
-      prev &&
-      Math.abs(box.x - prev.x) < EPS &&
-      Math.abs(box.y - prev.y) < EPS &&
-      Math.abs(box.width - prev.width) < EPS &&
-      Math.abs(box.height - prev.height) < EPS
-    ) {
-      return box;
-    }
-    prev = box;
-    await nextFrame(page);
-  }
-  throw new Error(
-    `${SELECTOR} bbox did not stabilize within ${MAX_FRAMES} frames (last=${JSON.stringify(prev)})`,
-  );
-}
+// nextFrame + waitForStableBbox are shared with v2-layout.spec.ts in support/waitForStableBbox.ts
 
 for (const scenario of freeze.stage.scenarios as Scenario[]) {
   const label = `canvas-freeze ${scenario.viewport.w}x${scenario.viewport.h} ${scenario.preset}`;

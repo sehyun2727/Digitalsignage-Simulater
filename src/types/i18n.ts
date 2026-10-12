@@ -282,8 +282,10 @@ export interface Messages {
   toolbarAppearanceEmptyHint: string;
   toolbarAppearanceUnsupportedHint: string;
   toolbarSelectedSignageTypeLabel: string;
-  /** v2-S4-b 1-1: visible label for the toolbar's 「複製」 button (copy + paste in one click). */
-  editorDuplicateObjectButton: string;
+  /** v2-S4-b 1-1 (v2-S4 보완 2026-10-11): visible labels for the Selected section's
+   *  「コピー」/「貼り付け」 button pair (same in-memory clipboard as Ctrl+C/V). */
+  editorCopyObjectButton: string;
+  editorPasteObjectButton: string;
   /** v2-S4-b 1-2: visible label next to the 🔗 ratio-lock toggle in position-size subsection. */
   editorAspectLockToggleLabel: string;
   /** v2-S4-b 1-3: visible labels for the Space section's Fit/Cover segment control. */

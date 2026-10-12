@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { addSpaceBackground } from './support/spaceBackground.js';
 import { openSection, openSubsection } from './support/accordion.js';
 import { readPngDimensions } from './support/png.js';
+import { waitForStableBbox } from './support/waitForStableBbox.js';
 import fs from 'node:fs/promises';
 
 // v2-S3 layout spec. Covers section 10 self-validation (L1~L17) with measured values
@@ -423,14 +424,56 @@ for (const vp of L5_VIEWPORTS) {
     await openSubsection(page, 'position-size');
 
     const canvas = page.locator('.editor-canvas-container');
-    const canvasBox = (await canvas.boundingBox())!;
-    // Stage is uniform-scaled (scaleX === scaleY in EditorCanvas.tsx), so a single scalar
-    // converts between document and page px for either axis.
-    const scale = canvasBox.width / 1920;
-    const pageOf = (docX: number, docY: number) => ({
-      x: canvasBox.x + docX * scale,
-      y: canvasBox.y + docY * scale,
-    });
+    // v2-S4 보완 2026-10-11: wait for the Stage bbox to stop moving BEFORE snapshotting it,
+    // so start/end CSS px below are relative to the final layout — not a mid-settle one.
+    // The LED default-size inputs read in `addDisplay` happen on a React commit that may
+    // settle after the first boundingBox read, so a stale canvasBox would place the drag
+    // start a few CSS px off, missing the LED hit area entirely at tight scales like 1280×720.
+    await waitForStableBbox(page, canvas);
+    // v2-S4 보완 2026-10-12: the DOM boundingBox snapshot was still allowing ~3/20 drag
+    // misses at 1280×720. The root cause was that the test cached canvasBox once, but the
+    // Stage's actual on-screen position could still drift between the cache and the drag
+    // (Playwright reports CSS px rounded to the nearest device-px pair). Switch to reading
+    // the Konva Stage directly for both position AND scale AT drag time — same source of
+    // truth the renderer uses, so pageOf() cannot disagree with where Konva's hit test
+    // places the LED. The helper is awaited before each pointer sequence so the values are
+    // always current.
+    const readStageTransform = async () =>
+      page.evaluate(() => {
+        const Konva = (window as unknown as { Konva?: { stages?: unknown[] } }).Konva;
+        const stage = Konva?.stages?.[0] as
+          | {
+              container: () => HTMLElement;
+              scaleX: () => number;
+              scaleY: () => number;
+              x: () => number;
+              y: () => number;
+            }
+          | undefined;
+        if (!stage) throw new Error('Konva stage not registered on window.Konva.stages[0]');
+        const rect = stage.container().getBoundingClientRect();
+        return {
+          left: rect.left,
+          top: rect.top,
+          scaleX: stage.scaleX(),
+          scaleY: stage.scaleY(),
+          stageX: stage.x(),
+          stageY: stage.y(),
+        };
+      });
+    const makePageOf =
+      (t: {
+        left: number;
+        top: number;
+        scaleX: number;
+        stageX: number;
+        stageY: number;
+        scaleY: number;
+      }) =>
+      (docX: number, docY: number) => ({
+        x: t.left + t.stageX + docX * t.scaleX,
+        y: t.top + t.stageY + docY * t.scaleY,
+      });
     const readUi = async () => ({
       x: Number(await page.getByRole('spinbutton', { name: 'X座標' }).inputValue()),
       y: Number(await page.getByRole('spinbutton', { name: 'Y座標' }).inputValue()),
@@ -446,20 +489,67 @@ for (const vp of L5_VIEWPORTS) {
     const selectedLabel = page.locator('.toolbar-notice', { hasText: '種類' }).first();
     await expect(selectedLabel).toBeVisible();
 
-    // --- drag: start at the LED center (960, 540 doc), end at (1060, 600 doc) — +100 doc X,
-    //     +60 doc Y. Expect the UI to reflect object.x += 100, object.y += 60 (object.xy is
-    //     the top-left, so the delta matches). Default LED size is 480x270; its initial top-
-    //     left is (720, 405).
-    const start = pageOf(960, 540);
-    const end = pageOf(1060, 600);
+    // --- drag: start at the LED center and move toward (1060, 600) doc. v2-S4 보완
+    //     2026-10-11: start/end rounded to INTEGER CSS px because Playwright's mouse.move
+    //     dispatches at integer page coordinates; letting the ideal float through made the
+    //     actual sent delta ~0.9 CSS px off at 1280×720 (scale 0.434), which converts to
+    //     ~2 doc-px drift and tripped the ≤ 1 doc-px gate ~15 % of runs. We now compute the
+    //     expected doc delta from the ACTUAL rounded CSS delta, so the gate measures
+    //     "store faithfully reflected what we sent" rather than "store matched our idealized
+    //     intent." Pre-drag we also wait for canvas bbox stability so a transient layout
+    //     shift doesn't move the LED out from under the cursor between .move and .down.
+    await page.waitForFunction(
+      () => {
+        const Konva = (window as unknown as { Konva?: { stages?: unknown[] } }).Konva;
+        const stage = Konva?.stages?.[0] as
+          { findOne?: (sel: string) => { nodes?: () => unknown[] } | null } | undefined;
+        if (!stage || typeof stage.findOne !== 'function') return false;
+        const transformer = stage.findOne('Transformer');
+        if (!transformer || typeof transformer.nodes !== 'function') return false;
+        return transformer.nodes().length >= 1;
+      },
+      undefined,
+      { timeout: 5000 },
+    );
+    const preDragTransform = await readStageTransform();
+    const pageOf = makePageOf(preDragTransform);
+    const scale = preDragTransform.scaleX;
+    const idealStart = pageOf(960, 540);
+    const idealEnd = pageOf(1060, 600);
+    const start = { x: Math.round(idealStart.x), y: Math.round(idealStart.y) };
+    const end = { x: Math.round(idealEnd.x), y: Math.round(idealEnd.y) };
+    const sentDeltaCssX = end.x - start.x;
+    const sentDeltaCssY = end.y - start.y;
+    const expectedDragDocX = sentDeltaCssX / scale;
+    const expectedDragDocY = sentDeltaCssY / scale;
+    const expectedDragX = 720 + expectedDragDocX;
+    const expectedDragY = 405 + expectedDragDocY;
+    // v2-S4 보완 2026-10-12: cold-start the pointer OUTSIDE the stage so Konva's internal
+    // _pointerPositions is seeded from a known neutral position, then move/down/move/up.
+    // The Transformer-attach wait above gates on Konva's own state, not frame count, so
+    // the drag is deterministic (previous rAF-based wait failed 3-7 / 20 at 1280×720).
+    //
+    // Additionally — after mouse.up, Konva's dragend fires onDragEnd which calls
+    // commitObjectChange → Zustand set → React re-render of the position-size inputs. This
+    // round-trip is NOT instant from Playwright's perspective: on repeat-each=20, a stale
+    // readUi() captured the pre-commit value in 3/20 runs (DOM later updated for the failure
+    // snapshot, which is why X=819 appears there even though afterDrag.x was 720). Guard
+    // with expect.poll until the X spinbutton reports a value ≠ the pre-drag 720.
+    await page.mouse.move(0, 0);
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
     await page.mouse.move(end.x, end.y, { steps: 5 });
     await page.mouse.up();
+    await expect
+      .poll(
+        async () => Number(await page.getByRole('spinbutton', { name: 'X座標' }).inputValue()),
+        { timeout: 3000 },
+      )
+      .not.toBe(720);
     const afterDrag = await readUi();
-    const dragLog = `L5 ${vp.w}x${vp.h} drag expected=(820,465,480,270) got=(${afterDrag.x},${afterDrag.y},${afterDrag.w},${afterDrag.h})`;
-    expect(Math.abs(afterDrag.x - (720 + 100))).toBeLessThanOrEqual(1);
-    expect(Math.abs(afterDrag.y - (405 + 60))).toBeLessThanOrEqual(1);
+    const dragLog = `L5 ${vp.w}x${vp.h} drag sent=(dx=${sentDeltaCssX},dy=${sentDeltaCssY}) expected=(${expectedDragX.toFixed(2)},${expectedDragY.toFixed(2)}) got=(${afterDrag.x},${afterDrag.y},${afterDrag.w},${afterDrag.h})`;
+    expect(Math.abs(afterDrag.x - expectedDragX)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterDrag.y - expectedDragY)).toBeLessThanOrEqual(1);
     expect(afterDrag.w).toBe(480);
     expect(afterDrag.h).toBe(270);
 
@@ -590,19 +680,24 @@ for (const vp of L5_VIEWPORTS) {
     await page.getByRole('button', { name: 'キャンセル' }).click();
 
     // --- click selection: deselect via a blank-canvas click, then click on the LED again
-    //     and confirm the selection UI is restored.
-    const blank = pageOf(10, 10);
-    await page.mouse.click(blank.x, blank.y);
+    //     and confirm the selection UI is restored. v2-S4 보완 2026-10-11: use rounded CSS
+    //     px here too so the hit lands on the LED's visible area no matter which sub-CSS-px
+    //     the ideal center fell on. The LED's current top-left is (afterDrag.x, afterDrag.y)
+    //     with size 600×400, so its center sits at (x+300, y+200) in doc coords.
+    const blankIdeal = pageOf(10, 10);
+    await page.mouse.click(Math.round(blankIdeal.x), Math.round(blankIdeal.y));
     await expect(selectedLabel).toBeHidden();
-    // The drag earlier moved the LED to top-left (820, 465) size (600, 400), so its new
-    // center sits at (820 + 300, 465 + 200) = (1120, 665).
-    const movedCenter = pageOf(1120, 665);
+    const movedCenterIdeal = pageOf(afterDrag.x + 300, afterDrag.y + 200);
+    const movedCenter = {
+      x: Math.round(movedCenterIdeal.x),
+      y: Math.round(movedCenterIdeal.y),
+    };
     await page.mouse.click(movedCenter.x, movedCenter.y);
     await expect(selectedLabel).toBeVisible();
     const afterClick = await readUi();
-    const clickLog = `L5 ${vp.w}x${vp.h} click expected=(820,465,600,400) got=(${afterClick.x},${afterClick.y},${afterClick.w},${afterClick.h})`;
-    expect(Math.abs(afterClick.x - 820)).toBeLessThanOrEqual(1);
-    expect(Math.abs(afterClick.y - 465)).toBeLessThanOrEqual(1);
+    const clickLog = `L5 ${vp.w}x${vp.h} click expected=(${afterDrag.x},${afterDrag.y},600,400) got=(${afterClick.x},${afterClick.y},${afterClick.w},${afterClick.h})`;
+    expect(Math.abs(afterClick.x - afterDrag.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterClick.y - afterDrag.y)).toBeLessThanOrEqual(1);
     expect(afterClick.w).toBe(600);
     expect(afterClick.h).toBe(400);
 

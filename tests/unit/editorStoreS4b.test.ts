@@ -324,3 +324,160 @@ describe('v2-S4-b 1-3 space background fit', () => {
     expect(useEditorStore.getState().past.length).toBe(past);
   });
 });
+
+// v2-S4 보완 2026-10-12. The original 1-1 block covered only LED; the Part 1-1 gate in the
+// prompt asks for a 4-type matrix (LED / LCD / transparent-LED / portable) across the
+// (+20n stagger, clamp, deep compare, independent editing, Undo/Redo, asset-ref sharing)
+// axes. Each kind adds one add-call shape, so the harness factors a single helper that
+// picks the right add method, then every behaviour is checked uniformly.
+describe('v2-S4-b 1-1 clipboard — 4-type matrix', () => {
+  beforeEach(() => {
+    vi.stubGlobal('Image', SucceedingMockImage);
+    resetStore();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  type Kind = { label: string; add: () => void };
+  const KINDS: Kind[] = [
+    { label: 'LED', add: () => useEditorStore.getState().addDisplay('led') },
+    { label: 'LCD', add: () => useEditorStore.getState().addDisplay('lcd') },
+    {
+      label: 'transparent-LED',
+      add: () => useEditorStore.getState().addDisplay('transparent-led'),
+    },
+    { label: 'portable', add: () => useEditorStore.getState().addPortable() },
+  ];
+
+  function expectDeepEqualIgnoring(a: unknown, b: unknown, ignore: Set<string>): void {
+    // Compare two SignageObject-shaped values key-by-key, skipping keys in `ignore`
+    // (we drop id and the geometry fields that are expected to differ by the paste shift).
+    const ao = a as Record<string, unknown>;
+    const bo = b as Record<string, unknown>;
+    const keys = new Set([...Object.keys(ao), ...Object.keys(bo)]);
+    for (const key of keys) {
+      if (ignore.has(key)) continue;
+      expect({ key, value: ao[key] }).toEqual({ key, value: bo[key] });
+    }
+  }
+
+  for (const { label, add } of KINDS) {
+    describe(`${label}`, () => {
+      it('pastes n=1,2,3 at exactly (+20n, +20n) from the original (positional)', () => {
+        addPhoto();
+        add();
+        const base = useEditorStore.getState().document.objects[0]!;
+        const store = useEditorStore.getState();
+        store.copySelected();
+        store.pasteFromClipboard();
+        store.pasteFromClipboard();
+        store.pasteFromClipboard();
+        const pasted = useEditorStore.getState().document.objects.slice(1);
+        for (let i = 0; i < pasted.length; i++) {
+          const n = i + 1;
+          expect(pasted[i]!.x - base.x).toBe(20 * n);
+          expect(pasted[i]!.y - base.y).toBe(20 * n);
+        }
+      });
+
+      it('paste clamps inside the document (bottom-right corner, (+20,+20) overflow)', () => {
+        addPhoto();
+        add();
+        const docW = 1920;
+        const docH = 1080;
+        const target = useEditorStore.getState().document.objects[0]!;
+        useEditorStore.getState().commitObjectChange(target.id, {
+          x: docW - target.width + 10,
+          y: docH - target.height + 10,
+        });
+        const target2 = useEditorStore.getState().document.objects[0]!;
+        useEditorStore.getState().copySelected();
+        useEditorStore.getState().pasteFromClipboard();
+        const pasted = useEditorStore.getState().document.objects[1]!;
+        // Clamped exactly to (docW - w, docH - h) because +20 overflow would push past.
+        expect(pasted.x).toBe(docW - target2.width);
+        expect(pasted.y).toBe(docH - target2.height);
+        expect(pasted.x + pasted.width).toBeLessThanOrEqual(docW);
+        expect(pasted.y + pasted.height).toBeLessThanOrEqual(docH);
+      });
+
+      it('deep compare: all non-position properties on original match the copy', () => {
+        addPhoto();
+        add();
+        const original = useEditorStore.getState().document.objects[0]!;
+        useEditorStore.getState().copySelected();
+        useEditorStore.getState().pasteFromClipboard();
+        const copy = useEditorStore.getState().document.objects[1]!;
+        expect(copy.id).not.toBe(original.id);
+        // Everything except id, x, y should match (perspectiveQuad is null here so it
+        // compares equal; portable screenQuad is populated identically from presets).
+        expectDeepEqualIgnoring(original, copy, new Set(['id', 'x', 'y']));
+      });
+
+      it('independent editing: changing the copy leaves the original unmodified', () => {
+        addPhoto();
+        add();
+        const original = useEditorStore.getState().document.objects[0]!;
+        const originalMaterialSettings =
+          (original as DisplaySignageObject).materialSettings ??
+          (original as PortableSignageObject).materialSettings;
+        useEditorStore.getState().copySelected();
+        useEditorStore.getState().pasteFromClipboard();
+        const copy = useEditorStore.getState().document.objects[1]!;
+        useEditorStore.getState().commitObjectChange(copy.id, {
+          materialSettings: { ...originalMaterialSettings, brightness: 99 },
+        });
+        const finalOriginal = useEditorStore
+          .getState()
+          .document.objects.find((o) => o.id === original.id)!;
+        const originalBrightness =
+          (finalOriginal as DisplaySignageObject).materialSettings?.brightness ??
+          (finalOriginal as PortableSignageObject).materialSettings?.brightness;
+        expect(originalBrightness).toBe(originalMaterialSettings.brightness);
+        expect(originalBrightness).not.toBe(99);
+      });
+
+      it('content revoke-safe: deleting the copy keeps the original referencing the same sourceId', () => {
+        addPhoto();
+        add();
+        const target = useEditorStore.getState().document.objects[0]!;
+        useEditorStore.getState().commitObjectChange(target.id, {
+          content: {
+            kind: 'image',
+            sourceId: `shared-${label}`,
+            fit: 'contain',
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1,
+            rotation: 0,
+          },
+        });
+        useEditorStore.getState().copySelected();
+        useEditorStore.getState().pasteFromClipboard();
+        const copy = useEditorStore.getState().document.objects[1]!;
+        // Delete the copy's content via commitObjectChange (sets to null); the original must
+        // still carry the sourceId so the decoded asset stays reachable.
+        useEditorStore.getState().commitObjectChange(copy.id, { content: null });
+        const originalAfter = useEditorStore
+          .getState()
+          .document.objects.find((o) => o.id === target.id)! as DisplaySignageObject;
+        expect(originalAfter.content).toBeDefined();
+        expect(originalAfter.content!.kind).toBe('image');
+        expect((originalAfter.content as { sourceId: string }).sourceId).toBe(`shared-${label}`);
+      });
+
+      it('Undo removes the paste in one history step; Redo restores it', () => {
+        addPhoto();
+        add();
+        useEditorStore.getState().copySelected();
+        useEditorStore.getState().pasteFromClipboard();
+        expect(useEditorStore.getState().document.objects).toHaveLength(2);
+        useEditorStore.getState().undo();
+        expect(useEditorStore.getState().document.objects).toHaveLength(1);
+        useEditorStore.getState().redo();
+        expect(useEditorStore.getState().document.objects).toHaveLength(2);
+      });
+    });
+  }
+});

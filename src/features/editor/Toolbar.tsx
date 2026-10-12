@@ -684,7 +684,9 @@ function SelectedSignageFields({ object: selected }: { object: SignageObject }) 
   const { messages } = useLocale();
   const commitObjectChange = useEditorStore((state) => state.commitObjectChange);
   const updateObjectTransient = useEditorStore((state) => state.updateObjectTransient);
-  const duplicateSelected = useEditorStore((state) => state.duplicateSelected);
+  const copySelected = useEditorStore((state) => state.copySelected);
+  const pasteFromClipboard = useEditorStore((state) => state.pasteFromClipboard);
+  const clipboardPresent = useEditorStore((state) => state.clipboard !== null);
   const [draft, setDraft] = useState<Draft>(() => toDraft(selected));
 
   // Reflect store-side changes (canvas drag/rotate/resize, undo, redo) back into the numeric
@@ -713,17 +715,29 @@ function SelectedSignageFields({ object: selected }: { object: SignageObject }) 
         <span>{signageTypeLabel(selected, messages)}</span>
       </p>
 
-      {/* v2-S4-b 1-1: keyboard-less entry point for Ctrl+C → Ctrl+V. The handler is
-          `duplicateSelected`, not `copySelected`, because the spec says this button must
-          perform "복사+붙여넣기 1회" as a single net action. */}
-      <button
-        type="button"
-        className="toolbar-row-button"
-        data-testid="editor-duplicate-object"
-        onClick={() => duplicateSelected()}
-      >
-        {messages.editorDuplicateObjectButton}
-      </button>
+      {/* v2-S4-b 1-1 (v2-S4 보완 2026-10-11): PDF 원문 「画面上にもコピー・貼り付けボタンを設置」
+          와 일치하도록 「複製」 → 「コピー」+「貼り付け」. 두 버튼과 Ctrl+C/V는 같은
+          editorStore.clipboard 상태를 공유 — Ctrl+C 후 「貼り付け」 클릭도, 「コピー」 클릭 후
+          Ctrl+V도 동일 동작. 「貼り付け」는 clipboard가 비어 있으면 disabled. */}
+      <div className="toolbar-actions">
+        <button
+          type="button"
+          className="toolbar-row-button"
+          data-testid="editor-copy-object"
+          onClick={() => copySelected()}
+        >
+          {messages.editorCopyObjectButton}
+        </button>
+        <button
+          type="button"
+          className="toolbar-row-button"
+          data-testid="editor-paste-object"
+          disabled={!clipboardPresent}
+          onClick={() => pasteFromClipboard()}
+        >
+          {messages.editorPasteObjectButton}
+        </button>
+      </div>
 
       <PositionSizeSubsection
         selected={selected}
