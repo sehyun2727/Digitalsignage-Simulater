@@ -91,13 +91,13 @@ e2e 스펙 17줄이 아직도 옛 라벨을 찾습니다:
 
 **보수적 해석**: qa:visual 7 failed를 기준선의 알려진 회귀로 등록합니다. S2 이후에서 "コンテンツを追加" 라벨(또는 그 대체명)이 어떤 UI에 실제로 존재하는지 확인하고, e2e 헬퍼를 실제 라벨로 갱신해야 합니다. 이 실패는 코드 회귀가 아니라 **테스트 코드와 UI 라벨의 불일치**로 판단합니다(pre-v2 refactor 8cdbd77에서 라벨 변경).
 
-## v2-S5 상태 (2026-10-13)
+## v2-S5 상태 (2026-10-13 S5 종료)
 
-- **알려진 e2e 실패 0건** — v2-S5 K3 + U3 가 21/21 해소.
-- test:e2e:core: **223 passed / 0 failed = 223 total**. 식: 169 (S4 종료 시) + 21 (K3+U3 로 해소) + 33 (S5 신규 테스트) = 223.
-  - 신규 S5 테스트 33건: `e2e/v2-s5-banner.spec.ts` 12 + `e2e/v2-s5-ui.spec.ts` 5 + `e2e/v2-s5-video.spec.ts` 4 + `e2e/v2-s5-k1-portable-pixels.spec.ts` 12 = 33.
+- **알려진 e2e 실패 0건** — v2-S5 전체 완료.
+- test:e2e:core: **230 passed / 0 failed = 230 total**. 식: 169 (S4 종료 시) + 21 (K3+U3로 해소) + 37 (S5 신규 테스트 + V9 분할 + U4 신규) + 3 (K2 신규) = 230.
+  - 신규 S5 테스트: `v2-s5-banner.spec.ts` 12 + `v2-s5-ui.spec.ts` 8 (U1 3 + U2 2 + U3 1 + U4 3) + `v2-s5-video.spec.ts` 4 + `v2-s5-k1-portable-pixels.spec.ts` 12 + `v2-s5-k2-portable-fit.spec.ts` 3 = 39.
 - test:run (unit): **662 passed / 0 failed** (전 661 + K5 1).
-- 아래 "알려진 실패 21건" 표는 v2-S4-a 시점의 상태 기록으로 보존 — 해당 테스트 이름들은 전부 통과하도록 재작성/수정됐으며 상세는 commits `a296141` (U3 occlusion inline) + `bc1d34d` (K3 portable rewrite) + `460c266` (U1/U2) + `53dfcd6` (K5) + `bd1ada8` (K1) 참조.
+- 아래 "알려진 실패 21건" 표는 v2-S4-a 시점의 상태 기록으로 보존 — 해당 테스트 이름들은 전부 통과하도록 재작성/수정됐으며 상세는 commits `a296141` (U3 occlusion inline) + `bc1d34d` (K3 portable rewrite) + `460c266` (U1/U2) + `53dfcd6` (K5) + `bd1ada8` (K1) + `9474b66` (K2 + U4) + `066a873` (6건 e2e U4 rebase) 참조.
 
 ---
 

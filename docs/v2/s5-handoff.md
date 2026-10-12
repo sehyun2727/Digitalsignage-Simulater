@@ -1,27 +1,35 @@
-# v2-S5 handoff (2026-10-12, 세션 마감 중간 보고)
+# v2-S5 handoff (2026-10-13, S5 전체 완료)
 
-S5 범위 중 다수 완료, 두 항목(K2, U4)은 "이어서 하기" 로 남김. 세션 모자람 자체는
-사용자 승인 사항(이월) 아니라 CLAUDE.md §4bis (c) 가 허용하는 "continuation" —
-구현 분석과 토대는 이번 세션에서 끝났고 다음 세션에서 그대로 이어서 완성한다.
+**S5 범위 전부 완료.** 2026-10-12 중간 보고에서 "이어서 하기"로 분류됐던 K2 / U4가
+같은 세션 안에서 이어서 완성됐음.
+
+- K2 (perspectiveLogicalSize 공통화): `WarpedScreenContent.tsx`에 fit=contain 분기
+  추가, 3 view × 16:9 content 모두 ±1% 안 측정. 상세는 K2 섹션.
+- U4 (AdvancedSettingsModal → inline accordion): `AdvancedSettingsSection.tsx`로 교체,
+  `AdvancedSettingsModal.tsx` 삭제. role=dialog count 0 (Content, Appearance 둘 다).
+  6건 e2e 재조정 (「閉じる」 modal button 참조 삭제).
+
+최종 측정: `test:e2e:core` **230 passed / 0 failed = 230 total**. unit **662 passed /
+0 failed**.
 
 ## 상태 요약
 
-| 범위     | 상태            | 비고                                                                                            |
-| -------- | --------------- | ----------------------------------------------------------------------------------------------- |
-| P0 (0-1) | 완료            | CLAUDE.md §4bis, canvas-freeze.json changeLog, requirements.md 2-1 전부 갱신                    |
-| P0 (0-2) | 완료            | 배너 overlay 적용 (approved-by-user 커밋 `8756a0f`). cutoff 57→0, 124→0 (12/12 cell)            |
-| P0 (0-3) | 완료            | CLAUDE.md §4bis 수정 절차에 (a)(b)(c) 3개 규칙 추가                                             |
-| P0 (0-4) | 완료            | a-1 잔차는 실제 ≤ 0.001 (정규화), 소스-px 기준 max ≈ 1.0 px, RMS ≈ 0.84 px. 아래 상세 표 참조.  |
-| K1       | 완료            | 12/12 scenario 통과 (3 view × 4 condition)                                                      |
-| K2       | **이어서 하기** | perspectiveLogicalSize 를 WarpedScreenContent 에 적용하는 production 변경 필요 (상세 아래)      |
-| K3       | 완료            | 21/21 known failures → 0 failures (14 portable + 2 mobile + 3 occlusion + 1 reselection + m-03) |
-| K4       | 완료            | C12-video 해결. 영상 raw 해상도 1920×1080 / 1080×1920, 8px 줄무늬 period 8.00, 대비 1.000       |
-| K5       | 완료            | mask 추가 / 4점 edit / 적용 / 삭제 전부 1 Undo-step                                             |
-| U1       | 완료            | 16/16 slider 에 가시 값 label (SliderValueDisplay). ArrowRight×5 아리아 ↔ 가시 일치             |
-| U2       | 완료            | 콘텐츠 zoom 100/150/300%, store 는 raw multiplier 유지, Undo OK                                 |
-| U3       | 완료            | 「手前の物で隠す（マスク）」 패널 인라인화. click 8 → 6, F-occlusion 4 해결                     |
-| U4       | **이어서 하기** | AdvancedSettingsModal 인라인 전환 미완 (상세 아래)                                              |
-| Z        | 부분 완료       | typecheck/lint/format/unit/build/build:oitemiru/check:canvas 전부 통과; e2e core 결과 포함      |
+| 범위     | 상태 | 비고                                                                                             |
+| -------- | ---- | ------------------------------------------------------------------------------------------------ |
+| P0 (0-1) | 완료 | CLAUDE.md §4bis, canvas-freeze.json changeLog, requirements.md 2-1 전부 갱신                     |
+| P0 (0-2) | 완료 | 배너 overlay 적용 (approved-by-user 커밋 `8756a0f`). cutoff 57→0, 124→0 (12/12 cell)             |
+| P0 (0-3) | 완료 | CLAUDE.md §4bis 수정 절차에 (a)(b)(c) 3개 규칙 추가                                              |
+| P0 (0-4) | 완료 | a-1 잔차는 실제 ≤ 0.001 (정규화), 소스-px 기준 max ≈ 1.0 px, RMS ≈ 0.84 px. 아래 상세 표 참조.   |
+| K1       | 완료 | 12/12 scenario 통과 (3 view × 4 condition)                                                       |
+| K2       | 완료 | WarpedScreenContent fit=contain 분기, 16:9 content aspect err 측정: front 0.05%, angled-\* 0.86% |
+| K3       | 완료 | 21/21 known failures → 0 failures (14 portable + 2 mobile + 3 occlusion + 1 reselection + m-03)  |
+| K4       | 완료 | C12-video 해결. 영상 raw 해상도 1920×1080 / 1080×1920, 8px 줄무늬 period 8.00, 대비 1.000        |
+| K5       | 완료 | mask 추가 / 4점 edit / 적용 / 삭제 전부 1 Undo-step                                              |
+| U1       | 완료 | 16/16 slider 에 가시 값 label (SliderValueDisplay). ArrowRight×5 아리아 ↔ 가시 일치              |
+| U2       | 완료 | 콘텐츠 zoom 100/150/300%, store 는 raw multiplier 유지, Undo OK                                  |
+| U3       | 완료 | 「手前の物で隠す（マスク）」 패널 인라인화. click 8 → 6, F-occlusion 4 해결                      |
+| U4       | 완료 | AdvancedSettingsSection 인라인 교체, role=dialog 0, 6건 e2e 재조정                               |
+| Z        | 완료 | 8종 전부 통과; e2e core 230 / 0, unit 662 / 0                                                    |
 
 ## P0 0-4: a-1 잔차 정정표
 
