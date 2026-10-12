@@ -580,6 +580,34 @@ a {
   color: var(--color-muted);
 }
 
+/* v2-S5 U1 (3-3). Live current-value readout rendered next to every range slider in the
+ * right panel. Monospace width is clamped so the number doesn't push the slider around as
+ * it changes magnitude ("5%" → "100%" is a 1-char swing). min-width = 3.5ch covers 3 chars
+ * + a sign + a unit without wrapping. aria-hidden on the <span> itself (set in Toolbar.tsx)
+ * because the input's native aria-valuenow is already announced. */
+.toolbar-slider-value {
+  display: inline-block;
+  min-width: 3.5ch;
+  margin-left: 0.4rem;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+/* v2-S5 U2 (3-4). Content zoom input renders as `<number input>%`. The flex group pins the
+ * trailing % to the input's right edge so the user reads "150%" as one unit. */
+.toolbar-percent-field-group {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
+}
+
+.toolbar-percent-suffix {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
 /* v2-S5 Part 0-2 (approved-by-user: S5 prompt 2026-10-12 (0-2 banner)). The error banner
  * stack is anchored to the bottom of `.editor-canvas-wrapper` as an absolute overlay so a
  * tall banner (69 px desktop / 114 px mobile) never gets clipped by the 3rem (48 px) frozen

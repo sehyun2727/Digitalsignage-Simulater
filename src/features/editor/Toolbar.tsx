@@ -140,6 +140,30 @@ export function Toolbar({
 }
 
 /**
+ * v2-S5 U1 (3-3). Visible current-value label for every slider in the panel. Sits next to
+ * the range input so a mouse/keyboard user sees the live reading without having to listen
+ * to assistive tech read aria-valuenow. `aria-hidden` because screen readers already have
+ * aria-valuenow via the native range input. `data-testid` is a single value so the e2e
+ * can count all sliders at once.
+ */
+function SliderValueDisplay({
+  value,
+  unit,
+  decimals = 0,
+}: {
+  value: number;
+  unit: '%' | '°' | 'px' | '';
+  decimals?: number;
+}) {
+  return (
+    <span className="toolbar-slider-value" aria-hidden="true" data-testid="toolbar-slider-value">
+      {value.toFixed(decimals)}
+      {unit}
+    </span>
+  );
+}
+
+/**
  * v2-S3 2-2: collapsible toolbar section. Default state per section lives in uiStore
  * (`accordionOpen`); the heading is a `<button>` with `aria-expanded`/`aria-controls`,
  * reachable with Enter and Space (native button behaviour). When closed, the body is NOT
@@ -1172,21 +1196,32 @@ function ContentFields({ object }: { object: DisplaySignageObject | PortableSign
                 />
               </label>
 
-              <label>
+              {/* v2-S5 U2 (3-4). Zoom input is user-facing % — a `scale: 1` multiplier is
+                  "100%", 1.5 is "150%", 3 is "300%". Store continues to hold the raw
+                  multiplier (0.5–3 range per MIN/MAX_CONTENT_SCALE) so no downstream code
+                  changes. The input shows an integer percent and converts both ways. The
+                  trailing <span>%</span> is the visible unit suffix. */}
+              <label className="toolbar-percent-field">
                 <span>{messages.editorContentScaleLabel}</span>
-                <input
-                  type="number"
-                  step={0.1}
-                  min={MIN_CONTENT_SCALE}
-                  max={MAX_CONTENT_SCALE}
-                  value={scaleDraft}
-                  onChange={(event) => setScaleDraft(Number(event.target.value))}
-                  onBlur={() => {
-                    commit({
-                      content: { ...mediaContent, scale: clampContentScale(scaleDraft) },
-                    });
-                  }}
-                />
+                <span className="toolbar-percent-field-group">
+                  <input
+                    type="number"
+                    step={10}
+                    min={Math.round(MIN_CONTENT_SCALE * 100)}
+                    max={Math.round(MAX_CONTENT_SCALE * 100)}
+                    value={Math.round(scaleDraft * 100)}
+                    onChange={(event) => setScaleDraft(Number(event.target.value) / 100)}
+                    onBlur={() => {
+                      commit({
+                        content: { ...mediaContent, scale: clampContentScale(scaleDraft) },
+                      });
+                    }}
+                    data-testid="editor-content-scale-input"
+                  />
+                  <span aria-hidden="true" className="toolbar-percent-suffix">
+                    %
+                  </span>
+                </span>
               </label>
 
               <button
@@ -1251,6 +1286,7 @@ function ContentFields({ object }: { object: DisplaySignageObject | PortableSign
                 })
               }
             />
+            <SliderValueDisplay value={textContent.fontSize * 100} unit="%" />
           </label>
 
           <label>
@@ -1588,6 +1624,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
           }
           onBlur={() => commitMaterialSettings({ intensity: clampMaterialSetting(intensityDraft) })}
         />
+        <SliderValueDisplay value={intensityDraft} unit="%" />
       </label>
 
       <label>
@@ -1609,6 +1646,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
             commitMaterialSettings({ brightness: clampMaterialSetting(brightnessDraft) })
           }
         />
+        <SliderValueDisplay value={brightnessDraft} unit="%" />
       </label>
 
       {isTransparentLed && (
@@ -1645,6 +1683,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                   commitMaterialSettings({ transparency: clampMaterialSetting(transparencyDraft) })
                 }
               />
+              <SliderValueDisplay value={transparencyDraft} unit="%" />
             </label>
           )}
 
@@ -1668,6 +1707,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                   commitMaterialSettings({ gridDensity: clampMaterialSetting(gridDensityDraft) })
                 }
               />
+              <SliderValueDisplay value={gridDensityDraft} unit="%" />
             </label>
           )}
 
@@ -1689,6 +1729,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                 }
                 onBlur={() => commitMaterialSettings({ glow: clampMaterialSetting(glowDraft) })}
               />
+              <SliderValueDisplay value={glowDraft} unit="%" />
             </label>
           )}
 
@@ -1711,6 +1752,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                 commitMaterialSettings({ contrast: clampMaterialSetting(contrastDraft) })
               }
             />
+            <SliderValueDisplay value={contrastDraft} unit="%" />
           </label>
 
           <button type="button" onClick={resetMaterial}>
@@ -1763,6 +1805,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                   commitCurvature({ amount: clampCurvatureAmount(curvatureAmountDraft) })
                 }
               />
+              <SliderValueDisplay value={curvatureAmountDraft} unit="%" />
             </label>
           )}
 
@@ -1810,6 +1853,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                         value={occlusionDraftFeather}
                         onChange={(event) => setOcclusionDraftFeather(Number(event.target.value))}
                       />
+                      <SliderValueDisplay value={occlusionDraftFeather} unit="%" />
                     </label>
                     <label>
                       <span>{messages.editorOcclusionOpacityLabel}</span>
@@ -1820,6 +1864,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                         value={occlusionDraftOpacity}
                         onChange={(event) => setOcclusionDraftOpacity(Number(event.target.value))}
                       />
+                      <SliderValueDisplay value={occlusionDraftOpacity} unit="%" />
                     </label>
                     {!validation.valid && validation.reason && (
                       <p role="alert" className="editor-properties-error">
@@ -1939,6 +1984,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                       })
                     }
                   />
+                  <SliderValueDisplay value={shadowStrengthDraft} unit="%" />
                 </label>
 
                 <label>
@@ -1960,6 +2006,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                       commitContactShadow({ blur: clampContactShadowSetting(shadowBlurDraft) })
                     }
                   />
+                  <SliderValueDisplay value={shadowBlurDraft} unit="%" />
                 </label>
 
                 <label>
@@ -2011,6 +2058,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                       commitContactShadow({ spread: clampContactShadowSpread(shadowSpreadDraft) })
                     }
                   />
+                  <SliderValueDisplay value={shadowSpreadDraft} unit="px" />
                 </label>
 
                 <label>
@@ -2032,6 +2080,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                       commitContactShadow({ depth: clampContactShadowSpread(shadowDepthDraft) })
                     }
                   />
+                  <SliderValueDisplay value={shadowDepthDraft} unit="px" />
                 </label>
 
                 <label>
@@ -2053,6 +2102,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                       commitContactShadow({ tint: clampContactShadowTint(shadowTintDraft) })
                     }
                   />
+                  <SliderValueDisplay value={shadowTintDraft} unit="" />
                 </label>
               </>
             )}
@@ -2090,6 +2140,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                   })
                 }
               />
+              <SliderValueDisplay value={environmentStrengthDraft} unit="%" />
             </label>
 
             <div className="toolbar-actions">

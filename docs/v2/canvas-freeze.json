@@ -28,11 +28,11 @@
     ],
     "allowlist": [
       { "file": "src/styles/global.css", "line": 304, "selector": ".editor-canvas-container" },
-      { "file": "src/styles/global.css", "line": 1251, "selector": ".editor-workspace" },
-      { "file": "src/styles/global.css", "line": 1267, "selector": ".editor-canvas-measure" },
-      { "file": "src/styles/global.css", "line": 1273, "selector": ".editor-canvas-wrapper" },
-      { "file": "src/styles/global.css", "line": 1382, "selector": ".editor-workspace" },
-      { "file": "src/styles/global.css", "line": 1391, "selector": ".editor-canvas-wrapper" }
+      { "file": "src/styles/global.css", "line": 1279, "selector": ".editor-workspace" },
+      { "file": "src/styles/global.css", "line": 1295, "selector": ".editor-canvas-measure" },
+      { "file": "src/styles/global.css", "line": 1301, "selector": ".editor-canvas-wrapper" },
+      { "file": "src/styles/global.css", "line": 1410, "selector": ".editor-workspace" },
+      { "file": "src/styles/global.css", "line": 1419, "selector": ".editor-canvas-wrapper" }
     ]
   },
   "zones": {
