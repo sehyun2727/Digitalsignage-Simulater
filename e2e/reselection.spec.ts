@@ -84,23 +84,23 @@ test.describe('canvas object reselection', () => {
   });
 
   test('a custom portable product is reselectable after being deselected', async ({ page }) => {
+    // v2-S5 K3 rewrite: PortableBuilderModal removed by `eef7335`. Compound-model equivalent
+    // intent — "a portable product reselects correctly after deselection" — tests the same
+    // Konva hit-test fix path without the removed dialog + the 「画面領域を編集」 button
+    // (which no longer exists in the user-facing UI; template-view select replaces it).
     await setup(page);
-    await page.getByRole('button', { name: 'ポータブル' }).click();
-    const dialog = page.getByRole('dialog');
-    const photo = await solidColorPng(page, '#1155ff');
-    await dialog
-      .locator('input[type="file"]')
-      .setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: photo });
-    await dialog.getByRole('button', { name: '次へ' }).click();
-    await dialog.getByRole('button', { name: '追加', exact: true }).click();
-    await expect(dialog).toBeHidden();
+    await page.getByTestId('editor-add-portable').click();
+    await expect(page.getByText('ポータブル製品', { exact: true })).toBeVisible();
     await expect(deleteButton(page)).toBeEnabled();
 
     await deselectViaBlankCanvas(page);
     await reselectViaCanvasClick(page);
 
     await expect(deleteButton(page)).toBeEnabled();
-    await expect(page.getByRole('button', { name: '画面領域を編集' })).toBeVisible();
+    // Compound-model stable marker: the portable's template-view select is in the DOM
+    // (same role the old "画面領域を編集" button served — proof the portable is selected).
+    await openSection(page, 'appearance');
+    await expect(page.getByLabel(/ビュー|View|뷰/)).toBeVisible();
   });
 
   test('a display carrying text content is reselectable after being deselected', async ({
