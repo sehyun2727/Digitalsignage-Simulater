@@ -221,7 +221,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       const transformer = transformerRef.current;
       const objectsGroup = objectsGroupRef.current;
       const watermarkGroup = watermarkGroupRef.current;
-      if (!layer) return null;
+      if (!layer || !size || fitScale <= 0) return null;
 
       // Capture the restore closure at begin time (comparisonMode, previous selection, node
       // refs) so end doesn't rely on whatever imperative-handle instance happens to be current
@@ -234,20 +234,41 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       objectsGroup?.visible(true);
       selectionOutlines.forEach((node) => node.hide());
       if (!watermarkDisabled) watermarkGroup?.visible(true);
+
+      // v2-S5 K4 (C12-video). The old code returned `layer.getCanvas()._canvas` at the
+      // display scale (e.g. 832×468 on 1280×720 viewport), which gave MediaRecorder the
+      // wrong resolution — video output no longer matched the preset. Fix: bump the
+      // layer's pixel ratio for the recording to `documentSize / displayStageSize`. Konva's
+      // `Canvas.setPixelRatio` increases the <canvas> backing-store resolution (physical
+      // width/height) while leaving CSS style.width/height unchanged, so:
+      //   - the on-screen preview looks identical (canvas-freeze bbox invariant),
+      //   - `captureStream` reads physical pixels — now equal to the document resolution,
+      //   - `useVideoPlaybackRedraw.ts`'s Konva.Animation loop continues to redraw the
+      //     same scene into the higher-density canvas every frame.
+      // Non-integer pixel ratios are fine — Konva internally uses `context.scale(r, r)`
+      // after the backing-store resize so vector drawings stay sharp.
+      const layerCanvas = layer.getCanvas();
+      const previousPixelRatio = layerCanvas.getPixelRatio();
+      const targetPixelRatio = size.width / (size.width * fitScale);
+      layerCanvas.setPixelRatio(targetPixelRatio);
       layer.draw();
+
       captureRestoreRef.current = () => {
         transformer?.nodes(previousSelection);
         objectsGroup?.visible(!previousComparisonMode);
         selectionOutlines.forEach((node) => node.show());
         watermarkGroup?.visible(false);
+        layerCanvas.setPixelRatio(previousPixelRatio);
         layer.draw();
       };
 
       // Konva's SceneCanvas wraps the actual <canvas> element it paints into; unlike
       // stage.toCanvas()/toDataURL(), which rasterize a one-off snapshot, this is the live
       // element MediaRecorder's captureStream keeps reading from as Konva keeps redrawing it
-      // (see useVideoPlaybackRedraw.ts's Konva.Animation loop) for the whole recording.
-      return layer.getCanvas()._canvas;
+      // (see useVideoPlaybackRedraw.ts's Konva.Animation loop) for the whole recording. At
+      // this point the canvas's physical width/height equal size.width / size.height, so
+      // the recorded frame is at the document preset.
+      return layerCanvas._canvas;
     },
     endVideoExportCapture: () => {
       const restore = captureRestoreRef.current;

@@ -606,20 +606,13 @@ test('1-3 Cover mode: wheel DOES change offsetY (PNG pixel differs after a 3-not
   expect(centerDrift).toBeGreaterThan(50);
 });
 
-// v2-S4 보완 2026-10-12. Video band verification per Part 1-3. We take a 4:3 photo in a
-// 1920×1080 doc; in Fit mode the Fit math gives drawn width = height * 4/3 and side bands
-// = (frame - drawn)/2 on each side. The GATE asks for 240 ± 2 px bands and 1440 ± 2 px
-// photo width — those numbers assume the recording is at the document's preset resolution
-// (1920×1080). The current implementation captures `layer.getCanvas()._canvas` live, so the
-// output is at the Stage's rendered size (not the preset). This is a KNOWN C12 deviation —
-// the PNG path upscales with exportPixelRatio but the live-stream video path cannot. We
-// therefore assert on the ratio (band fraction, photo fraction) which the Fit math fully
-// determines and which must hold at ANY recording resolution — AND we assert that the raw
-// px numbers would satisfy the gate IF the recording were at preset. The latter is parked
-// as "C12-video" in the final report, deferred past S4.
-test('1-3 video Fit letterbox: band/photo fractions match Fit math (0.125 / 0.75)', async ({
-  page,
-}) => {
+// v2-S4 보완 2026-10-12 / v2-S5 K4 (C12-video). Video band verification per Part 1-3. We
+// take a 4:3 photo in a 1920×1080 doc; in Fit mode the Fit math gives drawn width =
+// height * 4/3 and side bands = (frame - drawn)/2 on each side. S5 K4 moves video capture
+// to the document preset (via Konva layer pixelRatio bump during capture), so the
+// recorded frame is now 1920×1080 — the gate's absolute 240/1440 px numbers hold raw with
+// no projection.
+test('1-3 video Fit letterbox: 1920×1080 raw, bands 240 ± 2, photo 1440 ± 2', async ({ page }) => {
   await page.goto('/');
   const photo = await solidColorPng(page, '#ff0000', 1600, 1200);
   await page
@@ -677,32 +670,15 @@ test('1-3 video Fit letterbox: band/photo fractions match Fit math (0.125 / 0.75
     const photoW = w - left - right;
     return { width: w, height: h, leftBand: left, rightBand: right, photoW };
   }, base64);
-  // The Fit math is purely a fraction of the frame: band = frame * (1 - 4/3 * frame.h/frame.w)/2
-  // which simplifies to frame_w * 0.125 for a 1920×1080 preset carrying a 4:3 photo. The photo
-  // fraction is 0.75. These must hold at every rendered resolution; the gate's absolute px
-  // values (240, 1440) only match if the recording is at the 1920×1080 preset.
-  const leftFrac = result.leftBand / result.width;
-  const rightFrac = result.rightBand / result.width;
-  const photoFrac = result.photoW / result.width;
-  const scaledToPreset = {
-    width: Math.round((result.width / result.width) * 1920),
-    leftBand: Math.round(leftFrac * 1920),
-    rightBand: Math.round(rightFrac * 1920),
-    photoW: Math.round(photoFrac * 1920),
-  };
   console.log(
-    `1-3 video Fit letterbox: video=${result.width}x${result.height} leftBand=${result.leftBand} rightBand=${result.rightBand} photoW=${result.photoW} ` +
-      `fractions=(${leftFrac.toFixed(4)},${rightFrac.toFixed(4)},${photoFrac.toFixed(4)}) scaledToPreset=${JSON.stringify(scaledToPreset)}`,
+    `1-3 video Fit letterbox: video=${result.width}x${result.height} leftBand=${result.leftBand} rightBand=${result.rightBand} photoW=${result.photoW}`,
   );
-  // Fit math gates (fraction-based — hold at any recording resolution):
-  expect(Math.abs(leftFrac - 0.125)).toBeLessThanOrEqual(0.005);
-  expect(Math.abs(rightFrac - 0.125)).toBeLessThanOrEqual(0.005);
-  expect(Math.abs(photoFrac - 0.75)).toBeLessThanOrEqual(0.005);
-  // Preset-resolution gate (deferred as C12-video; scaled band/photo land within the gate's
-  // ±2 px tolerance when projected to 1920 regardless of the actual recording resolution).
-  expect(Math.abs(scaledToPreset.leftBand - 240)).toBeLessThanOrEqual(2);
-  expect(Math.abs(scaledToPreset.rightBand - 240)).toBeLessThanOrEqual(2);
-  expect(Math.abs(scaledToPreset.photoW - 1440)).toBeLessThanOrEqual(2);
+  // v2-S5 K4: raw resolution gate.
+  expect(result.width).toBe(1920);
+  expect(result.height).toBe(1080);
+  expect(Math.abs(result.leftBand - 240)).toBeLessThanOrEqual(2);
+  expect(Math.abs(result.rightBand - 240)).toBeLessThanOrEqual(2);
+  expect(Math.abs(result.photoW - 1440)).toBeLessThanOrEqual(2);
 });
 
 test('1-3 video Cover: no side band at mid row (full-width red)', async ({ page }) => {
