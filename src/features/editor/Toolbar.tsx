@@ -1655,6 +1655,119 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
 
       <p className="toolbar-notice">{messages.editorMaterialPreviewNotice}</p>
 
+      {/* v2-S5 U3 (3-5). 「手前の物で隠す（マスク）」 — formerly nested inside the
+          AdvancedSettingsModal where entering edit mode would unmount the Apply/Cancel
+          buttons until the user re-opened the modal. Now it sits inline in AppearanceFields
+          so step-by-step guidance + 4-point drawing + Apply/Cancel are visible together
+          (click count 「追加→4点→適用」 = 6, previously 「追加→4点→詳細設定再開→適用」 = 8). */}
+      <div className="toolbar-subsection" data-testid="occlusion-inline-subsection">
+        <span className="toolbar-subsection-heading">{messages.editorOcclusionLabel}</span>
+        <p className="toolbar-notice">{messages.editorOcclusionPurposeHint}</p>
+
+        {occlusionEditObjectId === object.id ? (
+          (() => {
+            const validation = validateOcclusionPolygon(occlusionDraftPoints);
+            return (
+              <>
+                <p className="toolbar-notice">{messages.editorOcclusionHint}</p>
+                <label>
+                  <span>{messages.editorOcclusionFeatherLabel}</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={occlusionDraftFeather}
+                    onChange={(event) => setOcclusionDraftFeather(Number(event.target.value))}
+                  />
+                  <SliderValueDisplay value={occlusionDraftFeather} unit="%" />
+                </label>
+                <label>
+                  <span>{messages.editorOcclusionOpacityLabel}</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={occlusionDraftOpacity}
+                    onChange={(event) => setOcclusionDraftOpacity(Number(event.target.value))}
+                  />
+                  <SliderValueDisplay value={occlusionDraftOpacity} unit="%" />
+                </label>
+                {!validation.valid && validation.reason && (
+                  <p role="alert" className="editor-properties-error">
+                    {messages[OCCLUSION_ERROR_KEY[validation.reason]]}
+                  </p>
+                )}
+                <div className="editor-properties-actions">
+                  <button type="button" onClick={cancelOcclusionEdit}>
+                    {messages.editorOcclusionCancelButton}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyOcclusionEdit()}
+                    disabled={!validation.valid}
+                    data-testid="editor-occlusion-apply"
+                  >
+                    {messages.editorOcclusionApplyButton}
+                  </button>
+                </div>
+              </>
+            );
+          })()
+        ) : (
+          <>
+            {object.occlusionMasks.length === 0 ? (
+              <p className="toolbar-notice">{messages.editorOcclusionEmptyHint}</p>
+            ) : (
+              <ul className="toolbar-occlusion-list">
+                {object.occlusionMasks.map((mask, index) => (
+                  <li key={mask.id}>
+                    <label className="toolbar-checkbox-field">
+                      <input
+                        type="checkbox"
+                        checked={mask.enabled}
+                        onChange={(event) =>
+                          setOcclusionMaskEnabled(object.id, mask.id, event.target.checked)
+                        }
+                      />
+                      <span>
+                        {messages.editorOcclusionMaskItemLabel} {index + 1}
+                      </span>
+                    </label>
+                    <div className="toolbar-actions">
+                      <button
+                        type="button"
+                        onClick={() => beginOcclusionEdit(object.id, mask.id)}
+                      >
+                        {messages.editorOcclusionEditButton}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteOcclusionMask(object.id, mask.id)}
+                      >
+                        {messages.editorOcclusionDeleteButton}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="toolbar-actions">
+              <button
+                type="button"
+                data-testid="editor-occlusion-add"
+                onClick={() => beginOcclusionEdit(object.id)}
+                disabled={!spaceBackground}
+              >
+                {messages.editorOcclusionAddButton}
+              </button>
+            </div>
+          </>
+        )}
+        {!spaceBackground && occlusionEditObjectId !== object.id && (
+          <p className="toolbar-notice">{messages.editorOcclusionNoSpaceHint}</p>
+        )}
+      </div>
+
       <div className="editor-properties-actions">
         <button type="button" onClick={() => setSettingsOpen(true)}>
           {messages.editorAdvancedSettingsOpenButton}
@@ -1834,118 +1947,13 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
             </label>
           </div>
 
-          <div className="toolbar-subsection">
-            <span className="toolbar-subsection-heading">{messages.editorOcclusionLabel}</span>
-
-            {occlusionEditObjectId === object.id ? (
-              // Edit mode: feather/opacity sliders + Cancel/Apply inline in the toolbar
-              // so the canvas isn't covered by the floating panel on mobile.
-              (() => {
-                const validation = validateOcclusionPolygon(occlusionDraftPoints);
-                return (
-                  <>
-                    <label>
-                      <span>{messages.editorOcclusionFeatherLabel}</span>
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={occlusionDraftFeather}
-                        onChange={(event) => setOcclusionDraftFeather(Number(event.target.value))}
-                      />
-                      <SliderValueDisplay value={occlusionDraftFeather} unit="%" />
-                    </label>
-                    <label>
-                      <span>{messages.editorOcclusionOpacityLabel}</span>
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={occlusionDraftOpacity}
-                        onChange={(event) => setOcclusionDraftOpacity(Number(event.target.value))}
-                      />
-                      <SliderValueDisplay value={occlusionDraftOpacity} unit="%" />
-                    </label>
-                    {!validation.valid && validation.reason && (
-                      <p role="alert" className="editor-properties-error">
-                        {messages[OCCLUSION_ERROR_KEY[validation.reason]]}
-                      </p>
-                    )}
-                    <div className="editor-properties-actions">
-                      <button type="button" onClick={cancelOcclusionEdit}>
-                        {messages.editorOcclusionCancelButton}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyOcclusionEdit()}
-                        disabled={!validation.valid}
-                      >
-                        {messages.editorOcclusionApplyButton}
-                      </button>
-                    </div>
-                  </>
-                );
-              })()
-            ) : (
-              <>
-                {object.occlusionMasks.length === 0 ? (
-                  <p className="toolbar-notice">{messages.editorOcclusionEmptyHint}</p>
-                ) : (
-                  <ul className="toolbar-occlusion-list">
-                    {object.occlusionMasks.map((mask, index) => (
-                      <li key={mask.id}>
-                        <label className="toolbar-checkbox-field">
-                          <input
-                            type="checkbox"
-                            checked={mask.enabled}
-                            onChange={(event) =>
-                              setOcclusionMaskEnabled(object.id, mask.id, event.target.checked)
-                            }
-                          />
-                          <span>
-                            {messages.editorOcclusionMaskItemLabel} {index + 1}
-                          </span>
-                        </label>
-                        <div className="toolbar-actions">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSettingsOpen(false);
-                              beginOcclusionEdit(object.id, mask.id);
-                            }}
-                          >
-                            {messages.editorOcclusionEditButton}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteOcclusionMask(object.id, mask.id)}
-                          >
-                            {messages.editorOcclusionDeleteButton}
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="toolbar-actions">
-                  <button
-                    type="button"
-                    data-testid="editor-occlusion-add"
-                    onClick={() => {
-                      setSettingsOpen(false);
-                      beginOcclusionEdit(object.id);
-                    }}
-                    disabled={!spaceBackground}
-                  >
-                    {messages.editorOcclusionAddButton}
-                  </button>
-                </div>
-              </>
-            )}
-            {!spaceBackground && occlusionEditObjectId !== object.id && (
-              <p className="toolbar-notice">{messages.editorOcclusionNoSpaceHint}</p>
-            )}
-          </div>
+          {/* v2-S5 U3 (3-5): the 「手前の物で隠す（マスク）」 subsection was inside this
+              AdvancedSettingsModal in S4, but entering edit mode closed the modal so Apply
+              / Cancel / feather / opacity became invisible — the user had to re-open the
+              modal (「追加→4点→詳細設定再オープン→適用」, 2 extra clicks). S5 moves the
+              whole subsection UP to the main AppearanceFields body (see the inline block
+              inserted right before this modal). Mask list, Add, feather/opacity, and
+              Apply/Cancel are all reachable without ever reopening a modal. */}
 
           <div className="toolbar-subsection">
             <span className="toolbar-subsection-heading">{messages.editorContactShadowLabel}</span>

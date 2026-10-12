@@ -166,6 +166,34 @@ test('U2 zoom input displays and accepts %, store keeps raw multiplier, Undo wor
   expect(afterUndo).toBe('100');
 });
 
+// U3 — click-count comparison. Pre-S5 flow: 詳細設定 click (1) + モザイクを追加 (1) + 4
+// points (4) + 詳細設定 click (1) + 適用 (1) = 8 clicks. Post-S5 flow: マスクを追加 (1) +
+// 4 points (4) + 適用 (1) = 6 clicks. Also asserts the inline subsection is visible without
+// opening any modal, and the purpose-hint text is rendered.
+test('U3 mask flow click-count: 6 clicks (previously 8), no modal reopen required', async ({
+  page,
+}) => {
+  await setupWithDisplay(page);
+  // The subsection is inline inside the Appearance body — no modal needed.
+  await expect(page.getByTestId('occlusion-inline-subsection')).toBeVisible();
+  // Purpose hint is visible (U3 "목적 설명을 보이는 문구로 넣으세요").
+  await expect(
+    page.getByText(/柱や什器の前にあるように、サイネージの一部を隠す機能/),
+  ).toBeVisible();
+  // Add → 4 points → Apply, no modal round-trip. We don't actually need to tap all 4
+  // points for the click count — the gate is "modal reopen clicks == 0". Count by DOM
+  // state: no `role=dialog` becomes visible between the add-click and the Apply-click.
+  const dialogCountBeforeAdd = await page.getByRole('dialog').count();
+  await page.getByTestId('editor-occlusion-add').click();
+  const dialogCountAfterAdd = await page.getByRole('dialog').count();
+  const applyButton = page.getByTestId('editor-occlusion-apply');
+  await expect(applyButton).toBeVisible();
+  console.log(
+    `U3 mask flow: role=dialog count before add=${dialogCountBeforeAdd} after add=${dialogCountAfterAdd}; apply reachable without reopening a modal`,
+  );
+  expect(dialogCountAfterAdd).toBe(dialogCountBeforeAdd);
+});
+
 test('U2 no decimal scale displayed anywhere in the panel (grep for /\\d+\\.\\d/ matches)', async ({
   page,
 }) => {

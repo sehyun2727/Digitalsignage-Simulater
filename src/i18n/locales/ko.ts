@@ -311,10 +311,13 @@ export const ko: Messages = {
   editorInstallationModeWindow: '창면(투과)',
   editorInstallationModeFreestanding: '독립형',
 
-  editorOcclusionLabel: '모자이크',
-  editorOcclusionMaskItemLabel: '모자이크',
-  editorOcclusionEmptyHint: '아직 모자이크가 없습니다.',
-  editorOcclusionAddButton: '모자이크 추가',
+  editorOcclusionLabel: '앞에 있는 물체로 가리기 (마스크)',
+  editorOcclusionMaskItemLabel: '마스크',
+  editorOcclusionEmptyHint: '아직 마스크가 없습니다.',
+  editorOcclusionAddButton: '마스크 추가',
+  // v2-S5 U3 (3-5) ADR D-3: visible purpose description shown above the mask flow.
+  editorOcclusionPurposeHint:
+    '기둥·집기 앞에 있는 것처럼 사이니지의 일부를 가리는 기능입니다. 범위를 지정하면 그 부분만 공간 사진이 앞으로 나옵니다.',
   editorOcclusionEditButton: '편집',
   editorOcclusionDeleteButton: '삭제',
   editorOcclusionEnableLabel: '사용',

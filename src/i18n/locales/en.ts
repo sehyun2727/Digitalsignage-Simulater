@@ -312,10 +312,13 @@ export const en: Messages = {
   editorInstallationModeWindow: 'Window (see-through)',
   editorInstallationModeFreestanding: 'Freestanding',
 
-  editorOcclusionLabel: 'Mosaic',
-  editorOcclusionMaskItemLabel: 'Mosaic',
-  editorOcclusionEmptyHint: 'No mosaics yet.',
-  editorOcclusionAddButton: 'Add mosaic',
+  editorOcclusionLabel: 'Hide behind a foreground object (mask)',
+  editorOcclusionMaskItemLabel: 'Mask',
+  editorOcclusionEmptyHint: 'No masks yet.',
+  editorOcclusionAddButton: 'Add mask',
+  // v2-S5 U3 (3-5) ADR D-3: visible purpose description shown above the mask flow.
+  editorOcclusionPurposeHint:
+    'Hides part of the signage as if a pillar or furniture were in front of it. The marked area shows the space photo on top instead.',
   editorOcclusionEditButton: 'Edit',
   editorOcclusionDeleteButton: 'Delete',
   editorOcclusionEnableLabel: 'Enabled',

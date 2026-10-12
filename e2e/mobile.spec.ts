@@ -415,9 +415,13 @@ test('mobile: draws a foreground occlusion mask via tap-to-add points at 390x844
   await addSpaceBackground(page, 1080, 1920);
   await page.getByRole('button', { name: '縦長 (9:16)' }).click();
   await page.getByRole('button', { name: 'LED', exact: true }).click();
-  await page.getByRole('button', { name: '詳細設定', exact: true }).scrollIntoViewIfNeeded();
-  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
-
+  // v2-S5 U3 (3-5): the occlusion add button moved from inside AdvancedSettingsModal into
+  // the inline AppearanceFields subsection. Open the Appearance accordion directly — no
+  // modal needed.
+  await page
+    .getByRole('button', { name: /外観|외관|Appearance/, exact: false })
+    .first()
+    .click();
   await page.getByTestId('editor-occlusion-add').scrollIntoViewIfNeeded();
   await page.getByTestId('editor-occlusion-add').click();
   await expectNoHorizontalOverflow(page);
@@ -440,9 +444,7 @@ test('mobile: draws a foreground occlusion mask via tap-to-add points at 390x844
   await expect(applyButton).toBeEnabled();
   await applyButton.click();
 
-  // Applying closes the mask-edit overlay but not the settings modal it was opened from, which
-  // auto-closed when the mask draft started; reopen it to see the mask list entry.
-  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
+  // v2-S5 U3: mask list is inline — no modal reopen needed.
   await expect(page.getByText('マスク 1', { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });

@@ -234,6 +234,8 @@ export interface Messages {
   editorOcclusionMaskItemLabel: string;
   editorOcclusionEmptyHint: string;
   editorOcclusionAddButton: string;
+  /** v2-S5 U3 (3-5). Visible description above the mask flow. */
+  editorOcclusionPurposeHint: string;
   editorOcclusionEditButton: string;
   editorOcclusionDeleteButton: string;
   editorOcclusionEnableLabel: string;

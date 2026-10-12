@@ -317,10 +317,13 @@ export const ja: Messages = {
   editorInstallationModeWindow: '窓面(透過)',
   editorInstallationModeFreestanding: '自立式',
 
-  editorOcclusionLabel: 'モザイク',
-  editorOcclusionMaskItemLabel: 'モザイク',
-  editorOcclusionEmptyHint: 'モザイクはまだありません。',
-  editorOcclusionAddButton: 'モザイクを追加',
+  editorOcclusionLabel: '手前の物で隠す（マスク）',
+  editorOcclusionMaskItemLabel: 'マスク',
+  editorOcclusionEmptyHint: 'まだマスクはありません。',
+  editorOcclusionAddButton: 'マスクを追加',
+  // v2-S5 U3 (3-5) ADR D-3: visible purpose description shown above the mask flow.
+  editorOcclusionPurposeHint:
+    '柱や什器の前にあるように、サイネージの一部を隠す機能です。範囲を指定するとその部分だけ空間写真が前面に出ます。',
   editorOcclusionEditButton: '編集',
   editorOcclusionDeleteButton: '削除',
   editorOcclusionEnableLabel: '有効',
