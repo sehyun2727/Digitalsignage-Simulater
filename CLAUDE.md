@@ -187,6 +187,8 @@
 
 - 보고서에서 "포맷 일치", "확인함", "통과함"만 적힌 항목은 NG로 간주합니다. 수치(측정값, 비교 결과, 차이)를 함께 적습니다.
 - 수치 없는 어서션(예: `expect(x).toBeTruthy()`)은 가능하면 수치 어서션으로 교체합니다. 교체가 어려우면 로그에 측정값을 기록합니다.
+- **테스트 이름 = 확인 내용**: 테스트 이름이 실제 assertion과 다르면 **약화로 간주**합니다 (v2-S5 보완 2026-10-13). "`a foreground occlusion mask restores the space photo over the masked screen area`"처럼 이름이 구체적인 결과를 명시하면 assertion도 그 결과를 수치로 검증해야 합니다. 이름을 유지한 채 assertion만 느슨해지면 보고서 전체가 NG입니다. 리네이밍이 필요하면 handoff/baseline에 "옛 이름 → 새 이름" 로 기록합니다.
+- **CI 확인 의무** (v2-S5 보완 2026-10-13 추가): 모든 push 뒤 `gh run list --branch v2 -L 1` 과 `gh run watch` 로 결과를 확인합니다. 보고서에는 run ID 와 conclusion 을 기록합니다. CI 가 red 인 상태로 다음 작업에 들어가는 것은 금지입니다. `gh` 가 없으면 그 사실을 보고하고, push 전에 CI 와 같은 명령(format:check → lint → typecheck → test:run → check:canvas → build → build:oitemiru) 을 순서대로 돌려 결과를 기록합니다. `.git/hooks/pre-push` 가 `npm run format:check` 를 자동 실행해 unformatted push 를 블록합니다 (`FORMAT_CHECK=skip` 로 비상 시에만 우회).
 
 ### 5-6. 본서버 배포는 AI가 하지 않습니다
 
