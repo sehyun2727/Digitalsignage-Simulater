@@ -1,0 +1,132 @@
+{
+  "_comment": "v2-S5 K1. Measured by scripts/measure-portable-screen-quad.mjs. Consumers (e2e tests) should NOT read PORTABLE_PRESET_SCREEN_QUADS — read THIS file so the pixel verification is independent.",
+  "generatedAt": "2026-10-12T12:45:36.542Z",
+  "views": {
+    "front": {
+      "source": {
+        "width": 1024,
+        "height": 1536
+      },
+      "pixel": {
+        "topLeft": {
+          "x": 230,
+          "y": 104
+        },
+        "topRight": {
+          "x": 792,
+          "y": 104
+        },
+        "bottomRight": {
+          "x": 793,
+          "y": 1162
+        },
+        "bottomLeft": {
+          "x": 230,
+          "y": 1163
+        }
+      },
+      "normalized": {
+        "topLeft": {
+          "x": 0.224609375,
+          "y": 0.06770833333333333
+        },
+        "topRight": {
+          "x": 0.7734375,
+          "y": 0.06770833333333333
+        },
+        "bottomRight": {
+          "x": 0.7744140625,
+          "y": 0.7565104166666666
+        },
+        "bottomLeft": {
+          "x": 0.224609375,
+          "y": 0.7571614583333334
+        }
+      }
+    },
+    "angled-left": {
+      "source": {
+        "width": 1300,
+        "height": 1900
+      },
+      "pixel": {
+        "topLeft": {
+          "x": 354,
+          "y": 170
+        },
+        "topRight": {
+          "x": 825,
+          "y": 280
+        },
+        "bottomRight": {
+          "x": 1019,
+          "y": 1358
+        },
+        "bottomLeft": {
+          "x": 546,
+          "y": 1431
+        }
+      },
+      "normalized": {
+        "topLeft": {
+          "x": 0.2723076923076923,
+          "y": 0.08947368421052632
+        },
+        "topRight": {
+          "x": 0.6346153846153846,
+          "y": 0.14736842105263157
+        },
+        "bottomRight": {
+          "x": 0.7838461538461539,
+          "y": 0.7147368421052631
+        },
+        "bottomLeft": {
+          "x": 0.42,
+          "y": 0.7531578947368421
+        }
+      }
+    },
+    "angled-right": {
+      "source": {
+        "width": 1300,
+        "height": 1900
+      },
+      "pixel": {
+        "topLeft": {
+          "x": 475,
+          "y": 280
+        },
+        "topRight": {
+          "x": 946,
+          "y": 170
+        },
+        "bottomRight": {
+          "x": 754,
+          "y": 1431
+        },
+        "bottomLeft": {
+          "x": 281,
+          "y": 1358
+        }
+      },
+      "normalized": {
+        "topLeft": {
+          "x": 0.3653846153846154,
+          "y": 0.14736842105263157
+        },
+        "topRight": {
+          "x": 0.7276923076923076,
+          "y": 0.08947368421052632
+        },
+        "bottomRight": {
+          "x": 0.5800000000000001,
+          "y": 0.7531578947368421
+        },
+        "bottomLeft": {
+          "x": 0.21615384615384614,
+          "y": 0.7147368421052631
+        }
+      }
+    }
+  }
+}
