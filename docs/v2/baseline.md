@@ -91,13 +91,43 @@ e2e 스펙 17줄이 아직도 옛 라벨을 찾습니다:
 
 **보수적 해석**: qa:visual 7 failed를 기준선의 알려진 회귀로 등록합니다. S2 이후에서 "コンテンツを追加" 라벨(또는 그 대체명)이 어떤 UI에 실제로 존재하는지 확인하고, e2e 헬퍼를 실제 라벨로 갱신해야 합니다. 이 실패는 코드 회귀가 아니라 **테스트 코드와 UI 라벨의 불일치**로 판단합니다(pre-v2 refactor 8cdbd77에서 라벨 변경).
 
-## v2-S5 상태 (2026-10-13 S5 종료)
+## v2-S5 상태 (2026-10-13 S5 종료 + 보완)
 
-- **알려진 e2e 실패 0건** — v2-S5 전체 완료.
-- test:e2e:core: **230 passed / 0 failed = 230 total**. 식: 169 (S4 종료 시) + 21 (K3+U3로 해소) + 37 (S5 신규 테스트 + V9 분할 + U4 신규) + 3 (K2 신규) = 230.
-  - 신규 S5 테스트: `v2-s5-banner.spec.ts` 12 + `v2-s5-ui.spec.ts` 8 (U1 3 + U2 2 + U3 1 + U4 3) + `v2-s5-video.spec.ts` 4 + `v2-s5-k1-portable-pixels.spec.ts` 12 + `v2-s5-k2-portable-fit.spec.ts` 3 = 39.
-- test:run (unit): **662 passed / 0 failed** (전 661 + K5 1).
-- 아래 "알려진 실패 21건" 표는 v2-S4-a 시점의 상태 기록으로 보존 — 해당 테스트 이름들은 전부 통과하도록 재작성/수정됐으며 상세는 commits `a296141` (U3 occlusion inline) + `bc1d34d` (K3 portable rewrite) + `460c266` (U1/U2) + `53dfcd6` (K5) + `bd1ada8` (K1) + `9474b66` (K2 + U4) + `066a873` (6건 e2e U4 rebase) 참조.
+- **알려진 e2e 실패 0건** — v2-S5 전체 완료, 보완에서 테스트 분류·재명명 완료.
+- test:e2e:core: 230 passed / 0 failed (보완 전) → 보완 후 수치는 Z 단계에서 재측정.
+- test:run (unit): **662 passed / 0 failed**.
+- "알려진 실패 21건" 표는 v2-S4-a 시점의 상태 기록으로 보존 — 해당 테스트 이름들은 전부
+  통과하도록 재작성/수정됐으며 상세는 commits `a296141` (U3 occlusion inline) + `bc1d34d`
+  (K3 portable rewrite) + `460c266` (U1/U2) + `53dfcd6` (K5) + `bd1ada8` (K1) + `9474b66`
+  (K2 + U4) + `066a873` (6건 e2e U4 rebase) + `f235bb8` (K1 polygon rewrite) +
+  `cddd487` (A0 pre-push 가드) 참조.
+
+### obsolete by eef7335 (v2-S5 보완 A2에서 사용자 승인 삭제)
+
+| 옛 이름                                                                                                                  | 옛 의도                                                         | 삭제 사유                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `portable.spec.ts :: walks the photo and drag-to-draw region steps to add a portable product, then re-edits its region`  | PortableBuilderModal에서 사진 업로드 + 영역 드래그로 추가       | 다이얼로그 자체 제거(`eef7335`). 현재 UX는 ポータブル 버튼 1회 클릭으로 atomic add — walks step 자체가 존재하지 않음.        |
+| `portable.spec.ts :: rejects a screen region smaller than the minimum size and keeps the dialog open`                    | 다이얼로그 안에서 사용자 지정 영역이 min size 보다 작을 때 거부 | 영역이 preset(PORTABLE_PRESET_SCREEN_QUADS)으로 고정 — 사용자가 영역을 지정할 UI가 없음. min size 거부가 가능한 입구가 없음. |
+| `portable.spec.ts :: cancelling the builder does not add a portable object`                                              | 빌더 다이얼로그 취소 시 사이니지 미추가                         | 빌더 다이얼로그 자체가 없고 추가는 atomic — 취소할 중간 상태가 없음.                                                         |
+| `portable.spec.ts :: direct region move/resize: cancelling after a drag discards the draft and creates no history entry` | 영역 드래그 중간 draft 를 취소 가능                             | 영역 editor(사용자 노출) 없음 — draft 상태가 없음.                                                                           |
+
+### intent-retained (v2-S5 보완 A2에서 rename)
+
+| 옛 이름 → 새 이름                                                                                                                                                                                                                                                                | 의도                                   | 확인 내용                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `replaces a portable product photo, resetting its screen region, and undo restores the original photo` → `switching templateView swaps the device photo and the preset screen quad; Undo reverts`                                                                                | "제품 사진 교체 → 영역 리셋"           | templateView select 로 사진·quad 가 동시에 바뀌고 Undo 로 복원.                           |
+| `undo removes an added portable product and redo restores it` (유지)                                                                                                                                                                                                             | undo/redo 왕복                         | 유지.                                                                                     |
+| `applies content and material to a portable product; export is clipped to its screen region and defaults to LCD` → `portable renders content clipped to the preset screen quad and defaults to the LCD material`                                                                 | 콘텐츠 클리핑 + 기본 재질 LCD          | 콘텐츠가 preset screenQuad 안에서 렌더되고 default material=LCD.                          |
+| `direct region move/resize: dragging inside the region moves it, and Save creates exactly one history entry on top of creation` → `the portable object moves as a compound unit via its position-size inputs`                                                                    | 포터블 이동 + 1 history entry          | 사이니지 전체가 하나의 unit — position-size input 으로 이동, 1 history entry.             |
+| `direct region move/resize: dragging the se corner handle resizes while keeping the nw corner fixed` → `the portable resizes aspect-locked via the width input`                                                                                                                  | 리사이즈 (nw 고정)                     | width input 으로 리사이즈 — aspectLocked (compound model 기본 ON).                        |
+| `direct region move/resize: dragging a corner past the opposite one clamps at the minimum size instead of inverting or erroring` → `a sub-minimum width input is clamped at the minimum size`                                                                                    | 최소 크기 clamp                        | 음수/작은 값 입력 시 min=10 doc px 로 clamp.                                              |
+| `direct region move/resize: saving an unchanged region creates no history entry` → `selecting the same templateView creates no history entry`                                                                                                                                    | 변경 없는 저장은 history 없음          | 같은 templateView 선택 → no-op (`commitObjectChange` 가 `hasObjectChange` 로 걸러냄).     |
+| `export composition: a transparent product photo alpha-composites over the space background, while its opaque area and the clipped content still render normally` → `the device photo's transparent region shows the space background; content stays clipped to the screen quad` | 투명 영역에 공간 photo + 콘텐츠 클리핑 | 사이니지 corner 샘플이 녹색(공간 배경), 콘텐츠는 quad 안에만.                             |
+| `export composition: the default LCD material renders a visible highlight overlay on the screen region` (유지)                                                                                                                                                                   | LCD 하이라이트 보임                    | 유지. 샘플 좌표 조정으로 compound-model preset quad 중앙 안을 샘플.                       |
+| `export composition: exports a portable product on a portrait canvas at its 1080x1920 resolution` (유지)                                                                                                                                                                         | 세로 프리셋 preset 유지                | 유지.                                                                                     |
+| `mobile.spec.ts :: mobile: adds a custom portable product with a screen region and exports it at 390x844` → `mobile: adds a portable, attaches content, and exports at 390x844`                                                                                                  | 모바일에서 포터블 추가 + 내보내기      | 다이얼로그 제거 — 버튼 클릭 → 콘텐츠 추가 → 내보내기.                                     |
+| `mobile.spec.ts :: mobile: dragging the portable screen region moves and resizes it at 390x844` → `mobile: resizing a portable at 390x844 via the position-size width input`                                                                                                     | 모바일 리사이즈                        | 영역 드래그 UI 없음 — 폭 input 으로 리사이즈.                                             |
+| `reselection.spec.ts :: a custom portable product is reselectable after being deselected` → `a portable product is reselectable after being deselected (templateView select mounted)`                                                                                            | 포터블 재선택 가능                     | templateView select 가 선택 상태의 stable marker — 버튼 「画面領域を編集」 (제거됨) 대신. |
 
 ---
 

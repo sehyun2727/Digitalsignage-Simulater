@@ -175,13 +175,13 @@ test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 
   await expectNoHorizontalOverflow(page);
 });
 
-test('mobile: adds a custom portable product with a screen region and exports it at 390x844', async ({
+test('mobile: adds a portable, attaches content, and exports at 390x844', async ({
   page,
 }) => {
-  // v2-S5 K3 rewrite: PortableBuilderModal removed by `eef7335`; compound model adds the
-  // portable atomically on button click. The intent — "mobile adds a portable with a
-  // screen region (preset quad), lets content be attached, and exports at the preset" —
-  // is tested below without the dialog.
+  // v2-S5 보완 A2 (rename): the old name was "adds a custom portable product with a screen
+  // region" which described the removed PortableBuilderModal upload flow. The current
+  // compound-model equivalent is: click portable button → portable added with the preset
+  // template view → attach content → export at the space photo's preset resolution.
   await installMobileExportCapture(page);
   await page.goto('/');
   await addSpaceBackground(page, 1920, 1080);
@@ -203,12 +203,14 @@ test('mobile: adds a custom portable product with a screen region and exports it
   await expectNoHorizontalOverflow(page);
 });
 
-test('mobile: dragging the portable screen region moves and resizes it at 390x844', async ({
+test('mobile: resizing a portable at 390x844 via the position-size width input', async ({
   page,
 }) => {
-  // v2-S5 K3 rewrite: the region editor dialog is gone. The compound-model equivalent is
-  // that the whole portable object is draggable/resizable via the shared Konva Transformer
-  // (same as LED/LCD/transparent-LED), and the screen quad moves with it as a child. We
+  // v2-S5 보완 A2 (rename): the old name was "dragging the portable screen region moves
+  // and resizes it" which described the removed region editor dialog. The compound-model
+  // equivalent is that the whole portable object is draggable/resizable via the shared
+  // Konva Transformer (same as LED/LCD/transparent-LED), and the screen quad moves with it
+  // as a child. We
   // verify the portable's position-size inputs accept a width edit and the output stays
   // well-formed. Pixel precision is covered on the desktop suite.
   await page.goto('/');

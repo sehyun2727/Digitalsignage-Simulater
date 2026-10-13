@@ -83,11 +83,19 @@ test.describe('canvas object reselection', () => {
     await expect(page.getByRole('spinbutton', { name: '高さ' })).toHaveValue('270');
   });
 
-  test('a custom portable product is reselectable after being deselected', async ({ page }) => {
-    // v2-S5 K3 rewrite: PortableBuilderModal removed by `eef7335`. Compound-model equivalent
-    // intent — "a portable product reselects correctly after deselection" — tests the same
-    // Konva hit-test fix path without the removed dialog + the 「画面領域を編集」 button
-    // (which no longer exists in the user-facing UI; template-view select replaces it).
+  test('a portable product is reselectable after being deselected (templateView select mounted)', async ({
+    page,
+  }) => {
+    // v2-S5 보완 A2 (rename): the old name "a custom portable product is reselectable
+    // after being deselected" described the removed PortableBuilderModal upload flow;
+    // "custom portable" meant "user-supplied product photo", which the compound model
+    // no longer supports in the UI. The remaining Konva hit-test fix path still applies
+    // to any portable (template-view-based), so the renamed test verifies the same hit-
+    // test behavior AND makes the stable marker explicit in the name: the templateView
+    // select is in the DOM only when a portable is selected.
+    //
+    // The 「画面領域を編集」 button that the pre-S5 version asserted on is gone; the
+    // template-view select replaces it as the portable-is-selected marker.
     await setup(page);
     await page.getByTestId('editor-add-portable').click();
     await expect(page.getByText('ポータブル製品', { exact: true })).toBeVisible();
@@ -97,8 +105,6 @@ test.describe('canvas object reselection', () => {
     await reselectViaCanvasClick(page);
 
     await expect(deleteButton(page)).toBeEnabled();
-    // Compound-model stable marker: the portable's template-view select is in the DOM
-    // (same role the old "画面領域を編集" button served — proof the portable is selected).
     await openSection(page, 'appearance');
     await expect(page.getByLabel(/ビュー|View|뷰/)).toBeVisible();
   });
