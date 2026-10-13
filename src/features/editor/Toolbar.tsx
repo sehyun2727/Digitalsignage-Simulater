@@ -1046,7 +1046,11 @@ function ContentFields({ object }: { object: DisplaySignageObject | PortableSign
   const [offsetXDraft, setOffsetXDraft] = useState(mediaContent?.offsetX ?? 0);
   const [offsetYDraft, setOffsetYDraft] = useState(mediaContent?.offsetY ?? 0);
   const [scaleDraft, setScaleDraft] = useState(mediaContent?.scale ?? 1);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  // v2-S5 보완 A3: fold state moved to uiStore (session-scoped), so switching to a different
+  // signage object does not reset the fold (requirement 3-1).
+  const settingsOpen = useUiStore((state) => state.subAccordionOpen['content-advanced'] ?? false);
+  const toggleContentAdvanced = useUiStore((state) => state.toggleSubAccordion);
+  const setSettingsOpen = () => toggleContentAdvanced('content-advanced');
 
   const commit = (patch: Partial<SignageObject>) => commitObjectChange(object.id, patch);
 
@@ -1160,7 +1164,7 @@ function ContentFields({ object }: { object: DisplaySignageObject | PortableSign
               across re-renders. */}
           <AdvancedSettingsSection
             open={settingsOpen}
-            onToggle={() => setSettingsOpen((prev) => !prev)}
+            onToggle={setSettingsOpen}
             variant="content"
           >
             <label>
@@ -1448,7 +1452,13 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
   const occlusionDraftOpacity = useEditorStore((state) => state.occlusionDraftOpacity);
   const setOcclusionDraftFeather = useEditorStore((state) => state.setOcclusionDraftFeather);
   const setOcclusionDraftOpacity = useEditorStore((state) => state.setOcclusionDraftOpacity);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  // v2-S5 보완 A3: fold state moved to uiStore (session-scoped), so switching between
+  // signage objects keeps the Appearance 詳細設定 fold open/closed as the user left it.
+  const settingsOpen = useUiStore(
+    (state) => state.subAccordionOpen['appearance-advanced'] ?? false,
+  );
+  const toggleAppearanceAdvanced = useUiStore((state) => state.toggleSubAccordion);
+  const setSettingsOpen = () => toggleAppearanceAdvanced('appearance-advanced');
   const [intensityDraft, setIntensityDraft] = useState(object.materialSettings.intensity);
   const [brightnessDraft, setBrightnessDraft] = useState(object.materialSettings.brightness);
   const [transparencyDraft, setTransparencyDraft] = useState(object.materialSettings.transparency);
@@ -1762,10 +1772,12 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
         )}
       </div>
 
-      {/* v2-S5 U4 (2-3). Inline accordion replaces AdvancedSettingsModal; no role=dialog. */}
+      {/* v2-S5 U4 (2-3). Inline accordion replaces AdvancedSettingsModal; no role=dialog.
+          v2-S5 보완 A3: fold state lives in uiStore so a different signage selection does
+          not reset it. */}
       <AdvancedSettingsSection
         open={settingsOpen}
-        onToggle={() => setSettingsOpen((prev) => !prev)}
+        onToggle={setSettingsOpen}
         variant="appearance"
       >
         {isTransparentLed && (

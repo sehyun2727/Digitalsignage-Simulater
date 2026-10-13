@@ -127,7 +127,14 @@ export const useUiStore = create<UiState>((set, get) => ({
       if (state.accordionOpen[id] !== null) return state;
       return { accordionOpen: { ...state.accordionOpen, [id]: true } };
     }),
-  subAccordionOpen: { 'selected-position-size': false },
+  // v2-S5 보완 A3 (2026-10-13). 'content-advanced' and 'appearance-advanced' survive a
+  // selection change (different signage object): the fold is a UI preference, not a per-
+  // object state. 'selected-position-size' is also session-only.
+  subAccordionOpen: {
+    'selected-position-size': false,
+    'content-advanced': false,
+    'appearance-advanced': false,
+  },
   toggleSubAccordion: (id) =>
     set((state) => ({
       subAccordionOpen: { ...state.subAccordionOpen, [id]: !state.subAccordionOpen[id] },
