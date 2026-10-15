@@ -11,6 +11,10 @@ const baseURL = `http://${E2E_HOST}:${E2E_PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
+  // Audit specs under e2e/audit/ are a read-only requirements-audit suite (see
+  // docs/v2/requirements-audit.md). They are separated from core/CI by testIgnore here
+  // and only run via the `audit` project (npm run test:e2e:audit).
+  testIgnore: /audit[\\/]/,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -31,7 +35,19 @@ export default defineConfig({
       ],
     },
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'audit',
+      testDir: './e2e/audit',
+      testMatch: /.*\.spec\.ts/,
+      // The top-level `testIgnore` otherwise inherits into every project and would hide
+      // the audit specs from this project as well. Explicitly clear it here so only this
+      // project's testDir decides which specs to run.
+      testIgnore: [],
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
   webServer: {
     // --strictPort makes Vite fail fast instead of silently shifting to the next free port when
     // E2E_PORT is already taken, so a port collision surfaces as a clear startup error rather
