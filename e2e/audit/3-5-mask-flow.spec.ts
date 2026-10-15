@@ -1,60 +1,88 @@
 /**
- * [3-5] モザイクの手順簡略化 + 명칭 확인
+ * [3-5] 手前の物で隠す（マスク）의 목적 명확화·단축 — 상세 점검
  *
- * - 「手前の物で隠す（マスク）」 명칭 노출
- * - 「追加」 클릭 수를 세고 적용까지의 조작 수 확인
- * - 4 번째 점을 찍은 뒤 '適用' 버튼이 다시 열기 없이 노출되는지
- * - 단계 안내 「ステップ…/隠したい範囲の角をクリック…」 이 있는지(없으면 null 로 보고)
+ * - 3-5-a 명칭 「手前の物で隠す（マスク）」 노출
+ * - 3-5-b 4번째 점 찍은 뒤 「適用」 버튼 enabled + 가시
+ * - 3-5-c 단계 안내: 점 수 <4 → ステップ①, ≥4 → ステップ②, 상시 ステップ③
  */
 import { test, expect } from '@playwright/test';
 import { openAppJa, addSpaceBg, expandSection } from './_shared.js';
 
-test('[3-5] mask flow: inline Apply visible after 4-th point, label matches glossary', async ({
+test('[3-5-a/b] label + Apply visible after 4-th point without re-opening any panel', async ({
   page,
 }) => {
   await openAppJa(page);
   await addSpaceBg(page);
   await page.getByRole('button', { name: 'LED', exact: true }).click();
   await expandSection(page, /サイネージ外観の調整/);
+  const sub = page.getByTestId('occlusion-inline-subsection');
+  await sub.waitFor({ state: 'visible' });
+  const subText = (await sub.innerText()).trim();
+  console.log(`[3-5-a] subsection text = ${JSON.stringify(subText)}`);
+  expect(subText).toContain('手前の物で隠す（マスク）');
 
-  // Check the label text — glossary ① calls it 「手前の物で隠す（マスク）」.
-  const subsection = page.getByTestId('occlusion-inline-subsection');
-  await subsection.waitFor({ state: 'visible' });
-  const subsectionText = (await subsection.innerText()).trim();
-  console.log('[3-5] subsectionText =', JSON.stringify(subsectionText));
-  expect(subsectionText).toContain('手前の物で隠す（マスク）');
-
-  // "追加" button is inside the subsection.
-  const addBtn = page.getByTestId('editor-occlusion-add');
-  await addBtn.click();
-
-  // Draw 4 points inside the canvas. Use evaluate to find canvas rect.
+  await page.getByTestId('editor-occlusion-add').click();
   const canvasRect = await page.locator('.editor-canvas-container').first().boundingBox();
-  if (!canvasRect) throw new Error('canvas rect not found');
-  const cx = canvasRect.x;
-  const cy = canvasRect.y;
-  const cw = canvasRect.width;
-  const ch = canvasRect.height;
+  if (!canvasRect) throw new Error('no canvas');
   const pts = [
-    { x: cx + cw * 0.35, y: cy + ch * 0.35 },
-    { x: cx + cw * 0.65, y: cy + ch * 0.35 },
-    { x: cx + cw * 0.65, y: cy + ch * 0.65 },
-    { x: cx + cw * 0.35, y: cy + ch * 0.65 },
+    { x: canvasRect.x + canvasRect.width * 0.35, y: canvasRect.y + canvasRect.height * 0.35 },
+    { x: canvasRect.x + canvasRect.width * 0.65, y: canvasRect.y + canvasRect.height * 0.35 },
+    { x: canvasRect.x + canvasRect.width * 0.65, y: canvasRect.y + canvasRect.height * 0.65 },
+    { x: canvasRect.x + canvasRect.width * 0.35, y: canvasRect.y + canvasRect.height * 0.65 },
   ];
-  for (const p of pts) {
-    await page.mouse.click(p.x, p.y);
-  }
-
-  // Apply button must be visible and enabled WITHOUT having to re-open the detail panel.
+  for (const p of pts) await page.mouse.click(p.x, p.y);
   const applyBtn = page.getByTestId('editor-occlusion-apply');
   await applyBtn.waitFor({ state: 'visible' });
   const disabled = await applyBtn.getAttribute('disabled');
-  const text = await applyBtn.textContent();
-  console.log(`[3-5] applyBtn text="${text?.trim()}" disabled=${disabled}`);
+  console.log(`[3-5-b] applyBtn disabled=${disabled}`);
   expect(disabled).toBeNull();
+});
 
-  // Check for step-indicator pattern — glossary ② specifies 「ステップ{current}/{total}」.
-  const stepPresent = subsectionText.includes('ステップ');
-  console.log(`[3-5] stepIndicatorPresent = ${stepPresent}`);
-  // Report-only; do not fail if missing.
+test('[3-5-c] step indicator present and switches ① ↔ ② with point count', async ({ page }) => {
+  await openAppJa(page);
+  await addSpaceBg(page);
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
+  await expandSection(page, /サイネージ外観の調整/);
+  await page.getByTestId('editor-occlusion-add').click();
+
+  // Right after entering draft (0 points): step ① visible with aria-current=step.
+  const stepIndicator = page.getByTestId('editor-occlusion-step-indicator');
+  await stepIndicator.waitFor({ state: 'visible' });
+  const beforeHtml = await stepIndicator.innerHTML();
+  console.log('[3-5-c] step-indicator initial HTML =', beforeHtml);
+  const items0 = await stepIndicator.locator('li').allInnerTexts();
+  console.log('[3-5-c] items @0 points =', items0);
+  // 2 lines: primary (step1) + persistent step3.
+  expect(items0.length).toBe(2);
+  expect(items0[0]).toContain('4点');
+  expect(items0[1]).toContain('適用');
+  const activeAt0 = await stepIndicator
+    .locator('li[aria-current="step"]')
+    .innerText()
+    .catch(() => '');
+  console.log('[3-5-c] aria-current @0 =', JSON.stringify(activeAt0));
+  expect(activeAt0).toContain('4点');
+
+  // Place 4 points.
+  const canvasRect = await page.locator('.editor-canvas-container').first().boundingBox();
+  if (!canvasRect) throw new Error('no canvas');
+  const pts = [
+    { x: canvasRect.x + canvasRect.width * 0.35, y: canvasRect.y + canvasRect.height * 0.35 },
+    { x: canvasRect.x + canvasRect.width * 0.65, y: canvasRect.y + canvasRect.height * 0.35 },
+    { x: canvasRect.x + canvasRect.width * 0.65, y: canvasRect.y + canvasRect.height * 0.65 },
+    { x: canvasRect.x + canvasRect.width * 0.35, y: canvasRect.y + canvasRect.height * 0.65 },
+  ];
+  for (const p of pts) await page.mouse.click(p.x, p.y);
+
+  const items4 = await stepIndicator.locator('li').allInnerTexts();
+  console.log('[3-5-c] items @4 points =', items4);
+  expect(items4[0]).toContain('位置を調整');
+  expect(items4[1]).toContain('適用');
+  const activeAt4 = await stepIndicator
+    .locator('li[aria-current="step"]')
+    .allInnerTexts()
+    .catch(() => []);
+  console.log('[3-5-c] aria-current @4 =', activeAt4);
+  // At 4 points, step ① is complete so nothing has aria-current=step (both are informational).
+  expect(activeAt4.length).toBe(0);
 });
