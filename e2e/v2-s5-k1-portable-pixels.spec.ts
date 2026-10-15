@@ -51,6 +51,7 @@ async function loadQuads(): Promise<Record<ViewName, NormalizedQuad>> {
   } catch (err) {
     throw new Error(
       `K1 fixture missing at ${JSON_PATH}. Regenerate: node scripts/measure-portable-screen-quad.mjs && cp tmp/quad-debug/portable-screen-quads.json e2e/fixtures/. Original: ${(err as Error).message}`,
+      { cause: err },
     );
   }
 }
@@ -135,8 +136,8 @@ async function readPortableState(page: Page): Promise<PortableState> {
   await openSection(page, 'selected');
   await page.getByTestId('toolbar-subsection-position-size-toggle').click();
   const positionSize = page.locator('[data-testid="toolbar-subsection-position-size"]');
-  const x = Number(await positionSize.getByLabel('X座標').inputValue());
-  const y = Number(await positionSize.getByLabel('Y座標').inputValue());
+  const x = Number(await positionSize.getByLabel('横位置').inputValue());
+  const y = Number(await positionSize.getByLabel('縦位置').inputValue());
   const width = Number(await positionSize.getByLabel('幅').first().inputValue());
   const height = Number(await positionSize.getByLabel('高さ').first().inputValue());
   const rotation = Number(await positionSize.getByLabel('回転').inputValue());
@@ -259,7 +260,7 @@ async function applyCondition(page: Page, condition: Condition): Promise<void> {
   await page.getByTestId('toolbar-subsection-position-size-toggle').click();
   const ps = page.locator('[data-testid="toolbar-subsection-position-size"]');
   if (condition === 'move') {
-    const xi = ps.getByLabel('X座標');
+    const xi = ps.getByLabel('横位置');
     const cx = Number(await xi.inputValue());
     await xi.fill(String(cx + 60));
     await xi.blur();

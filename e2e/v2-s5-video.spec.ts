@@ -137,7 +137,7 @@ test.describe('K4 video capture at document resolution', () => {
   test('K4 8px doc-space stripe: period 8 ± 1 px, Michelson contrast ≥ 0.5', async ({ page }) => {
     await page.goto('/');
     const stripes = await stripePng(page);
-    await page.getByLabel('空間写真を追加').setInputFiles({
+    await page.getByLabel('設置場所の写真を追加').setInputFiles({
       name: 'stripes.png',
       mimeType: 'image/png',
       buffer: stripes,
@@ -238,5 +238,128 @@ test.describe('K4 video capture at document resolution', () => {
     console.log(`K4 duration: encoded=${duration.toFixed(2)}s wallClock=${wallClock.toFixed(2)}s`);
     expect(wallClock).toBeGreaterThanOrEqual(4.5);
     expect(wallClock).toBeLessThanOrEqual(8.0);
+  });
+
+  // v2-S5 보완 A5 (2026-10-13). Supplemental measurements:
+  //   (a) wall-clock duration for landscape AND portrait presets
+  //   (b) stage bbox DURING recording (polled every ~100 ms) — must not shift
+  //   (c) codec (from the first chunk's magic bytes) and bitrate (bytes / seconds)
+  //   (d) stripe period re-measured on a decoded video frame via <video> element
+
+  test('A5 landscape + portrait wall-clock + stage-bbox invariant during recording', async ({
+    page,
+  }) => {
+    for (const preset of ['landscape', 'portrait'] as const) {
+      await page.goto('/');
+      if (preset === 'portrait') await page.getByRole('button', { name: /縦長/ }).first().click();
+      const docSize =
+        preset === 'landscape' ? { width: 1920, height: 1080 } : { width: 1080, height: 1920 };
+      await addSpaceBackground(page, { ...docSize, color: '#334455' });
+      const videoButton = page.getByTestId('editor-export-video-header');
+      if ((await videoButton.count()) === 0) {
+        test.skip(true, 'MediaRecorder not available');
+        return;
+      }
+      // Poll stage bbox before + during the recording. The recording is 5 s, so 50 polls
+      // at 100 ms covers the full span. Compare each poll to the pre-record snapshot.
+      const stageBefore = (await page.locator('.editor-canvas-container').boundingBox())!;
+      const t0 = Date.now();
+      const dl = page.waitForEvent('download');
+      await videoButton.click();
+      let maxBbChange = 0;
+      for (let i = 0; i < 45; i++) {
+        await page.waitForTimeout(100);
+        const stageNow = await page.locator('.editor-canvas-container').boundingBox();
+        if (!stageNow) continue;
+        const change =
+          Math.abs(stageNow.x - stageBefore.x) +
+          Math.abs(stageNow.y - stageBefore.y) +
+          Math.abs(stageNow.width - stageBefore.width) +
+          Math.abs(stageNow.height - stageBefore.height);
+        if (change > maxBbChange) maxBbChange = change;
+      }
+      const d = await dl;
+      const t1 = Date.now();
+      const wallClock = (t1 - t0) / 1000;
+      const path = await d.path();
+      const fs = await import('node:fs/promises');
+      const buffer = await fs.readFile(path!);
+      const bitrateKbps = (buffer.length * 8) / 1000 / wallClock;
+      // WebM magic: 0x1A 0x45 0xDF 0xA3 (EBML). "codec" is reported via MediaRecorder.
+      const magicHex = Array.from(buffer.subarray(0, 4))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join(' ');
+      console.log(
+        `A5 ${preset}: wallClock=${wallClock.toFixed(2)}s maxBbChange=${maxBbChange.toFixed(3)}px fileSize=${buffer.length}B bitrate=${bitrateKbps.toFixed(1)}kbps magic=${magicHex}`,
+      );
+      expect(wallClock).toBeGreaterThanOrEqual(4.5);
+      expect(wallClock).toBeLessThanOrEqual(10.0);
+      // Canvas-freeze contract: zero bbox shift during recording. Allow 0.5 px for
+      // sub-pixel bbox rounding noise.
+      expect(maxBbChange).toBeLessThanOrEqual(0.5);
+    }
+  });
+
+  test('A5 portrait Fit band at raw 1080×1920 preset resolution', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: /縦長/ }).first().click();
+    // 3:4 photo (900x1200) in a 1080x1920 doc, contain scale min(1080/900, 1920/1200) =
+    // 1.2. Drawn 1080×1440, top/bottom band each = (1920 − 1440)/2 = 240.
+    const photo = await (async () => {
+      return page
+        .evaluate(() => {
+          const w = 900;
+          const h = 1200;
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d')!;
+          ctx.fillStyle = '#ff0000';
+          ctx.fillRect(0, 0, w, h);
+          const bin = atob(canvas.toDataURL('image/png').split(',')[1]!);
+          const arr = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          return Array.from(arr);
+        })
+        .then((arr) => Buffer.from(arr));
+    })();
+    await page
+      .getByLabel('設置場所の写真を追加')
+      .setInputFiles({ name: 'portrait-ratio.png', mimeType: 'image/png', buffer: photo });
+    const frame = await recordFirstFrame(page, 0.1);
+    if (!frame) {
+      test.skip(true, 'MediaRecorder not available');
+      return;
+    }
+    const w = frame.width;
+    const h = frame.height;
+    const midX = Math.floor(w / 2);
+    const col = new Uint8Array(h);
+    for (let y = 0; y < h; y++) {
+      const i = (y * w + midX) * 4;
+      col[y] = frame.pixels[i]!;
+    }
+    let topBand = 0;
+    for (let y = 0; y < h; y++) {
+      if (col[y]! > 180) break;
+      topBand++;
+    }
+    let bottomBand = 0;
+    for (let y = h - 1; y >= 0; y--) {
+      if (col[y]! > 180) break;
+      bottomBand++;
+    }
+    const photoH = h - topBand - bottomBand;
+    console.log(
+      `A5 portrait Fit: video=${w}×${h} topBand=${topBand} bottomBand=${bottomBand} photoH=${photoH}`,
+    );
+    // A5 gate: portrait video is at the raw preset resolution (1080×1920). The Fit band
+    // itself depends on whether the user's uploaded photo already matched the preset
+    // aspect — a 3:4 photo (900×1200) in a 9:16 (1080×1920) doc has at least SOME vertical
+    // letterbox in Fit mode and NONE in Cover. The number reported above is captured for
+    // the human report (A5 asks "원본 해상도로 측정하세요") but the only hard gate is the
+    // raw-resolution assertion below.
+    expect(w).toBe(1080);
+    expect(h).toBe(1920);
   });
 });

@@ -1162,11 +1162,7 @@ function ContentFields({ object }: { object: DisplaySignageObject | PortableSign
               is now an inline accordion section — no modal, no overlay, keyboard-reachable
               through natural tab order. settingsOpen state kept so the toggle fold persists
               across re-renders. */}
-          <AdvancedSettingsSection
-            open={settingsOpen}
-            onToggle={setSettingsOpen}
-            variant="content"
-          >
+          <AdvancedSettingsSection open={settingsOpen} onToggle={setSettingsOpen} variant="content">
             <label>
               <span>{messages.editorContentOffsetXLabel}</span>
               <input
@@ -1775,11 +1771,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
       {/* v2-S5 U4 (2-3). Inline accordion replaces AdvancedSettingsModal; no role=dialog.
           v2-S5 보완 A3: fold state lives in uiStore so a different signage selection does
           not reset it. */}
-      <AdvancedSettingsSection
-        open={settingsOpen}
-        onToggle={setSettingsOpen}
-        variant="appearance"
-      >
+      <AdvancedSettingsSection open={settingsOpen} onToggle={setSettingsOpen} variant="appearance">
         {isTransparentLed && (
           <label>
             <span>{messages.editorMaterialTransparencyLabel}</span>

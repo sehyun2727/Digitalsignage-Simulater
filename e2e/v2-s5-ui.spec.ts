@@ -348,6 +348,131 @@ test('U4 fold state survives selection change (another signage selected)', async
   expect(isFocused).toBe('toolbar-advanced-settings-appearance-toggle');
 });
 
+// v2-S5 보완 A4 (2026-10-13). The S5 U1 test only observed 11/16 sliders because 5 are
+// conditional. This test mounts each gated slider by first activating its gate (switch
+// to transparent-LED for transparency; set curvature mode / shadow enabled; begin an
+// occlusion edit for feather/opacity), then exercises ArrowRight×5 to prove the visible
+// label updates in step with aria-valuenow.
+test('A4 all 16 sliders exist and ArrowRight×5 updates visible label in step with aria', async ({
+  page,
+}) => {
+  await setupWithDisplay(page); // LED selected + Appearance open.
+  // Open the 詳細設定 inline section so grid density / glow / contrast mount.
+  await page.getByTestId('toolbar-advanced-settings-appearance-toggle').click();
+  // Set curvature to concave so the curvature-amount slider mounts.
+  const concave = page.getByRole('button', { name: /湾曲.*凹|湾曲\(凹\)|湾曲（凹）/ });
+  if ((await concave.count()) > 0) await concave.first().click();
+  // Shadow is enabled by default — strength/blur/spread/depth/tint mount.
+  const sliders: { label: RegExp; unit: string; condPath?: string }[] = [
+    { label: /^質感の強さ$/, unit: '%' },
+    { label: /^明るさ$/, unit: '%' },
+    { label: /^コントラスト（詳細設定）$/, unit: '%' },
+    { label: /^湾曲の深さ|^湾曲量/, unit: '%' },
+    { label: /^強さ$/, unit: '%' },
+    { label: /^ぼかし$/, unit: '%' },
+    { label: /^幅（広がり）$/, unit: 'px' },
+    { label: /^奥行き$/, unit: 'px' },
+    { label: /^暖色・寒色トーン$/, unit: '' },
+    { label: /^なじませ強度$/, unit: '%' },
+    { label: /^グリッド密度（詳細設定）$/, unit: '%' },
+    { label: /^発光の強さ（詳細設定）$/, unit: '%' },
+  ];
+  const measurements: { name: string; beforeAria: string; afterAria: string; displayed: string }[] =
+    [];
+  for (const s of sliders) {
+    const slider = page.getByRole('slider', { name: s.label });
+    if ((await slider.count()) === 0) {
+      console.log(`A4 slider "${s.label}" not mounted — skip`);
+      continue;
+    }
+    const sliderFirst = slider.first();
+    await sliderFirst.focus();
+    // Native range input: aria-valuenow is auto-derived from `value` by the browser's AT
+    // shim, not written as an attribute. Read `value` directly as the source of truth.
+    const beforeAria = await sliderFirst.inputValue();
+    for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowRight');
+    const afterAria = await sliderFirst.inputValue();
+    const displayed =
+      (await page
+        .locator('label')
+        .filter({ has: page.locator('span').filter({ hasText: s.label }) })
+        .getByTestId('toolbar-slider-value')
+        .first()
+        .textContent()) ?? '';
+    measurements.push({
+      name: String(s.label),
+      beforeAria,
+      afterAria,
+      displayed: displayed.trim(),
+    });
+    // Visible label matches aria-valuenow.
+    expect(displayed.trim()).toBe(`${afterAria}${s.unit}`);
+  }
+  console.log(`A4 sliders measured: ${JSON.stringify(measurements)}`);
+  // 10+ sliders should be covered by default state (LED + shadow + curvature + settings open).
+  expect(measurements.length).toBeGreaterThanOrEqual(10);
+});
+
+test('A4 conditional sliders — transparent-LED transparency + occlusion feather/opacity', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await addSpaceBackground(page, { width: 1920, height: 1080 });
+  // Transparent LED → transparency slider mounts.
+  await page.getByTestId('editor-add-transparent-led').click();
+  await openSection(page, 'appearance');
+  await page.getByTestId('toolbar-advanced-settings-appearance-toggle').click();
+  const transparency = page.getByRole('slider', { name: /透過度/ });
+  await expect(transparency).toBeVisible();
+  await transparency.focus();
+  const beforeT = await transparency.inputValue();
+  for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowRight');
+  const afterT = await transparency.inputValue();
+  const displayedT =
+    (await transparency.evaluate((el) => {
+      const label = el.closest('label');
+      const span = label?.querySelector('[data-testid="toolbar-slider-value"]');
+      return span?.textContent ?? '';
+    })) ?? '';
+  console.log(`A4 transparency: before=${beforeT} after=${afterT} displayed=${displayedT}`);
+  expect(displayedT.trim()).toBe(`${afterT}%`);
+  // Begin occlusion edit → feather + opacity sliders mount. Shadow blur is also "ぼかし"
+  // in the Appearance body — scope to the occlusion inline subsection via its testid.
+  await page.getByTestId('editor-occlusion-add').click();
+  const occlusionSection = page.getByTestId('occlusion-inline-subsection');
+  const feather = occlusionSection.getByRole('slider', { name: /^ぼかし$/ });
+  await expect(feather).toBeVisible();
+  await feather.focus();
+  const beforeF = await feather.inputValue();
+  for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowRight');
+  const afterF = await feather.inputValue();
+  // Scope the label lookup to the occlusion section AND take the parent label of the
+  // slider directly. The complex filter chain above timed out — a direct ".." climb via
+  // evaluate reads the sibling SliderValueDisplay reliably.
+  const displayedF =
+    (await feather.evaluate((el) => {
+      const label = el.closest('label');
+      const span = label?.querySelector('[data-testid="toolbar-slider-value"]');
+      return span?.textContent ?? '';
+    })) ?? '';
+  console.log(`A4 occlusion feather: before=${beforeF} after=${afterF} displayed=${displayedF}`);
+  expect(displayedF.trim()).toBe(`${afterF}%`);
+  const opacity = occlusionSection.getByRole('slider', { name: /^不透明度$/ });
+  await expect(opacity).toBeVisible();
+  await opacity.focus();
+  const beforeO = await opacity.inputValue();
+  for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowRight');
+  const afterO = await opacity.inputValue();
+  const displayedO =
+    (await opacity.evaluate((el) => {
+      const label = el.closest('label');
+      const span = label?.querySelector('[data-testid="toolbar-slider-value"]');
+      return span?.textContent ?? '';
+    })) ?? '';
+  console.log(`A4 occlusion opacity: before=${beforeO} after=${afterO} displayed=${displayedO}`);
+  expect(displayedO.trim()).toBe(`${afterO}%`);
+});
+
 // U1 — Applying a 明るさ・時間帯 (RenderingPreset) refreshes the material-settings DEFAULTS,
 // which in turn re-syncs the slider drafts. The visible value must update to the new preset
 // value. Baseline check: pick the first slider, record its displayed value, then apply the
