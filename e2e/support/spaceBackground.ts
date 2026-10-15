@@ -28,7 +28,7 @@ export async function addSpaceBackground(
   const { width = 1920, height = 1080, color = '#334455' } = options;
   const png = await solidColorPng(page, color, width, height);
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: 'space.png', mimeType: 'image/png', buffer: png });
 }
 
@@ -143,6 +143,6 @@ export async function addScenePhotoBackground(
 ): Promise<void> {
   const png = await scenePhotoPng(page, scenario, width, height);
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: `${scenario}.png`, mimeType: 'image/png', buffer: png });
 }

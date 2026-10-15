@@ -49,7 +49,7 @@ test('sampling the space photo tints the screen toward its ambient color as stre
   await openSection(page, 'appearance');
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
 
-  const sampleButton = page.getByRole('button', { name: '空間写真からサンプリング' });
+  const sampleButton = page.getByRole('button', { name: '設置場所の写真からサンプリング' });
   await expect(sampleButton).toBeEnabled();
   await sampleButton.click();
   await expect(page.getByRole('img', { name: 'サンプリングした環境色' })).toBeVisible();

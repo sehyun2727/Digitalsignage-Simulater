@@ -475,8 +475,8 @@ for (const vp of L5_VIEWPORTS) {
         y: t.top + t.stageY + docY * t.scaleY,
       });
     const readUi = async () => ({
-      x: Number(await page.getByRole('spinbutton', { name: 'X座標' }).inputValue()),
-      y: Number(await page.getByRole('spinbutton', { name: 'Y座標' }).inputValue()),
+      x: Number(await page.getByRole('spinbutton', { name: '横位置' }).inputValue()),
+      y: Number(await page.getByRole('spinbutton', { name: '縦位置' }).inputValue()),
       w: Number(await page.getByRole('spinbutton', { name: '幅' }).inputValue()),
       h: Number(await page.getByRole('spinbutton', { name: '高さ' }).inputValue()),
     });
@@ -542,7 +542,7 @@ for (const vp of L5_VIEWPORTS) {
     await page.mouse.up();
     await expect
       .poll(
-        async () => Number(await page.getByRole('spinbutton', { name: 'X座標' }).inputValue()),
+        async () => Number(await page.getByRole('spinbutton', { name: '横位置' }).inputValue()),
         { timeout: 3000 },
       )
       .not.toBe(720);

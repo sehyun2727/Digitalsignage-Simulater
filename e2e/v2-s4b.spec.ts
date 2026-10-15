@@ -362,7 +362,7 @@ test('1-3 Fit mode letterbox: 4:3 photo in 1920x1080 doc → photo 1440 ± 1 px,
   //   drawn width = 1440, drawn height = 1080, side band each = 240 px
   const photo = await solidColorPng(page, '#ff0000', 1600, 1200);
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: 'ratio43.png', mimeType: 'image/png', buffer: photo });
   // Confirm the Fit segment is pressed (new default), then export.
   const fitContain = page.getByTestId('editor-space-background-fit-contain');
@@ -412,22 +412,22 @@ test('1-3 Cover mode: no letterbox, signage bbox unchanged across the Fit↔Cove
   await page.goto('/');
   const photo = await solidColorPng(page, '#ff0000', 1600, 1200);
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: 'ratio43.png', mimeType: 'image/png', buffer: photo });
   await page.getByTestId('editor-add-led').click();
 
   // Record signage x/y via the position-size subsection inputs — these are rendered against
   // document-pixel values (not display-fitted CSS px), so they are the right stable readout.
   await page.getByTestId('toolbar-subsection-position-size-toggle').click();
-  const xBefore = Number(await page.getByLabel('X座標').inputValue());
-  const yBefore = Number(await page.getByLabel('Y座標').inputValue());
+  const xBefore = Number(await page.getByLabel('横位置').inputValue());
+  const yBefore = Number(await page.getByLabel('縦位置').inputValue());
   const wBefore = Number(await page.getByLabel('幅').first().inputValue());
   const hBefore = Number(await page.getByLabel('高さ').first().inputValue());
 
   // Switch to Cover and verify the signage didn't move.
   await page.getByTestId('editor-space-background-fit-cover').click();
-  const xAfter = Number(await page.getByLabel('X座標').inputValue());
-  const yAfter = Number(await page.getByLabel('Y座標').inputValue());
+  const xAfter = Number(await page.getByLabel('横位置').inputValue());
+  const yAfter = Number(await page.getByLabel('縦位置').inputValue());
   const wAfter = Number(await page.getByLabel('幅').first().inputValue());
   const hAfter = Number(await page.getByLabel('高さ').first().inputValue());
   console.log(
@@ -462,7 +462,7 @@ test('1-3 Fit mode disables wheel pan: wheel does not change offsetY', async ({ 
   await page.goto('/');
   const photo = await solidColorPng(page, '#ff0000', 1600, 1200);
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: 'ratio43.png', mimeType: 'image/png', buffer: photo });
   // Simulate a wheel scroll over the canvas; nothing should move in Fit mode.
   const box = await stageBox(page);
@@ -527,7 +527,7 @@ test('1-3 Fit mode: wheel does NOT change offsetY (PNG pixel invariant across 3 
   await page.goto('/');
   const photo = await tallPhotoWithBands(page);
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: 'tall.png', mimeType: 'image/png', buffer: photo });
   // Explicitly ensure Fit is active (default for new uploads under D-11).
   await expect(page.getByTestId('editor-space-background-fit-contain')).toHaveAttribute(
@@ -575,7 +575,7 @@ test('1-3 Cover mode: wheel DOES change offsetY (PNG pixel differs after a 3-not
   await page.goto('/');
   const photo = await tallPhotoWithBands(page);
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: 'tall.png', mimeType: 'image/png', buffer: photo });
   await page.getByTestId('editor-space-background-fit-cover').click();
   const pngBefore = PNG.sync.read(
@@ -616,7 +616,7 @@ test('1-3 video Fit letterbox: 1920×1080 raw, bands 240 ± 2, photo 1440 ± 2',
   await page.goto('/');
   const photo = await solidColorPng(page, '#ff0000', 1600, 1200);
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: 'ratio43.png', mimeType: 'image/png', buffer: photo });
   await expect(page.getByTestId('editor-space-background-fit-contain')).toHaveAttribute(
     'aria-pressed',
@@ -685,7 +685,7 @@ test('1-3 video Cover: no side band at mid row (full-width red)', async ({ page 
   await page.goto('/');
   const photo = await solidColorPng(page, '#ff0000', 1600, 1200);
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: 'ratio43.png', mimeType: 'image/png', buffer: photo });
   await page.getByTestId('editor-space-background-fit-cover').click();
   const videoButton = page.getByTestId('editor-export-video-header');

@@ -161,14 +161,14 @@ test.describe('direct region move/resize (real pointer drags)', () => {
     await addPortable(page);
     await openSection(page, 'selected');
     await page.getByTestId('toolbar-subsection-position-size-toggle').click();
-    const xBefore = Number(await page.getByLabel('X座標').inputValue());
-    const yBefore = Number(await page.getByLabel('Y座標').inputValue());
+    const xBefore = Number(await page.getByLabel('横位置').inputValue());
+    const yBefore = Number(await page.getByLabel('縦位置').inputValue());
     const widthInput = page.getByLabel('幅').first();
     const widthBefore = Number(await widthInput.inputValue());
     await widthInput.fill(String(widthBefore + 60));
     await widthInput.blur();
-    const xAfter = Number(await page.getByLabel('X座標').inputValue());
-    const yAfter = Number(await page.getByLabel('Y座標').inputValue());
+    const xAfter = Number(await page.getByLabel('横位置').inputValue());
+    const yAfter = Number(await page.getByLabel('縦位置').inputValue());
     console.log(
       `portable resize: before=(${xBefore},${yBefore},${widthBefore}) after=(${xAfter},${yAfter},${widthBefore + 60})`,
     );

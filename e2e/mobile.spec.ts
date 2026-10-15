@@ -39,9 +39,9 @@ async function addSpaceBackground(
 ) {
   const spaceBackground = await solidColorPng(page, '#1155ff', width, height);
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: 'space.png', mimeType: 'image/png', buffer: spaceBackground });
-  await expect(page.getByRole('button', { name: '空間写真を削除' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '写真を削除' })).toBeVisible();
 }
 
 test('full mobile content and export workflow at 390x844 (LED)', async ({ page }) => {
@@ -175,9 +175,7 @@ test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 
   await expectNoHorizontalOverflow(page);
 });
 
-test('mobile: adds a portable, attaches content, and exports at 390x844', async ({
-  page,
-}) => {
+test('mobile: adds a portable, attaches content, and exports at 390x844', async ({ page }) => {
   // v2-S5 보완 A2 (rename): the old name was "adds a custom portable product with a screen
   // region" which described the removed PortableBuilderModal upload flow. The current
   // compound-model equivalent is: click portable button → portable added with the preset
@@ -406,7 +404,7 @@ test('mobile smoke: a real-photo-style scene renders, exports a PNG, and introdu
   await installMobileExportCapture(page);
   await page.goto('/');
   await addScenePhotoBackground(page, 'bright-interior', 1920, 1080);
-  await expect(page.getByRole('button', { name: '空間写真を削除' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '写真を削除' })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   await page.getByRole('button', { name: 'LCD' }).click();

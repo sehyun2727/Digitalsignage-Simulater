@@ -175,9 +175,9 @@ test.describe('canvas object reselection', () => {
     await page.mouse.up();
 
     await expect(deleteButton(page)).toBeEnabled();
-    // v2-S3 3-1: X座標 lives in the Position/Size sub-accordion (collapsed by default).
+    // v2-S3 3-1: 横位置 (S6 renamed from X座標) lives in the Position/Size sub-accordion.
     await openSubsection(page, 'position-size');
-    const xValue = Number(await page.getByRole('spinbutton', { name: 'X座標' }).inputValue());
+    const xValue = Number(await page.getByRole('spinbutton', { name: '横位置' }).inputValue());
     // Started at size.width/2 - width/2 = 960 - 240 = 720; a +60px drag must move it, not
     // leave it in place (which would mean the drag started a fresh, unselected pan instead of
     // grabbing the display).

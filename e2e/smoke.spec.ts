@@ -15,7 +15,9 @@ test.describe('unsupported browser locale', () => {
     // browser locale" — use the stable testid for the space-photo trigger, which carries the
     // ja text from first load without matching the hidden file-input sibling that also
     // carries the same aria-label.
-    await expect(page.getByTestId('editor-space-background-trigger')).toHaveText('空間写真を追加');
+    await expect(page.getByTestId('editor-space-background-trigger')).toHaveText(
+      '設置場所の写真を追加',
+    );
     await expect(page.getByRole('link', { name: 'サイネージ設置はこちら' })).toHaveAttribute(
       'href',
       'https://hull-inc.jp/',

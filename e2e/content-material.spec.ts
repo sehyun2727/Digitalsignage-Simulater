@@ -13,11 +13,11 @@ test('adds a space background photo and can remove it again', async ({ page }) =
 
   await addSpaceBackground(page);
 
-  const removeButton = page.getByRole('button', { name: '空間写真を削除' });
+  const removeButton = page.getByRole('button', { name: '写真を削除' });
   await expect(removeButton).toBeVisible();
 
   await removeButton.click();
-  await expect(page.getByRole('button', { name: '空間写真を削除' })).toBeHidden();
+  await expect(page.getByRole('button', { name: '写真を削除' })).toBeHidden();
 });
 
 test('adds an LED display defaulting to led material', async ({ page }) => {
@@ -65,7 +65,7 @@ test('uploads content into a display, edits fit/offset/scale, and resets placeme
 
   await page.getByRole('button', { name: 'コンテンツの詳細設定' }).click();
 
-  const offsetX = page.getByRole('spinbutton', { name: 'コンテンツ位置X' });
+  const offsetX = page.getByRole('spinbutton', { name: 'コンテンツの横位置' });
   await offsetX.fill('0.4');
   await offsetX.blur();
   await expect(offsetX).toHaveValue('0.4');

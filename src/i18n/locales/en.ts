@@ -27,7 +27,7 @@ export const en: Messages = {
     {
       heading: 'Article 1 (Content of the Service)',
       paragraphs: [
-        'The Service is a web tool that lets Users place digital signage (LED / LCD / see-through / portable, etc.) over uploaded space photos and other images, simulate the installed appearance in the browser, and export the result as a PNG image or a video.',
+        'The Service is a web tool that lets Users place digital signage (LED / LCD / see-through / portable, etc.) over uploaded installation site photos and other images, simulate the installed appearance in the browser, and export the result as a PNG image or a video.',
       ],
     },
     {
@@ -117,7 +117,7 @@ export const en: Messages = {
   editorRedoButton: 'Redo',
   editorResetButton: 'Reset all',
   editorResetConfirm:
-    'Discard everything and start over? This clears the space photo, all signage, and the undo history.',
+    'Discard everything and start over? This clears the installation site photo, all signage, and the undo history.',
   editorExportButton: 'Export as PNG',
   editorExportVideoButton: 'Export as video',
   editorExportVideoInProgressButton: 'Exporting...',
@@ -126,13 +126,13 @@ export const en: Messages = {
   editorExportVideoErrorAnnouncement: 'Failed to export video.',
   editorContentVideoAutoplayHint: 'Video content plays automatically, loops, and is muted.',
   editorCanvasEmptyHint:
-    'Start by uploading a space photo. It is automatically fit to the canvas size.',
+    'Start by uploading an installation site photo. It is automatically fit to the canvas size.',
   editorCanvasNoSignageHint:
     'Place an LED, LCD, Transparent LED, or portable product from Add signage.',
   editorPropertiesTitle: 'Properties',
   editorPropertiesEmptyHint: 'Select an element to edit its properties.',
-  editorPositionXLabel: 'X position',
-  editorPositionYLabel: 'Y position',
+  editorPositionXLabel: 'Horizontal position',
+  editorPositionYLabel: 'Vertical position',
   editorWidthLabel: 'Width',
   editorHeightLabel: 'Height',
   perspectiveSizeLockedHint:
@@ -203,12 +203,12 @@ export const en: Messages = {
   editorCanvasPresetLandscapeLabel: 'Landscape (16:9)',
   editorCanvasPresetPortraitLabel: 'Portrait (9:16)',
 
-  editorSpaceBackgroundLabel: 'Space photo',
-  editorAddSpaceBackgroundButton: 'Add space photo',
-  editorReplaceSpaceBackgroundButton: 'Replace space photo',
-  editorRemoveSpaceBackgroundButton: 'Remove space photo',
+  editorSpaceBackgroundLabel: 'Installation site photo',
+  editorAddSpaceBackgroundButton: 'Add installation site photo',
+  editorReplaceSpaceBackgroundButton: 'Replace photo',
+  editorRemoveSpaceBackgroundButton: 'Delete photo',
   toolbarSpaceEmptyHint:
-    'Uploading a space photo fits it to the chosen canvas size automatically. You cannot add signage until a space photo exists.',
+    'Uploading an installation site photo fits it to the chosen canvas size automatically. You cannot add signage until an installation site photo exists.',
   editorSpaceBackgroundDimensionsLabel: 'Photo resolution',
   editorSpaceBackgroundDownscaledNotice:
     'The image was too large and was automatically downscaled to a safe size.',
@@ -218,7 +218,7 @@ export const en: Messages = {
   editorAddLedButton: 'LED',
   editorAddLcdButton: 'LCD',
   editorAddTransparentLedButton: 'See-through',
-  toolbarAddSignageDisabledHint: 'Upload a space photo first to add signage.',
+  toolbarAddSignageDisabledHint: 'Upload an installation site photo first to add signage.',
 
   editorContentLabel: 'Screen content',
   editorContentUploadButton: 'Add image / video',
@@ -231,13 +231,13 @@ export const en: Messages = {
   editorContentRotationLabel: 'Rotation',
   editorContentRotationZero: '0°',
   editorContentRotationNinety: '90°',
-  editorContentOffsetXLabel: 'Content position X',
-  editorContentOffsetYLabel: 'Content position Y',
+  editorContentOffsetXLabel: 'Content horizontal position',
+  editorContentOffsetYLabel: 'Content vertical position',
   editorContentScaleLabel: 'Content zoom',
   editorContentResetButton: 'Reset content placement',
   editorContentAdvancedSettingsOpenButton: 'Content advanced settings',
 
-  editorRenderingPresetLabel: 'Rendering preset',
+  editorRenderingPresetLabel: 'Brightness & time of day',
   editorRenderingPresetNatural: 'Natural',
   editorRenderingPresetBright: 'Bright exterior',
   editorRenderingPresetNight: 'Night',
@@ -284,14 +284,15 @@ export const en: Messages = {
   editorEnvironmentIntegrationLabel: 'Environment blend',
   editorEnvironmentIntegrationStrengthLabel: 'Blend strength',
   editorEnvironmentIntegrationResetButton: 'Reset blend',
-  editorEnvironmentSampleButton: 'Sample from space photo',
+  editorEnvironmentSampleButton: 'Sample from installation site photo',
   editorEnvironmentSampledSwatchLabel: 'Sampled ambient color',
-  editorEnvironmentSampleNoSpaceHint: 'Add a space photo first to sample its ambient color.',
+  editorEnvironmentSampleNoSpaceHint:
+    'Add an installation site photo first to sample its ambient color.',
 
   editorPerspectiveFitButton: 'Fit to space (perspective)',
   editorPerspectiveUseRectButton: 'Switch to normal placement',
   editorPerspectiveHint:
-    'Drag the four corner handles, or enter each corner’s position in the fields below, to match the plane in your space photo.',
+    'Drag the four corner handles, or enter each corner’s position in the fields below, to match the plane in your installation site photo.',
   editorPerspectiveCornerTopLeft: 'Top left',
   editorPerspectiveCornerTopRight: 'Top right',
   editorPerspectiveCornerBottomRight: 'Bottom right',
@@ -318,7 +319,7 @@ export const en: Messages = {
   editorOcclusionAddButton: 'Add mask',
   // v2-S5 U3 (3-5) ADR D-3: visible purpose description shown above the mask flow.
   editorOcclusionPurposeHint:
-    'Hides part of the signage as if a pillar or furniture were in front of it. The marked area shows the space photo on top instead.',
+    'Hides part of the signage as if a pillar or furniture were in front of it. The marked area shows the installation site photo on top instead.',
   editorOcclusionEditButton: 'Edit',
   editorOcclusionDeleteButton: 'Delete',
   editorOcclusionEnableLabel: 'Enabled',
@@ -328,7 +329,7 @@ export const en: Messages = {
   editorOcclusionOpacityLabel: 'Opacity',
   editorOcclusionApplyButton: 'Apply',
   editorOcclusionCancelButton: 'Cancel',
-  editorOcclusionNoSpaceHint: 'Add a space photo to edit mosaics.',
+  editorOcclusionNoSpaceHint: 'Add an installation site photo to edit masks.',
   editorOcclusionErrorTooFewPoints: 'Not enough points (3 minimum).',
   editorOcclusionErrorTooManyPoints: 'Too many points.',
   editorOcclusionErrorInvalidValues: 'Point values are invalid.',
@@ -359,12 +360,12 @@ export const en: Messages = {
     'When no screen area is set, the template default region is used.',
 
   toolbarAriaLabel: 'Common actions',
-  toolbarSpaceSectionHeading: 'Space',
+  toolbarSpaceSectionHeading: 'Installation site photo',
   toolbarAddSignageSectionHeading: 'Add signage',
   toolbarAddElementSubheading: 'Add content to your signage',
   toolbarSelectedSignageSectionHeading: 'Selected signage',
   toolbarPositionSizeSubheading: 'Position & size',
-  toolbarAppearanceSectionHeading: 'Appearance',
+  toolbarAppearanceSectionHeading: 'Signage appearance',
   toolbarExportSectionHeading: 'Export',
   toolbarContentEmptyHint: 'Select a display or portable product to add content to it.',
   toolbarAppearanceEmptyHint: 'Select a display or portable product to edit its appearance.',
@@ -377,7 +378,7 @@ export const en: Messages = {
   editorSpaceBackgroundFitContainOption: 'Fit',
   editorSpaceBackgroundFitCoverOption: 'Cover',
   editorSpaceBackgroundCoverHint: 'Part of the photo may be cropped.',
-  toolbarExportDisabledReason: 'Add a space photo to enable export.',
+  toolbarExportDisabledReason: 'Add an installation site photo to enable export.',
   signageTypeText: 'Text',
   signageTypeImage: 'Image',
   signageTypeLed: 'LED display',
@@ -392,9 +393,10 @@ export const en: Messages = {
   comparisonToggleGroupLabel: 'View toggle',
   comparisonResultLabel: 'Result',
   comparisonOriginalLabel: 'Original',
-  comparisonOriginalNoSpaceHint: 'No space photo has been added yet.',
+  comparisonOriginalNoSpaceHint: 'No installation site photo has been added yet.',
 
-  statusBarHintNoSpace: 'Start by adding a space photo in the Space section.',
+  statusBarHintNoSpace:
+    'Start by adding an installation site photo in the Installation site photo section.',
   statusBarHintNoSignage:
     'Place an LED, LCD, Transparent LED, or portable product from Add signage.',
   statusBarHintNoContent: 'Add an image to the selected signage from the Content section.',
@@ -402,11 +404,11 @@ export const en: Messages = {
 
   onboardingTitle: 'Welcome',
   onboardingDescription:
-    'The toolbar on the right always shows Space, Add signage, Selected signage, Content, Appearance, and Export. Start by uploading a space photo — it becomes the canvas and export size exactly. Work through the sections top to bottom to build a preview of your signage installation.',
+    'The toolbar on the right always shows Installation site photo, Add signage, Selected signage, Content, Signage appearance, and Export. Start by uploading an installation site photo — it becomes the canvas and export size exactly. Work through the sections top to bottom to build a preview of your signage installation.',
   onboardingDismissButton: 'Dismiss',
-  onboardingStep1Title: '1. Add a space photo',
+  onboardingStep1Title: '1. Add an installation site photo',
   onboardingStep1Description: 'Upload a photo of the installation site to start your mockup.',
-  onboardingStep1CtaLabel: 'Upload space photo',
+  onboardingStep1CtaLabel: 'Upload installation site photo',
   onboardingStep2Title: '2. Add signage',
   onboardingStep2Description: 'Place a display or other signage on the photo.',
   onboardingStep2CtaLabel: 'Go to add signage',
@@ -442,7 +444,7 @@ export const en: Messages = {
     'A browser-based tool that lets you place digital signage over a photo of a space to preview how it would look after installation. Finished compositions can be exported as PNG images or videos.',
   userGuideHowHeading: 'How to use',
   userGuideHowSteps: [
-    'Upload a space photo to create the background.',
+    'Upload an installation site photo to create the background.',
     'Add signage (LED / LCD / see-through / portable) and place it.',
     'Upload images or videos and assign them to the signage.',
     'Export as PNG or video.',
@@ -463,11 +465,11 @@ export const en: Messages = {
   ],
   userGuideRealismHeading: 'Making it look real',
   userGuideRealismItems: [
-    'Rendering presets (Natural / Bright / Night) switch the lighting mood with one click.',
+    'Brightness & time of day presets (Natural / Bright / Night) switch the lighting mood with one click.',
     'Adjust material brightness, intensity, transparency, pixel grain, glow, and contrast individually.',
     'LED displays support curvature (concave / convex) and curvature amount.',
     'Contact shadow blends the signage onto the floor plane.',
-    'Sample a color from the space photo to create an ambient blend that matches the room.',
+    'Sample a color from the installation site photo to create an ambient blend that matches the room.',
     'Installation surface (wall / window / freestanding) changes how shadows and highlights behave.',
   ],
   userGuidePerspectiveHeading: 'Angled installs and foreground occlusion',
@@ -483,7 +485,7 @@ export const en: Messages = {
     'Delete / Backspace removes the selected element.',
     'Ctrl+Z (⌘+Z on Mac) undoes; Ctrl+Y or Ctrl+Shift+Z redoes.',
     'The ⟳ button resets everything (no undo).',
-    'The Original / Result toggle compares the plain space photo to the composed result.',
+    'The Original / Result toggle compares the plain installation site photo to the composed result.',
     'Sales Review mode switches to a non-editable presentation view.',
     'The language selector in the top-right switches between 日本語 / 한국어 / English.',
   ],

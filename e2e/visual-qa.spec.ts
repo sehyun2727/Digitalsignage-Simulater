@@ -57,8 +57,8 @@ async function setPerspectiveCorner(
   yFraction: number,
 ): Promise<void> {
   const fieldset = page.locator('fieldset').filter({ hasText: cornerLabel });
-  const xInput = fieldset.getByRole('spinbutton', { name: 'X座標' });
-  const yInput = fieldset.getByRole('spinbutton', { name: 'Y座標' });
+  const xInput = fieldset.getByRole('spinbutton', { name: '横位置' });
+  const yInput = fieldset.getByRole('spinbutton', { name: '縦位置' });
   await xInput.fill(String(xFraction));
   await xInput.blur();
   await yInput.fill(String(yFraction));
