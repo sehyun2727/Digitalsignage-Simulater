@@ -868,6 +868,25 @@ a {
   color: var(--color-muted);
 }
 
+/* v2-P1 D3: Mask flow step indicator. Shows the current step highlighted (aria-current)
+ * and the Apply/Cancel reminder beneath it so the user never has to leave the inline
+ * mask panel to figure out "what do I press next". */
+.toolbar-step-indicator {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.toolbar-step-indicator > li[aria-current='step'] {
+  color: var(--color-fg);
+  font-weight: 600;
+}
+
 .toolbar-color-swatch {
   display: inline-block;
   width: 1.5rem;

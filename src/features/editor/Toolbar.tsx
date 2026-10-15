@@ -150,14 +150,22 @@ function SliderValueDisplay({
   value,
   unit,
   decimals = 0,
+  showSign = false,
 }: {
   value: number;
   unit: '%' | '°' | 'px' | '';
   decimals?: number;
+  /** v2-P1 D5: when the slider spans a symmetric 0-centred range (e.g. the ±100 contact
+   *  shadow tint), rendering a leading `+` for positive values makes the direction of the
+   *  value visually unambiguous (−20 / 0 / +15). Negative numbers already carry their sign
+   *  via toFixed, so we only need to prepend `+` when the value is strictly > 0. */
+  showSign?: boolean;
 }) {
+  const magnitude = value.toFixed(decimals);
+  const signed = showSign && value > 0 ? `+${magnitude}` : magnitude;
   return (
     <span className="toolbar-slider-value" aria-hidden="true" data-testid="toolbar-slider-value">
-      {value.toFixed(decimals)}
+      {signed}
       {unit}
     </span>
   );
@@ -1673,8 +1681,25 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
         {occlusionEditObjectId === object.id ? (
           (() => {
             const validation = validateOcclusionPolygon(occlusionDraftPoints);
+            // v2-P1 D3: Step indicator for the inline mask flow. Step 1 while the user is
+            // still placing corners (<4), Step 2 once at least 4 points exist (adjust /
+            // drag phase), Step 3 is always shown as a reminder of the final Apply/Cancel
+            // action — the user never has to re-open any detail panel to proceed.
+            const stepPrimary =
+              occlusionDraftPoints.length < 4
+                ? messages.editorOcclusionStep1
+                : messages.editorOcclusionStep2;
             return (
               <>
+                <ol
+                  className="toolbar-step-indicator"
+                  data-testid="editor-occlusion-step-indicator"
+                >
+                  <li aria-current={occlusionDraftPoints.length < 4 ? 'step' : undefined}>
+                    {stepPrimary}
+                  </li>
+                  <li>{messages.editorOcclusionStep3}</li>
+                </ol>
                 <p className="toolbar-notice">{messages.editorOcclusionHint}</p>
                 <label>
                   <span>{messages.editorOcclusionFeatherLabel}</span>
@@ -2098,7 +2123,7 @@ function AppearanceFields({ object }: { object: DisplaySignageObject | PortableS
                     commitContactShadow({ tint: clampContactShadowTint(shadowTintDraft) })
                   }
                 />
-                <SliderValueDisplay value={shadowTintDraft} unit="" />
+                <SliderValueDisplay value={shadowTintDraft} unit="" showSign />
               </label>
             </>
           )}

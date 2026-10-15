@@ -126,7 +126,7 @@ export const ja: Messages = {
   editorExportVideoErrorAnnouncement: '動画の書き出しに失敗しました。',
   editorContentVideoAutoplayHint: '動画は自動再生・ループ再生・ミュートで表示されます。',
   editorCanvasEmptyHint:
-    'まずは設置場所の写真をアップロードしてください。写真はキャンバスのサイズに合わせて自動的にフィットします。',
+    'まずは設置場所の写真をアップロードしてください。写真はキャンバスのサイズに合わせて全体表示(Fit)で入ります。画面いっぱいに表示したい場合は「設置場所の写真」セクションでCoverに切り替えられます。',
   editorCanvasNoSignageHint:
     '「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。',
   editorPropertiesTitle: 'プロパティ',
@@ -242,7 +242,7 @@ export const ja: Messages = {
   editorContentResetButton: 'コンテンツ配置をリセット',
   editorContentAdvancedSettingsOpenButton: 'コンテンツの詳細設定',
 
-  editorRenderingPresetLabel: '明るさ・時間帯',
+  editorRenderingPresetLabel: '明るさ',
   editorRenderingPresetNatural: 'ナチュラル',
   editorRenderingPresetBright: '明るい屋外',
   editorRenderingPresetNight: '夜間',
@@ -254,7 +254,7 @@ export const ja: Messages = {
   editorMaterialLcd: 'LCD（液晶）',
   editorMaterialTransparentLed: '透過LED',
   editorMaterialIntensityLabel: '質感の強さ',
-  editorMaterialBrightnessLabel: '明るさ',
+  editorMaterialBrightnessLabel: '画面の明るさ',
   editorMaterialTransparencyLabel: '透過度（背景の見え方）',
   editorMaterialGridDensityLabel: 'グリッド密度（詳細設定）',
   editorMaterialGlowLabel: '発光の強さ（詳細設定）',
@@ -325,6 +325,10 @@ export const ja: Messages = {
   // v2-S5 U3 (3-5) ADR D-3: visible purpose description shown above the mask flow.
   editorOcclusionPurposeHint:
     '柱や什器の前にあるように、サイネージの一部を隠す機能です。範囲を指定するとその部分だけ設置場所の写真が前面に出ます。',
+  // v2-P1 D3: step indicator for the inline mask flow.
+  editorOcclusionStep1: 'ステップ①：隠したい範囲の4点を指定',
+  editorOcclusionStep2: 'ステップ②：各点をドラッグして位置を調整',
+  editorOcclusionStep3: 'ステップ③：「適用」で確定、「キャンセル」でやり直し',
   editorOcclusionEditButton: '編集',
   editorOcclusionDeleteButton: '削除',
   editorOcclusionEnableLabel: '有効',
@@ -409,7 +413,7 @@ export const ja: Messages = {
 
   onboardingTitle: 'ようこそ',
   onboardingDescription:
-    '右側のツールバーには「設置場所の写真」「サイネージを追加」「選択中のサイネージ」「コンテンツ」「サイネージ外観の調整」「書き出し」が常時表示されています。まず設置場所の写真をアップロードすると、その写真がそのままキャンバスと書き出しサイズになります。上から順に操作すると、サイネージの設置イメージを簡単に作成できます。',
+    '右側のツールバーには「設置場所の写真」「サイネージを追加」「選択中のサイネージ」「コンテンツ」「サイネージ外観の調整」「書き出し」のアコーディオンが並び、必要なセクションだけを開いて使えます。まず設置場所の写真をアップロードすると、その写真がそのままキャンバスと書き出しサイズになります。写真は既定で全体表示(Fit)で入り、画面いっぱい表示(Cover)に切り替えることもできます。上から順に操作すると、サイネージの設置イメージを簡単に作成できます。',
   onboardingDismissButton: '閉じる',
   onboardingStep1Title: '1. 設置場所の写真を追加',
   onboardingStep1Description: '設置予定の場所の写真をアップロードしてモックアップを始めましょう。',
@@ -424,11 +428,10 @@ export const ja: Messages = {
   onboardingStep4Description: '完成したモックアップをPNGとして書き出して共有しましょう。',
   onboardingStep4CtaLabel: '今すぐPNGで保存',
 
-  realismGuideTitle: '外観の設定について',
+  realismGuideTitle: 'サイネージ外観の調整について',
   realismGuideDescription:
-    'サイネージ本体を「設置場所の写真」に馴染ませるための設定がまとまっています。下の各項目で、明るさ・設置面・環境色・手前の物で隠す（マスク）を調整できます。',
-  realismGuideStepPreset:
-    '明るさ・時間帯：昼・夕方・夜などのプリセットで全体の雰囲気を切り替えます。',
+    'サイネージ本体を「設置場所の写真」に馴染ませるために、明るさを調整できます。下の「詳細設定」から、さらに細かな調整ができます。',
+  realismGuideStepPreset: '明るさ：昼・夕方・夜などのプリセットで全体の雰囲気を切り替えます。',
   realismGuideStepInstallation:
     '設置面と接地シャドウ：壁面・窓面・自立式に合わせて、床や壁への馴染みを整えます。',
   realismGuideStepEnvironment:
@@ -442,7 +445,7 @@ export const ja: Messages = {
     '編集操作を無効にした、お客様にそのままお見せできる表示です。「編集に戻る」を押すといつでも編集を再開できます。',
 
   userGuideOpenButton: '使い方ガイド',
-  userGuideTitle: '使い方・このツールについて',
+  userGuideTitle: '使い方ガイド',
   userGuideCloseButton: '閉じる',
   userGuideAboutHeading: 'このツールについて',
   userGuideAboutBody:
@@ -470,7 +473,7 @@ export const ja: Messages = {
   ],
   userGuideRealismHeading: 'よりリアルに見せる',
   userGuideRealismItems: [
-    '明るさ・時間帯(自然/明るい/夜間)で光の雰囲気をワンクリックで切り替えられます。',
+    '明るさ(自然/明るい/夜間)で光の雰囲気をワンクリックで切り替えられます。',
     '素材の明るさ・強度・透明度・ピクセル粒感・グロー・コントラストを個別に調整できます。',
     'LEDには曲面(凹面/凸面)と曲率を設定できます。',
     '接地シャドウで床面との影のなじみを追加できます。',

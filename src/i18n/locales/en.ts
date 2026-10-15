@@ -126,7 +126,7 @@ export const en: Messages = {
   editorExportVideoErrorAnnouncement: 'Failed to export video.',
   editorContentVideoAutoplayHint: 'Video content plays automatically, loops, and is muted.',
   editorCanvasEmptyHint:
-    'Start by uploading an installation site photo. It is automatically fit to the canvas size.',
+    'Start by uploading an installation site photo. By default it is shown with Fit so the whole photo is visible; you can switch to Cover from the Installation site photo section.',
   editorCanvasNoSignageHint:
     'Place an LED, LCD, Transparent LED, or portable product from Add signage.',
   editorPropertiesTitle: 'Properties',
@@ -237,7 +237,7 @@ export const en: Messages = {
   editorContentResetButton: 'Reset content placement',
   editorContentAdvancedSettingsOpenButton: 'Content advanced settings',
 
-  editorRenderingPresetLabel: 'Brightness & time of day',
+  editorRenderingPresetLabel: 'Brightness',
   editorRenderingPresetNatural: 'Natural',
   editorRenderingPresetBright: 'Bright exterior',
   editorRenderingPresetNight: 'Night',
@@ -249,7 +249,7 @@ export const en: Messages = {
   editorMaterialLcd: 'LCD',
   editorMaterialTransparentLed: 'Transparent LED',
   editorMaterialIntensityLabel: 'Material intensity',
-  editorMaterialBrightnessLabel: 'Brightness',
+  editorMaterialBrightnessLabel: 'Screen brightness',
   editorMaterialTransparencyLabel: 'Transparency (background visibility)',
   editorMaterialGridDensityLabel: 'Grid density (advanced)',
   editorMaterialGlowLabel: 'Glow strength (advanced)',
@@ -313,13 +313,17 @@ export const en: Messages = {
   editorInstallationModeWindow: 'Window (see-through)',
   editorInstallationModeFreestanding: 'Freestanding',
 
-  editorOcclusionLabel: 'Hide behind a foreground object (mask)',
+  editorOcclusionLabel: 'Foreground mask',
   editorOcclusionMaskItemLabel: 'Mask',
   editorOcclusionEmptyHint: 'No masks yet.',
   editorOcclusionAddButton: 'Add mask',
   // v2-S5 U3 (3-5) ADR D-3: visible purpose description shown above the mask flow.
   editorOcclusionPurposeHint:
-    'Hides part of the signage as if a pillar or furniture were in front of it. The marked area shows the installation site photo on top instead.',
+    'Makes the signage look partly hidden behind foreground objects such as pillars or fixtures. The marked area shows the installation site photo on top.',
+  // v2-P1 D3: step indicator for the inline mask flow.
+  editorOcclusionStep1: 'Step ①: Pick the four corners of the area to hide',
+  editorOcclusionStep2: 'Step ②: Drag each point to fine-tune the position',
+  editorOcclusionStep3: 'Step ③: Press "Apply" to confirm or "Cancel" to redo',
   editorOcclusionEditButton: 'Edit',
   editorOcclusionDeleteButton: 'Delete',
   editorOcclusionEnableLabel: 'Enabled',
@@ -404,7 +408,7 @@ export const en: Messages = {
 
   onboardingTitle: 'Welcome',
   onboardingDescription:
-    'The toolbar on the right always shows Installation site photo, Add signage, Selected signage, Content, Signage appearance, and Export. Start by uploading an installation site photo — it becomes the canvas and export size exactly. Work through the sections top to bottom to build a preview of your signage installation.',
+    'The toolbar on the right lists accordion sections — Installation site photo, Add signage, Selected signage, Content, Signage appearance, and Export — that you open as needed. Start by uploading an installation site photo; it becomes the canvas and export size exactly, and defaults to Fit (whole photo visible). You can switch it to Cover from the Installation site photo section. Work through the sections top to bottom to build a preview of your signage installation.',
   onboardingDismissButton: 'Dismiss',
   onboardingStep1Title: '1. Add an installation site photo',
   onboardingStep1Description: 'Upload a photo of the installation site to start your mockup.',
@@ -419,11 +423,10 @@ export const en: Messages = {
   onboardingStep4Description: 'Export the finished mockup as a PNG to share.',
   onboardingStep4CtaLabel: 'Save as PNG now',
 
-  realismGuideTitle: 'About appearance settings',
+  realismGuideTitle: 'About signage appearance',
   realismGuideDescription:
-    'These settings help the signage blend into the installation photo. Each item below adjusts brightness, mounting surface, ambient color, or covering by a foreground object (mask).',
-  realismGuideStepPreset:
-    'Brightness and time of day: pick day / evening / night presets for the overall mood.',
+    'Adjust the brightness so the signage blends into the installation site photo. Open "Advanced settings" below for finer control.',
+  realismGuideStepPreset: 'Brightness: pick day / evening / night presets for the overall mood.',
   realismGuideStepInstallation:
     'Mounting surface and contact shadow: match a wall, window, or freestanding placement.',
   realismGuideStepEnvironment:
@@ -437,7 +440,7 @@ export const en: Messages = {
     'A clean, non-editable view you can show a client as-is. Select "Back to editing" any time to resume editing.',
 
   userGuideOpenButton: 'User guide',
-  userGuideTitle: 'About & how to use',
+  userGuideTitle: 'User guide',
   userGuideCloseButton: 'Close',
   userGuideAboutHeading: 'About this tool',
   userGuideAboutBody:
@@ -465,7 +468,7 @@ export const en: Messages = {
   ],
   userGuideRealismHeading: 'Making it look real',
   userGuideRealismItems: [
-    'Brightness & time of day presets (Natural / Bright / Night) switch the lighting mood with one click.',
+    'Brightness presets (Natural / Bright / Night) switch the lighting mood with one click.',
     'Adjust material brightness, intensity, transparency, pixel grain, glow, and contrast individually.',
     'LED displays support curvature (concave / convex) and curvature amount.',
     'Contact shadow blends the signage onto the floor plane.',

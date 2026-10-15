@@ -236,6 +236,12 @@ export interface Messages {
   editorOcclusionAddButton: string;
   /** v2-S5 U3 (3-5). Visible description above the mask flow. */
   editorOcclusionPurposeHint: string;
+  /** v2-P1 D3. Step indicator shown while the mask draft is being built. The three keys
+   *  are selected based on the current draft point count: <4 points → step1, ≥4 points
+   *  → step2, with step3 always visible as the final-action reminder next to Apply. */
+  editorOcclusionStep1: string;
+  editorOcclusionStep2: string;
+  editorOcclusionStep3: string;
   editorOcclusionEditButton: string;
   editorOcclusionDeleteButton: string;
   editorOcclusionEnableLabel: string;

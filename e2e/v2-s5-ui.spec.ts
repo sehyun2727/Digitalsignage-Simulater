@@ -69,7 +69,7 @@ test('U1 ArrowRight×5 keeps the visible value in sync with aria-valuenow', asyn
   // Explicit: 明るさ is one of the first two sliders in appearance (質感の強さ then 明るさ).
   const brightnessByLabel = page
     .locator('label')
-    .filter({ has: page.locator('span').filter({ hasText: /^明るさ$/ }) })
+    .filter({ has: page.locator('span').filter({ hasText: /^画面の明るさ$/ }) })
     .locator('input[type="range"]');
   await brightnessByLabel.focus();
   const initialAria = await brightnessByLabel.getAttribute('aria-valuenow');
@@ -80,7 +80,7 @@ test('U1 ArrowRight×5 keeps the visible value in sync with aria-valuenow', asyn
   // Read the sibling display's visible text.
   const sibling = page
     .locator('label')
-    .filter({ has: page.locator('span').filter({ hasText: /^明るさ$/ }) })
+    .filter({ has: page.locator('span').filter({ hasText: /^画面の明るさ$/ }) })
     .getByTestId('toolbar-slider-value');
   const displayed = (await sibling.textContent())?.trim() ?? '';
   console.log(
@@ -363,16 +363,19 @@ test('A4 all 16 sliders exist and ArrowRight×5 updates visible label in step wi
   const concave = page.getByRole('button', { name: /湾曲.*凹|湾曲\(凹\)|湾曲（凹）/ });
   if ((await concave.count()) > 0) await concave.first().click();
   // Shadow is enabled by default — strength/blur/spread/depth/tint mount.
-  const sliders: { label: RegExp; unit: string; condPath?: string }[] = [
+  // v2-P1 D5: tint slider now renders a leading `+` for positive values (±100 symmetric
+  // range → signed readout). `showSign: true` tells the assertion to prepend `+` when the
+  // value is strictly > 0.
+  const sliders: { label: RegExp; unit: string; showSign?: boolean }[] = [
     { label: /^質感の強さ$/, unit: '%' },
-    { label: /^明るさ$/, unit: '%' },
+    { label: /^画面の明るさ$/, unit: '%' },
     { label: /^コントラスト（詳細設定）$/, unit: '%' },
     { label: /^湾曲の深さ|^湾曲量/, unit: '%' },
     { label: /^強さ$/, unit: '%' },
     { label: /^ぼかし$/, unit: '%' },
     { label: /^幅（広がり）$/, unit: 'px' },
     { label: /^奥行き$/, unit: 'px' },
-    { label: /^暖色・寒色トーン$/, unit: '' },
+    { label: /^暖色・寒色トーン$/, unit: '', showSign: true },
     { label: /^なじませ強度$/, unit: '%' },
     { label: /^グリッド密度（詳細設定）$/, unit: '%' },
     { label: /^発光の強さ（詳細設定）$/, unit: '%' },
@@ -405,8 +408,12 @@ test('A4 all 16 sliders exist and ArrowRight×5 updates visible label in step wi
       afterAria,
       displayed: displayed.trim(),
     });
-    // Visible label matches aria-valuenow.
-    expect(displayed.trim()).toBe(`${afterAria}${s.unit}`);
+    // Visible label matches aria-valuenow (optionally with a leading `+` for showSign
+    // sliders, per v2-P1 D5).
+    const expectedMagnitude = `${afterAria}${s.unit}`;
+    const expected =
+      s.showSign && Number(afterAria) > 0 ? `+${expectedMagnitude}` : expectedMagnitude;
+    expect(displayed.trim()).toBe(expected);
   }
   console.log(`A4 sliders measured: ${JSON.stringify(measurements)}`);
   // 10+ sliders should be covered by default state (LED + shadow + curvature + settings open).
@@ -482,7 +489,7 @@ test('U1 preset apply refreshes the visible slider value', async ({ page }) => {
   // Capture 明るさ display value BEFORE preset apply.
   const brightnessDisplay = page
     .locator('label')
-    .filter({ has: page.locator('span').filter({ hasText: /^明るさ$/ }) })
+    .filter({ has: page.locator('span').filter({ hasText: /^画面の明るさ$/ }) })
     .getByTestId('toolbar-slider-value');
   const before = (await brightnessDisplay.textContent())?.trim() ?? '';
   // Click a preset button that materially differs from the default — the dark/night

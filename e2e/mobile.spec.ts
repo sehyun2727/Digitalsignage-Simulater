@@ -99,7 +99,8 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await intensitySlider.press('End');
   await intensitySlider.press('Tab');
 
-  const brightnessSlider = page.getByRole('slider', { name: '明るさ' });
+  // v2-P1 D2 label rename: 明るさ → 画面の明るさ (material slider).
+  const brightnessSlider = page.getByRole('slider', { name: '画面の明るさ' });
   await brightnessSlider.focus();
   await brightnessSlider.press('Home');
   await brightnessSlider.press('Tab');

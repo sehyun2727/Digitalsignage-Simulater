@@ -116,7 +116,7 @@ export const ko: Messages = {
   editorRedoButton: '다시 실행',
   editorResetButton: '전체 초기화',
   editorResetConfirm:
-    '모두 삭제하고 처음부터 다시 시작할까요? 설치 장소 사진, 모든 사이네지, 실행 취소 기록이 모두 지워집니다.',
+    '모두 삭제하고 처음부터 다시 시작할까요? 설치 장소 사진, 모든 사이니지, 실행 취소 기록이 모두 지워집니다.',
   editorExportButton: 'PNG로 내보내기',
   editorExportVideoButton: '동영상으로 내보내기',
   editorExportVideoInProgressButton: '내보내는 중...',
@@ -125,9 +125,9 @@ export const ko: Messages = {
   editorExportVideoErrorAnnouncement: '동영상을 내보내지 못했습니다.',
   editorContentVideoAutoplayHint: '동영상은 자동 재생, 반복 재생, 음소거 상태로 표시됩니다.',
   editorCanvasEmptyHint:
-    '먼저 설치 장소 사진을 업로드해 주세요. 사진은 캔버스 크기에 맞게 자동으로 채워집니다.',
+    '먼저 설치 장소 사진을 업로드해 주세요. 사진은 캔버스 크기에 맞게 전체 표시(Fit)로 들어가며, "설치 장소 사진" 섹션에서 화면 가득 채우기(Cover)로 전환할 수 있습니다.',
   editorCanvasNoSignageHint:
-    '"사이네지 추가" 섹션에서 LED·LCD·시스루 사이네지·포터블 제품을 배치해 보세요.',
+    '"사이니지 추가" 섹션에서 LED·LCD·시스루 사이니지·포터블 제품을 배치해 보세요.',
   editorPropertiesTitle: '속성',
   editorPropertiesEmptyHint: '요소를 선택하면 속성을 편집할 수 있습니다.',
   editorPositionXLabel: '가로 위치',
@@ -150,7 +150,7 @@ export const ko: Messages = {
   editorImageUploadErrorDimensionsTooLarge:
     '이미지 해상도가 너무 큽니다. 가로/세로 6000px, 총 2400만 화소 이하의 이미지를 사용해 주세요.',
   editorContentDropNoTargetHint:
-    '파일을 콘텐츠로 사용하려면 사이네지 또는 포터블 사이네지의 화면 영역에 드롭하세요.',
+    '파일을 콘텐츠로 사용하려면 사이니지 또는 포터블 사이니지의 화면 영역에 드롭하세요.',
   editorVideoUploadErrorUnsupportedType: 'MP4, WebM 형식의 동영상만 사용할 수 있습니다.',
   editorVideoUploadErrorTooLarge: '동영상 크기는 300MB 이하여야 합니다.',
   editorVideoUploadErrorUnsupportedCodec: '이 브라우저에서는 동영상 코덱을 재생할 수 없습니다.',
@@ -208,7 +208,7 @@ export const ko: Messages = {
   editorReplaceSpaceBackgroundButton: '사진 교체',
   editorRemoveSpaceBackgroundButton: '사진 삭제',
   toolbarSpaceEmptyHint:
-    '설치 장소 사진을 업로드하면 선택한 캔버스 크기에 맞게 자동으로 채워집니다. 사진이 없으면 사이네지를 추가할 수 없습니다.',
+    '설치 장소 사진을 업로드하면 선택한 캔버스 크기에 맞게 자동으로 채워집니다. 사진이 없으면 사이니지를 추가할 수 없습니다.',
   editorSpaceBackgroundDimensionsLabel: '이미지 해상도',
   editorSpaceBackgroundDownscaledNotice: '이미지가 너무 커서 안전한 크기로 자동 축소되었습니다.',
   editorSpaceBackgroundPrivacyNotice: '사진은 브라우저에서만 처리되며 서버로 전송되지 않습니다.',
@@ -216,7 +216,7 @@ export const ko: Messages = {
   editorAddLedButton: 'LED',
   editorAddLcdButton: 'LCD(액정)',
   editorAddTransparentLedButton: '시스루',
-  toolbarAddSignageDisabledHint: '사이네지를 추가하려면 먼저 설치 장소 사진을 업로드해 주세요.',
+  toolbarAddSignageDisabledHint: '사이니지를 추가하려면 먼저 설치 장소 사진을 업로드해 주세요.',
 
   editorContentLabel: '화면 콘텐츠',
   editorContentUploadButton: '이미지/동영상 추가',
@@ -235,19 +235,19 @@ export const ko: Messages = {
   editorContentResetButton: '콘텐츠 배치 초기화',
   editorContentAdvancedSettingsOpenButton: '콘텐츠 고급 설정',
 
-  editorRenderingPresetLabel: '밝기·시간대',
+  editorRenderingPresetLabel: '밝기',
   editorRenderingPresetNatural: '자연광',
   editorRenderingPresetBright: '밝은 실외',
   editorRenderingPresetNight: '야간',
   editorRenderingPresetHint:
     '프리셋은 아래 소재/그림자/환경 블렌드 슬라이더의 시작값을 설정합니다. 적용 후에도 각 슬라이더는 자유롭게 조정할 수 있습니다.',
 
-  editorMaterialLabel: '사이네지 소재',
+  editorMaterialLabel: '사이니지 소재',
   editorMaterialLed: 'LED',
   editorMaterialLcd: 'LCD(액정)',
   editorMaterialTransparentLed: '시스루',
   editorMaterialIntensityLabel: '질감 강도',
-  editorMaterialBrightnessLabel: '밝기',
+  editorMaterialBrightnessLabel: '화면 밝기',
   editorMaterialTransparencyLabel: '투과도 (배경이 비치는 정도)',
   editorMaterialGridDensityLabel: '그리드 밀도 (고급 설정)',
   editorMaterialGlowLabel: '발광 강도 (고급 설정)',
@@ -256,7 +256,7 @@ export const ko: Messages = {
   editorMaterialPreviewNotice:
     '화면 질감·밝기·발광·대비는 시각적 참고용 표현이며 실제 제품 성능을 보장하지 않습니다.',
   editorTransparentLedDisclaimer:
-    '시스루 사이네지 표현은 간이 시각 시뮬레이션입니다. 실제 투과율·휘도 등 물리적 특성을 재현하지 않으며 제품 선정의 근거로 사용할 수 없습니다.',
+    '시스루 사이니지 표현은 간이 시각 시뮬레이션입니다. 실제 투과율·휘도 등 물리적 특성을 재현하지 않으며 제품 선정의 근거로 사용할 수 없습니다.',
   editorAdvancedSettingsOpenButton: '세부 설정',
   editorAdvancedSettingsTitle: '세부 설정',
   editorAdvancedSettingsCloseButton: '닫기',
@@ -311,13 +311,17 @@ export const ko: Messages = {
   editorInstallationModeWindow: '창면(투과)',
   editorInstallationModeFreestanding: '독립형',
 
-  editorOcclusionLabel: '앞에 있는 물체로 가리기 (마스크)',
+  editorOcclusionLabel: '앞쪽 물체로 가리기(마스크)',
   editorOcclusionMaskItemLabel: '마스크',
   editorOcclusionEmptyHint: '아직 마스크가 없습니다.',
   editorOcclusionAddButton: '마스크 추가',
   // v2-S5 U3 (3-5) ADR D-3: visible purpose description shown above the mask flow.
   editorOcclusionPurposeHint:
-    '기둥·집기 앞에 있는 것처럼 사이니지의 일부를 가리는 기능입니다. 범위를 지정하면 그 부분만 설치 장소 사진이 앞으로 나옵니다.',
+    '기둥이나 집기 등 앞쪽 물체 뒤에 사이니지가 가려진 것처럼 보이게 하는 기능입니다. 범위를 지정하면 그 부분만 설치 장소 사진이 앞으로 나옵니다.',
+  // v2-P1 D3: step indicator for the inline mask flow.
+  editorOcclusionStep1: '단계 ①: 가릴 범위의 네 꼭짓점을 지정하세요',
+  editorOcclusionStep2: '단계 ②: 각 점을 드래그해 위치를 조정하세요',
+  editorOcclusionStep3: '단계 ③: "적용"으로 확정하거나 "취소"로 다시 하세요',
   editorOcclusionEditButton: '편집',
   editorOcclusionDeleteButton: '삭제',
   editorOcclusionEnableLabel: '사용',
@@ -357,14 +361,14 @@ export const ko: Messages = {
 
   toolbarAriaLabel: '공통 작업',
   toolbarSpaceSectionHeading: '설치 장소 사진',
-  toolbarAddSignageSectionHeading: '사이네지 추가',
-  toolbarAddElementSubheading: '사이네지에 콘텐츠를 추가하세요',
-  toolbarSelectedSignageSectionHeading: '선택한 사이네지',
+  toolbarAddSignageSectionHeading: '사이니지 추가',
+  toolbarAddElementSubheading: '사이니지에 콘텐츠를 추가하세요',
+  toolbarSelectedSignageSectionHeading: '선택한 사이니지',
   toolbarPositionSizeSubheading: '위치·크기',
   toolbarAppearanceSectionHeading: '사이니지 외관 조정',
   toolbarExportSectionHeading: '내보내기',
-  toolbarContentEmptyHint: '사이네지 또는 포터블 제품을 선택하면 콘텐츠를 추가할 수 있습니다.',
-  toolbarAppearanceEmptyHint: '사이네지 또는 포터블 제품을 선택하면 외관을 편집할 수 있습니다.',
+  toolbarContentEmptyHint: '사이니지 또는 포터블 제품을 선택하면 콘텐츠를 추가할 수 있습니다.',
+  toolbarAppearanceEmptyHint: '사이니지 또는 포터블 제품을 선택하면 외관을 편집할 수 있습니다.',
   toolbarAppearanceUnsupportedHint: '이 요소에는 외관 설정이 없습니다.',
   toolbarSelectedSignageTypeLabel: '종류',
   editorCopyObjectButton: '복사',
@@ -377,9 +381,9 @@ export const ko: Messages = {
   toolbarExportDisabledReason: '설치 장소 사진을 추가하면 내보내기를 사용할 수 있습니다.',
   signageTypeText: '텍스트',
   signageTypeImage: '이미지',
-  signageTypeLed: 'LED 사이네지',
-  signageTypeLcd: 'LCD(액정) 사이네지',
-  signageTypeTransparentLed: '시스루 사이네지',
+  signageTypeLed: 'LED 사이니지',
+  signageTypeLcd: 'LCD(액정) 사이니지',
+  signageTypeTransparentLed: '시스루 사이니지',
   signageTypePortable: '포터블 제품',
   exportResolutionLabel: '내보내기 크기',
 
@@ -393,37 +397,37 @@ export const ko: Messages = {
 
   statusBarHintNoSpace: '먼저 "설치 장소 사진" 섹션에서 설치 장소 사진을 추가해 보세요.',
   statusBarHintNoSignage:
-    '"사이네지 추가" 섹션에서 LED·LCD·시스루 사이네지·포터블 제품을 배치해 보세요.',
-  statusBarHintNoContent: '선택한 사이네지에 "콘텐츠" 섹션에서 이미지를 추가할 수 있습니다.',
+    '"사이니지 추가" 섹션에서 LED·LCD·시스루 사이니지·포터블 제품을 배치해 보세요.',
+  statusBarHintNoContent: '선택한 사이니지에 "콘텐츠" 섹션에서 이미지를 추가할 수 있습니다.',
   statusBarHintReady: '준비가 되면 "내보내기" 섹션에서 PNG로 내보내 보세요.',
 
   onboardingTitle: '환영합니다',
   onboardingDescription:
-    '오른쪽 툴바에는 "설치 장소 사진", "사이네지 추가", "선택한 사이네지", "콘텐츠", "사이니지 외관 조정", "내보내기"가 항상 표시됩니다. 먼저 설치 장소 사진을 업로드하면 그 사진이 그대로 캔버스와 내보내기 크기가 됩니다. 위에서부터 순서대로 진행하면 사이네지 설치 이미지를 쉽게 만들 수 있습니다.',
+    '오른쪽 툴바에는 "설치 장소 사진", "사이니지 추가", "선택한 사이니지", "콘텐츠", "사이니지 외관 조정", "내보내기" 아코디언이 나열되어 있어 필요한 섹션만 열어 사용할 수 있습니다. 먼저 설치 장소 사진을 업로드하면 그 사진이 그대로 캔버스와 내보내기 크기가 됩니다. 사진은 기본으로 전체 표시(Fit)로 들어가며, 화면 가득 채우기(Cover)로 전환할 수도 있습니다. 위에서부터 순서대로 진행하면 사이니지 설치 이미지를 쉽게 만들 수 있습니다.',
   onboardingDismissButton: '닫기',
   onboardingStep1Title: '1. 설치 장소 사진 추가',
   onboardingStep1Description: '설치 예정 장소의 사진을 업로드해 목업을 시작하세요.',
   onboardingStep1CtaLabel: '설치 장소 사진 업로드',
-  onboardingStep2Title: '2. 사이네지 추가',
-  onboardingStep2Description: '사진 위에 LED, LCD, 시스루 등 사이네지를 배치하세요.',
-  onboardingStep2CtaLabel: '사이네지 추가로 이동',
+  onboardingStep2Title: '2. 사이니지 추가',
+  onboardingStep2Description: '사진 위에 LED, LCD, 시스루 등 사이니지를 배치하세요.',
+  onboardingStep2CtaLabel: '사이니지 추가로 이동',
   onboardingStep3Title: '3. 콘텐츠 적용',
-  onboardingStep3Description: '사이네지에 표시할 이미지나 영상을 업로드하세요.',
+  onboardingStep3Description: '사이니지에 표시할 이미지나 영상을 업로드하세요.',
   onboardingStep3CtaLabel: '콘텐츠 업로드로 이동',
   onboardingStep4Title: '4. PNG로 저장',
   onboardingStep4Description: '완성된 목업을 PNG로 내보내 공유하세요.',
   onboardingStep4CtaLabel: '지금 PNG로 저장하기',
 
-  realismGuideTitle: '외관 설정 소개',
+  realismGuideTitle: '사이니지 외관 조정 안내',
   realismGuideDescription:
-    '사이네지 본체를 "설치 장소 사진"에 어울리게 하는 설정이 모여 있습니다. 아래의 각 항목에서 밝기·설치면·환경 색·앞 물체로 가리기(마스크)를 조정할 수 있습니다.',
-  realismGuideStepPreset: '밝기·시간대: 낮·저녁·밤 등 프리셋으로 전체 분위기를 바꿉니다.',
+    '사이니지 본체를 「설치 장소 사진」에 어울리게 하기 위해 밝기를 조정할 수 있습니다. 아래의 「세부 설정」에서 더 세밀하게 조정할 수 있습니다.',
+  realismGuideStepPreset: '밝기: 낮·저녁·밤 등 프리셋으로 전체 분위기를 바꿉니다.',
   realismGuideStepInstallation:
     '설치면과 접지 그림자: 벽면·창면·자립형에 맞춰 바닥이나 벽과의 어울림을 조정합니다.',
   realismGuideStepEnvironment:
     '환경 블렌드: 설치 장소 사진에서 색을 샘플링해 주변 색감에 맞춥니다.',
   realismGuideStepOcclusion:
-    '앞 물체로 가리기(마스크): 기둥이나 집기 뒤로 돌아가 보이도록 화면 일부를 가립니다.',
+    '앞쪽 물체로 가리기(마스크): 기둥이나 집기 뒤로 돌아가 보이도록 화면 일부를 가립니다.',
 
   salesReviewEnterButton: '영업 리뷰 모드',
   salesReviewExitButton: '편집으로 돌아가기',
@@ -431,7 +435,7 @@ export const ko: Messages = {
     '편집 기능을 비활성화한, 고객에게 그대로 보여줄 수 있는 화면입니다. "편집으로 돌아가기"를 누르면 언제든 편집을 다시 시작할 수 있습니다.',
 
   userGuideOpenButton: '사용 가이드',
-  userGuideTitle: '사용법 · 이 서비스에 대하여',
+  userGuideTitle: '사용 가이드',
   userGuideCloseButton: '닫기',
   userGuideAboutHeading: '이 서비스에 대하여',
   userGuideAboutBody:
@@ -459,7 +463,7 @@ export const ko: Messages = {
   ],
   userGuideRealismHeading: '더 자연스럽게 보이기',
   userGuideRealismItems: [
-    '밝기·시간대(자연 / 밝음 / 야간)으로 광원 분위기를 원클릭으로 전환할 수 있습니다.',
+    '밝기(자연 / 밝음 / 야간)으로 광원 분위기를 원클릭으로 전환할 수 있습니다.',
     '소재의 밝기·강도·투명도·픽셀 입자감·글로우·대비를 개별 조정할 수 있습니다.',
     'LED에는 곡면(오목 / 볼록)과 곡률을 설정할 수 있습니다.',
     '접지 그림자로 바닥면과의 그림자를 자연스럽게 추가할 수 있습니다.',

@@ -218,7 +218,9 @@ test('rendering presets update the material sliders and the export brightness to
 
   // v2-S3: brightness slider + rendering preset buttons live inside the Appearance accordion.
   await openSection(page, 'appearance');
-  const brightnessSlider = page.getByRole('slider', { name: '明るさ' });
+  // v2-P1 D2: the material brightness slider label was renamed 明るさ → 画面の明るさ to
+  // disambiguate from the preset-group label 「明るさ」 (formerly 「明るさ・時間帯」).
+  const brightnessSlider = page.getByRole('slider', { name: '画面の明るさ' });
   const naturalBrightness = await brightnessSlider.inputValue();
 
   const nightButton = page.getByRole('button', { name: '夜間' });
