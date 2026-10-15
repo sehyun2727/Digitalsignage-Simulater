@@ -10,12 +10,14 @@
 | X座標 / Y座標                                | 横位置 / 縦位置                        | 가로 위치 / 세로 위치                    | Horizontal position / Vertical position |
 | コンテンツ位置X / Y                          | コンテンツの横位置 / 縦位置            | 콘텐츠 가로 위치 / 세로 위치             | Content horizontal / vertical position  |
 | 外観                                         | サイネージ外観の調整                   | 사이니지 외관 조정                       | Signage appearance                      |
-| レンダリングプリセット                       | 明るさ・時間帯                         | 밝기·시간대                              | Brightness & time of day                |
+| レンダリングプリセット                       | 明るさ                                 | 밝기                                     | Brightness                              |
+| 明るさ (素材スライダー, 旧)                  | 画面の明るさ                           | 화면 밝기                                | Screen brightness                       |
 | LCD                                          | LCD（液晶）                            | LCD(액정)                                | LCD                                     |
 | 外部のHULL公式サイトが新しいタブで開きます。 | HULL公式サイトが新しいタブで開きます。 | HULL 공식 웹사이트가 새 탭에서 열립니다. | Opens the HULL website in a new tab.    |
 | モザイク                                     | 手前の物で隠す（マスク）               | 앞쪽 물체로 가리기(마스크)               | Foreground mask                         |
 | キャンパス (오타)                            | キャンバス                             | 캔버스                                   | Canvas                                  |
 | 사이네지 (ko 오타)                           | —                                      | 사이니지                                 | —                                       |
+| 使い方・このツールについて (旧マニュアル題)  | 使い方ガイド                           | 사용 가이드                              | User guide                              |
 
 **예외**: 「空間に合わせて配置（パース）」는 사진 이름이 아니라 조작 명이므로 **유지**.
 
@@ -38,13 +40,14 @@ S2~S5에서 아래 표를 사용합니다. 기존 로케일에 같은 뜻의 키
 | 適用 / キャンセル                                                              | 적용 / 취소                                                                      | Apply / Cancel                                                                              |
 | 柱や什器など、手前にある物の後ろにサイネージが隠れているように見せる機能です。 | 기둥이나 집기 등 앞쪽 물체 뒤에 사이니지가 가려진 것처럼 보이게 하는 기능입니다. | Makes the signage look partly hidden behind foreground objects such as pillars or fixtures. |
 | ステップ{current}/{total}：隠したい範囲の角をクリック（{count}/4）             | 단계 {current}/{total}: 가릴 범위의 꼭짓점을 클릭 ({count}/4)                    | Step {current}/{total}: Click corners of the area to hide ({count}/4)                       |
+| ①4点を指定 ②位置を調整 ③適用/キャンセル (v2-P1 D3 단계 안내)                   | ①네 점 지정 ②위치 조정 ③적용/취소                                                | ①Pick 4 corners ②Adjust position ③Apply/Cancel                                              |
 
 ## ③ 결정 사항 (ADR)
 
 이 결정들은 `docs/adr/0011-v2-decisions.md`에도 ADR 형식으로 기록되어 있습니다. 요약:
 
 1. **2-3**: 중앙 모달은 오른쪽 패널로 통합(접이식 섹션으로). `AdvancedSettingsModal`은 외관 섹션 내 접이식으로 재구성.
-2. **レンダリングプリセット** → **明るさ・時間帯** (「明るさ」 슬라이더와 이름 충돌 방지).
+2. **レンダリングプリセット** → **明るさ** (원문 그대로). 종전 素材 섹션의 「明るさ」 슬라이더는 **「画面の明るさ」** 로 변경해 이름 충돌을 피한다 (v2-P1 D2, 사용자 결정). 참고: 과거 ADR 에서는 「明るさ・時間帯」 로 바꾸려 했으나 PDF 원문 복원 결정으로 폐기.
 3. **モザイク** → **手前の物で隠す（マスク）**. 내부 코드명 `Occlusion`은 유지.
 4. **설치 장소 사진 기본 표시 방식**: **Fit (Contain)**. Cover는 사용자 선택.
 5. **운영 기준**: HULL株式会社가 운영하는 **공식 서비스**. 비공식/개인 프로젝트 문구는 모두 교체.

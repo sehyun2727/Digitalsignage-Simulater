@@ -77,8 +77,8 @@ PDF 「置いて見る君の修正案v2」(2026-09) 19개 + 연쇄 영향 C1~C23
 - **수용 기준**:
   - `AdvancedSettingsModal`을 외관 섹션 안 접이식으로 전환
   - 남는 모달이 있다면 사이니지를 가리지 않는 위치로
-- **결정 사항 (glossary.md ③)**: 중앙 모달은 오른쪽 패널로 통합한다.
-- **현재 상태**: **부분 완료 — `詳細設定` 모달 인라인화는 S5 이월(3-5와 함께)** — Toolbar의 `AppearanceFields` 안에 「詳細設定」(editorAdvancedSettingsOpenButton) 버튼을 두어 `AdvancedSettingsModal`을 호출. 모달 자체는 아직 중앙 다이얼로그로 남아 있으나 외관 섹션(아코디언)의 하위 액션으로 재배치되어 "사이니지를 가리지 않는 위치"는 L11 (overlapping count = 0)으로 검증됨. 완전 인라인 전환은 S5의 외관 섹션 리팩터 범위로 이월(3-3/3-4/3-5 상세 설정 통합과 함께).
+- **결정 사항 (glossary.md ③ + v2-P1 D1 재확인)**: 중앙 모달은 오른쪽 패널로 통합한다. 사용자 v2-P1 결정 D1 (2026-10-15): "패널 인라인 유지. 원문 목적(사이니지를 가리지 않음)은 충족, 3-1 '팝업 없이 패널 안'과 같은 방향." 원문의 "드래그 이동" 서술은 포기하고, 그보다 상위 원문 목적("사이니지를 가리지 않는 위치")을 더 강하게 달성하는 쪽을 유지한다.
+- **현재 상태**: **완료 (v2-S5 U4, v2-P1 D1 재확인)** — `AdvancedSettingsSection` 이 Toolbar 외관 섹션 안 접이식 서브 아코디언으로 노출. `role="dialog"` 없음, `AdvancedSettingsModal` 자체 제거됨. L11 (overlapping count = 0) + e2e/audit/2-3-advanced-settings-inline.spec.ts 로 "詳細設定" 클릭 후에도 role=dialog count=0 측정.
 
 ### 2-4 「結果/オリジナル」 아래 큰 PNG/동영상 버튼
 
