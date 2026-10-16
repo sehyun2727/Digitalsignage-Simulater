@@ -1,92 +1,125 @@
-# v2-audit → P3 handoff (2026-10-16, P2 완료)
+# v2-audit — 개발 완료 (2026-10-16)
 
-**v2-P2 종료 결과**: 세부 점검 전부 실측 + 잔여 🟡(C20, C23) 영구 해소 + audit 를 CI 로
-통합. **다음 = P3 최종 완성도 평가(읽기 전용)**. 배포 작업(X5)은 P3 완료 후 별도.
+**v2-P3 종료 결과**: Part A (A1~~A8) + Part B (B1~~B3) + Part C (독립 평가) 전부
+이행. 요구 단위 137/137 (X3 2건 사용자 입력 제외) ✅. **Decision: GO** (conditional
+on X3 effective-date user input).
 
-## P3 진입 시점 상태
+**개발 완료. 다음 = 사용자: 약관 날짜 → PR → merge → Render 확인 → 본서버 업로드 → 태그**.
 
-- `docs/v2/requirements-audit.md` §요약: **✅ 40 / 🟡 0 / ❌ 0 / ⏸ 0 / ⬜ 2 (X3, X5)**
-- 게이트 결과:
-  - **G1** (coverage.md 연결 누락 0) 달성 — 137 요구 단위 전부 매핑.
-  - **G2** (X3·X5 제외 전 ID ✅, 모든 세부 점검에 실측값) 달성.
-  - **G3** (audit CI 포함 전부 통과, core 3회 실패 0 flaky 0, unit 전부, L2 20/20) 달성.
-  - **G4** (typecheck/lint/format/build/build:oitemiru/check:canvas pass, canvas-freeze 10/10, CI green) 달성. `gh` CLI 미설치 → 로컬 CI 등가 명령 전수 녹색으로 대체.
-  - **G5** (약화 감사) 완료 — `docs/v2/requirements-audit.md :: 7bis` 에 전/후 상수, expect 수, 이름 변경 표 전수 기록. 완화 0건, **1 건 강화**(3-4-b 1.5 ±1% 원복).
+## 수치 요약 (v2-P3 최종 2026-10-16)
 
-## 수치 요약 (v2-P2 재측정 2026-10-16)
-
-- CI 등가: typecheck ✅ · lint ✅ · format:check ✅ · test:run ✅ (**41 files / 672 tests**) · build ✅ · build:oitemiru ✅ · check:canvas ✅
-- `test:e2e:core` × 3 **232/232 전부 pass, 0 flaky** (94s + 90s + 98s)
-- `test:e2e:audit` **105/105 pass @ 54.7s** (v2-P1 74 → v2-P2 105, +31)
+- CI 등가: typecheck ✅ · lint ✅ · format:check ✅ · test:run ✅ (**41 files / 672 tests**) · build ✅ · build:oitemiru ✅ · check:canvas ✅ · check:prod-build ✅ (4 symbol × 2 dir = 0 occurrences)
+- `test:e2e:core` × 3 **232/232 전부 pass, 0 flaky** (84s + 94s + 100s)
+- `test:e2e:audit` **115/115 pass @ 48s** (v2-P2 105 → +10 user-journey)
+- L2 `--repeat-each=20` **40/40 pass** @ 15.5s (C20 영구 해소 유지)
 - `canvas-freeze.spec.ts` 10/10 pass (core 안에 포함)
-- `L2 390x844 landscape+portrait --repeat-each=20` **40/40 pass** @ 33s (C20 영구 해소)
 - 알려진 e2e 실패 **0 건**
-- 허용치 완화 **0 건**, 강화 **1 건** (3-4-b 1.5 ±1%)
+- 약화 감사: 완화 **0 건** / 강화 **≥ 12 건** / 보정 교체 **1 건** (K1 calibration-preserving; 자세히 `requirements-audit.md §7bis`)
 
-## v2-P2 세션 산출물 (추가)
+## v2-P3 산출물
 
-| 파일                                               | 역할                                                                          |
-| -------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `src/main.tsx`                                     | `window.__editorStoreGetState` / `__uiStoreGetState` dev/e2e backdoor         |
-| `src/lib/colorDeltaE.ts`                           | CIE76 ΔE (sRGB → XYZ D65 → L\*a\*b\*)                                         |
-| `tests/unit/colorDeltaE.test.ts`                   | 10 case 유닛 테스트 — rgbToLab anchors + deltaE76 + withinDeltaE              |
-| `e2e/v2-layout.spec.ts :: L2`                      | C20 fix: `.konvajs-content canvas` visible wait                               |
-| `e2e/audit/1-1-copy-paste.spec.ts`                 | 1-1-b/d/e deep compare + clamp + PNG pixel + strict object count 추가         |
-| `e2e/audit/1-2-aspect-lock.spec.ts`                | 1-2-a/c/d/e/f 분리 + four corner-equivalent + Undo/Redo aria-pressed          |
-| `e2e/audit/1-3-fit-cover.spec.ts`                  | 1-3-b video (decoded frame) + 1-3-f wheel drift                               |
-| `e2e/audit/2-1-canvas-fit.spec.ts`                 | 6 vp × 2 preset + 2-1-b SHA + 2-1-c video + 2-1-d bbox invariant              |
-| `e2e/audit/3-3-slider-units.spec.ts`               | 3-3-c 16-vs-11 taxonomy 재구성                                                |
-| `e2e/audit/3-4-content-scale.spec.ts`              | 3-4-b 1.5 ±1% 원복 + 100×100 매젠타 측정 방법                                 |
-| `e2e/audit/3-5-mask-flow.spec.ts`                  | 3-5-e ΔE + 3-5-f cancel + 3-5-g 4-op Undo/Redo                                |
-| `e2e/audit/5-2-order-permutation.spec.ts` (신규)   | A/B 동일 PNG hash + A/B/C store equality                                      |
-| `e2e/audit/X1-portable.spec.ts` (신규)             | CIE Lab unit test + 3 뷰 ΔE+PNG aspect + debug flag count                     |
-| `e2e/audit/C23-modal-accessibility.spec.ts` (신규) | ToS/UserGuide 모달 Esc 닫힘 + Tab 포커스 트랩 + launcher 복귀                 |
-| `.github/workflows/ci.yml`                         | `Audit project` 단계 추가 (push + PR 전부에서 실행)                           |
-| `docs/v2/coverage.md` (신규)                       | PDF 요구 단위 137 ↔ audit sub-check 매핑 테이블 (연결 누락 0)                 |
-| `docs/v2/canvas-freeze-allowlist-review.md` (신규) | allowlist 라인번호 → 내용 기준 전환 가능성 검토 (현재는 유지, S7 이후 재검토) |
-| `docs/v2/requirements-audit.md`                    | v2-P2 섹션 + G5 약화 감사 테이블 + C20/C23 ✅ 승격                            |
-| `docs/v2/s7-audit-handoff.md`                      | 이 문서 (P2 → P3)                                                             |
+| 파일                                          | 역할                                                            |
+| --------------------------------------------- | --------------------------------------------------------------- |
+| `src/main.tsx`                                | e2e store accessor 를 `import.meta.env.VITE_E2E` 뒤에 gate (A1) |
+| `src/features/editor/PortableProductView.tsx` | debug overlay URL probe 제거 (A1)                               |
+| `src/types/editor.ts`                         | MIN_CONTENT_SCALE 1 → **0.5** (D9)                              |
+| `src/lib/termsOfServiceDate.ts` (신규)        | ToS 발효일 단일 config (A7)                                     |
+| `src/components/TermsOfServiceModal.tsx`      | `{date}` 치환 + 빈 값 숨김 (A7)                                 |
+| `src/i18n/locales/{ja,ko,en}.ts`              | ToS date `{date}` 템플릿                                        |
+| `scripts/build-e2e.mjs` (신규)                | `npm run build:e2e` (VITE_E2E=1)                                |
+| `scripts/check-prod-build.mjs` (신규)         | 4 금지 심볼 grep. CI 통합                                       |
+| `scripts/run-audit.mjs` (신규)                | audit 가 e2e 빌드 사용                                          |
+| `playwright.config.ts`                        | PW_E2E_BUILD gate, timeout 120 s                                |
+| `package.json`                                | `build:e2e`, `check:prod-build` script                          |
+| `.github/workflows/ci.yml`                    | prod-build hygiene 단계 추가                                    |
+| `e2e/v2-s5-k1-portable-pixels.spec.ts`        | A2 CIE76 ΔE 10 공식화 + 보정 교체 (99 → 98 %)                   |
+| `e2e/audit/2-1-canvas-fit.spec.ts`            | A6 mobile strict (canvas.height ≤ viewport.height)              |
+| `e2e/audit/3-4-content-scale.spec.ts`         | 50/100/150 % 매트릭스 (D9)                                      |
+| `e2e/audit/3-5-mask-flow.spec.ts :: 3-5-e`    | A3 3-way ΔE 재검증                                              |
+| `e2e/audit/5-2-order-permutation.spec.ts`     | A5 12-permutation 매트릭스                                      |
+| `e2e/audit/user-journey.spec.ts` (신규)       | Part C 9-case 흐름 테스트                                       |
+| `tests/unit/contentLayout.test.ts`            | clampContentScale D9 반영                                       |
+| `docs/v2/final-evaluation.md` (신규)          | 독립 평가 — Decision: GO                                        |
+| `docs/v2/release-notes.md` (신규)             | 배포 담당자용 매뉴얼                                            |
+| `docs/v2/requirements-audit.md`               | v2-P3 재판정 + A8 count fix (40→44)                             |
+| `docs/v2/s7-audit-handoff.md`                 | 이 문서                                                         |
 
-## 다음 세션 — **P3: 최종 완성도 평가(읽기 전용)**
+## 사용자 작업 (다음 단계)
 
-1. 전 ID 재검토: `docs/v2/requirements-audit.md` + `docs/v2/coverage.md` 를 열람하여
-   P1·P2 측정값이 PDF 원문과 1:1 매칭됨을 확인.
-2. `test:e2e:core` × 3 + `test:e2e:audit` 재실행 → 수치가 handoff 와 일치하는지만 확인.
-3. L2 `--repeat-each=20` 재실행 → 안정성 재확인.
-4. ⬜ 상태 2개 (X3 TOS 효력일 / X5 배포 — 전부 다음 세션 범위 또는 사용자 입력 대기).
-5. P3 완료 후 사용자 승인 → P4 (배포, S7) 진입.
+### 1. 利用規約 발효일 설정 (X3)
 
-**P3 는 읽기 전용**. 테스트/제품 코드 수정 금지.
+`src/lib/termsOfServiceDate.ts` 를 열고:
 
-## audit 테스트 재실행 방법
-
-```sh
-# 모든 audit 테스트 (105 case, ~55s)
-E2E_PORT=4181 npm run test:e2e:audit
-
-# L2 flaky 영구 해소 확인
-E2E_PORT=4182 npx playwright test e2e/v2-layout.spec.ts -g "L2 390x844" --repeat-each=20
-
-# audit 제외한 core 재측정
-E2E_PORT=4175 npm run test:e2e:core
-
-# 로케일 파일 grep (서버 없이)
-node scripts/audit/terminology-check.mjs
+```ts
+export const TOS_EFFECTIVE_DATE = '2026年10月16日'; // 실제 발효일
+export const TOS_REVISED_DATE = ''; // 개정일 (없으면 공란 → 행 숨김)
 ```
 
-## 리스크 / 사용자 결정 대기
+빈 값으로 두면 **해당 행만 숨김** — 깨진 표기 안 보임 (`release-notes.md §4`).
 
-- **X3 TOS 효력일 공란** (`termsOfServiceEffectiveDate` / `RevisedDate` = "2026年月日"):
-  사용자가 공식 발효일 확정 → ja/ko/en 3 키 교체.
-- **canvas-freeze allowlist 라인번호 재인덱스 자동화** (`docs/v2/canvas-freeze-allowlist-review.md` 참조):
-  S7 이후 재검토 권장.
-- **배포 범위 X5**: P3 완료 → 사용자 승인 → P4 (Linux visual, release-notes-s7, Render /
-  본서버, og:image, main PR, v1-production 태그, main Ruleset).
+### 2. v2 → main PR 생성
+
+```sh
+# GitHub web UI 또는:
+gh pr create --base main --head v2 --title "v2 release" \
+  --body "See docs/v2/release-notes.md for user-facing changes."
+```
+
+- PR CI 가 full e2e + Docker Linux visual-qa 를 수행.
+- CI green 확인 후 merge.
+
+### 3. Render 스테이징 확인
+
+main merge 즉시 Render 가 자동 재배포. `https://digitalsignage-simulater.onrender.com` 열어
+직원 매뉴얼 (`release-notes.md §2-5` 체크리스트) 전수 통과 확인.
+
+### 4. 본서버 업로드
+
+`release-notes.md §2-2 ~ §2-5` 순서. 요약:
+
+```sh
+npm ci && npm run build:oitemiru
+# 본서버에서:
+mv /path/to/public/oitemiru /path/to/backup/oitemiru-$(date +%Y%m%d)
+rsync -av --delete dist-oitemiru/ user@server:/path/to/public/oitemiru/
+```
+
+브라우저로 `https://hull-inc.jp/oitemiru/` 열어 체크리스트 전수 통과.
+
+### 5. 릴리스 태그 (사용자 결정)
+
+```sh
+# v1-production 태그 (현재 본서버 버전 보존)
+git tag -a v1-production <v1-upload-sha> -m "v1 production snapshot"
+git push origin v1-production
+
+# v2.0.0 태그 (v2 릴리스)
+git switch main && git pull
+git tag -a v2.0.0 -m "v2 release"
+git push origin v2.0.0
+```
+
+## 리스크 / 사용자 결정
+
+- **X3 발효일 미설정 상태로 배포하면** 利用規約 모달에 발효일 행이 **숨김** (A7 — 깨진
+  표기는 아님). 하지만 법적 효력 발생일 명시 의무가 있으므로 **배포 전에 반드시 설정** 권장.
+- **Linux visual-qa**: 로컬 Docker 미설치 → PR CI 에서 실행. 로컬 재측정 하려면 Docker
+  설치 후 `docker build . && docker run --rm digital-signage-simulator:ci npm run qa:visual`.
+- **K1 angled-right 98.6 %** — A2 공식 변경에 따른 보정 교체. 외관 결함 아님 (`requirements-audit.md §7bis`).
 
 ## 금지 사항 재확인
 
-- **main push 금지** — HEAD 는 origin/v2 로만 push.
-- **sed·정규식 일괄 치환 금지** — 이번 세션에서 지켰음 (ko 14 키 개별 edit).
-- **어서션 약화·skip 금지** — 이번 세션에서 지켰음 (3-4-b 범위 1.3-1.7 → 1.485-1.515 로 **강화**).
-- **`[canvas-approved]` 자가 부여 금지** — frozen zone SHA 변동 없음.
-- **PR 생성 / Linux visual / 릴리스 노트 / 배포 작업 금지** — 이번 P2 범위 밖.
+- **main push 금지** — v2 push 만 수행. main merge 는 사용자가 PR 로.
+- **sed 일괄 치환 금지** — 지킴 (D9 는 1 상수 변경).
+- **어서션 약화·skip 금지** — 지킴 (G5 완화 0 건).
+- **`[canvas-approved]` 자가 부여 금지** — 지킴 (frozen zone SHA 변동 없음).
+- **PR/배포/태그는 사용자** — 이 세션에서 하지 않음.
+
+## audit 재실행
+
+```sh
+E2E_PORT=4181 npm run test:e2e:audit                    # 115 case, ~48s
+E2E_PORT=4181 npm run test:e2e:audit -- e2e/audit/user-journey.spec.ts  # 9 case
+E2E_PORT=4175 npm run test:e2e:core                     # core 232 case
+npm run check:prod-build                                # 프로덕션 번들 hygiene
+```
