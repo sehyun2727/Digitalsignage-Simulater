@@ -5,15 +5,16 @@ import { useEditorStore } from './store/editorStore';
 import { useUiStore } from './store/uiStore';
 import './styles/global.css';
 
-// v2-P2: dev/e2e-only backdoor. Audit tests need to read the editor document (deep
-// field compare, clamp coords, independent-edit measurement) without inferring from
-// DOM. The accessor is a function so bundlers don't tree-shake the stores; it only
-// returns a getState handle, so no mutable state leaks beyond what the UI already
-// exposes. Scoped to `window.__editorStoreGetState` / `__uiStoreGetState` to make
-// the dev origin obvious. Production bundles still carry it — it is a read-only
-// handle on an already-public store, and gating by `import.meta.env.MODE` would
-// break the audit project that runs `vite preview` on `npm run build` output.
-if (typeof window !== 'undefined') {
+// v2-P3 A1: dev / e2e-only store accessor. The audit project needs `document.objects`,
+// `past/future`, and `clipboard` without inferring from DOM. We gate the accessor on
+// `import.meta.env.VITE_E2E` so **production builds** (`npm run build` and
+// `npm run build:oitemiru`) tree-shake the branch — `scripts/check-prod-build.mjs`
+// enforces 0 occurrences in dist/ and dist-oitemiru/.
+//
+// For audit tests use `npm run build:e2e` (sets `VITE_E2E=1`) before `vite preview`
+// — the playwright `audit` project's webServer is wired to that build in
+// `playwright.config.ts`.
+if (import.meta.env.VITE_E2E && typeof window !== 'undefined') {
   const w = window as unknown as {
     __editorStoreGetState?: () => unknown;
     __uiStoreGetState?: () => unknown;

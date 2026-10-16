@@ -9,25 +9,14 @@ import { PortableQuadDebugOverlay } from './PortableQuadDebugOverlay';
 import { PortableTemplateBody } from './PortableTemplateBody';
 import { WarpedScreenContent } from './WarpedScreenContent';
 
-/**
- * Dev-only calibration overlay flag. Enabled via either build-time
- * `VITE_DEBUG_PORTABLE_QUAD=true` OR runtime `?debugPortableQuad=1` URL param.
- * Evaluated once at module load so the per-render check is a cheap boolean read
- * — no re-parsing of the URL on every frame.
- *
- * The overlay is intentionally not exposed anywhere in the regular UI (no menu
- * entry, no toolbar toggle) so end users never see it; only developers running
- * the dev server with the flag on do.
- */
-const SHOW_QUAD_DEBUG = (() => {
-  const env = import.meta.env.VITE_DEBUG_PORTABLE_QUAD as string | undefined;
-  if (env === 'true' || env === '1') return true;
-  if (typeof window !== 'undefined') {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('debugPortableQuad') === '1') return true;
-  }
-  return false;
-})();
+// v2-P3 A1: Dev-only calibration overlay flag. Enabled only via build-time
+// `VITE_DEBUG_PORTABLE_QUAD=1`; the earlier `?debugPortableQuad=1` URL probe was
+// removed because its string literal otherwise leaks into production bundles (see
+// `scripts/check-prod-build.mjs`). To use the overlay in a dev server, start it
+// with `VITE_DEBUG_PORTABLE_QUAD=1 npm run dev`.
+const SHOW_QUAD_DEBUG =
+  import.meta.env.VITE_DEBUG_PORTABLE_QUAD === 'true' ||
+  import.meta.env.VITE_DEBUG_PORTABLE_QUAD === '1';
 
 interface PortableProductViewProps {
   object: PortableSignageObject;

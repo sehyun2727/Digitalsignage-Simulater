@@ -52,6 +52,9 @@ jobs:
       - name: Production build (/oitemiru/ base)
         run: npm run build:oitemiru
 
+      - name: Production build hygiene (no e2e backdoor, no debug flags)
+        run: npm run check:prod-build
+
       # The e2e suite (including golden-image visual QA) only runs on the S7 pull_request
       # into main — pushing to v2 just needs the fast gates above. Keeping Playwright off
       # the push path cuts CI time by ~3 min and avoids spending free-tier minutes on every
