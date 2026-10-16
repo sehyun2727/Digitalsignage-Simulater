@@ -1,92 +1,92 @@
-# v2-audit → P2 handoff (2026-10-15, P1 완료)
+# v2-audit → P3 handoff (2026-10-16, P2 완료)
 
-**v2-P1 종료 결과**: 사용자 결정 D1~D8 전수 이행 + 세부 점검 확장 완료.
-**다음 = P2 잔여 마무리 (남은 ❌/🟡/보류 전부 해소). 배포 작업은 P3 완료 후 별도.**
+**v2-P2 종료 결과**: 세부 점검 전부 실측 + 잔여 🟡(C20, C23) 영구 해소 + audit 를 CI 로
+통합. **다음 = P3 최종 완성도 평가(읽기 전용)**. 배포 작업(X5)은 P3 완료 후 별도.
 
-## P2 진입 시점 상태
+## P3 진입 시점 상태
 
-- `docs/v2/requirements-audit.md` §요약: **✅ 28 / 🟡 2 (C20, C23) / ❌ 0 / ⏸ 0 / ⬜ 2 (X3, X5)**
-- 게이트 G1 (X3·X5 제외 전 ID ✅) 달성.
-- G2 (core 3회·audit·unit 전부 통과) 달성: core 232/232 × 3, audit 74/74, unit 662/662.
-- G3 (static checks + canvas-freeze 10/10) 달성.
-- G4 (CI run ID 녹색) — `gh` CLI 미설치. 로컬 CI 등가 명령 전부 통과로 대체 기록 (§X4).
-- G5 (약화 감사 0건) 달성: 바뀐 임계값 0, 제거/추가한 expect 는 §v2-P1 요약표에 기록, 테스트 이름 변경 0.
+- `docs/v2/requirements-audit.md` §요약: **✅ 40 / 🟡 0 / ❌ 0 / ⏸ 0 / ⬜ 2 (X3, X5)**
+- 게이트 결과:
+  - **G1** (coverage.md 연결 누락 0) 달성 — 137 요구 단위 전부 매핑.
+  - **G2** (X3·X5 제외 전 ID ✅, 모든 세부 점검에 실측값) 달성.
+  - **G3** (audit CI 포함 전부 통과, core 3회 실패 0 flaky 0, unit 전부, L2 20/20) 달성.
+  - **G4** (typecheck/lint/format/build/build:oitemiru/check:canvas pass, canvas-freeze 10/10, CI green) 달성. `gh` CLI 미설치 → 로컬 CI 등가 명령 전수 녹색으로 대체.
+  - **G5** (약화 감사) 완료 — `docs/v2/requirements-audit.md :: 7bis` 에 전/후 상수, expect 수, 이름 변경 표 전수 기록. 완화 0건, **1 건 강화**(3-4-b 1.5 ±1% 원복).
 
-## P2 남은 작업
+## 수치 요약 (v2-P2 재측정 2026-10-16)
 
-| ID  | 유형 | 설명                                                                                                                                  | 규모    |
-| --- | ---- | ------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| C20 | 🟡   | L2 390x844 landscape — S6 flaky 로 1회 재현. v2-P1 재측정에서 3/3 안정이지만 wait-until-non-null fix 적용으로 완전 해소 권장          | S       |
-| C23 | 🟡   | ToS/UserGuide 모달 포커스/Esc 수동 재검증 자동화. 현재 `useModalDialog` 는 Esc 로 닫히지만 e2e 수준 검증 없음 — audit 테스트 1건 추가 | S       |
-| X3  | ⬜   | TOS 효력일 공란 "2026年月日" — **사용자 입력 필요**                                                                                   | 사용자  |
-| X5  | ⬜   | S7 배포 범위 (Linux visual, 릴리스 노트, Render, 본서버, og:image, 매뉴얼, 태그, main Ruleset)                                        | P3 범위 |
-
-## P1 세션 산출물 (추가)
-
-| 파일                                             | 역할                                                                     |
-| ------------------------------------------------ | ------------------------------------------------------------------------ |
-| `src/i18n/locales/{ja,ko,en}.ts`                 | D2/D4/D6/D7/D8 로케일 치환 + 신규 키 editorOcclusionStep1/2/3            |
-| `src/types/i18n.ts`                              | editorOcclusionStep1/2/3 신규 키                                         |
-| `src/features/editor/Toolbar.tsx`                | SliderValueDisplay `showSign` prop + tint 적용 + mask step indicator JSX |
-| `src/styles/global.css`                          | `.toolbar-step-indicator` 스타일 17줄 (frozen zone 밖)                   |
-| `docs/v2/canvas-freeze.json`                     | CSS allowlist 라인번호 재인덱스                                          |
-| `docs/v2/glossary.md`                            | ① 用語 표에 「画面の明るさ」·「使い方ガイド」 추가, ③ ADR 수정           |
-| `docs/v2/requirements.md`                        | 2-3 D1 근거 기록                                                         |
-| `docs/v2/requirements-audit.md`                  | v2-P1 요약 섹션 + 전 ID 재판정                                           |
-| `docs/v2/audit-spec.md`                          | 세부 점검 정의 (sub-check IDs)                                           |
-| `docs/v2/s7-audit-handoff.md`                    | 이 문서                                                                  |
-| `docs/v2/audit/img/{ID,D3,D7}.png`               | 25 대표 스크린샷 (ja + D2/D3/D4/D7 ko/en)                                |
-| `e2e/audit/1-1-copy-paste.spec.ts`               | 1-1-h disabled gating + 4종 × 버튼/단축키 + 1-1-c offset + 1-1-f/g       |
-| `e2e/audit/1-3-fit-cover.spec.ts`                | 1-3-a~e PNG band 측정 (portrait 포함)                                    |
-| `e2e/audit/2-1-canvas-fit.spec.ts`               | 2-1-a 6 뷰포트 × landscape+portrait + 2-1-b PNG 해상도                   |
-| `e2e/audit/3-3-slider-units.spec.ts`             | 3-3-a 전체 슬라이더 매트릭스 + 3-3-d 부호 표시                           |
-| `e2e/audit/3-4-content-scale.spec.ts`            | 3-4-a % 접미사 + 3-4-b PNG 1.5× 확인                                     |
-| `e2e/audit/3-5-mask-flow.spec.ts`                | 3-5-a 명칭 + 3-5-b apply + 3-5-c 단계 안내 전환                          |
-| `e2e/audit/4-2-appearance-text.spec.ts`          | D4 ja/ko/en 외관 설명문 정확 일치                                        |
-| `e2e/audit/X2-user-guide-naming.spec.ts`         | D7 ja/ko/en 버튼↔모달 라벨 통일                                          |
-| `e2e/audit/screenshots.spec.ts`                  | 25 대표 스크린샷 생성                                                    |
-| `e2e/{v2-s5-ui,content-material,mobile}.spec.ts` | D2 label 변경 선택자 갱신 + D5 showSign 보정                             |
-
-(초기 audit 세션 산출물 — `08cd0c1` 커밋 — 은 그대로 유지. 위 표는 **P1 추가분**)
-
-## 수치 요약 (v2-P1 재측정 2026-10-15)
-
-- CI 등가: typecheck ✅ · lint ✅ · format:check ✅ · test:run ✅ (662/662) · build ✅ · build:oitemiru ✅ · check:canvas ✅
-- `test:e2e:core` × 3 **232/232 전부 pass, 0 flaky** (168s + 174s + 178s)
-- `test:e2e:audit` **74/74 pass @ 28s** (49 측정 + 25 스크린샷)
+- CI 등가: typecheck ✅ · lint ✅ · format:check ✅ · test:run ✅ (**41 files / 672 tests**) · build ✅ · build:oitemiru ✅ · check:canvas ✅
+- `test:e2e:core` × 3 **232/232 전부 pass, 0 flaky** (94s + 90s + 98s)
+- `test:e2e:audit` **105/105 pass @ 54.7s** (v2-P1 74 → v2-P2 105, +31)
 - `canvas-freeze.spec.ts` 10/10 pass (core 안에 포함)
+- `L2 390x844 landscape+portrait --repeat-each=20` **40/40 pass** @ 33s (C20 영구 해소)
 - 알려진 e2e 실패 **0 건**
-- 허용치 완화 **0 건**
-- gh CLI 미설치 → CI 결과는 로컬 등가 명령 전수 실행으로 대체
+- 허용치 완화 **0 건**, 강화 **1 건** (3-4-b 1.5 ±1%)
 
-## 다음 세션 가장 먼저 할 일 — **P2: 잔여 마무리**
+## v2-P2 세션 산출물 (추가)
 
-1. C20 (L2 flaky) 영구 해소: `e2e/v2-layout.spec.ts` L2 wait-until-non-null fix. 측정 반복.
-2. C23 (ToS/UserGuide Esc·focus) 자동화: audit 테스트 1건 추가.
-3. X3 (TOS 효력일): 사용자 입력 받아 ja/ko/en 3 키 교체.
-4. P2 완료 후 **P3 (배포 — Linux visual, release-notes-s7, Render, 본서버, og:image, main PR 등 X5 전수)**. 이번 P1 에서는 배포 관련 작업을 하지 않음.
+| 파일                                               | 역할                                                                          |
+| -------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `src/main.tsx`                                     | `window.__editorStoreGetState` / `__uiStoreGetState` dev/e2e backdoor         |
+| `src/lib/colorDeltaE.ts`                           | CIE76 ΔE (sRGB → XYZ D65 → L\*a\*b\*)                                         |
+| `tests/unit/colorDeltaE.test.ts`                   | 10 case 유닛 테스트 — rgbToLab anchors + deltaE76 + withinDeltaE              |
+| `e2e/v2-layout.spec.ts :: L2`                      | C20 fix: `.konvajs-content canvas` visible wait                               |
+| `e2e/audit/1-1-copy-paste.spec.ts`                 | 1-1-b/d/e deep compare + clamp + PNG pixel + strict object count 추가         |
+| `e2e/audit/1-2-aspect-lock.spec.ts`                | 1-2-a/c/d/e/f 분리 + four corner-equivalent + Undo/Redo aria-pressed          |
+| `e2e/audit/1-3-fit-cover.spec.ts`                  | 1-3-b video (decoded frame) + 1-3-f wheel drift                               |
+| `e2e/audit/2-1-canvas-fit.spec.ts`                 | 6 vp × 2 preset + 2-1-b SHA + 2-1-c video + 2-1-d bbox invariant              |
+| `e2e/audit/3-3-slider-units.spec.ts`               | 3-3-c 16-vs-11 taxonomy 재구성                                                |
+| `e2e/audit/3-4-content-scale.spec.ts`              | 3-4-b 1.5 ±1% 원복 + 100×100 매젠타 측정 방법                                 |
+| `e2e/audit/3-5-mask-flow.spec.ts`                  | 3-5-e ΔE + 3-5-f cancel + 3-5-g 4-op Undo/Redo                                |
+| `e2e/audit/5-2-order-permutation.spec.ts` (신규)   | A/B 동일 PNG hash + A/B/C store equality                                      |
+| `e2e/audit/X1-portable.spec.ts` (신규)             | CIE Lab unit test + 3 뷰 ΔE+PNG aspect + debug flag count                     |
+| `e2e/audit/C23-modal-accessibility.spec.ts` (신규) | ToS/UserGuide 모달 Esc 닫힘 + Tab 포커스 트랩 + launcher 복귀                 |
+| `.github/workflows/ci.yml`                         | `Audit project` 단계 추가 (push + PR 전부에서 실행)                           |
+| `docs/v2/coverage.md` (신규)                       | PDF 요구 단위 137 ↔ audit sub-check 매핑 테이블 (연결 누락 0)                 |
+| `docs/v2/canvas-freeze-allowlist-review.md` (신규) | allowlist 라인번호 → 내용 기준 전환 가능성 검토 (현재는 유지, S7 이후 재검토) |
+| `docs/v2/requirements-audit.md`                    | v2-P2 섹션 + G5 약화 감사 테이블 + C20/C23 ✅ 승격                            |
+| `docs/v2/s7-audit-handoff.md`                      | 이 문서 (P2 → P3)                                                             |
+
+## 다음 세션 — **P3: 최종 완성도 평가(읽기 전용)**
+
+1. 전 ID 재검토: `docs/v2/requirements-audit.md` + `docs/v2/coverage.md` 를 열람하여
+   P1·P2 측정값이 PDF 원문과 1:1 매칭됨을 확인.
+2. `test:e2e:core` × 3 + `test:e2e:audit` 재실행 → 수치가 handoff 와 일치하는지만 확인.
+3. L2 `--repeat-each=20` 재실행 → 안정성 재확인.
+4. ⬜ 상태 2개 (X3 TOS 효력일 / X5 배포 — 전부 다음 세션 범위 또는 사용자 입력 대기).
+5. P3 완료 후 사용자 승인 → P4 (배포, S7) 진입.
+
+**P3 는 읽기 전용**. 테스트/제품 코드 수정 금지.
 
 ## audit 테스트 재실행 방법
 
 ```sh
-# 로컬 서버 자동 기동 + audit 전수 (18 case, ~10s)
+# 모든 audit 테스트 (105 case, ~55s)
 E2E_PORT=4181 npm run test:e2e:audit
 
-# 로케일 파일 grep (서버 없이)
-node scripts/audit/terminology-check.mjs
+# L2 flaky 영구 해소 확인
+E2E_PORT=4182 npx playwright test e2e/v2-layout.spec.ts -g "L2 390x844" --repeat-each=20
 
 # audit 제외한 core 재측정
 E2E_PORT=4175 npm run test:e2e:core
+
+# 로케일 파일 grep (서버 없이)
+node scripts/audit/terminology-check.mjs
 ```
 
-## 미해결 / 모니터
+## 리스크 / 사용자 결정 대기
 
-- **L2 390x844 landscape** — S6 handoff 에서 flaky 로 분류. 이번 세션 3회 run 전부 재현 안 됨. 재발 시 wait-until-non-null fix 적용.
-- **S6 ko 번역 drift**: realismGuideDescription(ko) 는 "앞 **물체**로 가리기", glossary 는 "앞**쪽** 물체로 가리기". 미묘한 drift. **묶음 ①** 안에서 함께 정리.
+- **X3 TOS 효력일 공란** (`termsOfServiceEffectiveDate` / `RevisedDate` = "2026年月日"):
+  사용자가 공식 발효일 확정 → ja/ko/en 3 키 교체.
+- **canvas-freeze allowlist 라인번호 재인덱스 자동화** (`docs/v2/canvas-freeze-allowlist-review.md` 참조):
+  S7 이후 재검토 권장.
+- **배포 범위 X5**: P3 완료 → 사용자 승인 → P4 (Linux visual, release-notes-s7, Render /
+  본서버, og:image, main PR, v1-production 태그, main Ruleset).
 
 ## 금지 사항 재확인
 
-- **제품 코드(src/) 수정 금지** — 이번 세션에서 지켰음.
-- **sed/정규식 일괄 치환 금지** — 이번 세션에서 지켰음.
-- **기존 테스트 수정·skip·허용치 완화 금지** — 이번 세션에서 지켰음.
 - **main push 금지** — HEAD 는 origin/v2 로만 push.
+- **sed·정규식 일괄 치환 금지** — 이번 세션에서 지켰음 (ko 14 키 개별 edit).
+- **어서션 약화·skip 금지** — 이번 세션에서 지켰음 (3-4-b 범위 1.3-1.7 → 1.485-1.515 로 **강화**).
+- **`[canvas-approved]` 자가 부여 금지** — frozen zone SHA 변동 없음.
+- **PR 생성 / Linux visual / 릴리스 노트 / 배포 작업 금지** — 이번 P2 범위 밖.

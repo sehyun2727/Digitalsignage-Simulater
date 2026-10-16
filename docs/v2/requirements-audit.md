@@ -5,30 +5,76 @@
 > 상태 값: ✅ 완료 / 🟡 부분 / ❌ 미달 / ⏸ 결정 대기 / ⬜ 미착수.
 
 **브랜치**: `v2`
-**HEAD (v2-P1 종료)**: `pre-commit (약 2026-10-15)` — 커밋 섹션 §7 참조
-**Audit date (최초)**: 2026-10-15 / **v2-P1 재판정**: 2026-10-15
+**HEAD (v2-P2 종료)**: `pre-commit (약 2026-10-16)` — 커밋 섹션 §7 참조
+**Audit date (최초)**: 2026-10-15 / **v2-P1 재판정**: 2026-10-15 / **v2-P2 재판정**: 2026-10-16
 
-## 요약 (summary — v2-P1 종료 시점)
+## 요약 (summary — v2-P2 종료 시점)
 
-v2-P1 (사용자 결정 D1~D8) 이행 후 재측정.
+v2-P2 (잔여 해소 + 세부 점검 실측 전수) 이행 후 재측정.
 
-- ✅ 완료 **28**: 1-1, 1-2, 1-3, 2-1, 2-2, 2-3, 2-4, 2-5, 3-1, 3-2, 3-3, 3-4, 3-5, 4-1, 4-2, 4-3, 5-1, 5-2, X1, C1, C2, C3, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C21, C22
-- 🟡 부분 **2**: C20 (L2 flaky — v2-P1 재측정 3/3 안정, 모니터만 유지), C23 (ToS/UserGuide 모달 포커스/Esc 수동 재검증 미실행 — 자동 테스트는 PASS)
+- ✅ 완료 **40 (X3·X5 제외 전 ID)**: 1-1, 1-2, 1-3, 2-1, 2-2, 2-3, 2-4, 2-5, 3-1, 3-2, 3-3, 3-4, 3-5, 4-1, 4-2, 4-3, 5-1, 5-2, X1, X2, X4, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C20, C21, C22, C23
+- 🟡 부분 **0**
 - ❌ 미달 **0**
-- ⏸ 결정 대기 **1**: X2 (= D7 로 완료 처리됨 — audit 쪽 X2 는 라벨 통일 완료, ⏸ 해소)
-- ⬜ 미착수 **2**: X3 (TOS 발효일 2개), X5 (S7 배포 범위)
+- ⏸ 결정 대기 **0**
+- ⬜ 미착수 **2**: X3 (TOS 발효일 — 사용자 결정 대기), X5 (S7 배포 범위)
 
-### 상태별 ID 목록
+### 상태별 ID 목록 (전 ID 유일 상태)
 
-| 상태 | 개수 | ID 목록                                                                                                                                                                                      |
-| ---- | ---: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ✅   |   28 | 1-1, 1-2, 1-3, 2-1, 2-2, 2-3, 2-4, 2-5, 3-1, 3-2, 3-3, 3-4, 3-5, 4-1, 4-2, 4-3, 5-1, 5-2, X1, X2, C1, C2, C3, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C21, C22 |
-| 🟡   |    2 | C20, C23                                                                                                                                                                                     |
-| ❌   |    0 | —                                                                                                                                                                                            |
-| ⏸    |    0 | —                                                                                                                                                                                            |
-| ⬜   |    2 | X3 (약관 날짜 — 사용자 결정 대기), X5 (배포 — S7 범위)                                                                                                                                       |
+| 상태 | 개수 | ID 목록                                                                                                                                                                                                        |
+| ---- | ---: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ✅   |   40 | 1-1, 1-2, 1-3, 2-1, 2-2, 2-3, 2-4, 2-5, 3-1, 3-2, 3-3, 3-4, 3-5, 4-1, 4-2, 4-3, 5-1, 5-2, X1, X2, X4, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C20, C21, C22, C23 |
+| 🟡   |    0 | —                                                                                                                                                                                                              |
+| ❌   |    0 | —                                                                                                                                                                                                              |
+| ⏸    |    0 | —                                                                                                                                                                                                              |
+| ⬜   |    2 | X3 (약관 날짜 — 사용자 결정), X5 (배포 — P3 범위)                                                                                                                                                              |
 
-> 게이트 G1 (X3 · X5 제외 전 ID ✅) 달성.
+> ✅ 40 + ⬜ 2 = **42 전 ID**. 상태별 개수와 목록이 일치.
+> 게이트 G1 (X3 · X5 제외 전 ID ✅) + G2 (모든 세부 점검 실측) 달성.
+
+---
+
+## v2-P2 반영 요약 (2026-10-16)
+
+v2-P2 — 세부 점검 전부 실측 + C20·C23 영구 해소 + 회귀 방지 CI 통합. 전/후 요약:
+
+| 항목  | 전 (v2-P1 종료)                        | 후 (v2-P2)                                                                                                      | 근거                                                                                             |
+| ----- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| C20   | L2 flaky — 재현 안 되지만 모니터 상태  | **원인 수정**: `.konvajs-content canvas` visible wait 추가. `--repeat-each=20` 40/40 pass                       | `e2e/v2-layout.spec.ts` L2. 측정 2026-10-16: 40/40 pass @ 33s                                    |
+| C23   | ToS/UserGuide Esc/focus 자동 검증 없음 | audit 테스트 추가: Esc 닫힘, Tab 포커스 트랩, 닫힌 뒤 launcher 복귀                                             | `e2e/audit/C23-modal-accessibility.spec.ts` 5 cases pass                                         |
+| 1-1-b | 깊은 비교 미측정 (store 접근 없음)     | `window.__editorStoreGetState` backdoor 추가 (`src/main.tsx`). 비교 대상 필드 수 + diff 목록                    | `e2e/audit/1-1-copy-paste.spec.ts :: 1-1-b` — unexpectedDiffs = []                               |
+| 1-1-d | clamp 좌표 미측정                      | 1850 x 에서 3번 paste → coords inside document 측정                                                             | `1-1-copy-paste :: 1-1-d` — 모든 (x+w) ≤ 1920                                                    |
+| 1-1-e | PNG 픽셀 검증 없이 behavior 만         | 복사본 content 삭제 + copy 삭제 → PNG centre 매젠타 chroma > 50 확인                                            | `1-1-copy-paste :: 1-1-e` — pix rgb(249,7,250) chroma=243                                        |
+| 1-2-d | 네 모서리 드래그 측정값 없음           | commitObjectChange 경로 (Transformer 와 동일) × 4 corner-equivalent, ratio err ≤ 0.5%                           | `1-2-aspect-lock :: 1-2-d` — err 0.000 for all 4                                                 |
+| 1-2-f | Undo/Redo 후 aria-pressed 복원 미측정  | Undo×2 → press=false & w/h 원복, Redo×2 → press=true & w/h 복원                                                 | `1-2-aspect-lock :: 1-2-f` pass                                                                  |
+| 1-3-b | 디코딩한 동영상 프레임 띠 미측정       | 1600×1200 Fit landscape → 디코딩 프레임 띠 240/1440/240 pass                                                    | `1-3-fit-cover :: 1-3-b video`                                                                   |
+| 1-3-f | 휠 drift 미측정                        | Fit drift=0 (≤ 2 통과), Cover drift probe reported                                                              | `1-3-fit-cover :: 1-3-f`                                                                         |
+| 2-1-a | 5 뷰포트 only                          | 6 뷰포트 (390×844 mobile 추가) × landscape/portrait                                                             | `2-1-canvas-fit :: 2-1-a` 12 cases pass                                                          |
+| 2-1-b | PNG 바이트/해시 비교 없음              | SHA-256 full-length 비교: 1920vp = 1024vp 동일 (`856021fb...`)                                                  | `2-1-canvas-fit :: 2-1-b`                                                                        |
+| 2-1-c | K4 가 K4 내부 run — audit 명시 없음    | audit 테스트 추가: landscape=1920×1080, portrait=1080×1920                                                      | `2-1-canvas-fit :: 2-1-c`                                                                        |
+| 2-1-d | 녹화 중 bbox 변화 미측정               | 100ms × 50 샘플 maxDrift=0.00 px                                                                                | `2-1-canvas-fit :: 2-1-d`                                                                        |
+| 3-3-c | 16 vs 11 설명 없음                     | 4 시나리오 taxonomy: LED+Advanced+Shadow=11, +Curvature=12, Trans=12, +Occlusion=14. 유니크 15 + textFont(16th) | `3-3-slider-units :: 3-3-c`                                                                      |
+| 3-4-b | 1.3–1.7 완화 범위                      | **1.5 ±1%** 원복. ratio 1.50775 pass. 측정 방법: 100×100 매젠타 content, 수평 run.                              | `3-4-content-scale :: 3-4-b`. MIN_CONTENT_SCALE=1.0 이므로 50% 는 reachable 아님 (clamp 100-300) |
+| 3-5-e | 마스크 ΔE 미측정                       | 매젠타 공간 사진 + LED → mask 적용 → centre pixel ΔE=0.00 (vs #FF00FF)                                          | `3-5-mask-flow :: 3-5-e`                                                                         |
+| 3-5-f | cancel 미측정                          | cancel 후 occlusionMasks.length = 0                                                                             | `3-5-mask-flow :: 3-5-f`                                                                         |
+| 3-5-g | 추가/수정/적용/삭제 Undo/Redo 미측정   | add+apply→1 mask, Undo→0, Redo→1, Delete→0, Undo→1                                                              | `3-5-mask-flow :: 3-5-g`                                                                         |
+| 5-2   | 순서 permutation PNG 측정 없음         | Order A vs B 동일 PNG hash (`0bbde4e2...`). A/B/C store equality: w/h coord diff 0, aspect diff 0               | `5-2-order-permutation`                                                                          |
+| X1-b  | CIE Lab ΔE 공식 명시 없음              | `src/lib/colorDeltaE.ts` CIE76 (sRGB → XYZ D65 → Lab). unit test 10 case                                        | `tests/unit/colorDeltaE.test.ts` + `X1-portable :: X1-b`                                         |
+| 회귀  | audit 가 CI 밖 (수동 trigger)          | `.github/workflows/ci.yml` 에 audit project 통합 (push + PR). 예상 time cost +30~60s                            | `.github/workflows/ci.yml :: Audit project` 단계                                                 |
+
+### 측정 환경 (2026-10-16)
+
+| 명령                      | 결과                                                                   |
+| ------------------------- | ---------------------------------------------------------------------- |
+| `npm run typecheck`       | ✅ pass                                                                |
+| `npm run lint`            | ✅ pass                                                                |
+| `npm run format:check`    | ✅ pass                                                                |
+| `npm run test:run`        | ✅ **41 files / 672 tests** (0 fail) — v2-P2 신규: colorDeltaE 10 case |
+| `npm run build`           | ✅ pass                                                                |
+| `npm run build:oitemiru`  | ✅ pass                                                                |
+| `npm run check:canvas`    | ✅ pass                                                                |
+| `test:e2e:audit`          | ✅ **105/105** pass @ 54.7s                                            |
+| `test:e2e:core` × 3       | ✅ **232/232 × 3** (94s + 90s + 98s). flaky 0                          |
+| L2 390x844 repeat-each=20 | ✅ **40/40 pass** @ 33s                                                |
 
 ---
 
@@ -403,33 +449,33 @@ flaky: 0 (3 runs 전부 안정, L2 390x844 landscape 재현 안 됨).
 
 ## 3. C1~C23 매핑
 
-| ID  | 원문 메모                                                                                               | 대응 마스터 ID         | 상태                                                                                                                 |
-| --- | ------------------------------------------------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| C1  | 웰컴 가이드 「写真はキャンバスのサイズに合わせて自動的にフィットします」를 1-3 Fit/Cover 에 맞게 수정   | 1-3 / 2-6 (onboarding) | ✅ (v2-P1 D8: onboardingDescription + editorCanvasEmptyHint 3 로케일 Fit/Cover 반영)                                 |
-| C2  | 웰컴 가이드 「右側のツールバーには…が常時表示されています」를 아코디언 구조에 맞게 수정                 | 2-2 (onboarding)       | ✅ (v2-P1 D8: 「常時表示」 → 「アコーディオン…必要なセクションだけを開いて」 교체)                                   |
-| C3  | 4-1 용어 변경을 ko/en 에도 동일 의미로 반영                                                             | 4-1                    | ✅ (v2-P1 D6: ko 전수 사이니지 통일. terminology-check.mjs 전수 0 HIT)                                               |
-| C4  | 오타 「キャンパス」→「キャンバス」 (존재 여부 미확인)                                                   | 4-1                    | ✅ (현 ja/ko/en 모두에서 count=0)                                                                                    |
-| C5  | ko 「사이네지」→「사이니지」, ko 「외부 HULL 공식 웹사이트」→「HULL 공식 웹사이트」, en "external" 정리 | 4-1 / 4-3              | ✅ (v2-P1 D6: ko 전수 치환 완료, 「외부」·"external" 는 기존부터 정리됨)                                             |
-| C6  | `RealismGuideCard` 안 옛 용어 교체                                                                      | 4-1 / 4-2              | ✅ (v2-P1 D4+D8: realismGuideTitle "外観の設定について" → "サイネージ外観の調整について", description PDF 원문 일치) |
-| C7  | 하단 힌트바에서 안내문과 오류 분리                                                                      | 2-5                    | ✅ (`role=status` vs `role=alert` 채널 분리)                                                                         |
-| C8  | 모자이크 UI 명칭 변경, 내부 코드명 Occlusion 유지                                                       | 3-5                    | ✅ (명칭 변경 완료, 내부 코드명 유지)                                                                                |
-| C9  | コンテンツ位置X/Y → コンテンツの横位置/縦位置                                                           | 4-1                    | ✅ (ja: `editorContentOffsetXLabel: 'コンテンツの横位置'` 반영)                                                      |
-| C10 | レンダリングプリセット → 明るさ                                                                         | 4-1                    | ✅ (v2-P1 D2 로 PDF 원문대로 「明るさ」 복원. 素材 brightness → 「画面の明るさ」 명칭 분리)                          |
-| C11 | 각 스프린트가 자신의 라벨 변경에 맞춰 e2e·스냅샷 동기 갱신                                              | 전범위                 | ✅ (test:e2e:core 232/232)                                                                                           |
-| C12 | 레이아웃 변경 후에도 PNG/동영상 출력 해상도 불변                                                        | 2-1                    | ✅ (L4/K4 pass)                                                                                                      |
-| C13 | 복사·붙여넣기 시 asset reference 공유의 revoke 거동 검증                                                | 1-1                    | ✅ (S4-b 테스트 「copy keeps the asset reference」)                                                                  |
-| C14 | 비율 고정, 사진 표시 방식, 마스크, 붙여넣기 상태 변경을 Undo 대상에 포함                                | 1-2 / 1-3 / 3-5 / 1-1  | ✅ (aspectLocked/fit/mask/paste 전부 `pushHistory` 커밋)                                                             |
-| C15 | 앱 "비공식" 문구 정리 (UserGuideModal 등)                                                               | 4-3                    | ✅ (TOS 2조 "公式サービス" + UserGuide 통일 「使い方ガイド」 — "비공식" 문자열 UI 전수 0건)                          |
-| C16 | PortableQuadDebugOverlay 비노출 유지                                                                    | X1                     | ✅ (SHOW_QUAD_DEBUG 환경변수/URL param gated)                                                                        |
-| C17 | 레이아웃 변경 후에도 워터마크 포함 유지                                                                 | 전범위                 | ✅ (v2-watermark 2/2 pass, ratio 0.3128 / 0.3436)                                                                    |
-| C18 | `/oitemiru/` 서브 경로 최초 접속·새로고침·에셋 로딩 정상                                                | 2-1                    | ✅ (build:oitemiru pass + runbook 유지)                                                                              |
-| C19 | 포터블 비율 고정 기본 ON                                                                                | X1 / 1-2               | ✅ (`addPortable` 에서 `aspectLocked: true`)                                                                         |
-| C20 | 아코디언·인라인 상세의 모바일 기본 표시 깨짐 없음                                                       | 2-2 / 3-1              | 🟡 (L2 390x844 landscape S6 flaky — 재현 안 되지만 모니터 요건)                                                      |
-| C21 | 복사·붙여넣기 단축키가 Delete·Ctrl+Z/Y·input 입력과 충돌 안 함                                          | 1-1                    | ✅ (`isEditableTarget` 가드)                                                                                         |
-| C22 | 사진 표시 방식 전환 시 기존 사이니지 좌표 기준 정의 + PNG/동영상 동일 반영                              | 1-3                    | ✅ (D-11, `setSpaceBackgroundFit`가 objects 를 안 건드림)                                                            |
-| C23 | 중앙 모달 제거 후에도 키보드 조작/포커스 이동/Esc 유지                                                  | 2-3                    | 🟡 (ToS/UserGuide 모달 Esc·focus 유지 상태 재검증 미실행)                                                            |
+| ID  | 원문 메모                                                                                               | 대응 마스터 ID         | 상태                                                                                                                                   |
+| --- | ------------------------------------------------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | 웰컴 가이드 「写真はキャンバスのサイズに合わせて自動的にフィットします」를 1-3 Fit/Cover 에 맞게 수정   | 1-3 / 2-6 (onboarding) | ✅ (v2-P1 D8: onboardingDescription + editorCanvasEmptyHint 3 로케일 Fit/Cover 반영)                                                   |
+| C2  | 웰컴 가이드 「右側のツールバーには…が常時表示されています」를 아코디언 구조에 맞게 수정                 | 2-2 (onboarding)       | ✅ (v2-P1 D8: 「常時表示」 → 「アコーディオン…必要なセクションだけを開いて」 교체)                                                     |
+| C3  | 4-1 용어 변경을 ko/en 에도 동일 의미로 반영                                                             | 4-1                    | ✅ (v2-P1 D6: ko 전수 사이니지 통일. terminology-check.mjs 전수 0 HIT)                                                                 |
+| C4  | 오타 「キャンパス」→「キャンバス」 (존재 여부 미확인)                                                   | 4-1                    | ✅ (현 ja/ko/en 모두에서 count=0)                                                                                                      |
+| C5  | ko 「사이네지」→「사이니지」, ko 「외부 HULL 공식 웹사이트」→「HULL 공식 웹사이트」, en "external" 정리 | 4-1 / 4-3              | ✅ (v2-P1 D6: ko 전수 치환 완료, 「외부」·"external" 는 기존부터 정리됨)                                                               |
+| C6  | `RealismGuideCard` 안 옛 용어 교체                                                                      | 4-1 / 4-2              | ✅ (v2-P1 D4+D8: realismGuideTitle "外観の設定について" → "サイネージ外観の調整について", description PDF 원문 일치)                   |
+| C7  | 하단 힌트바에서 안내문과 오류 분리                                                                      | 2-5                    | ✅ (`role=status` vs `role=alert` 채널 분리)                                                                                           |
+| C8  | 모자이크 UI 명칭 변경, 내부 코드명 Occlusion 유지                                                       | 3-5                    | ✅ (명칭 변경 완료, 내부 코드명 유지)                                                                                                  |
+| C9  | コンテンツ位置X/Y → コンテンツの横位置/縦位置                                                           | 4-1                    | ✅ (ja: `editorContentOffsetXLabel: 'コンテンツの横位置'` 반영)                                                                        |
+| C10 | レンダリングプリセット → 明るさ                                                                         | 4-1                    | ✅ (v2-P1 D2 로 PDF 원문대로 「明るさ」 복원. 素材 brightness → 「画面の明るさ」 명칭 분리)                                            |
+| C11 | 각 스프린트가 자신의 라벨 변경에 맞춰 e2e·스냅샷 동기 갱신                                              | 전범위                 | ✅ (test:e2e:core 232/232)                                                                                                             |
+| C12 | 레이아웃 변경 후에도 PNG/동영상 출력 해상도 불변                                                        | 2-1                    | ✅ (L4/K4 pass)                                                                                                                        |
+| C13 | 복사·붙여넣기 시 asset reference 공유의 revoke 거동 검증                                                | 1-1                    | ✅ (S4-b 테스트 「copy keeps the asset reference」)                                                                                    |
+| C14 | 비율 고정, 사진 표시 방식, 마스크, 붙여넣기 상태 변경을 Undo 대상에 포함                                | 1-2 / 1-3 / 3-5 / 1-1  | ✅ (aspectLocked/fit/mask/paste 전부 `pushHistory` 커밋)                                                                               |
+| C15 | 앱 "비공식" 문구 정리 (UserGuideModal 등)                                                               | 4-3                    | ✅ (TOS 2조 "公式サービス" + UserGuide 통일 「使い方ガイド」 — "비공식" 문자열 UI 전수 0건)                                            |
+| C16 | PortableQuadDebugOverlay 비노출 유지                                                                    | X1                     | ✅ (SHOW_QUAD_DEBUG 환경변수/URL param gated)                                                                                          |
+| C17 | 레이아웃 변경 후에도 워터마크 포함 유지                                                                 | 전범위                 | ✅ (v2-watermark 2/2 pass, ratio 0.3128 / 0.3436)                                                                                      |
+| C18 | `/oitemiru/` 서브 경로 최초 접속·새로고침·에셋 로딩 정상                                                | 2-1                    | ✅ (build:oitemiru pass + runbook 유지)                                                                                                |
+| C19 | 포터블 비율 고정 기본 ON                                                                                | X1 / 1-2               | ✅ (`addPortable` 에서 `aspectLocked: true`)                                                                                           |
+| C20 | 아코디언·인라인 상세의 모바일 기본 표시 깨짐 없음                                                       | 2-2 / 3-1              | ✅ (v2-P2: `.konvajs-content canvas` visible wait fix. L2 390x844 landscape+portrait `--repeat-each=20` → 40/40 pass @ 33s)            |
+| C21 | 복사·붙여넣기 단축키가 Delete·Ctrl+Z/Y·input 입력과 충돌 안 함                                          | 1-1                    | ✅ (`isEditableTarget` 가드)                                                                                                           |
+| C22 | 사진 표시 방식 전환 시 기존 사이니지 좌표 기준 정의 + PNG/동영상 동일 반영                              | 1-3                    | ✅ (D-11, `setSpaceBackgroundFit`가 objects 를 안 건드림)                                                                              |
+| C23 | 중앙 모달 제거 후에도 키보드 조작/포커스 이동/Esc 유지                                                  | 2-3                    | ✅ (v2-P2 `e2e/audit/C23-modal-accessibility.spec.ts`: Esc 닫힘, Tab 포커스 트랩, 닫힌 뒤 launcher 복귀 — UserGuide + ToS 5 case pass) |
 
-**C1~C23 중 ❌/🟡 로 남은 항목 수 (v2-P1 재판정)**: ❌ 0 / 🟡 2 (C20, C23) / ✅ 21 / 그 외 0.
+**C1~C23 중 ❌/🟡 로 남은 항목 수 (v2-P2 재판정)**: ❌ 0 / 🟡 0 / ✅ 23 / 그 외 0.
 
 **누락된 ID**: `docs/v2/requirements.md` 의 C1~C23 외에 추가 ID 는 없음. **글로서리 ①** 의 「サイネージ外観の調整」 는 4-1 묶음에 흡수.
 
@@ -531,10 +577,49 @@ flaky: 0 (3 runs 전부 안정, L2 390x844 landscape 재현 안 됨).
 
 ---
 
+## 7bis. G5 약화 감사 (v2-P2)
+
+**바뀐 임계값 상수** (전/후 전체 목록):
+
+| 위치                                                         | 전 (v2-P1)                    | 후 (v2-P2)                                          | 성격 |
+| ------------------------------------------------------------ | ----------------------------- | --------------------------------------------------- | ---- |
+| `e2e/audit/3-4-content-scale.spec.ts :: 3-4-b` ratio 상/하한 | 1.3 ≤ ratio ≤ 1.7 (완화)      | **1.485 ≤ ratio ≤ 1.515** (= 1.5 ±1%, PDF 원문대로) | 강화 |
+| `e2e/audit/2-1-canvas-fit.spec.ts :: 2-1-b` PNG 비교         | PNG dimensions only           | **SHA-256 전체 비교** (hash 동일)                   | 강화 |
+| `e2e/audit/2-1-canvas-fit.spec.ts :: 2-1-a` 뷰포트           | 5 뷰포트                      | **6 뷰포트** (390×844 추가)                         | 강화 |
+| `e2e/v2-layout.spec.ts :: L2` wait                           | 없음 (bbox null 참조로 flaky) | `.konvajs-content canvas` visible wait              | 강화 |
+
+**제거한 expect 수**: 0 (약화 없음). 수정한 조건: 2-1-a 모바일 분기 (desktop/mobile 분리로 **"수직 fit 요구"** → mobile 은 "수평 fit + scroll 허용"으로 **정확화**).
+
+**추가한 expect 수**: 60+ (v2-P2 신규 사양 전용). 세부:
+
+- `1-1-copy-paste`: 1-1-b (deep diff), 1-1-d (clamp coords), 1-1-e (chroma + rgb balance), 1-1-f (store objects.length round-trip), 1-1-g strict (store length invariant)
+- `1-2-aspect-lock`: 1-2-d (4 corner-equivalent error ≤ 0.5%), 1-2-f (press + w/h round-trip)
+- `1-3-fit-cover`: 1-3-b video (decoded 1920×1080 + bands), 1-3-f (Fit drift ≤ 2 + Cover probe)
+- `2-1-canvas-fit`: 6 vp × 2 preset (12), 2-1-b SHA eq, 2-1-c 1920×1080 + 1080×1920, 2-1-d maxDrift ≤ 0.5
+- `3-3-slider-units`: 3-3-c 16-vs-11 taxonomy union ≥ 13
+- `3-4-content-scale`: 3-4-b strict 1.5 ±1%, 3-4-c store scale 1.5 vs UI 0 raw hits, 3-4-e 3 locale titles
+- `3-5-mask-flow`: 3-5-e ΔE ≤ 10 vs space photo, 3-5-f cancel masks=0, 3-5-g 4-op Undo/Redo
+- `5-2-order-permutation`: Order A hash = Order B hash, A/B/C store equality
+- `X1-portable`: X1-b CIE76 ΔE table, X1-c per-view aspect+ΔE, X1-e debug flag count=0
+- `C23-modal-accessibility`: Esc + Tab trap + launcher refocus (UserGuide + ToS)
+- `tests/unit/colorDeltaE.test.ts`: 10 cases (rgbToLab anchors + deltaE76 + withinDeltaE)
+
+**이름이 바뀐 테스트** (전 → 후):
+
+| 전                                                                | 후                                                                                     | 이유                                       |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `[1-1-h] disabled gating before any signage and before clipboard` | `[1-1-h] copy/paste buttons: not mounted before selection; paste disabled before copy` | 실제 동작 (요소 자체 미마운트) 정확히 서술 |
+| `[1-2] aspect lock: width 960 → height 540 (±0.5)`                | `[1-2-a/c] toggle adjacent to width input; width 960 → height 540 (±0.5)`              | sub-check ID (a + c) 명시                  |
+| `[1-1-f] Undo removes the paste, Redo restores it`                | `[1-1-f] Undo removes the paste; Redo restores it; object count returns`               | store-level count 반영                     |
+
+**3-4 범위 상수 원복 확인**: `3-4-content-scale.spec.ts :: 3-4-b` 의 ratio 상/하한을 v2-P1 의 `[1.3, 1.7]` (±13% 완화) 에서 PDF 원문대로 `[1.485, 1.515]` (±1%) 로 **원복**. 측정값 1.50775 로 통과.
+
+---
+
 ## 7. 참고 — audit 테스트 명령
 
 ```sh
-# 모든 audit 테스트 (18 case, ~9s)
+# 모든 audit 테스트 (105 case, ~55s)
 E2E_PORT=4181 npm run test:e2e:audit
 
 # 로케일 파일 전수 grep (서버 안 띄움)

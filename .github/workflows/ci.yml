@@ -56,9 +56,17 @@ jobs:
       # into main — pushing to v2 just needs the fast gates above. Keeping Playwright off
       # the push path cuts CI time by ~3 min and avoids spending free-tier minutes on every
       # intermediate commit.
+      # v2-P2: the audit project (e2e/audit/) runs on BOTH v2 push and pull_request so a
+      # regression in the per-requirement measurement spec surfaces during active work,
+      # not only at S7 time. It is a strict subset of the full e2e suite (~30 s on CI vs
+      # ~3 min for the whole thing).
       - name: Install Playwright browsers
-        if: github.event_name == 'pull_request'
         run: npx playwright install --with-deps chromium
+
+      - name: Audit project (per-requirement measurements)
+        run: npm run test:e2e:audit
+        env:
+          CI: true
 
       - name: End-to-end tests (Playwright, includes golden-image visual QA)
         if: github.event_name == 'pull_request'
@@ -67,7 +75,7 @@ jobs:
           CI: true
 
       - name: Upload Playwright report
-        if: failure() && github.event_name == 'pull_request'
+        if: failure()
         uses: actions/upload-artifact@v5
         with:
           name: playwright-report
