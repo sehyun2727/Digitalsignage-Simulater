@@ -104,7 +104,12 @@ export const MAX_TEXT_CONTENT_FONT_SIZE = 1;
 
 export type SignageContent = MediaContent | TextContent;
 
-export const MIN_CONTENT_SCALE = 1;
+// v2-P3 D9: lower content-scale minimum from 1.0 to 0.5 so users can shrink the
+// screen content below the default fit size. 50 % is the PDF's prescribed low end
+// (3-4-R1: 0.5/1.0/1.5 as 50/100/150 %). Existing saved documents stay valid: any
+// previously-stored scale value sat in [1.0, 3.0], which is a strict subset of the
+// new [0.5, 3.0] range (clampContentScale is idempotent on in-range inputs).
+export const MIN_CONTENT_SCALE = 0.5;
 export const MAX_CONTENT_SCALE = 3;
 export const MAX_CONTENT_OFFSET = 1;
 

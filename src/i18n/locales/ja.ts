@@ -19,8 +19,8 @@ export const ja: Messages = {
   hullCtaTermsLinkLabel: '利用規約',
   termsOfServiceTitle: 'デジタルサイネージ設置シミュレーター 置いてみる君 利用規約',
   termsOfServiceCloseButton: '閉じる',
-  termsOfServiceEffectiveDate: '制定日：2026年月日',
-  termsOfServiceRevisedDate: '改定日：2026年月日',
+  termsOfServiceEffectiveDate: '制定日：{date}',
+  termsOfServiceRevisedDate: '改定日：{date}',
   termsOfServiceIntro:
     'この利用規約（以下「本規約」といいます）は、HULL株式会社（以下「当社」といいます）が運営・提供する「デジタルサイネージ設置シミュレーター 置いてみる君」（以下「本サービス」といいます）の利用条件を定めるものです。利用者（以下「ユーザー」といいます）は、本サービスを利用することにより、本規約に同意したものとみなされます。本規約に同意いただけない場合は、本サービスをご利用いただけません。',
   termsOfServiceSections: [

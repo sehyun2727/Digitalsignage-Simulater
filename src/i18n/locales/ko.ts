@@ -18,8 +18,8 @@ export const ko: Messages = {
   hullCtaTermsLinkLabel: '이용약관',
   termsOfServiceTitle: '디지털 사이니지 설치 시뮬레이터 오이테미루쿤 이용약관',
   termsOfServiceCloseButton: '닫기',
-  termsOfServiceEffectiveDate: '제정일: 2026년 월 일',
-  termsOfServiceRevisedDate: '개정일: 2026년 월 일',
+  termsOfServiceEffectiveDate: '제정일: {date}',
+  termsOfServiceRevisedDate: '개정일: {date}',
   termsOfServiceIntro:
     '본 이용약관(이하 "본 약관"이라 합니다)은 HULL 주식회사(이하 "당사"라 합니다)가 운영·제공하는 "디지털 사이니지 설치 시뮬레이터 오이테미루쿤"(이하 "본 서비스"라 합니다)의 이용 조건을 정하는 것입니다. 이용자(이하 "사용자"라 합니다)는 본 서비스를 이용함으로써 본 약관에 동의한 것으로 간주됩니다. 본 약관에 동의하지 않으실 경우에는 본 서비스를 이용하실 수 없습니다.',
   termsOfServiceSections: [

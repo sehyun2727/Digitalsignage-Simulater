@@ -19,8 +19,8 @@ export const en: Messages = {
   hullCtaTermsLinkLabel: 'Terms of Service',
   termsOfServiceTitle: 'Digital Signage Placement Simulator "Oitemiru-kun" Terms of Service',
   termsOfServiceCloseButton: 'Close',
-  termsOfServiceEffectiveDate: 'Effective date: 2026',
-  termsOfServiceRevisedDate: 'Revised date: 2026',
+  termsOfServiceEffectiveDate: 'Effective date: {date}',
+  termsOfServiceRevisedDate: 'Revised date: {date}',
   termsOfServiceIntro:
     'These Terms of Service ("Terms") set forth the conditions for use of the "Digital Signage Placement Simulator Oitemiru-kun" ("Service") operated and provided by HULL Corporation ("we", "us", or "our"). By using the Service, the user ("User") is deemed to have agreed to these Terms. If you do not agree to these Terms, you may not use the Service.',
   termsOfServiceSections: [
