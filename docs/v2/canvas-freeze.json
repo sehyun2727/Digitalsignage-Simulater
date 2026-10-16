@@ -23,9 +23,9 @@
       "approvedBy": "user 2026-10-17 (RELEASE D11)",
       "linuxDelta": {
         "1024x640 landscape": "y 193.89 -> 193.09 (-0.80)",
-        "1024x640 portrait":  "x 227.22 -> 226.77 (-0.45), y 192.47 -> 190.88 (-1.59), w 201.56 -> 202.45 (+0.89), h 358.34 -> 359.94 (+1.60)",
-        "390x844 landscape":  "y 269.66 -> 264.06 (-5.60)",
-        "390x844 portrait":   "y 269.66 -> 264.06 (-5.60)"
+        "1024x640 portrait": "x 227.22 -> 226.77 (-0.45), y 192.47 -> 190.88 (-1.59), w 201.56 -> 202.45 (+0.89), h 358.34 -> 359.94 (+1.60)",
+        "390x844 landscape": "y 269.66 -> 264.06 (-5.60)",
+        "390x844 portrait": "y 269.66 -> 264.06 (-5.60)"
       },
       "note": "App code and CSS unchanged (no frozen source zone touched; zones[].sha256 unchanged, src/ frozen-zone diff = 0 lines). Linux-vs-Win32 drift comes from Chromium shell font metrics / mobile-breakpoint layout. Tolerance remains 0.5 px for both platforms. Determinism requires 2 consecutive PR CI runs to measure within ±0.5 of these linuxOverride values; see release-notes D11."
     }

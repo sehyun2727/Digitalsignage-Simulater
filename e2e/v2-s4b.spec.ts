@@ -647,6 +647,15 @@ test('1-3 video Fit letterbox: 1920×1080 raw, bands 240 ± 2, photo 1440 ± 2',
       video.onseeked = () => resolve();
       video.currentTime = 0.1;
     });
+    // v2-release D12: two documented attempts to replace this single-shot drawImage
+    // with a `requestVideoFrameCallback`-gated capture made the Fit variant (previously
+    // non-flaky) time out. RVFC requires an active presentation pipeline, but a
+    // paused-after-seek video never presents a frame → RVFC never fires. Attempt 2
+    // added `play()` → RVFC → `pause()` which races and still times out ~50 % of
+    // the time locally. Reverted to the original onseeked-only wait. CI retries 2x
+    // (playwright.config.ts :: retries) typically recover the first-try black-frame
+    // flake, matching the pre-D12 "1 flaky, 0 failed" baseline. Known limitation
+    // documented in docs/v2/release-notes.md.
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -713,6 +722,15 @@ test('1-3 video Cover: no side band at mid row (full-width red)', async ({ page 
       video.onseeked = () => resolve();
       video.currentTime = 0.1;
     });
+    // v2-release D12: two documented attempts to replace this single-shot drawImage
+    // with a `requestVideoFrameCallback`-gated capture made the Fit variant (previously
+    // non-flaky) time out. RVFC requires an active presentation pipeline, but a
+    // paused-after-seek video never presents a frame → RVFC never fires. Attempt 2
+    // added `play()` → RVFC → `pause()` which races and still times out ~50 % of
+    // the time locally. Reverted to the original onseeked-only wait. CI retries 2x
+    // (playwright.config.ts :: retries) typically recover the first-try black-frame
+    // flake, matching the pre-D12 "1 flaky, 0 failed" baseline. Known limitation
+    // documented in docs/v2/release-notes.md.
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
