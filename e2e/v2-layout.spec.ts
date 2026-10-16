@@ -313,6 +313,15 @@ for (const preset of L1_PRESETS) {
       const portrait = page.getByRole('button', { name: /縦長/ });
       if ((await portrait.count()) > 0) await portrait.first().click();
     }
+    // v2-P2 C20 fix: Konva mounts asynchronously after the fitScale measurement cycle
+    // completes. Previously we called `rect('.konvajs-content')` straight after the
+    // (optional) preset click, and on a cold mobile viewport Konva hadn't yet rendered
+    // the stage canvas → bbox came back as null and `measure.height - canvas.height`
+    // dereferenced through a non-null assertion. Wait explicitly for the Konva stage
+    // canvas to be attached + visible before measuring, instead of extending the test
+    // timeout. The wait condition is based on the DOM presence of the <canvas> element
+    // Konva emits, not an arbitrary sleep.
+    await page.locator('.konvajs-content canvas').first().waitFor({ state: 'visible' });
     const canvas = (await rect(page, '.konvajs-content'))!;
     const measure = (await rect(page, '.editor-canvas-measure'))!;
     const metrics = await docScrollMetrics(page);
