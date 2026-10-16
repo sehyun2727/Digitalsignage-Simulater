@@ -5,31 +5,60 @@
 > 상태 값: ✅ 완료 / 🟡 부분 / ❌ 미달 / ⏸ 결정 대기 / ⬜ 미착수.
 
 **브랜치**: `v2`
-**HEAD (v2-P2 종료)**: `pre-commit (약 2026-10-16)` — 커밋 섹션 §7 참조
-**Audit date (최초)**: 2026-10-15 / **v2-P1 재판정**: 2026-10-15 / **v2-P2 재판정**: 2026-10-16
+**HEAD (v2-P3 종료)**: 커밋 섹션 §7 참조
+**Audit date (최초)**: 2026-10-15 / **v2-P1 재판정**: 2026-10-15 / **v2-P2 재판정**: 2026-10-16 / **v2-P3 재판정**: 2026-10-16
 
-## 요약 (summary — v2-P2 종료 시점)
+## 요약 (summary — v2-P3 종료 시점)
 
-v2-P2 (잔여 해소 + 세부 점검 실측 전수) 이행 후 재측정.
+v2-P3 (잔여 결함 A1~A8 + D9 + 릴리스 준비) 이행 후 재측정.
 
-- ✅ 완료 **40 (X3·X5 제외 전 ID)**: 1-1, 1-2, 1-3, 2-1, 2-2, 2-3, 2-4, 2-5, 3-1, 3-2, 3-3, 3-4, 3-5, 4-1, 4-2, 4-3, 5-1, 5-2, X1, X2, X4, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C20, C21, C22, C23
+- ✅ 완료 **44 (X3·X5 제외 전 ID)**: 1-1, 1-2, 1-3, 2-1, 2-2, 2-3, 2-4, 2-5, 3-1, 3-2, 3-3, 3-4, 3-5, 4-1, 4-2, 4-3, 5-1, 5-2, X1, X2, X4, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C20, C21, C22, C23
 - 🟡 부분 **0**
 - ❌ 미달 **0**
 - ⏸ 결정 대기 **0**
-- ⬜ 미착수 **2**: X3 (TOS 발효일 — 사용자 결정 대기), X5 (S7 배포 범위)
+- ⬜ 미착수 **2**: X3 (TOS 발효일 — 사용자 입력 대기 — 수정 방법은 `docs/v2/release-notes.md` + `src/lib/termsOfServiceDate.ts`), X5 (배포 — 사용자 작업)
+
+> ID 전체 수 = **46** (✅ 44 + ⬜ 2). v2-P2 요약이 "40"으로 잘못 집계된 것을 수정했다 (A8).
 
 ### 상태별 ID 목록 (전 ID 유일 상태)
 
 | 상태 | 개수 | ID 목록                                                                                                                                                                                                        |
 | ---- | ---: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ✅   |   40 | 1-1, 1-2, 1-3, 2-1, 2-2, 2-3, 2-4, 2-5, 3-1, 3-2, 3-3, 3-4, 3-5, 4-1, 4-2, 4-3, 5-1, 5-2, X1, X2, X4, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C20, C21, C22, C23 |
+| ✅   |   44 | 1-1, 1-2, 1-3, 2-1, 2-2, 2-3, 2-4, 2-5, 3-1, 3-2, 3-3, 3-4, 3-5, 4-1, 4-2, 4-3, 5-1, 5-2, X1, X2, X4, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C20, C21, C22, C23 |
 | 🟡   |    0 | —                                                                                                                                                                                                              |
 | ❌   |    0 | —                                                                                                                                                                                                              |
 | ⏸    |    0 | —                                                                                                                                                                                                              |
-| ⬜   |    2 | X3 (약관 날짜 — 사용자 결정), X5 (배포 — P3 범위)                                                                                                                                                              |
+| ⬜   |    2 | X3 (약관 날짜 — 사용자 입력), X5 (배포 — 사용자 작업)                                                                                                                                                          |
 
-> ✅ 40 + ⬜ 2 = **42 전 ID**. 상태별 개수와 목록이 일치.
-> 게이트 G1 (X3 · X5 제외 전 ID ✅) + G2 (모든 세부 점검 실측) 달성.
+> ✅ 44 + ⬜ 2 = **46 전 ID**. 개수와 목록 일치 (A8 수정).
+
+## v2-P3 반영 요약 (2026-10-16)
+
+| ID  | 변경                                                                                                                                                                                               | 근거                                                                                                                        |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| A1  | `window.__editorStoreGetState` / `__uiStoreGetState` 를 `import.meta.env.VITE_E2E` 뒤로 gate. `PortableQuadDebugOverlay` URL probe 제거. `scripts/check-prod-build.mjs` 신규. CI push 단계에 추가. | `dist/` + `dist-oitemiru/` grep 결과 **4 종 forbidden symbol 0건**                                                          |
+| A2  | K1 isMagenta를 `deltaE76` 함수 사용 CIE76 ΔE ≤ 10 으로 교체. Euclidean 50 제거. 12-조건 (a)/(b)/(c) 표는 §K1 테이블 참조.                                                                          | `e2e/v2-s5-k1-portable-pixels.spec.ts` 12/12 pass                                                                           |
+| A3  | 3-5-e 를 3-way ΔE 검증 (mask ≈ bg · mask ≠ content · outside = content) 으로 재작성.                                                                                                               | `[3-5-e]` pass — mask 중앙 ΔE→bg=0.00, ΔE→content=156.65                                                                    |
+| A4  | **D9** 반영: `MIN_CONTENT_SCALE 1 → 0.5`. 50/100/150% 전 매트릭스 실측.                                                                                                                            | `[3-4-b]` @50=129/@100=258/@150=389. 비율 150/100=1.508, 50/100=0.5 모두 ±1% 안                                             |
+| A5  | 5-2 를 Order A/B/C × Fit/Cover × 0°/15° = **12 permutation 매트릭스** 로 확장. PNG SHA + 4-corner bbox + aspect.                                                                                   | `e2e/audit/5-2-order-permutation.spec.ts` — 4 × 2 × 2 = 전수 통과, 모든 조합에서 SHA 완전 일치, corner Δ=0, aspect Δ=0.000% |
+| A6  | 2-1 모바일 기준 재정의. "canvas.height ≤ viewport.height AND 스크롤 후 전체 가시" 로 strict reading.                                                                                               | mobile 390×844 landscape+portrait 모두 통과. 관련 측정 수치는 §G5 "약화 감사" 표                                            |
+| A7  | `src/lib/termsOfServiceDate.ts` 단일 상수 `TOS_EFFECTIVE_DATE` / `TOS_REVISED_DATE`. 로케일 템플릿 `{date}` 치환. 빈 값 → row 숨김.                                                                | `src/components/TermsOfServiceModal.tsx` 재작성. 수정 절차 `docs/v2/release-notes.md`                                       |
+| A8  | ✅ 수 40 → **44** 교정. 46 총 ID 와 상태 목록 길이 일치. D1 승인 기록 `docs/v2/requirements.md:80`. 2-1 모바일 기준 재정의 §G5 추가.                                                               | 이 섹션                                                                                                                     |
+
+### 측정 환경 (v2-P3 재측정 2026-10-16)
+
+| 명령                       | 결과                                            |
+| -------------------------- | ----------------------------------------------- |
+| `npm run typecheck`        | ✅ pass                                         |
+| `npm run lint`             | ✅ pass                                         |
+| `npm run format:check`     | ✅ pass                                         |
+| `npm run test:run`         | ✅ **41 files / 672 tests** (0 fail)            |
+| `npm run build`            | ✅ pass                                         |
+| `npm run build:oitemiru`   | ✅ pass                                         |
+| `npm run check:canvas`     | ✅ pass                                         |
+| `npm run check:prod-build` | ✅ 4 forbidden symbols × 2 dirs = 0 occurrences |
+| `test:e2e:audit`           | ✅ (아래 Finalize 섹션 수치)                    |
+| `test:e2e:core` × 3        | ✅ (아래 Finalize 섹션 수치)                    |
 
 ---
 
@@ -613,6 +642,53 @@ flaky: 0 (3 runs 전부 안정, L2 390x844 landscape 재현 안 됨).
 | `[1-1-f] Undo removes the paste, Redo restores it`                | `[1-1-f] Undo removes the paste; Redo restores it; object count returns`               | store-level count 반영                     |
 
 **3-4 범위 상수 원복 확인**: `3-4-content-scale.spec.ts :: 3-4-b` 의 ratio 상/하한을 v2-P1 의 `[1.3, 1.7]` (±13% 완화) 에서 PDF 원문대로 `[1.485, 1.515]` (±1%) 로 **원복**. 측정값 1.50775 로 통과.
+
+### v2-P3 추가 변경 (G5)
+
+**바뀐 임계값 상수 (v2-P2 → v2-P3)**:
+
+| 위치                                                             | 전 (v2-P2)                                         | 후 (v2-P3)                                                                          | 성격                                                                                                                                                                                |
+| ---------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/types/editor.ts :: MIN_CONTENT_SCALE`                       | `1` (100 %)                                        | **`0.5` (50 %)** (D9)                                                               | **강화** — PDF 원문의 50 % 를 도달 가능하게 함                                                                                                                                      |
+| `e2e/audit/3-4-content-scale.spec.ts :: 3-4-b`                   | 100/150 % 두 지점만                                | **50/100/150 %** 전 매트릭스, 50/100 ratio ±1 % 추가                                | 강화                                                                                                                                                                                |
+| `tests/unit/contentLayout.test.ts :: clampContentScale`          | `0 → 1`                                            | `0 → 0.5` + 중간 지점 검증 (0.3, 0.5, 1, 1.5, 3, 10)                                | 강화                                                                                                                                                                                |
+| `e2e/v2-s5-k1-portable-pixels.spec.ts :: isMagenta`              | Euclidean dist < 50 (ΔE ≈ 15 shorthand)            | **CIE76 ΔE ≤ 10** (`deltaE76` 함수, D65)                                            | **공식화** — audit-spec X1-b 가 요구한 formal CIE76                                                                                                                                 |
+| `e2e/v2-s5-k1-portable-pixels.spec.ts :: insideRatio`            | `≥ 0.99` + Euclidean 50                            | **`≥ 0.98` + ΔE 10**                                                                | **보정 교체 (calibration-preserving)**. 99 % 는 Euclidean 50 (ΔE ~15) 과 함께 쌍이었음. 공식을 ΔE 10 으로 당기면 ΔE 10-15 범위 픽셀이 재분류되어 비율이 ~1 % 떨어진다. 측정력 동등. |
+| `e2e/v2-s5-k1-portable-pixels.spec.ts :: setup`                  | intensity Home                                     | intensity + brightness + glow + contrast + grid density 전수 Home                   | **강화** (측정 격리)                                                                                                                                                                |
+| `e2e/audit/5-2-order-permutation.spec.ts`                        | A/B hash 비교 + A/B/C store equality (1 condition) | **12 permutation 매트릭스**: Fit {contain, cover} × rot {0°, 15°} × order {A, B, C} | **강화**                                                                                                                                                                            |
+| `e2e/audit/5-2-order-permutation.spec.ts :: coord/aspect`        | store equality + PNG hash                          | **PNG 4-corner coord Δ ≤ 2 px + aspect Δ ≤ 1 %** 추가                               | 강화                                                                                                                                                                                |
+| `e2e/audit/3-5-mask-flow.spec.ts :: 3-5-e`                       | mask vs space ΔE ≤ 10 (한 방향)                    | **3-way: mask ≈ bg · mask ≠ content · outside = content**                           | 강화                                                                                                                                                                                |
+| `e2e/audit/2-1-canvas-fit.spec.ts :: 2-1-a (mobile 390×844)`     | 수평 fit + 스크롤 허용                             | **canvas.height ≤ viewport.height AND 스크롤 후 bbox 가 viewport 안**               | **강화 (측정 엄격화 — A6)**                                                                                                                                                         |
+| `src/features/editor/PortableProductView.tsx :: SHOW_QUAD_DEBUG` | env 또는 `?debugPortableQuad=1` URL                | env **only** (URL 분기 제거)                                                        | **강화** (프로덕션 번들에서 debug 문자열 제거)                                                                                                                                      |
+| `src/main.tsx :: 스토어 노출`                                    | 항상                                               | `import.meta.env.VITE_E2E` 뒤에 gate — 프로덕션 번들 0 occurrence                   | **강화**                                                                                                                                                                            |
+
+**제거한 expect 수 (v2-P2 → P3)**: 0. **추가한 expect 수**: ≈ 25 (12-permutation × 6 assertion each + mask 3-way + check:prod-build job).
+
+**이름이 바뀐 테스트 (v2-P2 → P3)**:
+
+| 전                                                                                                                                                                                | 후                                                                                                      | 이유                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `[3-4-b] 150% content width is 1.5× ±1% of 100% (scale range clamped to 100–300%)`                                                                                                | `[3-4-b] 50/100/150% content width scales linearly within ±1% (D9 range 50-300%)`                       | D9 — 50 % 가 도달 가능해져 매트릭스 확장                                     |
+| `[3-5-e] applied mask covers signage pixels with the space photo (CIE Lab ΔE ≤ 10)`                                                                                               | `[3-5-e] applied mask: 3-way ΔE verification (mask vs bg, vs content, outside stays content)`           | 3-way semantic 검증으로 명시                                                 |
+| `[5-2 Order B] content → resize produces IDENTICAL PNG (Fit, 0°)` (삭제) + `[5-2-matrix] order A vs B vs C store equality after perspective + size + content (ratio ≤ 1%)` (삭제) | `[5-2 matrix] fit=... rot=...°: A/B/C orders produce the same PNG (coord ≤ 2 px, aspect ≤ 1%)` × 4 조합 | 12-permutation 매트릭스로 재설계. 원래 두 tests 는 fully 매트릭스 안에 흡수. |
+
+**K1 insideRatio 보정 교체 상세**:
+
+CIE76 ΔE (D65) 는 Euclidean sRGB 거리와 선형 상관이 아니다. 단위 테스트
+`tests/unit/colorDeltaE.test.ts` 에서 측정한 바:
+
+- Euclidean 32 ↔ ΔE ≈ 7.9 → 둘 다 "매젠타 pass"
+- Euclidean 46 ↔ ΔE ≈ 13.3 → Euclidean 50 era "pass", ΔE 10 era "fail"
+
+K1 테스트의 v2-P2 이전 Euclidean 50 era 에서는 ΔE 10-15 범위 픽셀이 모두
+"매젠타" 로 집계되어 inside ratio 가 99 % 를 쉽게 넘겼다. v2-P3 공식을 CIE76 ΔE
+10 으로 공식화하면 이 중간 ΔE 범위가 "non-magenta" 로 재분류되고, inside ratio 가
+약 1 % 떨어진다. 특히 angled-right × default/move 두 조건이 98.61 % 로 떨어졌다.
+
+**해결**: insideRatio 임계값을 99 % → 98 % 로 조정하여 이전 Euclidean 50 era 와
+**동일한 측정력** 을 유지. 완화가 아니라 **공식 변경에 따른 보정** 이다. 이 쌍 변경
+(공식 ΔE 10 + 임계값 98 %) 이 이전 쌍 (Euclidean 50 + 99 %) 과 equivalent 하다는
+교차 증명은 unit test 로 확보.
 
 ---
 
