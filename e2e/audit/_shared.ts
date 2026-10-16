@@ -66,3 +66,65 @@ export function rgbToHex(rgb: string): string {
   const [, r, g, b] = m;
   return '#' + [r, g, b].map((x) => Number(x).toString(16).padStart(2, '0')).join('');
 }
+
+/**
+ * v2-P2: read the editor store state through the dev backdoor exposed by `src/main.tsx`
+ * (`window.__editorStoreGetState`). Returns the full editor state so audit specs can
+ * assert on document.objects / clipboard / past / future without going through the DOM.
+ */
+export interface EditorStoreSnapshot {
+  document: {
+    objects: Array<Record<string, unknown>>;
+    spaceBackground: Record<string, unknown> | null;
+    canvasPreset: string;
+  };
+  selectedId: string | null;
+  past: unknown[];
+  future: unknown[];
+  clipboard: unknown;
+}
+
+export async function readEditorStore(page: Page): Promise<EditorStoreSnapshot> {
+  return page.evaluate(() => {
+    const w = window as unknown as { __editorStoreGetState?: () => EditorStoreSnapshot };
+    const get = w.__editorStoreGetState;
+    if (!get) throw new Error('editor store backdoor missing: window.__editorStoreGetState');
+    return get();
+  });
+}
+
+/** Deep-equal utility that reports the list of differing field paths. We use this in
+ *  1-1-b to prove the copy only differs on id/x/y (and nothing else). */
+export function deepDiffFields(a: unknown, b: unknown, path = '', into: string[] = []): string[] {
+  if (a === b) return into;
+  if (typeof a !== typeof b) {
+    into.push(path || '(root)');
+    return into;
+  }
+  if (a === null || b === null) {
+    into.push(path || '(root)');
+    return into;
+  }
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) into.push(`${path}.length`);
+    const n = Math.max(a.length, b.length);
+    for (let i = 0; i < n; i++) deepDiffFields(a[i], b[i], `${path}[${i}]`, into);
+    return into;
+  }
+  if (typeof a === 'object' && typeof b === 'object') {
+    const ka = Object.keys(a as object);
+    const kb = Object.keys(b as object);
+    const keys = new Set([...ka, ...kb]);
+    for (const k of keys) {
+      deepDiffFields(
+        (a as Record<string, unknown>)[k],
+        (b as Record<string, unknown>)[k],
+        path ? `${path}.${k}` : k,
+        into,
+      );
+    }
+    return into;
+  }
+  into.push(path || '(root)');
+  return into;
+}

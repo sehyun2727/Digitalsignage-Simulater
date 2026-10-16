@@ -13,7 +13,23 @@
  * 안으로 보고하며, store 수준 깊은 비교는 `tests/unit/editorStoreS4b.test.ts` 가 담당.
  */
 import { test, expect, type Page } from '@playwright/test';
-import { openAppJa, addSpaceBg } from './_shared.js';
+import { PNG } from 'pngjs';
+import { readFile } from 'node:fs/promises';
+import { openAppJa, addSpaceBg, readEditorStore, deepDiffFields } from './_shared.js';
+import { solidColorPng } from '../support/spaceBackground.js';
+
+async function exportPng(page: Page): Promise<PNG> {
+  const dl = page.waitForEvent('download');
+  await page.getByTestId('editor-export-png-header').click();
+  const d = await dl;
+  const buf = await readFile((await d.path())!);
+  return PNG.sync.read(buf);
+}
+
+function pixelAt(png: PNG, x: number, y: number): { r: number; g: number; b: number } {
+  const i = (y * png.width + x) * 4;
+  return { r: png.data[i]!, g: png.data[i + 1]!, b: png.data[i + 2]! };
+}
 
 type Signage = 'LED' | 'LCD（液晶）' | 'シースルー' | 'ポータブル';
 
@@ -175,7 +191,7 @@ test('[1-1-g] Ctrl+C/V inside <input> does NOT create a signage copy', async ({ 
   expect(value.length).toBeGreaterThan(0);
 });
 
-test('[1-1-f] Undo removes the paste, Redo restores it', async ({ page }) => {
+test('[1-1-f] Undo removes the paste; Redo restores it; object count returns', async ({ page }) => {
   await openAppJa(page);
   await addSpaceBg(page);
   await addSignage(page, 'LED');
@@ -183,15 +199,213 @@ test('[1-1-f] Undo removes the paste, Redo restores it', async ({ page }) => {
   const paste = await pasteBtn(page);
   await copy.click();
   await paste.click();
+  const afterPaste = await readEditorStore(page);
+  const countAfterPaste = afterPaste.document.objects.length;
+  console.log(`[1-1-f] after paste: objects.length = ${countAfterPaste}`);
+  expect(countAfterPaste).toBe(2);
   // Undo once.
   await page.getByRole('button', { name: /元に戻す/ }).click();
+  const afterUndo = await readEditorStore(page);
+  console.log(`[1-1-f] after Undo: objects.length = ${afterUndo.document.objects.length}`);
+  expect(afterUndo.document.objects.length).toBe(1);
   const redoBtn = page.getByRole('button', { name: /やり直す/ });
   const redoEnabled = await redoBtn.isEnabled();
   console.log(`[1-1-f] after Undo: redo.enabled = ${redoEnabled}`);
   expect(redoEnabled).toBe(true);
   await redoBtn.click();
+  const afterRedo = await readEditorStore(page);
+  console.log(`[1-1-f] after Redo: objects.length = ${afterRedo.document.objects.length}`);
+  expect(afterRedo.document.objects.length).toBe(2);
   const redoAfterRedoDisabled = await redoBtn.isDisabled();
   console.log(`[1-1-f] after Redo: redo.disabled = ${redoAfterRedoDisabled}`);
-  // After one Redo we've consumed the redo stack entry — redo becomes disabled.
   expect(redoAfterRedoDisabled).toBe(true);
+});
+
+// ---------------------------------------------------------------------------------------
+// v2-P2 extension — 1-1-b deep field compare, 1-1-d clamp, 1-1-e independent edit (PNG),
+// 1-1-g input-focus Ctrl+C/V object count invariant.
+// ---------------------------------------------------------------------------------------
+
+test('[1-1-b] deep compare: paste differs only in id (+ x/y offset)', async ({ page }) => {
+  await openAppJa(page);
+  await addSpaceBg(page);
+  await addSignage(page, 'LED');
+  const copy = await copyBtn(page);
+  const paste = await pasteBtn(page);
+  await copy.click();
+  await paste.click();
+  const snapshot = await readEditorStore(page);
+  const [original, copyObj] = snapshot.document.objects;
+  if (!original || !copyObj) throw new Error('expected 2 objects after paste');
+  const diffs = deepDiffFields(original, copyObj);
+  const comparedFieldCount = Object.keys(original).length;
+  console.log(
+    `[1-1-b] compared ${comparedFieldCount} top-level fields on ${(original as { type: string }).type}. diffs=`,
+    diffs,
+  );
+  // The only expected differences are id, x, y. Anything else leaks (e.g. a shared
+  // mutable sub-object or a missed clone branch).
+  const unexpected = diffs.filter((d) => d !== 'id' && d !== 'x' && d !== 'y');
+  console.log(`[1-1-b] unexpected diffs = ${unexpected.length ? unexpected.join(',') : 'NONE'}`);
+  expect(unexpected).toEqual([]);
+});
+
+test('[1-1-d] clamp: paste near the right edge stays inside the document', async ({ page }) => {
+  await openAppJa(page);
+  await addSpaceBg(page);
+  await addSignage(page, 'LED');
+  // Expand position-size subsection.
+  const selectedToggle = page.getByRole('button', { name: /^選択中のサイネージ/ }).first();
+  if ((await selectedToggle.getAttribute('aria-expanded')) === 'false')
+    await selectedToggle.click();
+  const posToggle = page.getByTestId('toolbar-subsection-position-size-toggle').first();
+  if ((await posToggle.getAttribute('aria-expanded')) === 'false') await posToggle.click();
+  const body = page.locator('#toolbar-subsection-position-size-body');
+  const xIn = body.getByLabel('横位置', { exact: true });
+  const yIn = body.getByLabel('縦位置', { exact: true });
+  // Place the LED near the right/bottom edge: 1920 - 480 (default w) - 10 = 1430 x,
+  // 1080 - 270 (default h) - 10 = 800 y. (We fill 1430/800 directly; the input also
+  // clamps if the user types too far.)
+  await xIn.fill('1430');
+  await xIn.blur();
+  await yIn.fill('800');
+  await yIn.blur();
+
+  const copy = await copyBtn(page);
+  const paste = await pasteBtn(page);
+  await copy.click();
+  // Paste 3 times — the clamp has to kick in before the copy walks past the right edge.
+  for (let i = 0; i < 3; i++) await paste.click();
+
+  const snapshot = await readEditorStore(page);
+  const objects = snapshot.document.objects as Array<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    type: string;
+  }>;
+  const coords = objects.map((o) => ({
+    type: o.type,
+    x: o.x,
+    y: o.y,
+    xRight: o.x + o.width,
+    yBottom: o.y + o.height,
+  }));
+  console.log('[1-1-d] clamp coords after 3 pastes =', coords);
+  for (const c of coords) {
+    expect(c.x).toBeGreaterThanOrEqual(0);
+    expect(c.y).toBeGreaterThanOrEqual(0);
+    expect(c.xRight).toBeLessThanOrEqual(1920);
+    expect(c.yBottom).toBeLessThanOrEqual(1080);
+  }
+});
+
+test('[1-1-e] independent edit: deleting the copy content does not touch the original', async ({
+  page,
+}) => {
+  await openAppJa(page);
+  await addSpaceBg(page);
+  // Add LED and give it a magenta content so the signage renders a magenta square.
+  await addSignage(page, 'LED');
+  const magenta = await solidColorPng(page, '#ff00ff', 200, 200);
+  // Open content section + upload magenta content to the original.
+  const contentHeader = page.getByRole('button', { name: /^画面コンテンツ/ }).first();
+  if ((await contentHeader.getAttribute('aria-expanded')) === 'false') await contentHeader.click();
+  await page.getByLabel(/画像 \/ 動画を追加/).setInputFiles({
+    name: 'orig-magenta.png',
+    mimeType: 'image/png',
+    buffer: magenta,
+  });
+  // Snapshot store so we know the original object's id and position.
+  const beforeCopy = await readEditorStore(page);
+  const originalId = (beforeCopy.document.objects[0] as { id: string }).id;
+  const originalX = (beforeCopy.document.objects[0] as { x: number }).x;
+  const originalY = (beforeCopy.document.objects[0] as { y: number }).y;
+  // Copy and paste the display — the copy inherits the same content sourceId.
+  await (await copyBtn(page)).click();
+  await (await pasteBtn(page)).click();
+  // Now the paste is selected. Remove its content via the content remove button.
+  const removeBtn = page.getByTestId('editor-content-remove').first();
+  await removeBtn.waitFor({ state: 'visible' });
+  await removeBtn.click();
+  const afterRemove = await readEditorStore(page);
+  // Verify: 2 objects total, original keeps content, copy has null content.
+  const objects = afterRemove.document.objects as Array<{
+    id: string;
+    content: unknown;
+  }>;
+  expect(objects.length).toBe(2);
+  const originalAfter = objects.find((o) => o.id === originalId);
+  const copyAfter = objects.find((o) => o.id !== originalId);
+  console.log(
+    `[1-1-e] after copy's content removed: original.content=${originalAfter?.content ? 'set' : 'null'} copy.content=${copyAfter?.content ? 'set' : 'null'}`,
+  );
+  expect(originalAfter?.content).toBeTruthy();
+  expect(copyAfter?.content).toBeNull();
+
+  // The paste sits at (+20, +20) from the original so it visually covers the centre of
+  // the original. To prove the original's content is intact we delete the copy entirely
+  // (its id is non-original and still selected) and then export the PNG — now only the
+  // original renders and its screen centre must still read magenta.
+  await page
+    .getByRole('button', { name: /^削除$/ })
+    .first()
+    .click();
+  const afterDelete = await readEditorStore(page);
+  expect(afterDelete.document.objects.length).toBe(1);
+
+  const png = await exportPng(page);
+  const docW = 1920;
+  const docH = 1080;
+  // Centre of original screen (LED default size 480×270 at originalX/originalY).
+  const defaultW = 480;
+  const defaultH = 270;
+  const origCX = Math.round(originalX + defaultW / 2);
+  const origCY = Math.round(originalY + defaultH / 2);
+  const px = pixelAt(
+    png,
+    Math.max(0, Math.min(docW - 1, origCX)),
+    Math.max(0, Math.min(docH - 1, origCY)),
+  );
+  console.log(
+    `[1-1-e] original screen centre pixel after copy deletion = rgb(${px.r},${px.g},${px.b})`,
+  );
+  const chroma = Math.max(px.r, px.g, px.b) - Math.min(px.r, px.g, px.b);
+  // Magenta: red≈blue≫green. After material shading the centre still reads as
+  // high-chroma magenta (chroma > 50) — NOT grey (chroma ≈ 0, meaning the content was
+  // wiped from the original by the copy's edit).
+  expect(chroma).toBeGreaterThan(50);
+  expect(px.r).toBeGreaterThan(px.g);
+  expect(px.b).toBeGreaterThan(px.g);
+});
+
+test('[1-1-g strict] Ctrl+C/V inside <input> keeps document.objects.length unchanged', async ({
+  page,
+}) => {
+  await openAppJa(page);
+  await addSpaceBg(page);
+  await addSignage(page, 'LED');
+  const beforeStore = await readEditorStore(page);
+  const beforeLen = beforeStore.document.objects.length;
+  // Open position-size and focus width input.
+  const selectedToggle = page.getByRole('button', { name: /^選択中のサイネージ/ }).first();
+  if ((await selectedToggle.getAttribute('aria-expanded')) === 'false')
+    await selectedToggle.click();
+  const posToggle = page.getByTestId('toolbar-subsection-position-size-toggle').first();
+  if ((await posToggle.getAttribute('aria-expanded')) === 'false') await posToggle.click();
+  const widthIn = page.locator('#toolbar-subsection-position-size-body').getByLabel('幅', {
+    exact: true,
+  });
+  await widthIn.click();
+  await widthIn.press('Control+a');
+  await page.keyboard.type('500');
+  await widthIn.press('Control+c');
+  await widthIn.press('Control+v');
+  const afterStore = await readEditorStore(page);
+  console.log(
+    `[1-1-g strict] objects.length before=${beforeLen} after=${afterStore.document.objects.length}`,
+  );
+  // Length must not grow from Ctrl+C/V inside the input (isEditableTarget guard).
+  expect(afterStore.document.objects.length).toBe(beforeLen);
 });

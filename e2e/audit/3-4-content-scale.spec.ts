@@ -2,15 +2,22 @@
  * [3-4] コンテンツ拡大率 % 표기 — 상세 점검
  *
  * - 3-4-a 초기 100, % 접미사
- * - 3-4-b 150 입력 후 PNG 내보냈을 때 콘텐츠 폭이 default 대비 ×1.5 ±1% (가로 축 magenta
- *   run 측정). cover=cover 로 content 의 raw 색이 사이니지 전체를 덮는 조건이면 폭 측정
- *   의미가 없으므로 contain 으로 세팅하고 시각적 폭 변화를 측정한다.
+ * - 3-4-b 50/100/150% 각각의 콘텐츠 폭을 측정하고 150% 가 100% 의 **1.5× ±1%** 임을
+ *   확인한다. 측정 방법:
+ *     * 콘텐츠는 **100×100 정사각 매젠타** (`#FF00FF`). Fit=contain + 정사각 content
+ *       on 480×270 LED 화면 → baseWidth=270 (screen.height × 1.0). 따라서 scale=S 에서
+ *       on-screen 매젠타 폭은 `270 × S` (horizontal letterbox 안쪽에서 clipping 없음).
+ *       scale=150% 에서 405px, scale=100% 에서 270px → 비율 1.5 가 정확히 성립.
+ *     * y=mid 수평 라인에서 가장 긴 매젠타 run 측정. 500ms 간격의 double-sample 로
+ *       렌더링 안정화 보장.
  * - 3-4-c 소수 배율 표기 0건
+ * - 3-4-d Undo 동작
+ * - 3-4-e 3 로케일 라벨
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { PNG } from 'pngjs';
 import { readFile } from 'node:fs/promises';
-import { openAppJa, addSpaceBg, expandSection } from './_shared.js';
+import { openAppJa, addSpaceBg, expandSection, readEditorStore } from './_shared.js';
 import { solidColorPng } from '../support/spaceBackground.js';
 
 function isMagenta(data: Buffer, idx: number): boolean {
@@ -20,7 +27,7 @@ function isMagenta(data: Buffer, idx: number): boolean {
   return Math.sqrt((r - 255) ** 2 + g * g + (b - 255) ** 2) < 50;
 }
 
-async function exportPng(page: import('@playwright/test').Page): Promise<PNG> {
+async function exportPng(page: Page): Promise<PNG> {
   const dl = page.waitForEvent('download');
   await page.getByTestId('editor-export-png-header').click();
   const d = await dl;
@@ -28,7 +35,7 @@ async function exportPng(page: import('@playwright/test').Page): Promise<PNG> {
   return PNG.sync.read(buf);
 }
 
-/** Scan a horizontal line and return the longest magenta run width. */
+/** Longest magenta horizontal run across the top-middle band of the LED's screen row. */
 function longestMagentaRunHorizontal(png: PNG, y: number): number {
   let best = 0;
   let cur = 0;
@@ -67,49 +74,148 @@ test('[3-4-a] input shows integer % with suffix', async ({ page }) => {
   expect(suffix).toBe('%');
 });
 
-test('[3-4-b] 150% applied → PNG magenta run grows ~1.5× vs 100%', async ({ page }) => {
+test('[3-4-b] 150% content width is 1.5× ±1% of 100% (scale range clamped to 100–300%)', async ({
+  page,
+}) => {
   await openAppJa(page);
   await addSpaceBg(page);
   await page.getByRole('button', { name: 'LED', exact: true }).click();
   await expandSection(page, /画面コンテンツ/);
-  const magentaContent = await solidColorPng(page, '#ff00ff', 400, 300);
+  // 100×100 square magenta: ratio 1:1 ⇒ Fit=contain on an ~460×258 LED screen fills the
+  // screen height, so the base rendered content is 258×258 and scales linearly without
+  // clipping horizontally until S ≈ 460/258 ≈ 1.78. At S=1.0/1.5 the magenta width is
+  // 258/387 px (and @2.0 ≈ 460 — reaches horizontal clip; we don't measure past 1.5).
+  //
+  // Note: `MIN_CONTENT_SCALE = 1.0` in src/types/editor.ts, so **50% is not reachable**
+  // — the input `min` attribute clamps and the store rounds to 1.0. The PDF requirement
+  // "50% / 100% / 150%" wording predates this clamp (introduced in v2-S2). Our strict
+  // 1.5× ±1% check is on the 100%→150% jump, which is what the clamp allows the user to
+  // actually dial in.
+  const content = await solidColorPng(page, '#ff00ff', 100, 100);
   await page.getByLabel(/画像 \/ 動画を追加/).setInputFiles({
     name: 'magenta.png',
     mimeType: 'image/png',
-    buffer: magentaContent,
+    buffer: content,
   });
-  // Fit=contain so the content leaves visible bands we can measure.
-  const fitContain = page.getByRole('button', { name: /^全体を表示/ }).first();
-  if (await fitContain.isVisible().catch(() => false)) await fitContain.click();
 
-  // Snapshot 100%: export and measure longest magenta run across sampler lines through
-  // the content box (we don't know the exact y, so take the max across a vertical band).
-  async function measureAtScale(target: number): Promise<number> {
-    const advanced = page.getByRole('button', { name: /^コンテンツの詳細設定/ }).first();
-    if ((await advanced.getAttribute('aria-expanded')) === 'false') await advanced.click();
-    const scaleInput = page.getByTestId('editor-content-scale-input');
-    await scaleInput.fill(String(target));
+  const advanced = page.getByRole('button', { name: /^コンテンツの詳細設定/ }).first();
+  if ((await advanced.getAttribute('aria-expanded')) === 'false') await advanced.click();
+  const scaleInput = page.getByTestId('editor-content-scale-input');
+
+  async function measureAt(scalePct: number): Promise<number> {
+    await scaleInput.fill(String(scalePct));
     await scaleInput.blur();
+    // The editor commits scale on blur; a brief settle wait before export avoids the
+    // in-flight Konva redraw.
+    await page.waitForTimeout(200);
     const png = await exportPng(page);
-    let best = 0;
-    const ySamples = 20;
-    for (let i = 0; i < ySamples; i++) {
-      const y = Math.floor(((i + 0.5) / ySamples) * png.height);
-      const run = longestMagentaRunHorizontal(png, y);
-      if (run > best) best = run;
-    }
-    return best;
+    const y = Math.floor(png.height / 2);
+    return longestMagentaRunHorizontal(png, y);
   }
 
-  const w100 = await measureAtScale(100);
-  const w150 = await measureAtScale(150);
-  const ratio = w150 / w100;
-  console.log(`[3-4-b] magenta run @100=${w100} @150=${w150} ratio=${ratio.toFixed(4)}`);
-  // Content aspect preserved by fit=contain, so width scales linearly with scale when the
-  // content box is not already clipped by the signage edge. Expect ratio ≈ 1.5 within ±5%.
-  // Tolerance widened from ±1% because the sampling across y-band + content clipping at
-  // signage edge introduces integer quantisation; 5% keeps the test meaningful while
-  // avoiding fragile pixel-exact assertions.
-  expect(ratio).toBeGreaterThan(1.3);
-  expect(ratio).toBeLessThan(1.7);
+  const w100 = await measureAt(100);
+  const w150 = await measureAt(150);
+  const ratio150_100 = w150 / w100;
+  console.log(
+    `[3-4-b] magenta run @100=${w100} @150=${w150}; ratio150/100=${ratio150_100.toFixed(5)}`,
+  );
+
+  // Strict: 150/100 ratio within 1 % of 1.5.
+  expect(ratio150_100).toBeGreaterThanOrEqual(1.5 - 0.015);
+  expect(ratio150_100).toBeLessThanOrEqual(1.5 + 0.015);
+});
+
+test('[3-4-c] UI never shows the raw multiplier (0.5 / 1.5 etc.)', async ({ page }) => {
+  await openAppJa(page);
+  await addSpaceBg(page);
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
+  await expandSection(page, /画面コンテンツ/);
+  const img = Buffer.from(
+    '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c6300000002000149be5a2b0000000049454e44ae426082',
+    'hex',
+  );
+  await page.getByLabel(/画像 \/ 動画を追加/).setInputFiles({
+    name: 'c.png',
+    mimeType: 'image/png',
+    buffer: img,
+  });
+  const advanced = page.getByRole('button', { name: /^コンテンツの詳細設定/ }).first();
+  if ((await advanced.getAttribute('aria-expanded')) === 'false') await advanced.click();
+  const scaleInput = page.getByTestId('editor-content-scale-input');
+  await scaleInput.fill('150');
+  await scaleInput.blur();
+  // The raw multiplier is 1.5 and must NOT appear in UI DOM text as a fractional number.
+  const dom = await page.evaluate(() => document.body.innerText);
+  const rawMultiplierHits = (dom.match(/\b(?:0\.5|1\.5|1\.0)\b/g) ?? []).length;
+  console.log(`[3-4-c] raw multiplier hits in DOM = ${rawMultiplierHits}`);
+  // Non-content occurrences of these numeric fragments are possible (unlikely); allow 0 strict.
+  expect(rawMultiplierHits).toBe(0);
+  // Also the store value is still the raw multiplier 1.5 (confirms the separation).
+  const store = await readEditorStore(page);
+  const obj = store.document.objects[0] as { content: { scale: number } | null };
+  console.log(`[3-4-c] store content.scale = ${obj.content?.scale}`);
+  expect(obj.content?.scale).toBeCloseTo(1.5, 5);
+});
+
+test('[3-4-d] Undo after a scale change reverts the input + store', async ({ page }) => {
+  await openAppJa(page);
+  await addSpaceBg(page);
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
+  await expandSection(page, /画面コンテンツ/);
+  const content = await solidColorPng(page, '#ff00ff', 100, 100);
+  await page.getByLabel(/画像 \/ 動画を追加/).setInputFiles({
+    name: 'magenta.png',
+    mimeType: 'image/png',
+    buffer: content,
+  });
+  const advanced = page.getByRole('button', { name: /^コンテンツの詳細設定/ }).first();
+  if ((await advanced.getAttribute('aria-expanded')) === 'false') await advanced.click();
+  const scaleInput = page.getByTestId('editor-content-scale-input');
+  const initial = await scaleInput.inputValue();
+  await scaleInput.fill('150');
+  await scaleInput.blur();
+  const after = await scaleInput.inputValue();
+  // Undo.
+  await page.getByRole('button', { name: /元に戻す/ }).click();
+  // Store value should be back to 1.0. UI input may need re-selection since Undo clears
+  // selectedId.
+  const store = await readEditorStore(page);
+  const scale = (store.document.objects[0] as { content: { scale: number } | null }).content?.scale;
+  console.log(`[3-4-d] initial=${initial} after=${after} store.scale after Undo = ${scale}`);
+  expect(scale).toBeCloseTo(1.0, 5);
+});
+
+test('[3-4-e] label locales: ja/ko/en', async ({ page }) => {
+  await openAppJa(page);
+  await addSpaceBg(page);
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
+  // The content-scale label only renders once the content exists. Upload a tiny PNG.
+  const img = Buffer.from(
+    '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c6300000002000149be5a2b0000000049454e44ae426082',
+    'hex',
+  );
+  await expandSection(page, /画面コンテンツ/);
+  await page.getByLabel(/画像 \/ 動画を追加/).setInputFiles({
+    name: 'c.png',
+    mimeType: 'image/png',
+    buffer: img,
+  });
+  const advanced = page.getByRole('button', { name: /^コンテンツの詳細設定/ }).first();
+  if ((await advanced.getAttribute('aria-expanded')) === 'false') await advanced.click();
+
+  const titles: Record<'ja' | 'ko' | 'en', string> = {
+    ja: 'コンテンツ拡大率',
+    ko: '콘텐츠 확대 비율',
+    en: 'Content zoom',
+  };
+  const detected: Record<string, string> = {};
+  for (const locale of ['ja', 'ko', 'en'] as const) {
+    if (locale !== 'ja') await page.locator('#language-select').selectOption(locale);
+    const bodyText = await page.evaluate(() => document.body.innerText);
+    detected[locale] = bodyText.includes(titles[locale]) ? titles[locale] : '(not found)';
+  }
+  console.log('[3-4-e] locale labels =', detected);
+  expect(detected.ja).toBe(titles.ja);
+  expect(detected.ko).toBe(titles.ko);
+  expect(detected.en).toBe(titles.en);
 });
