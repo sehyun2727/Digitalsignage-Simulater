@@ -55,8 +55,8 @@ test('walks through all 4 steps, each CTA reusing an existing toolbar/store/expo
   // Step 1: space photo. The CTA focuses the real toolbar upload trigger rather than
   // duplicating file-picker logic in the card.
   await expect(page.getByText('1 / 4')).toBeVisible();
-  await expect(page.getByText('1. 空間写真を追加')).toBeVisible();
-  await page.getByRole('button', { name: '空間写真をアップロード' }).click();
+  await expect(page.getByText('1. 設置場所の写真を追加')).toBeVisible();
+  await page.getByRole('button', { name: '設置場所の写真をアップロード' }).click();
   await expect(page.locator('#toolbar-space-upload-trigger')).toBeFocused();
 
   await addSpaceBackground(page);
@@ -78,7 +78,7 @@ test('walks through all 4 steps, each CTA reusing an existing toolbar/store/expo
 
   const content = await solidColorPng(page, '#ff8800', 200, 120);
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
 
   // Step 4: save PNG. The CTA reuses the header's own export handler, not a duplicate one.

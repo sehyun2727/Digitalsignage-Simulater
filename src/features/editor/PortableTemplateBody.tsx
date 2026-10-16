@@ -48,7 +48,7 @@ export function PortableTemplateBody({
 }: PortableTemplateBodyProps) {
   const isAngled = view === 'angled-right' || view === 'angled-left';
   const mirrored = view === 'angled-right';
-  const templateImage = useAssetImage(isAngled ? docodemoUrl : frontUrl);
+  const templateImage = useAssetImage(isAngled ? docodemoUrl : frontUrl, view);
 
   // When a user product photo is supplied, render it instead of the fixed template asset.
   const productPhotoAsset = productPhotoSourceId ? getRegisteredAsset(productPhotoSourceId) : null;
@@ -87,14 +87,30 @@ const imageCache = new Map<string, HTMLCanvasElement>();
 
 /**
  * Returns the NormalizedQuad (in the raw source image's coordinate space) for the screen area
- * that should be made transparent. Both angled views share the same source (`docodemo.webp`),
- * so the angled-left quad is what gets punched out; angled-right renders that same asset with
- * scaleX={-1}, which maps the cleared area to the right-hand screen position automatically.
+ * that should be made transparent. Both angled views share `docodemo.webp` as source, but each
+ * view's content-warp quad is independent (angled-right is NOT an exact mirror of angled-left —
+ * the preset was measured directly off the real photo and differs by ~1 px per corner). The
+ * body-hole must align with the content-warp quad for that view, otherwise a 1-px strip
+ * between the two shows the dark screen backing instead of content.
+ *
+ * For `angled-right` the body is rendered with `scaleX={-1}`, so the hole we punch in SOURCE
+ * space must be the horizontal mirror of the (output-space) measured quad: `x_source = 1-x_output`.
  */
-function getScreenQuadForUrl(url: string): NormalizedQuad {
-  return url === docodemoUrl
-    ? PORTABLE_PRESET_SCREEN_QUADS['angled-left']
-    : PORTABLE_PRESET_SCREEN_QUADS['front'];
+function mirrorQuadX(quad: NormalizedQuad): NormalizedQuad {
+  return {
+    topLeft: { x: 1 - quad.topLeft.x, y: quad.topLeft.y },
+    topRight: { x: 1 - quad.topRight.x, y: quad.topRight.y },
+    bottomRight: { x: 1 - quad.bottomRight.x, y: quad.bottomRight.y },
+    bottomLeft: { x: 1 - quad.bottomLeft.x, y: quad.bottomLeft.y },
+  };
+}
+
+function getScreenQuadForView(url: string, view: PortableTemplateView): NormalizedQuad {
+  if (url !== docodemoUrl) return PORTABLE_PRESET_SCREEN_QUADS['front'];
+  if (view === 'angled-right') {
+    return mirrorQuadX(PORTABLE_PRESET_SCREEN_QUADS['angled-right']);
+  }
+  return PORTABLE_PRESET_SCREEN_QUADS['angled-left'];
 }
 
 /** Sources that already carry a real alpha channel (WebP), so `useAssetImage` skips the
@@ -124,11 +140,17 @@ function clearScreenArea(canvas: HTMLCanvasElement, quad: NormalizedQuad): void 
   ctx.restore();
 }
 
-function useAssetImage(url: string): HTMLCanvasElement | null {
-  const [image, setImage] = useState<HTMLCanvasElement | null>(() => imageCache.get(url) ?? null);
+function useAssetImage(url: string, view: PortableTemplateView): HTMLCanvasElement | null {
+  // Cache key = `${url}#${view}` so the two angled views (sharing `docodemo.webp`) get
+  // independent cached bitmaps with view-specific body-holes punched. See the comment on
+  // `getScreenQuadForView` for why angled-right needs its own hole quad.
+  const cacheKey = `${url}#${view}`;
+  const [image, setImage] = useState<HTMLCanvasElement | null>(
+    () => imageCache.get(cacheKey) ?? null,
+  );
 
   useEffect(() => {
-    const cached = imageCache.get(url);
+    const cached = imageCache.get(cacheKey);
     if (cached) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setImage(cached);
@@ -145,8 +167,8 @@ function useAssetImage(url: string): HTMLCanvasElement | null {
       const canvas = NATIVELY_TRANSPARENT_SOURCES.has(url)
         ? copyImageToCanvas(img)
         : maskWhiteBackground(img);
-      clearScreenArea(canvas, getScreenQuadForUrl(url));
-      imageCache.set(url, canvas);
+      clearScreenArea(canvas, getScreenQuadForView(url, view));
+      imageCache.set(cacheKey, canvas);
       setImage(canvas);
     };
     img.src = url;
@@ -155,7 +177,7 @@ function useAssetImage(url: string): HTMLCanvasElement | null {
       cancelled = true;
       img.onload = null;
     };
-  }, [url]);
+  }, [url, view, cacheKey]);
 
   return image;
 }

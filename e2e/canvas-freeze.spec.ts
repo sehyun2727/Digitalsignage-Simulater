@@ -1,0 +1,125 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { expect, test } from '@playwright/test';
+import { openSection } from './support/accordion.js';
+import { addSpaceBackground } from './support/spaceBackground.js';
+import { waitForStableBbox } from './support/waitForStableBbox.js';
+
+// v2-S4 Step 0-3 / a-pre. The frozen Stage frame — the editor's `.editor-canvas-container`
+// div (the border-box the Stage mounts inside, which is the single on-screen rectangle the
+// user can actually see and drag into) — is pinned to the v2-S3-ok reference bbox at every
+// supported viewport × preset. Any size/position drift means someone touched a value listed
+// under CLAUDE.md §4bis "동결 대상" without going through [canvas-approved].
+//
+// Why `.editor-canvas-container` and not `.konvajs-content`: the inner Konva wrapper leaks
+// one CSS px past its parent on each side at non-integer fit scales, so its reported bbox is
+// off by ~1 px even when the fit math is exactly right. The border-box container is the
+// single stable rectangle every L/G/B/L2 e2e in the suite already measures against.
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const freeze = JSON.parse(
+  readFileSync(join(__dirname, '..', 'docs', 'v2', 'canvas-freeze.json'), 'utf8'),
+);
+const SELECTOR: string = freeze.stage.selector;
+const TOLERANCE: number = freeze.stage.tolerance_px;
+
+interface Scenario {
+  viewport: { w: number; h: number };
+  preset: 'landscape' | 'portrait';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** v2-release D11 (approved-by-user 2026-10-17): per-platform override. If the current
+   *  platform matches a key here, those x/y/width/height values replace the top-level ones
+   *  for the drift comparison. Tolerance stays at `freeze.stage.tolerance_px` (0.5 px). */
+  linuxOverride?: Partial<Pick<Scenario, 'x' | 'y' | 'width' | 'height'>>;
+}
+
+// `process.platform` on the test runner process picks the baseline set. Ubuntu CI
+// reports 'linux'; Windows dev reports 'win32'; macOS 'darwin'. The current baseline
+// supports two platforms (linuxOverride defined on 4 small-viewport scenarios); every
+// other platform falls back to the top-level win32 values.
+const PLATFORM_IS_LINUX = process.platform === 'linux';
+
+function pickExpected(scenario: Scenario): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} {
+  if (PLATFORM_IS_LINUX && scenario.linuxOverride) {
+    return {
+      x: scenario.linuxOverride.x ?? scenario.x,
+      y: scenario.linuxOverride.y ?? scenario.y,
+      width: scenario.linuxOverride.width ?? scenario.width,
+      height: scenario.linuxOverride.height ?? scenario.height,
+    };
+  }
+  return { x: scenario.x, y: scenario.y, width: scenario.width, height: scenario.height };
+}
+
+// nextFrame + waitForStableBbox are shared with v2-layout.spec.ts in support/waitForStableBbox.ts
+
+for (const scenario of freeze.stage.scenarios as Scenario[]) {
+  const expected = pickExpected(scenario);
+  const label = `canvas-freeze ${scenario.viewport.w}x${scenario.viewport.h} ${scenario.preset}`;
+  test(label, async ({ browser }) => {
+    const ctx = await browser.newContext({
+      viewport: { width: scenario.viewport.w, height: scenario.viewport.h },
+      locale: 'ja-JP',
+    });
+    const page = await ctx.newPage();
+    await page.goto('/');
+    if (scenario.preset === 'portrait') {
+      await openSection(page, 'space');
+      // Must exist exactly once in every supported viewport; no silent skip.
+      const portraitBtn = page.getByRole('button', { name: /縦長/ });
+      await expect(portraitBtn).toHaveCount(1);
+      await portraitBtn.click();
+      // Store-rooted click acknowledgement: Toolbar binds aria-pressed to canvasPreset.
+      await expect(portraitBtn).toHaveAttribute('aria-pressed', 'true');
+      // Document-size check: once the preset switch has propagated through the fit math, the
+      // Stage container's own aspect ratio must flip from landscape (w/h > 1) to portrait
+      // (w/h < 1). This asserts the document actually resized, not just that the button toggled.
+      await expect
+        .poll(async () => {
+          const box = await page.locator(SELECTOR).boundingBox();
+          return box ? box.width / box.height : null;
+        })
+        .toBeLessThan(1);
+    }
+    // Load a photo so the Stage renders at its full fitted box (nophoto still renders the
+    // Stage, but with the shell's status-area/hint area layout the position is the same —
+    // the baseline table was recorded with a photo for parity with the L1 photo variant).
+    await addSpaceBackground(page, {
+      width: scenario.preset === 'landscape' ? 1920 : 1080,
+      height: scenario.preset === 'landscape' ? 1080 : 1920,
+    });
+    // Wait for the bbox to converge on two consecutive frames (ResizeObserver + fit calc +
+    // photo decode can all shift the layout by one frame each; the 2-frame-stable rule
+    // guards against reading mid-settle).
+    const stage = page.locator(SELECTOR);
+    await stage.waitFor();
+    const actual = await waitForStableBbox(page, stage);
+    const log = `${label} [${PLATFORM_IS_LINUX ? 'linux' : process.platform}] actual={x=${actual.x.toFixed(2)},y=${actual.y.toFixed(2)},w=${actual.width.toFixed(2)},h=${actual.height.toFixed(2)}} expected={x=${expected.x},y=${expected.y},w=${expected.width},h=${expected.height}}`;
+    console.log(log);
+    expect(Math.abs(actual.x - expected.x), `${label} Stage.x drift`).toBeLessThanOrEqual(
+      TOLERANCE,
+    );
+    expect(Math.abs(actual.y - expected.y), `${label} Stage.y drift`).toBeLessThanOrEqual(
+      TOLERANCE,
+    );
+    expect(
+      Math.abs(actual.width - expected.width),
+      `${label} Stage.width drift`,
+    ).toBeLessThanOrEqual(TOLERANCE);
+    expect(
+      Math.abs(actual.height - expected.height),
+      `${label} Stage.height drift`,
+    ).toBeLessThanOrEqual(TOLERANCE);
+    await ctx.close();
+  });
+}

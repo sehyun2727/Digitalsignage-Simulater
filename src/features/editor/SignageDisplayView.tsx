@@ -4,6 +4,7 @@ import { computeCurvatureOutlinePoints, isCurvatureSupported } from '../../lib/c
 import { bezelFillForMaterial, getFrameDecorations, getScreenRect } from '../../lib/displayFrame';
 import { ENVIRONMENT_BLEND_COLOR, environmentBlendOpacity } from '../../lib/environmentIntegration';
 import { normalizeMaterial } from '../../lib/materialTexture';
+import { getPerspectiveLogicalSize } from '../../lib/perspectiveLogicalSize';
 import { normalizedQuadToDocument, type DocumentSize } from '../../lib/quadGeometry';
 import type { DisplaySignageObject, SpaceBackground } from '../../types/editor';
 import { ContactShadowView } from './ContactShadowView';
@@ -65,6 +66,18 @@ export function SignageDisplayView({
 }: SignageDisplayViewProps) {
   const normalized = normalizeMaterial(object.material);
   const isTransparentLed = normalized === 'transparent-led';
+  // In perspective mode the body's effective aspect comes from the quad itself (ADR 0012
+  // D-13), not from the stored object.width/height. Otherwise a user who applies perspective
+  // without first resizing (the PDF 5-2 reported path) fits content against the 480×270
+  // default aspect, which then warps into the trapezoid with letterbox bands — the "비율이
+  // 틀어진다" complaint. Keep the raster width equal to object.width so the offscreen bitmap
+  // density matches rect mode's; derive the raster height from the quad's apparent aspect.
+  // Rect-mode (no quad) still uses object.width/height exactly, so the rect-mode regression
+  // lock-in in tests/unit/v2/contentLayoutOrder.test.ts stays byte-identical.
+  const effectiveSize =
+    object.placementMode === 'perspective' && object.perspectiveQuad && documentSize
+      ? getPerspectiveLogicalSize(object.width, object.height, object.perspectiveQuad, documentSize)
+      : { width: object.width, height: object.height };
   // A see-through panel has no opaque bezel — the transparent screen fills the entire object
   // rect. Locking the "screen" to the whole object here (instead of the frame template's inset
   // screen region) is what makes the visible frame stroke, the composed screen content, the
@@ -72,12 +85,12 @@ export function SignageDisplayView({
   // a visible gap between the frame edge and the selection box, which is the "네모 크기가 다름"
   // bug the see-through fix introduced.
   const screen = isTransparentLed
-    ? { x: 0, y: 0, width: object.width, height: object.height }
-    : getScreenRect(object.frameId, object.width, object.height);
+    ? { x: 0, y: 0, width: effectiveSize.width, height: effectiveSize.height }
+    : getScreenRect(object.frameId, effectiveSize.width, effectiveSize.height);
   const decorations = getFrameDecorations(
     object.frameId,
-    object.width,
-    object.height,
+    effectiveSize.width,
+    effectiveSize.height,
     object.material,
   );
   const curvatureActive = isCurvatureSupported(normalized) && object.curvature.mode !== 'flat';
@@ -97,7 +110,7 @@ export function SignageDisplayView({
   const curvedBodyOutline =
     curvatureActive && !isTransparentLed
       ? computeCurvatureOutlinePoints(
-          { x: 0, y: 0, width: object.width, height: object.height },
+          { x: 0, y: 0, width: effectiveSize.width, height: effectiveSize.height },
           object.curvature,
         )
       : null;
@@ -263,8 +276,8 @@ export function SignageDisplayView({
             name="display-hit-area"
           />
           <PerspectiveScreenView
-            width={object.width}
-            height={object.height}
+            width={effectiveSize.width}
+            height={effectiveSize.height}
             quad={object.perspectiveQuad}
             documentSize={documentSize}
             redrawContinuously={object.content?.kind === 'video'}

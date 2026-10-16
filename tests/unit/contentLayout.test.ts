@@ -39,9 +39,13 @@ describe('resolveScreenRegionRect', () => {
 });
 
 describe('clamp helpers', () => {
-  it('clamps content scale to [MIN_CONTENT_SCALE, MAX_CONTENT_SCALE]', () => {
-    expect(clampContentScale(0)).toBe(1);
+  it('clamps content scale to [MIN_CONTENT_SCALE, MAX_CONTENT_SCALE] (v2-P3 D9: 0.5 min)', () => {
+    expect(clampContentScale(0)).toBe(0.5);
+    expect(clampContentScale(0.3)).toBe(0.5);
+    expect(clampContentScale(0.5)).toBe(0.5);
+    expect(clampContentScale(1)).toBe(1);
     expect(clampContentScale(1.5)).toBe(1.5);
+    expect(clampContentScale(3)).toBe(3);
     expect(clampContentScale(10)).toBe(3);
   });
 

@@ -7,6 +7,15 @@ export interface BaseSignageObject {
   width: number;
   height: number;
   rotation: number;
+  /**
+   * v2-S4-b 1-2 / 3-1. When true, width/height inputs and Transformer corner drags keep the
+   * current width/height ratio locked. Optional so existing history snapshots created before
+   * this field existed keep parsing (treated as false). Default for new objects is false; the
+   * 🔗 toggle in the position-size subsection flips it per object (committed as a history entry).
+   * Perspective mode (D-14) locks size editing entirely, so the toggle is disabled there and the
+   * stored value is irrelevant until the object returns to rect mode.
+   */
+  aspectLocked?: boolean;
 }
 
 export interface TextSignageObject extends BaseSignageObject {
@@ -95,7 +104,12 @@ export const MAX_TEXT_CONTENT_FONT_SIZE = 1;
 
 export type SignageContent = MediaContent | TextContent;
 
-export const MIN_CONTENT_SCALE = 1;
+// v2-P3 D9: lower content-scale minimum from 1.0 to 0.5 so users can shrink the
+// screen content below the default fit size. 50 % is the PDF's prescribed low end
+// (3-4-R1: 0.5/1.0/1.5 as 50/100/150 %). Existing saved documents stay valid: any
+// previously-stored scale value sat in [1.0, 3.0], which is a strict subset of the
+// new [0.5, 3.0] range (clampContentScale is idempotent on in-range inputs).
+export const MIN_CONTENT_SCALE = 0.5;
 export const MAX_CONTENT_SCALE = 3;
 export const MAX_CONTENT_OFFSET = 1;
 
@@ -420,6 +434,15 @@ export interface SpaceBackground {
    *  range and stays at 0. Applied both by the background renderer and by any occlusion mask
    *  that re-samples the same photo, so masks stay pixel-aligned with the visible background. */
   offsetY: number;
+  /**
+   * v2-S4-b 1-3 / ADR 0012 D-11. How the photo is scaled into the fixed document frame.
+   * - `contain` (default for freshly uploaded photos): the whole photo fits inside the frame,
+   *   letterboxed if the aspect ratios differ. offsetY is ignored and wheel panning is disabled.
+   * - `cover`: the photo fills the whole frame, cropping overflow. offsetY pans vertically.
+   * Toggling the mode never moves a signage object — it only changes how the photo is drawn.
+   * Optional on legacy snapshots; absence is treated as `cover` to preserve pre-S4-b behavior.
+   */
+  fit?: 'contain' | 'cover';
 }
 
 /**
@@ -428,6 +451,7 @@ export interface SpaceBackground {
  * photo's own pixel dimensions, which made the canvas awkwardly resize to whatever ratio the
  * uploaded photo happened to have).
  */
+// CANVAS-FREEZE:BEGIN preset-sizes
 export type CanvasPresetId = 'landscape-16-9' | 'portrait-9-16';
 
 export const CANVAS_PRESET_IDS: readonly CanvasPresetId[] = ['landscape-16-9', 'portrait-9-16'];
@@ -438,6 +462,7 @@ export const CANVAS_PRESET_SIZES: Record<CanvasPresetId, { width: number; height
 };
 
 export const DEFAULT_CANVAS_PRESET: CanvasPresetId = 'landscape-16-9';
+// CANVAS-FREEZE:END preset-sizes
 
 export interface EditorDocument {
   spaceBackground: SpaceBackground | null;

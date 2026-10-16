@@ -19,15 +19,15 @@ export const en: Messages = {
   hullCtaTermsLinkLabel: 'Terms of Service',
   termsOfServiceTitle: 'Digital Signage Placement Simulator "Oitemiru-kun" Terms of Service',
   termsOfServiceCloseButton: 'Close',
-  termsOfServiceEffectiveDate: 'Effective date: 2026',
-  termsOfServiceRevisedDate: 'Revised date: 2026',
+  termsOfServiceEffectiveDate: 'Effective date: {date}',
+  termsOfServiceRevisedDate: 'Revised date: {date}',
   termsOfServiceIntro:
     'These Terms of Service ("Terms") set forth the conditions for use of the "Digital Signage Placement Simulator Oitemiru-kun" ("Service") operated and provided by HULL Corporation ("we", "us", or "our"). By using the Service, the user ("User") is deemed to have agreed to these Terms. If you do not agree to these Terms, you may not use the Service.',
   termsOfServiceSections: [
     {
       heading: 'Article 1 (Content of the Service)',
       paragraphs: [
-        'The Service is a web tool that lets Users place digital signage (LED / LCD / see-through / portable, etc.) over uploaded space photos and other images, simulate the installed appearance in the browser, and export the result as a PNG image or a video.',
+        'The Service is a web tool that lets Users place digital signage (LED / LCD / see-through / portable, etc.) over uploaded installation site photos and other images, simulate the installed appearance in the browser, and export the result as a PNG image or a video.',
       ],
     },
     {
@@ -117,7 +117,7 @@ export const en: Messages = {
   editorRedoButton: 'Redo',
   editorResetButton: 'Reset all',
   editorResetConfirm:
-    'Discard everything and start over? This clears the space photo, all signage, and the undo history.',
+    'Discard everything and start over? This clears the installation site photo, all signage, and the undo history.',
   editorExportButton: 'Export as PNG',
   editorExportVideoButton: 'Export as video',
   editorExportVideoInProgressButton: 'Exporting...',
@@ -126,15 +126,17 @@ export const en: Messages = {
   editorExportVideoErrorAnnouncement: 'Failed to export video.',
   editorContentVideoAutoplayHint: 'Video content plays automatically, loops, and is muted.',
   editorCanvasEmptyHint:
-    'Start by uploading a space photo. It is automatically fit to the canvas size.',
+    'Start by uploading an installation site photo. By default it is shown with Fit so the whole photo is visible; you can switch to Cover from the Installation site photo section.',
   editorCanvasNoSignageHint:
     'Place an LED, LCD, Transparent LED, or portable product from Add signage.',
   editorPropertiesTitle: 'Properties',
   editorPropertiesEmptyHint: 'Select an element to edit its properties.',
-  editorPositionXLabel: 'X position',
-  editorPositionYLabel: 'Y position',
+  editorPositionXLabel: 'Horizontal position',
+  editorPositionYLabel: 'Vertical position',
   editorWidthLabel: 'Width',
   editorHeightLabel: 'Height',
+  perspectiveSizeLockedHint:
+    'While perspective is applied, adjust size and shape with the four corner handles.',
   editorRotationLabel: 'Rotation',
   editorTextContentLabel: 'Text content',
   editorFontSizeLabel: 'Font size',
@@ -161,16 +163,52 @@ export const en: Messages = {
   editorExportedIosAnnouncement: 'Image opened in a new tab. Long-press the image to save it.',
   editorExportErrorAnnouncement: 'Failed to export the PNG image. Please try again.',
 
+  errorBannerDismissButtonLabel: 'Dismiss',
+  errorImageUnsupportedTypeCause: 'This image format is not supported.',
+  errorImageUnsupportedTypeRemedy: 'Please choose a {formats} image.',
+  errorImageTooLargeCause: 'The image file exceeds the maximum size of {maxMb} MB.',
+  errorImageTooLargeRemedy: 'Please choose an image {maxMb} MB or smaller.',
+  errorImageDimensionsTooLargeCause:
+    'The image resolution exceeds the limit (long edge {maxLongEdge} px / total {maxPixels} px).',
+  errorImageDimensionsTooLargeRemedy:
+    'Please export the image at long edge {maxLongEdge} px or less and total {maxPixels} px or less and try again.',
+  errorImageDecodeErrorCause: 'The image could not be loaded. The file may be corrupted.',
+  errorImageDecodeErrorRemedy: 'Please choose a different image file.',
+  errorVideoUnsupportedTypeCause: 'This video format is not supported.',
+  errorVideoUnsupportedTypeRemedy: 'Please choose a {formats} video.',
+  errorVideoTooLargeCause: 'The video file exceeds the maximum size of {maxMb} MB.',
+  errorVideoTooLargeRemedy: 'Please choose a video {maxMb} MB or smaller.',
+  errorVideoUnsupportedCodecCause: 'This browser cannot play this video codec.',
+  errorVideoUnsupportedCodecRemedy: 'Please re-encode the video (H.264 / VP9) and try again.',
+  errorVideoDimensionsTooLargeCause:
+    'The video resolution exceeds the limit (long edge {maxLongEdge} px / short edge {maxShortEdge} px).',
+  errorVideoDimensionsTooLargeRemedy:
+    'Please export the video at long edge {maxLongEdge} px or less and short edge {maxShortEdge} px or less and try again.',
+  errorVideoDurationTooLongCause: 'The video length exceeds the maximum of {maxSeconds} seconds.',
+  errorVideoDurationTooLongRemedy: 'Please choose a video {maxSeconds} seconds or shorter.',
+  errorVideoDecodeErrorCause: 'The video could not be loaded. The file may be corrupted.',
+  errorVideoDecodeErrorRemedy: 'Please choose a different video file.',
+  errorExportPngFailedCause: 'Failed to export the PNG image.',
+  errorExportPngFailedRemedy: 'Please wait a moment and try again, or reselect the signage.',
+  errorExportVideoFailedCause: 'Failed to export the video.',
+  errorExportVideoFailedRemedy: 'Please wait a moment and try again, or try another browser.',
+
+  uploadHintSpacePhoto: '{formats} / up to {maxMb} MB · long edge {maxLongEdge} px',
+  uploadHintContentImage:
+    'Image: {imageFormats} / up to {imageMaxMb} MB · long edge {imageMaxLongEdge} px',
+  uploadHintContentVideo:
+    'Video: {videoFormats} / up to {videoMaxMb} MB · 4K ({videoMaxLongEdge}×{videoMaxShortEdge}) · {videoMaxSeconds} s',
+
   editorCanvasPresetLabel: 'Canvas size',
   editorCanvasPresetLandscapeLabel: 'Landscape (16:9)',
   editorCanvasPresetPortraitLabel: 'Portrait (9:16)',
 
-  editorSpaceBackgroundLabel: 'Space photo',
-  editorAddSpaceBackgroundButton: 'Add space photo',
-  editorReplaceSpaceBackgroundButton: 'Replace space photo',
-  editorRemoveSpaceBackgroundButton: 'Remove space photo',
+  editorSpaceBackgroundLabel: 'Installation site photo',
+  editorAddSpaceBackgroundButton: 'Add installation site photo',
+  editorReplaceSpaceBackgroundButton: 'Replace photo',
+  editorRemoveSpaceBackgroundButton: 'Delete photo',
   toolbarSpaceEmptyHint:
-    'Uploading a space photo fits it to the chosen canvas size automatically. You cannot add signage until a space photo exists.',
+    'Uploading an installation site photo fits it to the chosen canvas size automatically. You cannot add signage until an installation site photo exists.',
   editorSpaceBackgroundDimensionsLabel: 'Photo resolution',
   editorSpaceBackgroundDownscaledNotice:
     'The image was too large and was automatically downscaled to a safe size.',
@@ -180,7 +218,7 @@ export const en: Messages = {
   editorAddLedButton: 'LED',
   editorAddLcdButton: 'LCD',
   editorAddTransparentLedButton: 'See-through',
-  toolbarAddSignageDisabledHint: 'Upload a space photo first to add signage.',
+  toolbarAddSignageDisabledHint: 'Upload an installation site photo first to add signage.',
 
   editorContentLabel: 'Screen content',
   editorContentUploadButton: 'Add image / video',
@@ -193,13 +231,13 @@ export const en: Messages = {
   editorContentRotationLabel: 'Rotation',
   editorContentRotationZero: '0°',
   editorContentRotationNinety: '90°',
-  editorContentOffsetXLabel: 'Content position X',
-  editorContentOffsetYLabel: 'Content position Y',
+  editorContentOffsetXLabel: 'Content horizontal position',
+  editorContentOffsetYLabel: 'Content vertical position',
   editorContentScaleLabel: 'Content zoom',
   editorContentResetButton: 'Reset content placement',
   editorContentAdvancedSettingsOpenButton: 'Content advanced settings',
 
-  editorRenderingPresetLabel: 'Rendering preset',
+  editorRenderingPresetLabel: 'Brightness',
   editorRenderingPresetNatural: 'Natural',
   editorRenderingPresetBright: 'Bright exterior',
   editorRenderingPresetNight: 'Night',
@@ -211,7 +249,7 @@ export const en: Messages = {
   editorMaterialLcd: 'LCD',
   editorMaterialTransparentLed: 'Transparent LED',
   editorMaterialIntensityLabel: 'Material intensity',
-  editorMaterialBrightnessLabel: 'Brightness',
+  editorMaterialBrightnessLabel: 'Screen brightness',
   editorMaterialTransparencyLabel: 'Transparency (background visibility)',
   editorMaterialGridDensityLabel: 'Grid density (advanced)',
   editorMaterialGlowLabel: 'Glow strength (advanced)',
@@ -246,14 +284,15 @@ export const en: Messages = {
   editorEnvironmentIntegrationLabel: 'Environment blend',
   editorEnvironmentIntegrationStrengthLabel: 'Blend strength',
   editorEnvironmentIntegrationResetButton: 'Reset blend',
-  editorEnvironmentSampleButton: 'Sample from space photo',
+  editorEnvironmentSampleButton: 'Sample from installation site photo',
   editorEnvironmentSampledSwatchLabel: 'Sampled ambient color',
-  editorEnvironmentSampleNoSpaceHint: 'Add a space photo first to sample its ambient color.',
+  editorEnvironmentSampleNoSpaceHint:
+    'Add an installation site photo first to sample its ambient color.',
 
   editorPerspectiveFitButton: 'Fit to space (perspective)',
   editorPerspectiveUseRectButton: 'Switch to normal placement',
   editorPerspectiveHint:
-    'Drag the four corner handles, or enter each corner’s position in the fields below, to match the plane in your space photo.',
+    'Drag the four corner handles, or enter each corner’s position in the fields below, to match the plane in your installation site photo.',
   editorPerspectiveCornerTopLeft: 'Top left',
   editorPerspectiveCornerTopRight: 'Top right',
   editorPerspectiveCornerBottomRight: 'Bottom right',
@@ -274,10 +313,17 @@ export const en: Messages = {
   editorInstallationModeWindow: 'Window (see-through)',
   editorInstallationModeFreestanding: 'Freestanding',
 
-  editorOcclusionLabel: 'Mosaic',
-  editorOcclusionMaskItemLabel: 'Mosaic',
-  editorOcclusionEmptyHint: 'No mosaics yet.',
-  editorOcclusionAddButton: 'Add mosaic',
+  editorOcclusionLabel: 'Foreground mask',
+  editorOcclusionMaskItemLabel: 'Mask',
+  editorOcclusionEmptyHint: 'No masks yet.',
+  editorOcclusionAddButton: 'Add mask',
+  // v2-S5 U3 (3-5) ADR D-3: visible purpose description shown above the mask flow.
+  editorOcclusionPurposeHint:
+    'Makes the signage look partly hidden behind foreground objects such as pillars or fixtures. The marked area shows the installation site photo on top.',
+  // v2-P1 D3: step indicator for the inline mask flow.
+  editorOcclusionStep1: 'Step ①: Pick the four corners of the area to hide',
+  editorOcclusionStep2: 'Step ②: Drag each point to fine-tune the position',
+  editorOcclusionStep3: 'Step ③: Press "Apply" to confirm or "Cancel" to redo',
   editorOcclusionEditButton: 'Edit',
   editorOcclusionDeleteButton: 'Delete',
   editorOcclusionEnableLabel: 'Enabled',
@@ -287,7 +333,7 @@ export const en: Messages = {
   editorOcclusionOpacityLabel: 'Opacity',
   editorOcclusionApplyButton: 'Apply',
   editorOcclusionCancelButton: 'Cancel',
-  editorOcclusionNoSpaceHint: 'Add a space photo to edit mosaics.',
+  editorOcclusionNoSpaceHint: 'Add an installation site photo to edit masks.',
   editorOcclusionErrorTooFewPoints: 'Not enough points (3 minimum).',
   editorOcclusionErrorTooManyPoints: 'Too many points.',
   editorOcclusionErrorInvalidValues: 'Point values are invalid.',
@@ -318,17 +364,25 @@ export const en: Messages = {
     'When no screen area is set, the template default region is used.',
 
   toolbarAriaLabel: 'Common actions',
-  toolbarSpaceSectionHeading: 'Space',
+  toolbarSpaceSectionHeading: 'Installation site photo',
   toolbarAddSignageSectionHeading: 'Add signage',
   toolbarAddElementSubheading: 'Add content to your signage',
   toolbarSelectedSignageSectionHeading: 'Selected signage',
-  toolbarAppearanceSectionHeading: 'Appearance',
+  toolbarPositionSizeSubheading: 'Position & size',
+  toolbarAppearanceSectionHeading: 'Signage appearance',
   toolbarExportSectionHeading: 'Export',
   toolbarContentEmptyHint: 'Select a display or portable product to add content to it.',
   toolbarAppearanceEmptyHint: 'Select a display or portable product to edit its appearance.',
   toolbarAppearanceUnsupportedHint: 'This element has no appearance settings.',
   toolbarSelectedSignageTypeLabel: 'Type',
-  toolbarExportDisabledReason: 'Add a space photo to enable export.',
+  editorCopyObjectButton: 'Copy',
+  editorPasteObjectButton: 'Paste',
+  editorAspectLockToggleLabel: 'Lock aspect ratio',
+  editorSpaceBackgroundFitLabel: 'Photo display mode',
+  editorSpaceBackgroundFitContainOption: 'Fit',
+  editorSpaceBackgroundFitCoverOption: 'Cover',
+  editorSpaceBackgroundCoverHint: 'Part of the photo may be cropped.',
+  toolbarExportDisabledReason: 'Add an installation site photo to enable export.',
   signageTypeText: 'Text',
   signageTypeImage: 'Image',
   signageTypeLed: 'LED display',
@@ -343,9 +397,10 @@ export const en: Messages = {
   comparisonToggleGroupLabel: 'View toggle',
   comparisonResultLabel: 'Result',
   comparisonOriginalLabel: 'Original',
-  comparisonOriginalNoSpaceHint: 'No space photo has been added yet.',
+  comparisonOriginalNoSpaceHint: 'No installation site photo has been added yet.',
 
-  statusBarHintNoSpace: 'Start by adding a space photo in the Space section.',
+  statusBarHintNoSpace:
+    'Start by adding an installation site photo in the Installation site photo section.',
   statusBarHintNoSignage:
     'Place an LED, LCD, Transparent LED, or portable product from Add signage.',
   statusBarHintNoContent: 'Add an image to the selected signage from the Content section.',
@@ -353,11 +408,11 @@ export const en: Messages = {
 
   onboardingTitle: 'Welcome',
   onboardingDescription:
-    'The toolbar on the right always shows Space, Add signage, Selected signage, Content, Appearance, and Export. Start by uploading a space photo — it becomes the canvas and export size exactly. Work through the sections top to bottom to build a preview of your signage installation.',
+    'The toolbar on the right lists accordion sections — Installation site photo, Add signage, Selected signage, Content, Signage appearance, and Export — that you open as needed. Start by uploading an installation site photo; it becomes the canvas and export size exactly, and defaults to Fit (whole photo visible). You can switch it to Cover from the Installation site photo section. Work through the sections top to bottom to build a preview of your signage installation.',
   onboardingDismissButton: 'Dismiss',
-  onboardingStep1Title: '1. Add a space photo',
+  onboardingStep1Title: '1. Add an installation site photo',
   onboardingStep1Description: 'Upload a photo of the installation site to start your mockup.',
-  onboardingStep1CtaLabel: 'Upload space photo',
+  onboardingStep1CtaLabel: 'Upload installation site photo',
   onboardingStep2Title: '2. Add signage',
   onboardingStep2Description: 'Place a display or other signage on the photo.',
   onboardingStep2CtaLabel: 'Go to add signage',
@@ -368,32 +423,31 @@ export const en: Messages = {
   onboardingStep4Description: 'Export the finished mockup as a PNG to share.',
   onboardingStep4CtaLabel: 'Save as PNG now',
 
-  realismGuideTitle: 'Realism controls',
+  realismGuideTitle: 'About signage appearance',
   realismGuideDescription:
-    'This Appearance panel gathers the settings that make a placement look more like a real photo. Try them top to bottom.',
-  realismGuideStepPreset: 'Rendering preset sets the overall time-of-day and brightness mood.',
+    'Adjust the brightness so the signage blends into the installation site photo. Open "Advanced settings" below for finer control.',
+  realismGuideStepPreset: 'Brightness: pick day / evening / night presets for the overall mood.',
   realismGuideStepInstallation:
-    'Installation surface and contact shadow reflect whether the signage sits on a wall, a window, or freestanding.',
+    'Mounting surface and contact shadow: match a wall, window, or freestanding placement.',
   realismGuideStepEnvironment:
-    'Sampling from the space photo creates an ambient color blend that matches the room.',
-  realismGuideStepOcclusion: 'Mosaics let a pillar or fixture naturally cover part of the signage.',
-  realismGuideDismissButton: 'Got it',
+    'Ambient blend: sample the installation photo to match surrounding colors.',
+  realismGuideStepOcclusion:
+    'Cover by a foreground object (mask): hide part of the screen so the signage sits behind a pillar or fixture.',
 
   salesReviewEnterButton: 'Sales review mode',
   salesReviewExitButton: 'Back to editing',
   salesReviewModeHint:
     'A clean, non-editable view you can show a client as-is. Select "Back to editing" any time to resume editing.',
 
-  userGuideOpenButton: 'About & how to use',
-  userGuideHereHint: '← Manual is here',
-  userGuideTitle: 'About & how to use',
+  userGuideOpenButton: 'User guide',
+  userGuideTitle: 'User guide',
   userGuideCloseButton: 'Close',
   userGuideAboutHeading: 'About this tool',
   userGuideAboutBody:
     'A browser-based tool that lets you place digital signage over a photo of a space to preview how it would look after installation. Finished compositions can be exported as PNG images or videos.',
   userGuideHowHeading: 'How to use',
   userGuideHowSteps: [
-    'Upload a space photo to create the background.',
+    'Upload an installation site photo to create the background.',
     'Add signage (LED / LCD / see-through / portable) and place it.',
     'Upload images or videos and assign them to the signage.',
     'Export as PNG or video.',
@@ -414,11 +468,11 @@ export const en: Messages = {
   ],
   userGuideRealismHeading: 'Making it look real',
   userGuideRealismItems: [
-    'Rendering presets (Natural / Bright / Night) switch the lighting mood with one click.',
+    'Brightness presets (Natural / Bright / Night) switch the lighting mood with one click.',
     'Adjust material brightness, intensity, transparency, pixel grain, glow, and contrast individually.',
     'LED displays support curvature (concave / convex) and curvature amount.',
     'Contact shadow blends the signage onto the floor plane.',
-    'Sample a color from the space photo to create an ambient blend that matches the room.',
+    'Sample a color from the installation site photo to create an ambient blend that matches the room.',
     'Installation surface (wall / window / freestanding) changes how shadows and highlights behave.',
   ],
   userGuidePerspectiveHeading: 'Angled installs and foreground occlusion',
@@ -434,7 +488,7 @@ export const en: Messages = {
     'Delete / Backspace removes the selected element.',
     'Ctrl+Z (⌘+Z on Mac) undoes; Ctrl+Y or Ctrl+Shift+Z redoes.',
     'The ⟳ button resets everything (no undo).',
-    'The Original / Result toggle compares the plain space photo to the composed result.',
+    'The Original / Result toggle compares the plain installation site photo to the composed result.',
     'Sales Review mode switches to a non-editable presentation view.',
     'The language selector in the top-right switches between 日本語 / 한국어 / English.',
   ],

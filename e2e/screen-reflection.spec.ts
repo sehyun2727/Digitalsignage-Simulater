@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { openSection } from './support/accordion.js';
 import { samplePngPixels } from './support/pixels.js';
 import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
 
@@ -20,7 +21,7 @@ test('a window-mounted display casts a faint reflection below itself', async ({ 
 
   const content = await solidColorPng(page, '#ffffff');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 
@@ -30,16 +31,18 @@ test('a window-mounted display casts a faint reflection below itself', async ({ 
   const samplePoint: [number, number] = [960, 690];
 
   const wallDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const wallBuffer = await fs.readFile((await (await wallDownload).path())!);
   const [wallPixel] = await samplePngPixels(page, wallBuffer, [samplePoint]);
 
+  // v2-S3: 詳細設定 lives inside the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   await page.getByRole('combobox', { name: '設置面' }).selectOption('window');
-  await page.getByRole('button', { name: '閉じる' }).click();
+  // v2-S5 U4: inline accordion — no 「閉じる」 button.
 
   const windowDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const windowBuffer = await fs.readFile((await (await windowDownload).path())!);
   const [windowPixel] = await samplePngPixels(page, windowBuffer, [samplePoint]);
 

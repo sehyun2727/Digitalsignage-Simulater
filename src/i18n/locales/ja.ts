@@ -19,15 +19,15 @@ export const ja: Messages = {
   hullCtaTermsLinkLabel: '利用規約',
   termsOfServiceTitle: 'デジタルサイネージ設置シミュレーター 置いてみる君 利用規約',
   termsOfServiceCloseButton: '閉じる',
-  termsOfServiceEffectiveDate: '制定日：2026年月日',
-  termsOfServiceRevisedDate: '改定日：2026年月日',
+  termsOfServiceEffectiveDate: '制定日：{date}',
+  termsOfServiceRevisedDate: '改定日：{date}',
   termsOfServiceIntro:
     'この利用規約（以下「本規約」といいます）は、HULL株式会社（以下「当社」といいます）が運営・提供する「デジタルサイネージ設置シミュレーター 置いてみる君」（以下「本サービス」といいます）の利用条件を定めるものです。利用者（以下「ユーザー」といいます）は、本サービスを利用することにより、本規約に同意したものとみなされます。本規約に同意いただけない場合は、本サービスをご利用いただけません。',
   termsOfServiceSections: [
     {
       heading: '第1条（本サービスの内容）',
       paragraphs: [
-        '本サービスは、ユーザーがアップロードした空間写真等の画像上にデジタルサイネージ（LED／LCD／シースルー／ポータブル等）を配置し、設置後のイメージをブラウザ上でシミュレートし、PNG画像または動画として書き出すことができるWebツールです。',
+        '本サービスは、ユーザーがアップロードした設置場所の写真等の画像上にデジタルサイネージ（LED／LCD（液晶）／シースルー／ポータブル等）を配置し、設置後のイメージをブラウザ上でシミュレートし、PNG画像または動画として書き出すことができるWebツールです。',
       ],
     },
     {
@@ -117,7 +117,7 @@ export const ja: Messages = {
   editorRedoButton: 'やり直す',
   editorResetButton: '全リセット',
   editorResetConfirm:
-    'すべてを破棄して最初からやり直しますか？空間写真、すべてのサイネージ、および元に戻す履歴がクリアされます。',
+    'すべてを破棄して最初からやり直しますか？設置場所の写真、すべてのサイネージ、および元に戻す履歴がクリアされます。',
   editorExportButton: 'PNGで書き出す',
   editorExportVideoButton: '動画で書き出す',
   editorExportVideoInProgressButton: '書き出し中...',
@@ -126,15 +126,16 @@ export const ja: Messages = {
   editorExportVideoErrorAnnouncement: '動画の書き出しに失敗しました。',
   editorContentVideoAutoplayHint: '動画は自動再生・ループ再生・ミュートで表示されます。',
   editorCanvasEmptyHint:
-    'まずは空間写真をアップロードしてください。写真はキャンバスのサイズに合わせて自動的にフィットします。',
+    'まずは設置場所の写真をアップロードしてください。写真はキャンバスのサイズに合わせて全体表示(Fit)で入ります。画面いっぱいに表示したい場合は「設置場所の写真」セクションでCoverに切り替えられます。',
   editorCanvasNoSignageHint:
     '「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。',
   editorPropertiesTitle: 'プロパティ',
   editorPropertiesEmptyHint: '要素を選択するとプロパティを編集できます。',
-  editorPositionXLabel: 'X座標',
-  editorPositionYLabel: 'Y座標',
+  editorPositionXLabel: '横位置',
+  editorPositionYLabel: '縦位置',
   editorWidthLabel: '幅',
   editorHeightLabel: '高さ',
+  perspectiveSizeLockedHint: 'パース適用中は、四隅のハンドルで大きさと形を調整します',
   editorRotationLabel: '回転',
   editorTextContentLabel: 'テキスト内容',
   editorFontSizeLabel: 'フォントサイズ',
@@ -163,16 +164,55 @@ export const ja: Messages = {
   editorExportedIosAnnouncement: '新しいタブで画像を開きました。画像を長押しして保存してください。',
   editorExportErrorAnnouncement: 'PNG画像の書き出しに失敗しました。もう一度お試しください。',
 
+  errorBannerDismissButtonLabel: '閉じる',
+  errorImageUnsupportedTypeCause: '対応していない画像形式です。',
+  errorImageUnsupportedTypeRemedy: '{formats}のいずれかの画像を選び直してください。',
+  errorImageTooLargeCause: '画像のファイルサイズが上限（{maxMb}MB）を超えています。',
+  errorImageTooLargeRemedy: '{maxMb}MB以下の画像を選び直してください。',
+  errorImageDimensionsTooLargeCause:
+    '画像の解像度が上限（長辺{maxLongEdge}px / 合計{maxPixels}ピクセル）を超えています。',
+  errorImageDimensionsTooLargeRemedy:
+    '長辺{maxLongEdge}px以内・合計{maxPixels}ピクセル以内に収まるサイズに書き出した画像を選び直してください。',
+  errorImageDecodeErrorCause:
+    '画像を読み込めませんでした。ファイルが破損している可能性があります。',
+  errorImageDecodeErrorRemedy: '別の画像ファイルを選び直してください。',
+  errorVideoUnsupportedTypeCause: '対応していない動画形式です。',
+  errorVideoUnsupportedTypeRemedy: '{formats}のいずれかの動画を選び直してください。',
+  errorVideoTooLargeCause: '動画のファイルサイズが上限（{maxMb}MB）を超えています。',
+  errorVideoTooLargeRemedy: '{maxMb}MB以下の動画を選び直してください。',
+  errorVideoUnsupportedCodecCause: 'このブラウザでは再生できないコーデックです。',
+  errorVideoUnsupportedCodecRemedy: 'H.264 / VP9などで再エンコードした動画を選び直してください。',
+  errorVideoDimensionsTooLargeCause:
+    '動画の解像度が上限（長辺{maxLongEdge}px / 短辺{maxShortEdge}px）を超えています。',
+  errorVideoDimensionsTooLargeRemedy:
+    '長辺{maxLongEdge}px以内・短辺{maxShortEdge}px以内に収まるサイズに書き出した動画を選び直してください。',
+  errorVideoDurationTooLongCause: '動画の長さが上限（{maxSeconds}秒）を超えています。',
+  errorVideoDurationTooLongRemedy: '{maxSeconds}秒以下の動画を選び直してください。',
+  errorVideoDecodeErrorCause:
+    '動画を読み込めませんでした。ファイルが破損している可能性があります。',
+  errorVideoDecodeErrorRemedy: '別の動画ファイルを選び直してください。',
+  errorExportPngFailedCause: 'PNG画像の書き出しに失敗しました。',
+  errorExportPngFailedRemedy:
+    'しばらく待ってからもう一度お試しいただくか、サイネージを選択し直してください。',
+  errorExportVideoFailedCause: '動画の書き出しに失敗しました。',
+  errorExportVideoFailedRemedy:
+    'しばらく待ってからもう一度お試しいただくか、別のブラウザをお試しください。',
+
+  uploadHintSpacePhoto: '{formats}／{maxMb}MB・長辺{maxLongEdge}pxまで',
+  uploadHintContentImage: '画像：{imageFormats}／{imageMaxMb}MB・長辺{imageMaxLongEdge}pxまで',
+  uploadHintContentVideo:
+    '動画：{videoFormats}／{videoMaxMb}MB・4K（{videoMaxLongEdge}×{videoMaxShortEdge}）・{videoMaxSeconds}秒まで',
+
   editorCanvasPresetLabel: 'キャンバスサイズ',
   editorCanvasPresetLandscapeLabel: '横長 (16:9)',
   editorCanvasPresetPortraitLabel: '縦長 (9:16)',
 
-  editorSpaceBackgroundLabel: '空間写真',
-  editorAddSpaceBackgroundButton: '空間写真を追加',
-  editorReplaceSpaceBackgroundButton: '空間写真を差し替える',
-  editorRemoveSpaceBackgroundButton: '空間写真を削除',
+  editorSpaceBackgroundLabel: '設置場所の写真',
+  editorAddSpaceBackgroundButton: '設置場所の写真を追加',
+  editorReplaceSpaceBackgroundButton: '写真を差し替える',
+  editorRemoveSpaceBackgroundButton: '写真を削除',
   toolbarSpaceEmptyHint:
-    '空間写真をアップロードすると、選択したキャンバスサイズに合わせて自動的にフィットします。まだ写真がなければ、サイネージを追加できません。',
+    '設置場所の写真をアップロードすると、選択したキャンバスサイズに合わせて自動的にフィットします。まだ写真がなければ、サイネージを追加できません。',
   editorSpaceBackgroundDimensionsLabel: '画像の解像度',
   editorSpaceBackgroundDownscaledNotice:
     '画像が大きすぎるため、安全な範囲まで自動的に縮小しました。',
@@ -180,10 +220,10 @@ export const ja: Messages = {
     '写真はブラウザ内でのみ処理され、サーバーには送信されません。',
 
   editorAddLedButton: 'LED',
-  editorAddLcdButton: 'LCD',
+  editorAddLcdButton: 'LCD（液晶）',
   editorAddTransparentLedButton: 'シースルー',
   toolbarAddSignageDisabledHint:
-    'サイネージを追加するには、先に空間写真をアップロードしてください。',
+    'サイネージを追加するには、先に設置場所の写真をアップロードしてください。',
 
   editorContentLabel: '画面コンテンツ',
   editorContentUploadButton: '画像 / 動画を追加',
@@ -196,13 +236,13 @@ export const ja: Messages = {
   editorContentRotationLabel: '回転',
   editorContentRotationZero: '0°',
   editorContentRotationNinety: '90°',
-  editorContentOffsetXLabel: 'コンテンツ位置X',
-  editorContentOffsetYLabel: 'コンテンツ位置Y',
+  editorContentOffsetXLabel: 'コンテンツの横位置',
+  editorContentOffsetYLabel: 'コンテンツの縦位置',
   editorContentScaleLabel: 'コンテンツ拡大率',
   editorContentResetButton: 'コンテンツ配置をリセット',
   editorContentAdvancedSettingsOpenButton: 'コンテンツの詳細設定',
 
-  editorRenderingPresetLabel: 'レンダリングプリセット',
+  editorRenderingPresetLabel: '明るさ',
   editorRenderingPresetNatural: 'ナチュラル',
   editorRenderingPresetBright: '明るい屋外',
   editorRenderingPresetNight: '夜間',
@@ -211,10 +251,10 @@ export const ja: Messages = {
 
   editorMaterialLabel: 'ディスプレイ素材',
   editorMaterialLed: 'LED',
-  editorMaterialLcd: 'LCD',
+  editorMaterialLcd: 'LCD（液晶）',
   editorMaterialTransparentLed: '透過LED',
   editorMaterialIntensityLabel: '質感の強さ',
-  editorMaterialBrightnessLabel: '明るさ',
+  editorMaterialBrightnessLabel: '画面の明るさ',
   editorMaterialTransparencyLabel: '透過度（背景の見え方）',
   editorMaterialGridDensityLabel: 'グリッド密度（詳細設定）',
   editorMaterialGlowLabel: '発光の強さ（詳細設定）',
@@ -249,15 +289,16 @@ export const ja: Messages = {
   editorEnvironmentIntegrationLabel: '環境なじませ',
   editorEnvironmentIntegrationStrengthLabel: 'なじませ強度',
   editorEnvironmentIntegrationResetButton: 'なじませをリセット',
-  editorEnvironmentSampleButton: '空間写真からサンプリング',
+  editorEnvironmentSampleButton: '設置場所の写真からサンプリング',
   editorEnvironmentSampledSwatchLabel: 'サンプリングした環境色',
   editorEnvironmentSampleNoSpaceHint:
-    '環境色をサンプリングするには、先に空間写真を追加してください。',
+    '環境色をサンプリングするには、先に設置場所の写真を追加してください。',
 
+  // glossary.md 예외: 「空間に合わせて配置（パース）」는 조작 명이므로 유지.
   editorPerspectiveFitButton: '空間に合わせて配置（パース）',
   editorPerspectiveUseRectButton: '通常配置に戻す',
   editorPerspectiveHint:
-    '四隅のハンドルをドラッグするか、下の数値欄で各頂点の位置を指定して、空間写真の面に合わせてください。',
+    '四隅のハンドルをドラッグするか、下の数値欄で各頂点の位置を指定して、設置場所の写真の面に合わせてください。',
   editorPerspectiveCornerTopLeft: '左上',
   editorPerspectiveCornerTopRight: '右上',
   editorPerspectiveCornerBottomRight: '右下',
@@ -277,10 +318,17 @@ export const ja: Messages = {
   editorInstallationModeWindow: '窓面(透過)',
   editorInstallationModeFreestanding: '自立式',
 
-  editorOcclusionLabel: 'モザイク',
-  editorOcclusionMaskItemLabel: 'モザイク',
-  editorOcclusionEmptyHint: 'モザイクはまだありません。',
-  editorOcclusionAddButton: 'モザイクを追加',
+  editorOcclusionLabel: '手前の物で隠す（マスク）',
+  editorOcclusionMaskItemLabel: 'マスク',
+  editorOcclusionEmptyHint: 'まだマスクはありません。',
+  editorOcclusionAddButton: 'マスクを追加',
+  // v2-S5 U3 (3-5) ADR D-3: visible purpose description shown above the mask flow.
+  editorOcclusionPurposeHint:
+    '柱や什器の前にあるように、サイネージの一部を隠す機能です。範囲を指定するとその部分だけ設置場所の写真が前面に出ます。',
+  // v2-P1 D3: step indicator for the inline mask flow.
+  editorOcclusionStep1: 'ステップ①：隠したい範囲の4点を指定',
+  editorOcclusionStep2: 'ステップ②：各点をドラッグして位置を調整',
+  editorOcclusionStep3: 'ステップ③：「適用」で確定、「キャンセル」でやり直し',
   editorOcclusionEditButton: '編集',
   editorOcclusionDeleteButton: '削除',
   editorOcclusionEnableLabel: '有効',
@@ -291,7 +339,7 @@ export const ja: Messages = {
   editorOcclusionOpacityLabel: '不透明度',
   editorOcclusionApplyButton: '適用',
   editorOcclusionCancelButton: 'キャンセル',
-  editorOcclusionNoSpaceHint: '空間写真を追加するとモザイクを編集できます。',
+  editorOcclusionNoSpaceHint: '設置場所の写真を追加するとマスクを編集できます。',
   editorOcclusionErrorTooFewPoints: '頂点が足りません（3点以上必要です）。',
   editorOcclusionErrorTooManyPoints: '頂点が多すぎます。',
   editorOcclusionErrorInvalidValues: '頂点の値が正しくありません。',
@@ -321,22 +369,30 @@ export const ja: Messages = {
     '画面領域を指定していない場合、テンプレートの既定領域が使われます。',
 
   toolbarAriaLabel: '共通操作',
-  toolbarSpaceSectionHeading: '空間',
+  toolbarSpaceSectionHeading: '設置場所の写真',
   toolbarAddSignageSectionHeading: 'サイネージを追加',
   toolbarAddElementSubheading: 'サイネージにコンテンツを追加してください',
   toolbarSelectedSignageSectionHeading: '選択中のサイネージ',
-  toolbarAppearanceSectionHeading: '外観',
+  toolbarPositionSizeSubheading: '位置・サイズ',
+  toolbarAppearanceSectionHeading: 'サイネージ外観の調整',
   toolbarExportSectionHeading: '書き出し',
   toolbarContentEmptyHint:
     'ディスプレイまたはポータブル製品を選択すると、コンテンツを追加できます。',
   toolbarAppearanceEmptyHint: 'ディスプレイまたはポータブル製品を選択すると、外観を編集できます。',
   toolbarAppearanceUnsupportedHint: 'この要素には外観設定はありません。',
   toolbarSelectedSignageTypeLabel: '種類',
-  toolbarExportDisabledReason: '空間写真を追加すると書き出しできるようになります。',
+  editorCopyObjectButton: 'コピー',
+  editorPasteObjectButton: '貼り付け',
+  editorAspectLockToggleLabel: '縦横比を固定',
+  editorSpaceBackgroundFitLabel: '写真の表示方法',
+  editorSpaceBackgroundFitContainOption: '全体表示（Fit）',
+  editorSpaceBackgroundFitCoverOption: '画面いっぱいに表示（Cover）',
+  editorSpaceBackgroundCoverHint: '写真の一部が切れて表示される場合があります。',
+  toolbarExportDisabledReason: '設置場所の写真を追加すると書き出しできるようになります。',
   signageTypeText: 'テキスト',
   signageTypeImage: '画像',
   signageTypeLed: 'LEDディスプレイ',
-  signageTypeLcd: 'LCDディスプレイ',
+  signageTypeLcd: 'LCD（液晶）ディスプレイ',
   signageTypeTransparentLed: '透過LEDディスプレイ',
   signageTypePortable: 'ポータブル製品',
   exportResolutionLabel: '書き出しサイズ',
@@ -347,9 +403,9 @@ export const ja: Messages = {
   comparisonToggleGroupLabel: '表示切り替え',
   comparisonResultLabel: '結果',
   comparisonOriginalLabel: 'オリジナル',
-  comparisonOriginalNoSpaceHint: '空間写真がまだ追加されていません。',
+  comparisonOriginalNoSpaceHint: '設置場所の写真がまだ追加されていません。',
 
-  statusBarHintNoSpace: 'まずは「空間」セクションから空間写真を追加しましょう。',
+  statusBarHintNoSpace: 'まずは「設置場所の写真」セクションから設置場所の写真を追加しましょう。',
   statusBarHintNoSignage:
     '「サイネージを追加」セクションからLED・LCD・透過LED・ポータブル製品を配置しましょう。',
   statusBarHintNoContent: '選択中のサイネージに「コンテンツ」セクションから画像を追加できます。',
@@ -357,11 +413,11 @@ export const ja: Messages = {
 
   onboardingTitle: 'ようこそ',
   onboardingDescription:
-    '右側のツールバーには「空間」「サイネージを追加」「選択中のサイネージ」「コンテンツ」「外観」「書き出し」が常時表示されています。まず空間写真をアップロードすると、その写真がそのままキャンバスと書き出しサイズになります。上から順に操作すると、サイネージの設置イメージを簡単に作成できます。',
+    '右側のツールバーには「設置場所の写真」「サイネージを追加」「選択中のサイネージ」「コンテンツ」「サイネージ外観の調整」「書き出し」のアコーディオンが並び、必要なセクションだけを開いて使えます。まず設置場所の写真をアップロードすると、その写真がそのままキャンバスと書き出しサイズになります。写真は既定で全体表示(Fit)で入り、画面いっぱい表示(Cover)に切り替えることもできます。上から順に操作すると、サイネージの設置イメージを簡単に作成できます。',
   onboardingDismissButton: '閉じる',
-  onboardingStep1Title: '1. 空間写真を追加',
+  onboardingStep1Title: '1. 設置場所の写真を追加',
   onboardingStep1Description: '設置予定の場所の写真をアップロードしてモックアップを始めましょう。',
-  onboardingStep1CtaLabel: '空間写真をアップロード',
+  onboardingStep1CtaLabel: '設置場所の写真をアップロード',
   onboardingStep2Title: '2. サイネージを追加',
   onboardingStep2Description: '写真の上にディスプレイなどのサイネージを配置します。',
   onboardingStep2CtaLabel: 'サイネージの追加へ',
@@ -372,32 +428,31 @@ export const ja: Messages = {
   onboardingStep4Description: '完成したモックアップをPNGとして書き出して共有しましょう。',
   onboardingStep4CtaLabel: '今すぐPNGで保存',
 
-  realismGuideTitle: 'リアルさを高める設定',
+  realismGuideTitle: 'サイネージ外観の調整について',
   realismGuideDescription:
-    'この「外観」パネルには、設置イメージをより実写に近づけるための設定がまとまっています。上から順に試してみましょう。',
-  realismGuideStepPreset: 'レンダリングプリセットで、時間帯や明るさの雰囲気を選べます。',
+    'サイネージ本体を「設置場所の写真」に馴染ませるために、明るさを調整できます。下の「詳細設定」から、さらに細かな調整ができます。',
+  realismGuideStepPreset: '明るさ：昼・夕方・夜などのプリセットで全体の雰囲気を切り替えます。',
   realismGuideStepInstallation:
-    '設置面と接地シャドウで、壁面・窓面・自立式のどれに設置するかを反映できます。',
+    '設置面と接地シャドウ：壁面・窓面・自立式に合わせて、床や壁への馴染みを整えます。',
   realismGuideStepEnvironment:
-    '空間写真からサンプリングすると、その場の色味に馴染む環境ブレンドを作れます。',
-  realismGuideStepOcclusion: 'モザイクで、柱や什器の手前にサイネージを自然に隠せます。',
-  realismGuideDismissButton: '分かりました',
+    '環境ブレンド：設置場所の写真から色をサンプリングし、周囲の色味に合わせます。',
+  realismGuideStepOcclusion:
+    '手前の物で隠す（マスク）：柱や什器の後ろに回り込んで見えるように、画面の一部を隠します。',
 
   salesReviewEnterButton: '営業レビューモード',
   salesReviewExitButton: '編集に戻る',
   salesReviewModeHint:
     '編集操作を無効にした、お客様にそのままお見せできる表示です。「編集に戻る」を押すといつでも編集を再開できます。',
 
-  userGuideOpenButton: '使い方・このツールについて',
-  userGuideHereHint: '← マニュアルはこちら',
-  userGuideTitle: '使い方・このツールについて',
+  userGuideOpenButton: '使い方ガイド',
+  userGuideTitle: '使い方ガイド',
   userGuideCloseButton: '閉じる',
   userGuideAboutHeading: 'このツールについて',
   userGuideAboutBody:
-    '空間写真の上にデジタルサイネージを配置し、実際に設置したときの見え方をブラウザ上でシミュレートできるツールです。作成した合成結果はPNG画像または動画として書き出せます。',
+    '設置場所の写真の上にデジタルサイネージを配置し、実際に設置したときの見え方をブラウザ上でシミュレートできるツールです。作成した合成結果はPNG画像または動画として書き出せます。',
   userGuideHowHeading: '基本の流れ',
   userGuideHowSteps: [
-    '空間写真をアップロードして背景を作成します。',
+    '設置場所の写真をアップロードして背景を作成します。',
     'サイネージ(LED / LCD / シースルー / ポータブル)を追加して配置します。',
     'サイネージに表示する画像・動画をアップロードして割り当てます。',
     'PNGまたは動画として書き出します。',
@@ -405,7 +460,7 @@ export const ja: Messages = {
   userGuideSignageHeading: 'サイネージの種類',
   userGuideSignageItems: [
     'LED: 屋外・大型で使われる自発光ディスプレイ。強い発光と粗いピクセル感が特徴です。',
-    'LCD: 屋内向けの液晶ディスプレイ。均一で落ち着いた発色になります。',
+    'LCD（液晶）: 屋内向けの液晶ディスプレイ。均一で落ち着いた発色になります。',
     'シースルー: 背景が透けて見える透過タイプ。ウィンドウ設置などに使えます。',
     'ポータブル: キャスター付きの自立型サイネージ。動かして使うイメージを作れます。',
   ],
@@ -418,17 +473,17 @@ export const ja: Messages = {
   ],
   userGuideRealismHeading: 'よりリアルに見せる',
   userGuideRealismItems: [
-    'レンダリングプリセット(自然/明るい/夜間)で光の雰囲気をワンクリックで切り替えられます。',
+    '明るさ(自然/明るい/夜間)で光の雰囲気をワンクリックで切り替えられます。',
     '素材の明るさ・強度・透明度・ピクセル粒感・グロー・コントラストを個別に調整できます。',
     'LEDには曲面(凹面/凸面)と曲率を設定できます。',
     '接地シャドウで床面との影のなじみを追加できます。',
-    '空間写真から色を「サンプリング」して環境ブレンドを作ると、背景に自然に馴染みます。',
+    '設置場所の写真から色を「サンプリング」して環境ブレンドを作ると、背景に自然に馴染みます。',
     '設置面(壁 / 窓 / 自立)によって影や質感の出方が変わります。',
   ],
   userGuidePerspectiveHeading: '斜め設置と手前オブジェクトの表現',
   userGuidePerspectiveItems: [
     '斜めから見た設置イメージを作りたい場合、四隅を自由にドラッグして遠近感のある四角形にフィットさせられます。',
-    '柱や什器などの手前にサイネージを重ねたい場合、モザイクを設定してその部分を自然に隠せます。',
+    '柱や什器などの手前にサイネージを重ねたい場合、「手前の物で隠す（マスク）」を設定してその部分を自然に隠せます。',
   ],
   userGuideOverlaysHeading: 'テキスト・画像の追加',
   userGuideOverlaysBody:
@@ -438,7 +493,7 @@ export const ja: Messages = {
     'Delete / Backspace: 選択中の要素を削除',
     'Ctrl+Z(Mac ⌘+Z)で元に戻す、Ctrl+Y または Ctrl+Shift+Z でやり直す',
     '⟳ ボタンですべてをリセット(戻せません)',
-    '「オリジナル / 仕上がり」で合成前の空間写真と結果を比較できます。',
+    '「オリジナル / 仕上がり」で合成前の設置場所の写真と結果を比較できます。',
     '「営業レビューモード」で編集を無効化した提示ビューに切り替えられます。',
     '言語はヘッダー右上のセレクタから 日本語 / 한국어 / English を切り替えられます。',
   ],

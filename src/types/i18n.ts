@@ -57,6 +57,10 @@ export interface Messages {
   editorPositionYLabel: string;
   editorWidthLabel: string;
   editorHeightLabel: string;
+  /** Shown next to the width/height inputs when perspective is active and those controls are
+   *  disabled (ADR 0012 D-14). Explains why the user can't type into those fields and points
+   *  them at the perspective corner handles instead. */
+  perspectiveSizeLockedHint: string;
   editorRotationLabel: string;
   editorTextContentLabel: string;
   editorFontSizeLabel: string;
@@ -79,6 +83,47 @@ export interface Messages {
   editorExportedAnnouncement: string;
   editorExportedIosAnnouncement: string;
   editorExportErrorAnnouncement: string;
+
+  // v2-S2 error banner (requirement 2-5). Every runtime failure the editor can surface shows a
+  // two-line banner: cause (why it happened) + remedy (what the user should do). The cause and
+  // remedy are separate keys so each locale can phrase them naturally without string concat.
+  // Numeric limits are {placeholders} interpolated from the uploadLimits.ts constants so
+  // changing a limit updates the message with no locale edits (sprint spec §3-4).
+  errorBannerDismissButtonLabel: string;
+  // Image upload (shared by space-photo and content image sources; the source noun is
+  // interpolated via `errorBannerSpacePhotoSourceLabel` / `errorBannerContentImageSourceLabel`).
+  errorImageUnsupportedTypeCause: string;
+  errorImageUnsupportedTypeRemedy: string;
+  errorImageTooLargeCause: string;
+  errorImageTooLargeRemedy: string;
+  errorImageDimensionsTooLargeCause: string;
+  errorImageDimensionsTooLargeRemedy: string;
+  errorImageDecodeErrorCause: string;
+  errorImageDecodeErrorRemedy: string;
+  // Video upload (content source, video kind).
+  errorVideoUnsupportedTypeCause: string;
+  errorVideoUnsupportedTypeRemedy: string;
+  errorVideoTooLargeCause: string;
+  errorVideoTooLargeRemedy: string;
+  errorVideoUnsupportedCodecCause: string;
+  errorVideoUnsupportedCodecRemedy: string;
+  errorVideoDimensionsTooLargeCause: string;
+  errorVideoDimensionsTooLargeRemedy: string;
+  errorVideoDurationTooLongCause: string;
+  errorVideoDurationTooLongRemedy: string;
+  errorVideoDecodeErrorCause: string;
+  errorVideoDecodeErrorRemedy: string;
+  // Export.
+  errorExportPngFailedCause: string;
+  errorExportPngFailedRemedy: string;
+  errorExportVideoFailedCause: string;
+  errorExportVideoFailedRemedy: string;
+
+  // v2-S2 pre-upload hint lines (requirement 3-2). The limits come from
+  // src/lib/uploadLimits.ts via {placeholders} so the hint and the banner always agree.
+  uploadHintSpacePhoto: string;
+  uploadHintContentImage: string;
+  uploadHintContentVideo: string;
 
   editorCanvasPresetLabel: string;
   editorCanvasPresetLandscapeLabel: string;
@@ -189,6 +234,14 @@ export interface Messages {
   editorOcclusionMaskItemLabel: string;
   editorOcclusionEmptyHint: string;
   editorOcclusionAddButton: string;
+  /** v2-S5 U3 (3-5). Visible description above the mask flow. */
+  editorOcclusionPurposeHint: string;
+  /** v2-P1 D3. Step indicator shown while the mask draft is being built. The three keys
+   *  are selected based on the current draft point count: <4 points → step1, ≥4 points
+   *  → step2, with step3 always visible as the final-action reminder next to Apply. */
+  editorOcclusionStep1: string;
+  editorOcclusionStep2: string;
+  editorOcclusionStep3: string;
   editorOcclusionEditButton: string;
   editorOcclusionDeleteButton: string;
   editorOcclusionEnableLabel: string;
@@ -230,12 +283,25 @@ export interface Messages {
   toolbarAddSignageSectionHeading: string;
   toolbarAddElementSubheading: string;
   toolbarSelectedSignageSectionHeading: string;
+  toolbarPositionSizeSubheading: string;
   toolbarAppearanceSectionHeading: string;
   toolbarExportSectionHeading: string;
   toolbarContentEmptyHint: string;
   toolbarAppearanceEmptyHint: string;
   toolbarAppearanceUnsupportedHint: string;
   toolbarSelectedSignageTypeLabel: string;
+  /** v2-S4-b 1-1 (v2-S4 보완 2026-10-11): visible labels for the Selected section's
+   *  「コピー」/「貼り付け」 button pair (same in-memory clipboard as Ctrl+C/V). */
+  editorCopyObjectButton: string;
+  editorPasteObjectButton: string;
+  /** v2-S4-b 1-2: visible label next to the 🔗 ratio-lock toggle in position-size subsection. */
+  editorAspectLockToggleLabel: string;
+  /** v2-S4-b 1-3: visible labels for the Space section's Fit/Cover segment control. */
+  editorSpaceBackgroundFitLabel: string;
+  editorSpaceBackgroundFitContainOption: string;
+  editorSpaceBackgroundFitCoverOption: string;
+  /** v2-S4-b 1-3: Cover 모드에서 사진의 일부가 잘릴 수 있음을 안내 (ADR 0012 D-11). */
+  editorSpaceBackgroundCoverHint: string;
   toolbarExportDisabledReason: string;
   signageTypeText: string;
   signageTypeImage: string;
@@ -280,14 +346,12 @@ export interface Messages {
   realismGuideStepInstallation: string;
   realismGuideStepEnvironment: string;
   realismGuideStepOcclusion: string;
-  realismGuideDismissButton: string;
 
   salesReviewEnterButton: string;
   salesReviewExitButton: string;
   salesReviewModeHint: string;
 
   userGuideOpenButton: string;
-  userGuideHereHint: string;
   userGuideTitle: string;
   userGuideCloseButton: string;
   userGuideAboutHeading: string;

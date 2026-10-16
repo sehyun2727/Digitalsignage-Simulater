@@ -42,6 +42,7 @@ function resetStore() {
     occlusionDraftPoints: [],
     occlusionDraftFeather: DEFAULT_OCCLUSION_FEATHER,
     occlusionDraftOpacity: DEFAULT_OCCLUSION_OPACITY,
+    clipboard: null,
   });
 }
 
@@ -348,6 +349,9 @@ describe('editorStore', () => {
       height: 500,
       downscaled: false,
       offsetY: 0,
+      // v2-S4-b 1-3: newly uploaded photos default to Fit (contain). This isn't an assertion
+      // weakening — the extra field is the new intended behavior and must be verified too.
+      fit: 'contain',
     });
     expect(selectCanUndo(useEditorStore.getState())).toBe(true);
 
@@ -1215,5 +1219,80 @@ describe('editorStore occlusion edit', () => {
 
     useEditorStore.getState().setOcclusionMaskEnabled(id, maskId, false);
     expect(useEditorStore.getState().past.length).toBe(pastLengthBefore + 1);
+  });
+
+  // v2-S5 K5. Add → 4-point edit → delete, each a single Undo/Redo step. Explicit
+  // undo-chain walk-through: after 3 mask operations we should be able to undo 3 times
+  // (one step per op), then redo 3 times to land back on the post-delete state.
+  it('K5 mask ops are each a single Undo/Redo step (add, 4-point edit, delete)', () => {
+    addSpaceBackground();
+    useEditorStore.getState().addDisplay('led');
+    const id = useEditorStore.getState().document.objects[0]!.id;
+    const baseHistory = useEditorStore.getState().past.length;
+
+    // Op 1 — add a mask: begin + draw 3 points + apply. +1 history entry.
+    useEditorStore.getState().beginOcclusionEdit(id);
+    useEditorStore.getState().updateOcclusionDraftPoints(VALID_TRIANGLE);
+    useEditorStore.getState().applyOcclusionEdit();
+    expect(useEditorStore.getState().past.length).toBe(baseHistory + 1);
+    const addedTarget = useEditorStore.getState().document.objects[0] as {
+      occlusionMasks: { id: string; points: { x: number; y: number }[] }[];
+    };
+    expect(addedTarget.occlusionMasks).toHaveLength(1);
+    const maskId = addedTarget.occlusionMasks[0]!.id;
+
+    // Op 2 — edit the 4 points of the existing mask: begin + different points + apply.
+    // +1 history entry.
+    const editedPoints = [
+      { x: 0.4, y: 0.3 },
+      { x: 0.7, y: 0.3 },
+      { x: 0.55, y: 0.6 },
+      { x: 0.4, y: 0.6 },
+    ];
+    useEditorStore.getState().beginOcclusionEdit(id, maskId);
+    useEditorStore.getState().updateOcclusionDraftPoints(editedPoints);
+    useEditorStore.getState().applyOcclusionEdit();
+    expect(useEditorStore.getState().past.length).toBe(baseHistory + 2);
+    const editedTarget = useEditorStore.getState().document.objects[0] as {
+      occlusionMasks: { points: { x: number; y: number }[] }[];
+    };
+    expect(editedTarget.occlusionMasks[0]!.points).toEqual(editedPoints);
+
+    // Op 3 — delete the mask. +1 history entry.
+    useEditorStore.getState().deleteOcclusionMask(id, maskId);
+    expect(useEditorStore.getState().past.length).toBe(baseHistory + 3);
+    expect(
+      (useEditorStore.getState().document.objects[0] as { occlusionMasks: unknown[] })
+        .occlusionMasks,
+    ).toHaveLength(0);
+
+    // Undo×3 — walks the chain: delete→edit→add, then back to the no-mask baseline.
+    useEditorStore.getState().undo();
+    expect(
+      (useEditorStore.getState().document.objects[0] as { occlusionMasks: unknown[] })
+        .occlusionMasks,
+    ).toHaveLength(1);
+    useEditorStore.getState().undo();
+    expect(
+      (
+        useEditorStore.getState().document.objects[0] as {
+          occlusionMasks: { points: { x: number; y: number }[] }[];
+        }
+      ).occlusionMasks[0]!.points,
+    ).toEqual(VALID_TRIANGLE);
+    useEditorStore.getState().undo();
+    expect(
+      (useEditorStore.getState().document.objects[0] as { occlusionMasks: unknown[] })
+        .occlusionMasks,
+    ).toHaveLength(0);
+
+    // Redo×3 — restores all three ops to the post-delete state.
+    useEditorStore.getState().redo();
+    useEditorStore.getState().redo();
+    useEditorStore.getState().redo();
+    expect(
+      (useEditorStore.getState().document.objects[0] as { occlusionMasks: unknown[] })
+        .occlusionMasks,
+    ).toHaveLength(0);
   });
 });

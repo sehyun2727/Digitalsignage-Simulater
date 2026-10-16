@@ -72,7 +72,9 @@ export async function generateWebmVideo(
 }
 
 /** Uploads a freshly generated WebM clip into the currently selected object's content field
- *  (the same 'コンテンツを追加' input solidColorPng-based specs use for image content). */
+ *  (the same `editor-content-upload` testid input solidColorPng-based specs use for image
+ *  content). The testid lives on Toolbar's file input so a locale rename to the aria-label
+ *  can't silently break these flows. */
 export async function addVideoContent(
   page: Page,
   options: GeneratedVideoOptions & { fileName?: string } = {},
@@ -80,6 +82,6 @@ export async function addVideoContent(
   const { fileName = 'clip.webm', ...videoOptions } = options;
   const video = await generateWebmVideo(page, videoOptions);
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: fileName, mimeType: 'video/webm', buffer: video });
 }

@@ -1,7 +1,6 @@
 import type Konva from 'konva';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Group, Layer, Rect, Stage, Transformer } from 'react-konva';
-import type { ContentValidationError } from '../../lib/contentUpload';
 import {
   registerContentAsset,
   resolveContentUploadFailure,
@@ -12,8 +11,10 @@ import { computeAutoContentRotation } from '../../lib/contentLayout';
 import { findTopmostScreenHit, getObjectScreenRect } from '../../lib/screenHitTest';
 import type { Point } from '../../lib/screenHitTest';
 import { useEditorStore } from '../../store/editorStore';
+import { useUiStore } from '../../store/uiStore';
+import { buildContentUploadError } from '../../lib/uploadLimits';
 import { getDocumentSize } from '../../types/editor';
-import type { ContentKind, SignageObject } from '../../types/editor';
+import type { SignageObject } from '../../types/editor';
 import { CanvasObjectView } from './CanvasObjectView';
 import { HullWatermarkView } from './HullWatermarkView';
 import { OcclusionEditOverlay } from './OcclusionEditOverlay';
@@ -33,10 +34,11 @@ export interface EditorCanvasHandle {
 }
 
 interface EditorCanvasProps {
-  onContentError: (kind: ContentKind, error: ContentValidationError) => void;
   /** Called when a native OS file drop lands on the canvas but not inside any display/portable
    *  object's screen region, so callers can announce why the drop was ignored instead of leaving
-   *  the user with no feedback. */
+   *  the user with no feedback. The drop-without-target case is a hint (requirement C7
+   *  "hints and errors are different channels"), not an upload failure — it is dispatched as a
+   *  success-side announcement rather than as an error banner. */
   onDropWithoutTarget: () => void;
   /** When true, renders only the space background so the user can compare it against the
    *  composed result; signage objects, selection, and drag-and-drop are all suppressed. */
@@ -46,7 +48,7 @@ interface EditorCanvasProps {
 }
 
 export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function EditorCanvas(
-  { onContentError, onDropWithoutTarget, comparisonMode = false, watermarkDisabled = false },
+  { onDropWithoutTarget, comparisonMode = false, watermarkDisabled = false },
   ref,
 ) {
   const document = useEditorStore((state) => state.document);
@@ -62,6 +64,11 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
 
   const size = getDocumentSize(document);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  // v2-S3 2-1: the measure box is the full available workspace (fills `.editor-canvas-wrapper`).
+  // The visible container (border + bg) sizes down to the computed Stage width×height so no
+  // dead letterbox space sits inside the editor's own frame — the measure box observes the
+  // outer size for the fit calculation, the inner container snaps to the fitted Stage.
+  const measureRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
   const layerRef = useRef<Konva.Layer | null>(null);
   const transformerRef = useRef<Konva.Transformer | null>(null);
@@ -70,20 +77,84 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   const nodesRef = useRef<Map<string, Konva.Node>>(new Map());
   const captureRestoreRef = useRef<(() => void) | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  // v2-S3 2-1: also track the container's height so the fit calculation can honour BOTH
+  // axes — the pre-S3 math was width-only, which clipped 9:16 canvases at tall viewports.
+  const [containerHeight, setContainerHeight] = useState(0);
+  // v2-S3 B-4: mobile fit formula needs `window.innerHeight` (not just the measure box's
+  // own height) so the stage grows to 0.7 × viewport height regardless of how much space
+  // the stacked toolbar below is currently taking. Track it the same way as container size.
+  const [viewportInnerHeight, setViewportInnerHeight] = useState(
+    typeof window !== 'undefined' ? window.innerHeight : 0,
+  );
+  const [viewportInnerWidth, setViewportInnerWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 0,
+  );
 
   useEffect(() => {
-    const element = containerRef.current;
+    const element = measureRef.current;
     if (!element) return;
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
-      if (entry) setContainerWidth(entry.contentRect.width);
+      if (entry) {
+        setContainerWidth(entry.contentRect.width);
+        setContainerHeight(entry.contentRect.height);
+      }
     });
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
 
-  const fitScale = containerWidth > 0 && size ? containerWidth / size.width : 1;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onResize = () => {
+      setViewportInnerHeight(window.innerHeight);
+      setViewportInnerWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // v2-S3 B-4: pick the fit formula based on the viewport, not on the measure box. The
+  // mobile breakpoint matches the shell's `@media (max-width: 48rem)` block (768 px);
+  // below that the layout is stacked (canvas above the toolbar) and the measure box's
+  // height is capped at the stage height by the mobile @media rule in global.css, so
+  // the formula uses `0.7 × window.innerHeight` as the vertical bound instead.
+  //
+  // Desktop: fit scale is min(containerW/docW, containerH/docH) — honours both axes of the
+  // flex-sized measure box. Coordinate conversion stays correct because scaleX = scaleY.
+  //
+  // v2-S3 H: before the first ResizeObserver fire we return 0 on desktop (not 1). The old
+  // fallback of 1 sized the inline `.editor-canvas-container` to the raw preset (1920×1080
+  // for landscape) on initial render, which overflowed any viewport narrower than 1920 and
+  // pushed the toolbar/footer out of the layout box — observed at 1024×640 as a 1920-wide
+  // container intercepting pointer events across the whole page. Returning 0 keeps the
+  // container collapsed (no inline size) until the measure box has reported its real width
+  // and height, then the second render snaps the container to the fitted stage.
+  // CANVAS-FREEZE:BEGIN fit-scale
+  const MOBILE_BREAKPOINT_PX = 768;
+  const isMobile = viewportInnerWidth > 0 && viewportInnerWidth < MOBILE_BREAKPOINT_PX;
+  const fitScale = (() => {
+    if (!size) return 0;
+    if (isMobile) {
+      // v2-S3 B-4 bootstrap: mobile measure box is `flex: 0 0 auto`, so its initial
+      // containerWidth starts at ~0 before any inline-style is applied — using that
+      // directly would pin fitScale at 0 forever (measure stays 0 → container stays 0).
+      // Fall back to `window.innerWidth − shellPadding` for the width term so the first
+      // render already has a non-zero scale; afterwards the ResizeObserver keeps us
+      // honest.
+      const shellPadding = 24;
+      const widthBasis = containerWidth > 0 ? containerWidth : viewportInnerWidth - shellPadding;
+      if (widthBasis <= 0) return 0;
+      if (viewportInnerHeight <= 0) return widthBasis / size.width;
+      return Math.min(widthBasis / size.width, (0.7 * viewportInnerHeight) / size.height);
+    }
+    if (containerWidth <= 0) return 0;
+    if (containerHeight <= 0) return 0;
+    return Math.min(containerWidth / size.width, containerHeight / size.height);
+  })();
+  const stageWidth = size ? size.width * fitScale : 0;
   const stageHeight = size ? size.height * fitScale : 0;
+  // CANVAS-FREEZE:END fit-scale
 
   useImperativeHandle(ref, () => ({
     exportToDataUrl: () => {
@@ -150,7 +221,7 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       const transformer = transformerRef.current;
       const objectsGroup = objectsGroupRef.current;
       const watermarkGroup = watermarkGroupRef.current;
-      if (!layer) return null;
+      if (!layer || !size || fitScale <= 0) return null;
 
       // Capture the restore closure at begin time (comparisonMode, previous selection, node
       // refs) so end doesn't rely on whatever imperative-handle instance happens to be current
@@ -163,20 +234,41 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       objectsGroup?.visible(true);
       selectionOutlines.forEach((node) => node.hide());
       if (!watermarkDisabled) watermarkGroup?.visible(true);
+
+      // v2-S5 K4 (C12-video). The old code returned `layer.getCanvas()._canvas` at the
+      // display scale (e.g. 832×468 on 1280×720 viewport), which gave MediaRecorder the
+      // wrong resolution — video output no longer matched the preset. Fix: bump the
+      // layer's pixel ratio for the recording to `documentSize / displayStageSize`. Konva's
+      // `Canvas.setPixelRatio` increases the <canvas> backing-store resolution (physical
+      // width/height) while leaving CSS style.width/height unchanged, so:
+      //   - the on-screen preview looks identical (canvas-freeze bbox invariant),
+      //   - `captureStream` reads physical pixels — now equal to the document resolution,
+      //   - `useVideoPlaybackRedraw.ts`'s Konva.Animation loop continues to redraw the
+      //     same scene into the higher-density canvas every frame.
+      // Non-integer pixel ratios are fine — Konva internally uses `context.scale(r, r)`
+      // after the backing-store resize so vector drawings stay sharp.
+      const layerCanvas = layer.getCanvas();
+      const previousPixelRatio = layerCanvas.getPixelRatio();
+      const targetPixelRatio = size.width / (size.width * fitScale);
+      layerCanvas.setPixelRatio(targetPixelRatio);
       layer.draw();
+
       captureRestoreRef.current = () => {
         transformer?.nodes(previousSelection);
         objectsGroup?.visible(!previousComparisonMode);
         selectionOutlines.forEach((node) => node.show());
         watermarkGroup?.visible(false);
+        layerCanvas.setPixelRatio(previousPixelRatio);
         layer.draw();
       };
 
       // Konva's SceneCanvas wraps the actual <canvas> element it paints into; unlike
       // stage.toCanvas()/toDataURL(), which rasterize a one-off snapshot, this is the live
       // element MediaRecorder's captureStream keeps reading from as Konva keeps redrawing it
-      // (see useVideoPlaybackRedraw.ts's Konva.Animation loop) for the whole recording.
-      return layer.getCanvas()._canvas;
+      // (see useVideoPlaybackRedraw.ts's Konva.Animation loop) for the whole recording. At
+      // this point the canvas's physical width/height equal size.width / size.height, so
+      // the recorded frame is at the document preset.
+      return layerCanvas._canvas;
     },
     endVideoExportCapture: () => {
       const restore = captureRestoreRef.current;
@@ -205,11 +297,14 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
     // A portable object's screen region is authored against its photo's own aspect ratio, so
     // any free (non-uniform) resize would distort the photo and desync the region from what
     // the user marked. Restrict resizing to corner handles with keepRatio so every resize
-    // scales width/height together; other object kinds keep full free-resize behavior.
+    // scales width/height together; other object kinds keep full free-resize behavior unless
+    // v2-S4-b 1-2 「縦横比を固定」 is on, which also forces corner-only + keepRatio.
     const isPortable = selectedObject?.kind === 'portable';
-    transformer.keepRatio(isPortable);
+    const userAspectLocked = selectedObject?.aspectLocked === true;
+    const keepRatio = isPortable || userAspectLocked;
+    transformer.keepRatio(keepRatio);
     transformer.enabledAnchors(
-      isPortable
+      keepRatio
         ? ['top-left', 'top-right', 'bottom-left', 'bottom-right']
         : [
             'top-left',
@@ -255,12 +350,14 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   // DOM event (not Konva's pointer state, which native drags don't update), so they're mapped
   // into document space the same way Konva itself does: relative to the container's own
   // bounding box, divided by the Stage's uniform fit scale.
+  // CANVAS-FREEZE:BEGIN coord-convert
   const clientPointToDocumentPoint = (clientX: number, clientY: number): Point | null => {
     const container = containerRef.current;
     if (!container || fitScale <= 0) return null;
     const bounds = container.getBoundingClientRect();
     return { x: (clientX - bounds.left) / fitScale, y: (clientY - bounds.top) / fitScale };
   };
+  // CANVAS-FREEZE:END coord-convert
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     if (comparisonMode || !event.dataTransfer.types.includes('Files')) return;
@@ -285,6 +382,9 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
   const spaceBackgroundOffsetY = document.spaceBackground?.offsetY ?? 0;
   const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     if (!document.spaceBackground || comparisonMode || fitScale <= 0) return;
+    // v2-S4-b 1-3: Fit mode disables wheel panning (nothing to pan — the photo is fully visible).
+    // Returning before the store call avoids both the no-op write and consuming the wheel event.
+    if ((document.spaceBackground.fit ?? 'cover') === 'contain') return;
     // A positive deltaY (wheel scrolled toward user) reveals lower parts of the photo, which
     // means shifting the photo UP in canvas coords — so the offset decreases.
     const delta = event.deltaY / fitScale;
@@ -310,9 +410,15 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
       return;
     }
 
+    const uiStore = useUiStore.getState();
+    const requestId = uiStore.beginUploadRequest('content');
     const validation = validateContentFile(file);
     if (validation) {
-      onContentError(validation.kind, validation.error);
+      uiStore.setUploadError(
+        'content',
+        requestId,
+        buildContentUploadError(validation.kind, validation.error),
+      );
       return;
     }
 
@@ -340,126 +446,147 @@ export const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(fu
         },
       });
       selectObject(targetId);
+      useUiStore.getState().clearUploadError('content', requestId);
     } catch (error) {
       const failure = resolveContentUploadFailure(file, error);
-      onContentError(failure.kind, failure.error);
+      useUiStore
+        .getState()
+        .setUploadError('content', requestId, buildContentUploadError(failure.kind, failure.error));
     }
   };
 
   return (
-    <div
-      className="editor-canvas-container"
-      ref={containerRef}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      onWheel={handleWheel}
-    >
-      {containerWidth > 0 && size && (
-        <Stage
-          ref={stageRef}
-          width={containerWidth}
-          height={stageHeight}
-          scaleX={fitScale}
-          scaleY={fitScale}
-          onMouseDown={(event) => {
-            if (
-              !comparisonMode &&
-              !perspectiveEditId &&
-              !occlusionEditObjectId &&
-              !screenQuadEditId &&
-              event.target === event.target.getStage()
-            ) {
-              selectObject(null);
-            }
-          }}
-          onTouchStart={(event) => {
-            if (
-              !comparisonMode &&
-              !perspectiveEditId &&
-              !occlusionEditObjectId &&
-              !screenQuadEditId &&
-              event.target === event.target.getStage()
-            ) {
-              selectObject(null);
-            }
-          }}
-        >
-          <Layer ref={layerRef}>
-            {document.spaceBackground && (
-              <SpaceBackgroundView
-                spaceBackground={document.spaceBackground}
-                width={size.width}
-                height={size.height}
-              />
-            )}
-            <Group
-              ref={objectsGroupRef}
-              visible={!comparisonMode}
-              listening={
-                !comparisonMode && !perspectiveEditId && !occlusionEditObjectId && !screenQuadEditId
+    // CANVAS-FREEZE:BEGIN measure-container-jsx
+    <div className="editor-canvas-measure" ref={measureRef}>
+      <div
+        className="editor-canvas-container"
+        ref={containerRef}
+        /* v2-S3 B-5: pin the inline size once a non-zero width is known. For desktop that
+         * means `containerWidth > 0` (ResizeObserver landed); for mobile the formula also
+         * accepts `viewportInnerWidth > 0` as a bootstrap, so the first mobile paint can
+         * already size the stage from `window.innerWidth − shellPadding` without waiting
+         * for the ResizeObserver — otherwise `.editor-canvas-measure { flex: 0 0 auto }`
+         * would shrink the measure box to 0 and the stage would never grow. */
+        style={
+          size && stageWidth > 0 && stageHeight > 0
+            ? { width: `${stageWidth}px`, height: `${stageHeight}px` }
+            : undefined
+        }
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onWheel={handleWheel}
+      >
+        {/* CANVAS-FREEZE:END measure-container-jsx */}
+        {containerWidth > 0 && containerHeight > 0 && size && (
+          <Stage
+            ref={stageRef}
+            width={stageWidth}
+            height={stageHeight}
+            scaleX={fitScale}
+            scaleY={fitScale}
+            onMouseDown={(event) => {
+              if (
+                !comparisonMode &&
+                !perspectiveEditId &&
+                !occlusionEditObjectId &&
+                !screenQuadEditId &&
+                event.target === event.target.getStage()
+              ) {
+                selectObject(null);
               }
-            >
-              {document.objects.map((object) => (
-                <CanvasObjectView
-                  key={object.id}
-                  object={object}
-                  onSelect={selectObject}
-                  onRegisterNode={registerNode}
-                  onDragEnd={handleDragEnd}
-                  onTransformEnd={handleTransformEnd}
-                  documentSize={size}
+            }}
+            onTouchStart={(event) => {
+              if (
+                !comparisonMode &&
+                !perspectiveEditId &&
+                !occlusionEditObjectId &&
+                !screenQuadEditId &&
+                event.target === event.target.getStage()
+              ) {
+                selectObject(null);
+              }
+            }}
+          >
+            <Layer ref={layerRef}>
+              {document.spaceBackground && (
+                <SpaceBackgroundView
                   spaceBackground={document.spaceBackground}
+                  width={size.width}
+                  height={size.height}
                 />
-              ))}
-            </Group>
-            {!comparisonMode && dropTargetObject && dropTargetRect && (
+              )}
               <Group
-                x={dropTargetObject.x}
-                y={dropTargetObject.y}
-                rotation={dropTargetObject.rotation}
-                listening={false}
+                ref={objectsGroupRef}
+                visible={!comparisonMode}
+                listening={
+                  !comparisonMode &&
+                  !perspectiveEditId &&
+                  !occlusionEditObjectId &&
+                  !screenQuadEditId
+                }
               >
-                <Rect
-                  x={dropTargetRect.x}
-                  y={dropTargetRect.y}
-                  width={dropTargetRect.width}
-                  height={dropTargetRect.height}
-                  stroke="#2563eb"
-                  strokeWidth={3}
-                  dash={[10, 6]}
-                  listening={false}
-                />
+                {document.objects.map((object) => (
+                  <CanvasObjectView
+                    key={object.id}
+                    object={object}
+                    onSelect={selectObject}
+                    onRegisterNode={registerNode}
+                    onDragEnd={handleDragEnd}
+                    onTransformEnd={handleTransformEnd}
+                    documentSize={size}
+                    spaceBackground={document.spaceBackground}
+                  />
+                ))}
               </Group>
-            )}
-            {/* Watermark group: always invisible in the live editor; made visible only for the
+              {!comparisonMode && dropTargetObject && dropTargetRect && (
+                <Group
+                  x={dropTargetObject.x}
+                  y={dropTargetObject.y}
+                  rotation={dropTargetObject.rotation}
+                  listening={false}
+                >
+                  <Rect
+                    x={dropTargetRect.x}
+                    y={dropTargetRect.y}
+                    width={dropTargetRect.width}
+                    height={dropTargetRect.height}
+                    stroke="#2563eb"
+                    strokeWidth={3}
+                    dash={[10, 6]}
+                    listening={false}
+                  />
+                </Group>
+              )}
+              {/* Watermark group: always invisible in the live editor; made visible only for the
                 duration of PNG/video export captures so it appears in every exported result. */}
-            <Group ref={watermarkGroupRef} visible={false} listening={false}>
-              <HullWatermarkView canvasWidth={size.width} canvasHeight={size.height} />
-            </Group>
-            <Transformer
-              ref={transformerRef}
-              boundBoxFunc={(oldBox, newBox) =>
-                newBox.width < 10 || newBox.height < 10 ? oldBox : newBox
-              }
-            />
-          </Layer>
-        </Stage>
-      )}
-      {!comparisonMode && size && perspectiveEditId && (
-        <PerspectiveEditOverlay documentSize={size} fitScale={fitScale} />
-      )}
-      {!comparisonMode && size && occlusionEditObjectId && (
-        <OcclusionEditOverlay documentSize={size} fitScale={fitScale} />
-      )}
-      {!comparisonMode &&
-        screenQuadEditId &&
-        (() => {
-          const obj = document.objects.find((o) => o.id === screenQuadEditId);
-          return obj && obj.kind === 'portable' ? (
-            <ScreenQuadEditOverlay object={obj} fitScale={fitScale} />
-          ) : null;
-        })()}
+              <Group ref={watermarkGroupRef} visible={false} listening={false}>
+                <HullWatermarkView canvasWidth={size.width} canvasHeight={size.height} />
+              </Group>
+              <Transformer
+                ref={transformerRef}
+                boundBoxFunc={(oldBox, newBox) =>
+                  newBox.width < 10 || newBox.height < 10 ? oldBox : newBox
+                }
+              />
+            </Layer>
+          </Stage>
+        )}
+        {!comparisonMode && size && perspectiveEditId && (
+          <PerspectiveEditOverlay documentSize={size} fitScale={fitScale} />
+        )}
+        {!comparisonMode && size && occlusionEditObjectId && (
+          <OcclusionEditOverlay documentSize={size} fitScale={fitScale} />
+        )}
+        {!comparisonMode &&
+          screenQuadEditId &&
+          (() => {
+            const obj = document.objects.find((o) => o.id === screenQuadEditId);
+            return obj && obj.kind === 'portable' ? (
+              <ScreenQuadEditOverlay object={obj} fitScale={fitScale} />
+            ) : null;
+          })()}
+      </div>
     </div>
   );
 });

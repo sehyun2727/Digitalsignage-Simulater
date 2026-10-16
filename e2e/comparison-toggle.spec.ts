@@ -32,18 +32,18 @@ test('original view without a space photo shows a hint instead of a blank canvas
 }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'オリジナル', exact: true }).click();
-  await expect(page.getByText('空間写真がまだ追加されていません。')).toBeVisible();
+  await expect(page.getByText('設置場所の写真がまだ追加されていません。')).toBeVisible();
 });
 
 test('original view with a space photo hides the empty-space hint', async ({ page }) => {
   await page.goto('/');
   const spaceBackground = await solidColorPng(page, '#1155ff');
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: 'space.png', mimeType: 'image/png', buffer: spaceBackground });
 
   await page.getByRole('button', { name: 'オリジナル', exact: true }).click();
-  await expect(page.getByText('空間写真がまだ追加されていません。')).toBeHidden();
+  await expect(page.getByText('設置場所の写真がまだ追加されていません。')).toBeHidden();
 });
 
 test('dropping a file onto the canvas while in the original view is a no-op', async ({ page }) => {

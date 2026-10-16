@@ -142,25 +142,31 @@ describe('portableTemplate — perspective mapping (homography round-trip)', () 
     },
   );
 
-  it('angled-left and angled-right are horizontal mirrors (x → 1-x) of each other', () => {
-    // PortableTemplateBody mirrors the docodemo.webp asset via scaleX={-1} for angled-right,
-    // so the preset quads must satisfy: angledRight.corner.x === 1 - angledLeft.corner.x for
-    // every corresponding corner, and y values must match.
+  it('angled-left and angled-right are near-mirrors (x → 1-x) within sub-pixel tolerance', () => {
+    // v2-release R1 (D10): angled-right preset was switched from "exact mirror of angled-left"
+    // to the directly-measured docodemo-right quad. The two remain near-mirrors (same photo
+    // shot) but differ by sub-pixel amounts per corner — angled-right now matches the fixture
+    // `e2e/fixtures/portable-screen-quads.json` exactly, which drives K1 pixel verification.
+    // PortableTemplateBody.useAssetImage caches angled-right's hole separately in source
+    // space (mirror of measured) so the body-hole and content-warp still line up.
     const left = PORTABLE_PRESET_SCREEN_QUADS['angled-left'];
     const right = PORTABLE_PRESET_SCREEN_QUADS['angled-right'];
+    // Tolerance: 1 % of normalized coord = ~3 px at 300 px object width; actual
+    // asymmetry is ~0.00077 normalized (~0.25 px). This test guards against the
+    // quad becoming grossly different (e.g. if someone accidentally edits one corner).
+    const TOL = 0.01;
 
-    // topLeft <-> topRight (left/right sides swap under horizontal mirror)
-    expect(right.topLeft.x).toBeCloseTo(1 - left.topRight.x, 5);
-    expect(right.topLeft.y).toBeCloseTo(left.topRight.y, 5);
+    expect(Math.abs(right.topLeft.x - (1 - left.topRight.x))).toBeLessThan(TOL);
+    expect(Math.abs(right.topLeft.y - left.topRight.y)).toBeLessThan(TOL);
 
-    expect(right.topRight.x).toBeCloseTo(1 - left.topLeft.x, 5);
-    expect(right.topRight.y).toBeCloseTo(left.topLeft.y, 5);
+    expect(Math.abs(right.topRight.x - (1 - left.topLeft.x))).toBeLessThan(TOL);
+    expect(Math.abs(right.topRight.y - left.topLeft.y)).toBeLessThan(TOL);
 
-    expect(right.bottomRight.x).toBeCloseTo(1 - left.bottomLeft.x, 5);
-    expect(right.bottomRight.y).toBeCloseTo(left.bottomLeft.y, 5);
+    expect(Math.abs(right.bottomRight.x - (1 - left.bottomLeft.x))).toBeLessThan(TOL);
+    expect(Math.abs(right.bottomRight.y - left.bottomLeft.y)).toBeLessThan(TOL);
 
-    expect(right.bottomLeft.x).toBeCloseTo(1 - left.bottomRight.x, 5);
-    expect(right.bottomLeft.y).toBeCloseTo(left.bottomRight.y, 5);
+    expect(Math.abs(right.bottomLeft.x - (1 - left.bottomRight.x))).toBeLessThan(TOL);
+    expect(Math.abs(right.bottomLeft.y - left.bottomRight.y)).toBeLessThan(TOL);
   });
 
   it('front quad is approximately symmetric around x = 0.5 (left/right bezel balance)', () => {
@@ -192,14 +198,23 @@ describe('portableTemplate — screen rects', () => {
     }
   });
 
-  it('mirrors angled-left and angled-right rects horizontally around the object centerline', () => {
+  it('angled-left and angled-right rects are approximately mirrored horizontally (within 1 px)', () => {
+    // v2-release R1 (D10): angled-right preset switched from "exact mirror of angled-left"
+    // to the directly-measured quad from the actual docodemo-right asset. The two quads
+    // remain near-mirrors (same photo shot) but differ by sub-pixel amounts (<1 px per
+    // corner at a 300 px-wide object), which is why the exact-equality assertion is
+    // relaxed to a 1 px tolerance here. Width/height/y stay very close; the mirror-x
+    // identity holds to within the same tolerance.
     const leftRect = getPortableScreenRect('angled-left', OBJECT_WIDTH, OBJECT_HEIGHT);
     const rightRect = getPortableScreenRect('angled-right', OBJECT_WIDTH, OBJECT_HEIGHT);
-    expect(leftRect.width).toBeCloseTo(rightRect.width, 6);
-    expect(leftRect.height).toBeCloseTo(rightRect.height, 6);
-    expect(leftRect.y).toBeCloseTo(rightRect.y, 6);
-    // Horizontal mirror around x = OBJECT_WIDTH / 2.
-    expect(leftRect.x + leftRect.width).toBeCloseTo(OBJECT_WIDTH - rightRect.x, 6);
+    const PX_TOLERANCE = 1;
+    expect(Math.abs(leftRect.width - rightRect.width)).toBeLessThan(PX_TOLERANCE);
+    expect(Math.abs(leftRect.height - rightRect.height)).toBeLessThan(PX_TOLERANCE);
+    expect(Math.abs(leftRect.y - rightRect.y)).toBeLessThan(PX_TOLERANCE);
+    // Horizontal mirror around x = OBJECT_WIDTH / 2 (approx).
+    expect(Math.abs(leftRect.x + leftRect.width - (OBJECT_WIDTH - rightRect.x))).toBeLessThan(
+      PX_TOLERANCE,
+    );
   });
 
   it('front view screen rect is approximately horizontally centered inside the object', () => {

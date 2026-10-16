@@ -6,6 +6,7 @@ import {
   PORTABLE_PRESET_SCREEN_QUADS,
   type PortableTemplateView,
 } from '../../lib/portableTemplate';
+import { computeContainSubQuad } from '../../lib/portableSubQuad';
 import { buildQuadMesh, normalizedQuadToDocument } from '../../lib/quadGeometry';
 import type { QuadMeshCell } from '../../lib/quadGeometry';
 import { drawWarpedImageMesh } from '../../lib/warpMesh';
@@ -43,14 +44,30 @@ export function WarpedScreenContent({ view, width, height, content }: WarpedScre
 
   const asset = mediaContent ? getRegisteredAsset(mediaContent.sourceId) : undefined;
 
+  // v2-S5 K2. The dark backing always fills the FULL preset quad. The content mesh covers
+  // either (a) the full quad in cover mode or when aspects already match, or (b) an inset
+  // sub-quad in contain mode so the content letterboxes within the quad. The outer region
+  // of the quad shows the dark backing — matching the behavior of a real signage screen
+  // showing letterboxed content.
+  const presetQuadNorm = PORTABLE_PRESET_SCREEN_QUADS[view];
   const objectLocalQuad = useMemo(
-    () => normalizedQuadToDocument(PORTABLE_PRESET_SCREEN_QUADS[view], { width, height }),
-    [view, width, height],
+    () => normalizedQuadToDocument(presetQuadNorm, { width, height }),
+    [presetQuadNorm, width, height],
+  );
+  const contentQuadNorm = useMemo(() => {
+    if (!asset || !mediaContent || mediaContent.fit !== 'contain') return presetQuadNorm;
+    if (asset.naturalWidth <= 0 || asset.naturalHeight <= 0) return presetQuadNorm;
+    const contentAspect = asset.naturalWidth / asset.naturalHeight;
+    return computeContainSubQuad(presetQuadNorm, width, height, contentAspect);
+  }, [asset, mediaContent, presetQuadNorm, width, height]);
+  const contentQuadLocal = useMemo(
+    () => normalizedQuadToDocument(contentQuadNorm, { width, height }),
+    [contentQuadNorm, width, height],
   );
 
   const mesh: QuadMeshCell[] | null = useMemo(
-    () => buildQuadMesh(objectLocalQuad, MESH_SUBDIVISIONS),
-    [objectLocalQuad],
+    () => buildQuadMesh(contentQuadLocal, MESH_SUBDIVISIONS),
+    [contentQuadLocal],
   );
 
   const quadPoints = [

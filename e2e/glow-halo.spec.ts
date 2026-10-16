@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { openSection } from './support/accordion.js';
 import { samplePngPixels } from './support/pixels.js';
 import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
 
@@ -21,15 +22,18 @@ test('the material glow halo bleeds past the screen edge into the bezel', async 
 
   const content = await solidColorPng(page, '#ffffff');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 
+  // v2-S3: 詳細設定 lives inside the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   const glowSlider = page.getByRole('slider', { name: '発光の強さ（詳細設定）' });
   await glowSlider.focus();
   await glowSlider.press('End'); // max out glow for a maximally visible halo
-  await page.getByRole('button', { name: '閉じる' }).click();
+  // v2-S5 U4: 詳細設定 is now an inline accordion (no modal) — no 「閉じる」 button to click;
+  // the inline body sits in-flow and doesn't block the export button beneath it.
 
   // The default LED object is 480x270 at document center (720,405)-(1200,675) with the
   // 'wall-led' frame's 2%-wide bezel margin (see DISPLAY_FRAME_TEMPLATES), so the screen's own
@@ -38,18 +42,18 @@ test('the material glow halo bleeds past the screen edge into the bezel', async 
   const samplePoint: [number, number] = [960, 407];
 
   const glowOnDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const glowOnBuffer = await fs.readFile((await (await glowOnDownload).path())!);
   const [withGlow] = await samplePngPixels(page, glowOnBuffer, [samplePoint]);
 
-  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
+  // v2-S5 U4: the detail section is already open from the first click and stays open —
+  // the toggle is a fold toggle, not a modal, so re-clicking would CLOSE the body.
   await glowSlider.focus();
   await glowSlider.press('Home'); // glow = 0
   await glowSlider.press('Tab');
-  await page.getByRole('button', { name: '閉じる' }).click();
 
   const glowOffDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const glowOffBuffer = await fs.readFile((await (await glowOffDownload).path())!);
   const [withoutGlow] = await samplePngPixels(page, glowOffBuffer, [samplePoint]);
 

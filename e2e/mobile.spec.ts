@@ -1,5 +1,6 @@
-import fs from 'node:fs/promises';
 import { devices, expect, test } from '@playwright/test';
+import { openSection } from './support/accordion.js';
+import { clickExportAndCapturePng, installMobileExportCapture } from './support/mobileExport.js';
 import { readPngDimensions } from './support/png.js';
 import { addScenePhotoBackground, solidColorPng } from './support/spaceBackground.js';
 
@@ -38,13 +39,19 @@ async function addSpaceBackground(
 ) {
   const spaceBackground = await solidColorPng(page, '#1155ff', width, height);
   await page
-    .getByLabel('空間写真を追加')
+    .getByLabel('設置場所の写真を追加')
     .setInputFiles({ name: 'space.png', mimeType: 'image/png', buffer: spaceBackground });
-  await expect(page.getByRole('button', { name: '空間写真を削除' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '写真を削除' })).toBeVisible();
 }
 
 test('full mobile content and export workflow at 390x844 (LED)', async ({ page }) => {
   // 1. Open the app.
+  // v2-S3 D rewrite (F-download): the iPhone userAgent sends handleExport down its
+  // `window.open(dataUrl, '_blank')` branch (see EditorLayout.tsx), which never fires a DOM
+  // Download event — so Playwright's waitForEvent('download') hangs. installMobileExportCapture
+  // installs a window.open interceptor that stores the dataUrl, and clickExportAndCapturePng
+  // reads it back as a Buffer. The remaining assertions on PNG dimensions carry over as-is.
+  await installMobileExportCapture(page);
   await page.goto('/');
 
   // 2. Confirm the Japanese default (default locale, no stored preference).
@@ -65,9 +72,9 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   // 6. Upload display content.
   const content = await solidColorPng(page, '#00ff00');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   // 7. Switch fit between Contain and Cover.
   const fitSelect = page.getByRole('combobox', { name: '表示方法' });
@@ -76,6 +83,9 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await expect(fitSelect).toHaveValue('cover');
 
   // 8. Change material LED -> LCD -> back to LED.
+  // v2-S3 3-1: material + sliders + 詳細設定 all live inside the Appearance accordion
+  // (collapsed by default; same mobile layout as desktop here).
+  await openSection(page, 'appearance');
   const materialSelect = page.getByRole('combobox', { name: 'ディスプレイ素材' });
   await expect(materialSelect).toHaveValue('led');
   await materialSelect.selectOption('lcd');
@@ -89,30 +99,24 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await intensitySlider.press('End');
   await intensitySlider.press('Tab');
 
-  const brightnessSlider = page.getByRole('slider', { name: '明るさ' });
+  // v2-P1 D2 label rename: 明るさ → 画面の明るさ (material slider).
+  const brightnessSlider = page.getByRole('slider', { name: '画面の明るさ' });
   await brightnessSlider.focus();
   await brightnessSlider.press('Home');
   await brightnessSlider.press('Tab');
 
-  // 10. Export PNG.
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
-  const download = await downloadPromise;
+  // 10. Export PNG via the iOS fallback path (see installMobileExportCapture above).
+  const buffer = await clickExportAndCapturePng(page, page.getByTestId('editor-export-png-header'));
 
-  // 11. Confirm the download happened.
-  const path = await download.path();
-  expect(path).toBeTruthy();
-  const buffer = await fs.readFile(path!);
-
-  // 12. Confirm the exported PNG matches the uploaded space photo's resolution.
+  // 11. Confirm the exported PNG matches the uploaded space photo's resolution.
   expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
 
   // 13. Confirm no horizontal overflow at this viewport.
   await expectNoHorizontalOverflow(page);
 
   // 14. Confirm key controls are visible/reachable (scrolled into view without failing).
-  await page.getByRole('button', { name: 'PNGで書き出す' }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole('button', { name: 'PNGで書き出す' })).toBeVisible();
+  await page.getByTestId('editor-export-png-header').scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('editor-export-png-header')).toBeVisible();
   await page.getByRole('button', { name: 'LED', exact: true }).scrollIntoViewIfNeeded();
   await expect(page.getByRole('button', { name: 'LED', exact: true })).toBeVisible();
 
@@ -131,16 +135,22 @@ test('full mobile content and export workflow at 390x844 (LED)', async ({ page }
   await expect(hullLink).toHaveAttribute('rel', 'noopener noreferrer');
 
   // 17. Confirm the footer user-guide link is present and opens the modal on tap.
-  const guideLink = page.getByRole('button', { name: '使い方・このツールについて' });
+  // v2-S3 2-6: footer control collapsed to the 📖 icon-only button with aria-label
+  // '使い方ガイド' (same key as the header button). The modal heading is still
+  // 'このツールについて' per userGuideAboutHeading.
+  const guideLink = page.getByTestId('editor-footer-user-guide');
   await guideLink.scrollIntoViewIfNeeded();
   await expect(guideLink).toBeVisible();
   await guideLink.click();
-  await expect(page.getByRole('heading', { name: 'このツールについて' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'このツールについて', exact: true }),
+  ).toBeVisible();
 });
 
 test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 390x844', async ({
   page,
 }) => {
+  await installMobileExportCapture(page);
   await page.goto('/');
 
   // A lighter-weight companion to the LED flow above: a portrait canvas preset drives a
@@ -150,131 +160,70 @@ test('mobile smoke: LCD content and export at a portrait 1080x1920 space photo, 
   await page.getByRole('button', { name: '縦長 (9:16)' }).click();
 
   await page.getByRole('button', { name: 'LCD' }).click();
+  // v2-S3: material combobox lives in the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
 
   const content = await solidColorPng(page, '#ff8800');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
-  const download = await downloadPromise;
-
-  const path = await download.path();
-  const buffer = await fs.readFile(path!);
+  const buffer = await clickExportAndCapturePng(page, page.getByTestId('editor-export-png-header'));
   expect(readPngDimensions(buffer)).toEqual({ width: 1080, height: 1920 });
 
   await expectNoHorizontalOverflow(page);
 });
 
-test('mobile: adds a custom portable product with a screen region and exports it at 390x844', async ({
-  page,
-}) => {
+test('mobile: adds a portable, attaches content, and exports at 390x844', async ({ page }) => {
+  // v2-S5 보완 A2 (rename): the old name was "adds a custom portable product with a screen
+  // region" which described the removed PortableBuilderModal upload flow. The current
+  // compound-model equivalent is: click portable button → portable added with the preset
+  // template view → attach content → export at the space photo's preset resolution.
+  await installMobileExportCapture(page);
   await page.goto('/');
   await addSpaceBackground(page, 1920, 1080);
 
-  // 1. Open the portable builder and confirm it renders as an accessible dialog at this
-  // viewport (no horizontal overflow introduced by the modal itself).
-  await page.getByRole('button', { name: 'ポータブル' }).click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible();
+  await page.getByTestId('editor-add-portable').click();
+  await expect(page.getByText('ポータブル製品', { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  // 2. Upload a product photo (touch-viewport file input still accepts setInputFiles).
-  const productPhoto = await solidColorPng(page, '#1155ff');
-  await dialog
-    .locator('input[type="file"]')
-    .setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: productPhoto });
-  const nextButton = dialog.getByRole('button', { name: '次へ' });
-  await expect(nextButton).toBeEnabled();
-  await nextButton.click();
-
-  // 3. Keep the default screen region and add the object.
-  await expect(dialog.getByRole('heading', { name: '画面領域を指定' })).toBeVisible();
-  await dialog.getByRole('button', { name: '追加', exact: true }).click();
-  await expect(dialog).toBeHidden();
-  await expect(page.getByText('ポータブル製品', { exact: true })).toBeVisible();
-
-  // 4. Upload screen content onto the new portable object.
+  // Attach screen content.
   const content = await solidColorPng(page, '#ff8800');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
-  // 5. Export and confirm the resolution still matches the uploaded space photo exactly.
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
-  const download = await downloadPromise;
-
-  const path = await download.path();
-  const buffer = await fs.readFile(path!);
+  // Export and confirm resolution.
+  const buffer = await clickExportAndCapturePng(page, page.getByTestId('editor-export-png-header'));
   expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
-
-  // 6. No horizontal overflow was introduced by the portable toolbar section or properties.
   await expectNoHorizontalOverflow(page);
 });
 
-test('mobile: dragging the portable screen region moves and resizes it at 390x844', async ({
+test('mobile: resizing a portable at 390x844 via the position-size width input', async ({
   page,
 }) => {
-  // Playwright's touch-viewport emulation (hasTouch/isMobile from the iPhone 13 descriptor set
-  // above) still drives page.mouse as pointer input, exercising the same onPointerDown/Move/Up
-  // handlers a real touch drag would use - see the file header note on what "mobile" verifies
-  // here. Pixel-precision behavior (letterbox mapping, min-size clamp, exact history counts) is
-  // already covered by the desktop real-pointer-drag suite in portable.spec.ts; this is a
-  // usability smoke check that the same interaction isn't broken by the narrow viewport/dialog.
+  // v2-S5 보완 A2 (rename): the old name was "dragging the portable screen region moves
+  // and resizes it" which described the removed region editor dialog. The compound-model
+  // equivalent is that the whole portable object is draggable/resizable via the shared
+  // Konva Transformer (same as LED/LCD/transparent-LED), and the screen quad moves with it
+  // as a child. We
+  // verify the portable's position-size inputs accept a width edit and the output stays
+  // well-formed. Pixel precision is covered on the desktop suite.
   await page.goto('/');
   await addSpaceBackground(page, 1920, 1080);
-
-  await page.getByRole('button', { name: 'ポータブル' }).click();
-  const dialog = page.getByRole('dialog');
-  const productPhoto = await solidColorPng(page, '#1155ff');
-  await dialog
-    .locator('input[type="file"]')
-    .setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: productPhoto });
-  await dialog.getByRole('button', { name: '次へ' }).click();
-  await dialog.getByRole('button', { name: '追加', exact: true }).click();
-  await expect(dialog).toBeHidden();
-
-  await page.getByRole('button', { name: '画面領域を編集' }).click();
-  const editDialog = page.getByRole('dialog');
-  await expect(editDialog.getByRole('heading', { name: '画面領域を指定' })).toBeVisible();
-
-  const box = editDialog.locator('.portable-region-box');
-  const before = (await box.boundingBox())!;
-
-  // Move: drag inside the region box.
-  const center = { x: before.x + before.width / 2, y: before.y + before.height / 2 };
-  await page.mouse.move(center.x, center.y);
-  await page.mouse.down();
-  await page.mouse.move(center.x + 20, center.y + 15, { steps: 5 });
-  await page.mouse.up();
-
-  const moved = (await box.boundingBox())!;
-  expect(moved.x).toBeCloseTo(before.x + 20, 0);
-  expect(moved.y).toBeCloseTo(before.y + 15, 0);
-  await expect(editDialog.getByRole('alert')).toHaveCount(0);
-
-  // Resize: drag the se handle outward.
-  const seHandle = editDialog.locator('.portable-region-handle--se');
-  const seBefore = (await seHandle.boundingBox())!;
-  const seCenter = { x: seBefore.x + seBefore.width / 2, y: seBefore.y + seBefore.height / 2 };
-  await page.mouse.move(seCenter.x, seCenter.y);
-  await page.mouse.down();
-  await page.mouse.move(seCenter.x + 15, seCenter.y + 15, { steps: 5 });
-  await page.mouse.up();
-
-  const resized = (await box.boundingBox())!;
-  expect(resized.width).toBeGreaterThan(moved.width);
-  expect(resized.height).toBeGreaterThan(moved.height);
-  await expect(editDialog.getByRole('alert')).toHaveCount(0);
-
-  await editDialog.getByRole('button', { name: '保存' }).click();
-  await expect(editDialog).toBeHidden();
-
+  await page.getByTestId('editor-add-portable').click();
+  await expect(page.getByText('ポータブル製品', { exact: true })).toBeVisible();
+  await page.getByTestId('toolbar-subsection-position-size-toggle').click();
+  const widthInput = page.getByLabel('幅').first();
+  const widthBefore = Number(await widthInput.inputValue());
+  await widthInput.fill(String(widthBefore + 40));
+  await widthInput.blur();
+  const widthAfter = Number(await widthInput.inputValue());
+  console.log(`mobile portable resize: ${widthBefore} → ${widthAfter}`);
+  expect(widthAfter).toBeGreaterThan(widthBefore);
   await expectNoHorizontalOverflow(page);
 });
 
@@ -302,6 +251,8 @@ test('mobile: an LED display is reselectable by tap after being deselected at 39
 
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(deleteButton(page)).toBeEnabled();
+  // v2-S3: material combobox lives in the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
@@ -313,10 +264,13 @@ test('mobile: adds a transparent LED display and blends more of the space backgr
   // Companion to the desktop coverage in e2e/perspective-video.spec.ts's "transparent LED
   // window blending" describe block: confirms the material select, the two sliders, and the
   // PNG export flow all stay usable/reachable at the narrow touch-viewport width.
+  await installMobileExportCapture(page);
   await page.goto('/');
   await addSpaceBackground(page, 1920, 1080);
 
-  await page.getByRole('button', { name: '透過LED' }).click();
+  await page.getByTestId('editor-add-transparent-led').click();
+  // v2-S3: Appearance accordion holds material, sliders, and 詳細設定.
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue(
     'transparent-led',
   );
@@ -334,13 +288,10 @@ test('mobile: adds a transparent LED display and blends more of the space backgr
   await transparencySlider.focus();
   await transparencySlider.press('End');
   await transparencySlider.press('Tab');
-  await page.getByRole('button', { name: '閉じる' }).click();
+  // v2-S5 U4: inline accordion — no 「閉じる」 button.
 
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
-  const download = await downloadPromise;
-  const path = await download.path();
-  expect(path).toBeTruthy();
+  const buffer = await clickExportAndCapturePng(page, page.getByTestId('editor-export-png-header'));
+  expect(buffer.length).toBeGreaterThan(0);
 
   await expectNoHorizontalOverflow(page);
 });
@@ -360,19 +311,26 @@ test('mobile: applies a four-point perspective quad via the corner input fields 
   await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
   await expectNoHorizontalOverflow(page);
 
+  // Mirrors the perspective-video.spec.ts helper rewritten in S1 Step 0: the pre-v2 corner
+  // number inputs became draggable `role="slider"` handles, so set each corner by pointer-
+  // dragging its handle to the target normalized point inside the canvas container.
+  const cornerTestidKey = {
+    左上: 'editor-perspective-handle-topLeft',
+    右上: 'editor-perspective-handle-topRight',
+    右下: 'editor-perspective-handle-bottomRight',
+    左下: 'editor-perspective-handle-bottomLeft',
+  } as const;
   const setCorner = async (
     cornerLabel: '左上' | '右上' | '右下' | '左下',
     xFraction: number,
     yFraction: number,
   ) => {
-    const fieldset = page.locator('fieldset').filter({ hasText: cornerLabel });
-    const xInput = fieldset.getByRole('spinbutton', { name: 'X座標' });
-    const yInput = fieldset.getByRole('spinbutton', { name: 'Y座標' });
-    await xInput.scrollIntoViewIfNeeded();
-    await xInput.fill(String(xFraction));
-    await xInput.blur();
-    await yInput.fill(String(yFraction));
-    await yInput.blur();
+    const handle = page.getByTestId(cornerTestidKey[cornerLabel]);
+    const canvas = page.locator('.editor-canvas-container');
+    const box = (await canvas.boundingBox())!;
+    await handle.dragTo(canvas, {
+      targetPosition: { x: xFraction * box.width, y: yFraction * box.height },
+    });
   };
 
   await setCorner('左上', 0.05, 0.05);
@@ -404,11 +362,15 @@ test('mobile: draws a foreground occlusion mask via tap-to-add points at 390x844
   await addSpaceBackground(page, 1080, 1920);
   await page.getByRole('button', { name: '縦長 (9:16)' }).click();
   await page.getByRole('button', { name: 'LED', exact: true }).click();
-  await page.getByRole('button', { name: '詳細設定', exact: true }).scrollIntoViewIfNeeded();
-  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
-
-  await page.getByRole('button', { name: 'マスクを追加' }).scrollIntoViewIfNeeded();
-  await page.getByRole('button', { name: 'マスクを追加' }).click();
+  // v2-S5 U3 (3-5): the occlusion add button moved from inside AdvancedSettingsModal into
+  // the inline AppearanceFields subsection. Open the Appearance accordion directly — no
+  // modal needed.
+  await page
+    .getByRole('button', { name: /外観|외관|Appearance/, exact: false })
+    .first()
+    .click();
+  await page.getByTestId('editor-occlusion-add').scrollIntoViewIfNeeded();
+  await page.getByTestId('editor-occlusion-add').click();
   await expectNoHorizontalOverflow(page);
 
   const canvasContainer = page.locator('.editor-canvas-container');
@@ -429,9 +391,7 @@ test('mobile: draws a foreground occlusion mask via tap-to-add points at 390x844
   await expect(applyButton).toBeEnabled();
   await applyButton.click();
 
-  // Applying closes the mask-edit overlay but not the settings modal it was opened from, which
-  // auto-closed when the mask draft started; reopen it to see the mask list entry.
-  await page.getByRole('button', { name: '詳細設定', exact: true }).click();
+  // v2-S5 U3: mask list is inline — no modal reopen needed.
   await expect(page.getByText('マスク 1', { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
@@ -442,34 +402,29 @@ test('mobile smoke: a real-photo-style scene renders, exports a PNG, and introdu
   // Companion to the desktop real-photo-style golden-image scenarios in e2e/visual-qa.spec.ts:
   // confirms the same procedurally-generated (non-solid-color) fixture also works through this
   // narrow touch-viewport, rather than only ever being exercised against flat solid-color photos.
+  await installMobileExportCapture(page);
   await page.goto('/');
   await addScenePhotoBackground(page, 'bright-interior', 1920, 1080);
-  await expect(page.getByRole('button', { name: '空間写真を削除' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '写真を削除' })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   await page.getByRole('button', { name: 'LCD' }).click();
   const content = await solidColorPng(page, '#2563eb');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   const canvasBox = await page.locator('.editor-canvas-container').boundingBox();
   expect(canvasBox).not.toBeNull();
   expect(canvasBox!.width).toBeGreaterThan(0);
   expect(canvasBox!.height).toBeGreaterThan(0);
 
-  const exportButton = page.getByRole('button', { name: 'PNGで書き出す' });
+  const exportButton = page.getByTestId('editor-export-png-header');
   await exportButton.scrollIntoViewIfNeeded();
   await expect(exportButton).toBeEnabled();
 
-  const downloadPromise = page.waitForEvent('download');
-  await exportButton.click();
-  const download = await downloadPromise;
-
-  const path = await download.path();
-  expect(path).toBeTruthy();
-  const buffer = await fs.readFile(path!);
+  const buffer = await clickExportAndCapturePng(page, exportButton);
   expect(readPngDimensions(buffer)).toEqual({ width: 1920, height: 1080 });
 
   await expectNoHorizontalOverflow(page);

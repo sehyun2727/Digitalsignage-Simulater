@@ -124,9 +124,10 @@ export function PerspectiveEditOverlay({ documentSize, fitScale }: PerspectiveEd
             role="slider"
             tabIndex={0}
             className="perspective-edit-handle"
+            data-testid={`editor-perspective-handle-${corner}`}
             style={{ left: `${preview.x}px`, top: `${preview.y}px` }}
             aria-label={messages[CORNER_LABEL_KEY[corner]]}
-            aria-valuetext={`${Math.round(point.x * 100)}%, ${Math.round(point.y * 100)}%`}
+            aria-valuetext={`${(point.x * 100).toFixed(1)}%, ${(point.y * 100).toFixed(1)}%`}
             onPointerDown={handlePointerDown(corner)}
             onPointerMove={handlePointerMove(corner)}
             onPointerUp={handlePointerUp(corner)}

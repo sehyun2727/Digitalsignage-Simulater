@@ -1,6 +1,7 @@
 import { useLocale } from '../i18n/localeContext';
 import { useModalDialog } from '../features/editor/useModalDialog';
 import { HULL_CONTACT_PAGE_URL } from '../lib/hullContact';
+import { TOS_EFFECTIVE_DATE, TOS_REVISED_DATE, formatTosDate } from '../lib/termsOfServiceDate';
 
 interface TermsOfServiceModalProps {
   onClose: () => void;
@@ -27,10 +28,24 @@ export function TermsOfServiceModal({ onClose }: TermsOfServiceModalProps) {
         <h2 id={titleId}>{messages.termsOfServiceTitle}</h2>
 
         <div className="terms-of-service-body">
-          <p className="terms-of-service-meta">
-            <span>{messages.termsOfServiceEffectiveDate}</span>
-            <span>{messages.termsOfServiceRevisedDate}</span>
-          </p>
+          {/* v2-P3 A7: effective + revised dates substitute from a single config
+             (src/lib/termsOfServiceDate.ts). Empty date → entire <span> is
+             omitted (prevents the "2026年月日" broken-template appearance). The
+             whole <p> is hidden only if BOTH strings resolve empty. */}
+          {(() => {
+            const effective = formatTosDate(
+              messages.termsOfServiceEffectiveDate,
+              TOS_EFFECTIVE_DATE,
+            );
+            const revised = formatTosDate(messages.termsOfServiceRevisedDate, TOS_REVISED_DATE);
+            if (!effective && !revised) return null;
+            return (
+              <p className="terms-of-service-meta">
+                {effective && <span>{effective}</span>}
+                {revised && <span>{revised}</span>}
+              </p>
+            );
+          })()}
 
           <p className="terms-of-service-intro">{messages.termsOfServiceIntro}</p>
 

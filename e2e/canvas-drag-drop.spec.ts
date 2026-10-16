@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openSection, openSubsection } from './support/accordion.js';
 import { addSpaceBackground } from './support/spaceBackground.js';
 
 test.use({ locale: 'ja-JP' });
@@ -94,13 +95,15 @@ test('dropping an image file onto an LED screen region assigns it as content', a
   const png = await solidColorPng(page, '#ff8800');
   await dropImageOntoCanvas(page, png, DISPLAY_SCREEN_CENTER);
 
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 });
 
 test('dropping onto a rotated display screen region still hits it correctly', async ({ page }) => {
   await setup(page);
   await page.getByRole('button', { name: 'LED', exact: true }).click();
 
+  // v2-S3 3-1: 回転 is in the Position/Size sub-accordion (collapsed by default).
+  await openSubsection(page, 'position-size');
   const rotationInput = page.getByRole('spinbutton', { name: '回転' });
   await rotationInput.fill('40');
   await rotationInput.blur();
@@ -121,7 +124,7 @@ test('dropping onto a rotated display screen region still hits it correctly', as
   const png = await solidColorPng(page, '#00aaff');
   await dropImageOntoCanvas(page, png, rotatedPoint);
 
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 });
 
 test('dropping onto the topmost of two overlapping displays assigns content only to that one', async ({
@@ -140,8 +143,11 @@ test('dropping onto the topmost of two overlapping displays assigns content only
 
   // A successful drop also selects its target, so the material combobox identifies which
   // object received the content without any extra canvas click.
+  // v2-S3: Appearance accordion is collapsed by default; open once to make the material
+  // combobox the original "identify receiver" assertion targets visible in the DOM.
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   // Delete the LCD display (topmost, now confirmed to hold the dropped content) to expose
   // the LED display beneath it, then confirm the LED display was left untouched by the drop.
@@ -149,6 +155,7 @@ test('dropping onto the topmost of two overlapping displays assigns content only
   const center = (await page.locator('.editor-canvas-container').boundingBox())!;
   await page.mouse.click(center.x + center.width / 2, center.y + center.height / 2);
 
+  // Appearance stays open across the delete/reselect, so the material combobox is still here.
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('led');
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
@@ -185,7 +192,12 @@ test('dropping an unsupported file type onto a screen region shows an accessible
     fileName: 'notes.txt',
   });
 
-  await expect(page.getByRole('status')).toHaveText('PNG、JPEG、WebP形式の画像のみ利用できます。');
+  // v2-S2: upload errors moved from the aria-live polite status region into a dedicated
+  // role=alert banner (requirement 2-5 / C7). An unsupported dropped file maps to the
+  // `image-unsupported-type` code; its ja cause string is "対応していない画像形式です。".
+  const banner = page.getByTestId('editor-error-banner');
+  await expect(banner).toBeVisible();
+  await expect(banner).toContainText('対応していない画像形式');
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
   ).toBeVisible();

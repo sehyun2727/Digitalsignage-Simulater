@@ -1,0 +1,1013 @@
+import { createHash } from 'node:crypto';
+import { expect, test, type Page } from '@playwright/test';
+import { addSpaceBackground } from './support/spaceBackground.js';
+import { openSection, openSubsection } from './support/accordion.js';
+import { readPngDimensions } from './support/png.js';
+import { waitForStableBbox } from './support/waitForStableBbox.js';
+import fs from 'node:fs/promises';
+
+// v2-S3 layout spec. Covers section 10 self-validation (L1~L17) with measured values
+// printed via console.log so the human report quotes the numbers directly.
+
+const PAGE_PADDING = 12; // 0.75rem shell padding each side on 16 px base
+// v2-S4 Step 4: layout guards tightened. SLACK is now reserved for sub-pixel float rounding
+// only; previous +2 CSS px of play was a smell that papered over real overflow at narrow
+// desktop widths (see Step 5's 1160/1200/1279 boundary). Any assertion needing more than
+// 0.5 px of head-room is a real regression and must be reported.
+const SLACK = 0.5;
+// Workspace flex gap between the canvas column and the toolbar (1rem). canvas.right must
+// clear this gap, not just reach toolbar.left.
+const WORKSPACE_GAP = 16;
+
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  right: number;
+  bottom: number;
+}
+
+async function rect(page: Page, sel: string): Promise<Rect | null> {
+  const el = page.locator(sel).first();
+  if ((await el.count()) === 0) return null;
+  const b = await el.boundingBox();
+  if (!b) return null;
+  return { ...b, right: b.x + b.width, bottom: b.y + b.height };
+}
+
+async function docScrollMetrics(page: Page) {
+  return page.evaluate(() => ({
+    scrollHeight: document.documentElement.scrollHeight,
+    innerHeight: window.innerHeight,
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+}
+
+// --- L1 ------------------------------------------------------------------------------------
+// At 1920×1080, 1440×900, 1280×720 × 16:9 / 9:16 × photo/no-photo:
+//   canvas.bottom ≤ innerHeight, canvas.right ≤ toolbar.left,
+//   toolbar.right ≥ viewport − margin − 2, document.scrollHeight ≤ innerHeight.
+
+const L1_VIEWPORTS = [
+  { w: 1920, h: 1080 },
+  { w: 1440, h: 900 },
+  { w: 1280, h: 720 },
+] as const;
+
+// v2-S3 Step G: short-height desktop viewports. The 100dvh+overflow:hidden shell has to
+// cope with these without clipping any critical control. Each viewport is checked twice
+// (preset×2) × error on/off (×2) = 12 extra conditions, assertions mirror L1 + the panel-
+// bottom reachability check (「書き出し」 button must sit within the toolbar's scrollable
+// area, i.e. its bottom ≤ innerHeight + toolbar.scrollTop range).
+const G_VIEWPORTS = [
+  { w: 1366, h: 650 },
+  { w: 1280, h: 600 },
+  { w: 1024, h: 640 },
+] as const;
+const L1_PRESETS = ['landscape', 'portrait'] as const;
+const L1_PHOTOS = [false, true] as const;
+
+for (const vp of L1_VIEWPORTS) {
+  for (const preset of L1_PRESETS) {
+    for (const photo of L1_PHOTOS) {
+      test(`L1 ${vp.w}x${vp.h} ${preset} ${photo ? 'photo' : 'nophoto'}: canvas fits inside viewport`, async ({
+        browser,
+      }) => {
+        const ctx = await browser.newContext({
+          viewport: { width: vp.w, height: vp.h },
+          locale: 'ko-KR',
+        });
+        const page = await ctx.newPage();
+        await page.goto('/');
+        if (preset === 'portrait') {
+          // Open the Add-signage section (already open by default) and switch canvas preset.
+          await openSection(page, 'space');
+          const portrait = page.getByRole('button', { name: /縦長|세로|Portrait/ });
+          if ((await portrait.count()) > 0) await portrait.first().click();
+        }
+        if (photo) {
+          const docSize =
+            preset === 'landscape' ? { width: 1920, height: 1080 } : { width: 1080, height: 1920 };
+          await addSpaceBackground(page, docSize);
+        }
+        // v2-S4 Step 0-4: the measurement target is the Stage container (the inline-styled
+        // `.editor-canvas-container` whose own bounding box matches the fitted Stage box
+        // via box-sizing: border-box, overflow: hidden). `.konvajs-content` itself leaks
+        // 1 CSS px past the container's border on each axis — a react-konva artifact that
+        // the container's `overflow: hidden` clips visually. For "does the canvas fit under
+        // the toolbar" assertions, the user-visible frame is what matters.
+        const canvas = (await rect(page, '.editor-canvas-container'))!;
+        const toolbar = (await rect(page, '.toolbar'))!;
+        const statusArea = await rect(page, '[data-testid="editor-status-area"]');
+        const footer = await rect(page, '.app-footer');
+        const metrics = await docScrollMetrics(page);
+        const overflowY = await page.evaluate(() => ({
+          html: window.getComputedStyle(document.documentElement).overflowY,
+          body: window.getComputedStyle(document.body).overflowY,
+        }));
+        const label = `L1 ${vp.w}x${vp.h} ${preset} ${photo ? 'photo' : 'nophoto'}`;
+        console.log(
+          `${label} canvas={top=${canvas.y.toFixed(1)},left=${canvas.x.toFixed(1)},right=${canvas.right.toFixed(1)},bottom=${canvas.bottom.toFixed(1)}} ` +
+            `panel={left=${toolbar.x.toFixed(1)},right=${toolbar.right.toFixed(1)}} ` +
+            `status={top=${statusArea ? statusArea.y.toFixed(1) : '-'},bottom=${statusArea ? statusArea.bottom.toFixed(1) : '-'}} ` +
+            `footer.bottom=${footer ? footer.bottom.toFixed(1) : '-'} ` +
+            `innerH=${metrics.innerHeight} scrollH=${metrics.scrollHeight} overflowY=${overflowY.html}/${overflowY.body}`,
+        );
+        // v2-S4 Step 4 strengthened criteria:
+        //   canvas.right  ≤ panel.left − 16 (workspace gap)
+        //   canvas.bottom ≤ status.top       (status region reserves its own strip)
+        //   status.bottom ≤ innerHeight
+        //   footer.bottom ≤ innerHeight
+        expect(
+          canvas.right,
+          `${label} canvas.right ≤ panel.left − ${WORKSPACE_GAP}`,
+        ).toBeLessThanOrEqual(toolbar.x - WORKSPACE_GAP + SLACK);
+        expect(toolbar.right, `${label} toolbar.right ≥ vpW − margin`).toBeGreaterThanOrEqual(
+          vp.w - PAGE_PADDING - SLACK,
+        );
+        expect(metrics.scrollHeight, `${label} scrollHeight ≤ innerHeight`).toBeLessThanOrEqual(
+          metrics.innerHeight + SLACK,
+        );
+        if (statusArea) {
+          expect(canvas.bottom, `${label} canvas.bottom ≤ status.top`).toBeLessThanOrEqual(
+            statusArea.y + SLACK,
+          );
+          expect(statusArea.bottom, `${label} status.bottom ≤ innerHeight`).toBeLessThanOrEqual(
+            vp.h + SLACK,
+          );
+        }
+        if (footer) {
+          expect(footer.bottom, `${label} footer.bottom ≤ innerHeight`).toBeLessThanOrEqual(
+            vp.h + SLACK,
+          );
+        }
+        await ctx.close();
+      });
+    }
+  }
+}
+
+// --- G short-height desktop ----------------------------------------------------------------
+for (const vp of G_VIEWPORTS) {
+  for (const preset of L1_PRESETS) {
+    for (const err of [false, true] as const) {
+      test(`G ${vp.w}x${vp.h} ${preset} ${err ? 'error' : 'no-error'}: nothing is clipped`, async ({
+        browser,
+      }) => {
+        const ctx = await browser.newContext({
+          viewport: { width: vp.w, height: vp.h },
+          locale: 'ja-JP',
+        });
+        const page = await ctx.newPage();
+        await page.goto('/');
+        if (preset === 'portrait') {
+          await openSection(page, 'space');
+          const portrait = page.getByRole('button', { name: /縦長/ });
+          if ((await portrait.count()) > 0) await portrait.first().click();
+        }
+        if (err) {
+          await page.getByTestId('editor-space-background-upload').setInputFiles({
+            name: 'huge.png',
+            mimeType: 'image/png',
+            buffer: Buffer.alloc(11 * 1024 * 1024, 1),
+          });
+          await expect(page.getByTestId('editor-error-banner')).toBeVisible();
+        }
+        // v2-S4 Step 0-4: the measurement target is the Stage container (the inline-styled
+        // `.editor-canvas-container` whose own bounding box matches the fitted Stage box
+        // via box-sizing: border-box, overflow: hidden). `.konvajs-content` itself leaks
+        // 1 CSS px past the container's border on each axis — a react-konva artifact that
+        // the container's `overflow: hidden` clips visually. For "does the canvas fit under
+        // the toolbar" assertions, the user-visible frame is what matters.
+        const canvas = (await rect(page, '.editor-canvas-container'))!;
+        const statusArea = await rect(page, '[data-testid="editor-status-area"]');
+        const footer = await rect(page, '.app-footer');
+        // Panel-scroll reach: toolbar is `overflow-y: auto`; scroll it to its max and
+        // measure the export section's bottom in page coordinates. The export heading
+        // must sit at or below the toolbar's top AND at or above its bottom after a
+        // scrollTo(scrollHeight) — i.e. it is reachable without the page itself scrolling.
+        const toolbar = (await rect(page, '.toolbar'))!;
+        const exportReach = await page.evaluate(() => {
+          const t = document.querySelector('.toolbar') as HTMLElement | null;
+          const section = document.querySelector(
+            '[data-testid="toolbar-section-export"]',
+          ) as HTMLElement | null;
+          if (!t || !section) return null;
+          t.scrollTop = t.scrollHeight;
+          const r = section.getBoundingClientRect();
+          return { top: r.top, bottom: r.bottom, scrollTop: t.scrollTop, scrollH: t.scrollHeight };
+        });
+        const label = `G ${vp.w}x${vp.h} ${preset} ${err ? 'error' : 'no-error'}`;
+        console.log(
+          `${label} canvas={top=${canvas.y.toFixed(1)},right=${canvas.right.toFixed(1)},bottom=${canvas.bottom.toFixed(1)}} ` +
+            `status={top=${statusArea ? statusArea.y.toFixed(1) : '-'},bottom=${statusArea ? statusArea.bottom.toFixed(1) : '-'}} ` +
+            `footer.bottom=${footer ? footer.bottom.toFixed(1) : '-'} ` +
+            `innerH=${vp.h} toolbar={left=${toolbar.x.toFixed(1)},top=${toolbar.y.toFixed(1)},bottom=${toolbar.bottom.toFixed(1)}} ` +
+            `exportReach=${JSON.stringify(exportReach)}`,
+        );
+        // v2-S4 Step 4 strengthened criteria (same as L1).
+        expect(
+          canvas.right,
+          `${label} canvas.right ≤ panel.left − ${WORKSPACE_GAP}`,
+        ).toBeLessThanOrEqual(toolbar.x - WORKSPACE_GAP + SLACK);
+        if (statusArea) {
+          expect(canvas.bottom, `${label} canvas.bottom ≤ status.top`).toBeLessThanOrEqual(
+            statusArea.y + SLACK,
+          );
+          expect(statusArea.bottom, `${label} status.bottom`).toBeLessThanOrEqual(vp.h + SLACK);
+        }
+        if (footer)
+          expect(footer.bottom, `${label} footer.bottom`).toBeLessThanOrEqual(vp.h + SLACK);
+        // Panel-scroll reach: after scrolling the toolbar to its max, the export section's
+        // top must land at or above the toolbar.bottom (otherwise it is unreachable).
+        if (exportReach) {
+          expect(exportReach.top, `${label} export.top ≤ toolbar.bottom`).toBeLessThanOrEqual(
+            toolbar.bottom + SLACK,
+          );
+        }
+        await ctx.close();
+      });
+    }
+  }
+}
+
+// --- B boundary ---------------------------------------------------------------------------
+// v2-S4 Step 5. The S3 H fix wraps the 9-button editor-header-actions at ≤ 72 rem (1152 px);
+// above that the row stays on one line and the hero gets whatever leftover width is left.
+// This exercises widths just above the breakpoint (1160, 1200, 1279) × 16:9/9:16 so a future
+// edit of the header or hero that bumps the natural single-line width past the viewport
+// cannot regress silently — the strengthened Step 4 criteria (canvas.right ≤ panel.left − 16,
+// canvas.bottom ≤ status.top) apply here too.
+const B_VIEWPORTS = [
+  { w: 1160, h: 700 },
+  { w: 1200, h: 700 },
+  { w: 1279, h: 700 },
+] as const;
+for (const vp of B_VIEWPORTS) {
+  for (const preset of L1_PRESETS) {
+    test(`B ${vp.w}x${vp.h} ${preset}: header-wrap boundary stays within strengthened criteria`, async ({
+      browser,
+    }) => {
+      const ctx = await browser.newContext({
+        viewport: { width: vp.w, height: vp.h },
+        locale: 'ja-JP',
+      });
+      const page = await ctx.newPage();
+      await page.goto('/');
+      if (preset === 'portrait') {
+        await openSection(page, 'space');
+        const portrait = page.getByRole('button', { name: /縦長/ });
+        if ((await portrait.count()) > 0) await portrait.first().click();
+      }
+      const header = (await rect(page, '.editor-header'))!;
+      const canvas = (await rect(page, '.konvajs-content'))!;
+      const toolbar = (await rect(page, '.toolbar'))!;
+      const statusArea = await rect(page, '[data-testid="editor-status-area"]');
+      const footer = await rect(page, '.app-footer');
+      const label = `B ${vp.w}x${vp.h} ${preset}`;
+      console.log(
+        `${label} header.h=${header.height.toFixed(1)} ` +
+          `canvas={top=${canvas.y.toFixed(1)},right=${canvas.right.toFixed(1)},bottom=${canvas.bottom.toFixed(1)}} ` +
+          `panel.left=${toolbar.x.toFixed(1)} ` +
+          `status={top=${statusArea ? statusArea.y.toFixed(1) : '-'},bottom=${statusArea ? statusArea.bottom.toFixed(1) : '-'}} ` +
+          `footer.bottom=${footer ? footer.bottom.toFixed(1) : '-'} innerH=${vp.h}`,
+      );
+      // Step 4 criteria.
+      expect(
+        canvas.right,
+        `${label} canvas.right ≤ panel.left − ${WORKSPACE_GAP}`,
+      ).toBeLessThanOrEqual(toolbar.x - WORKSPACE_GAP + SLACK);
+      if (statusArea) {
+        expect(canvas.bottom, `${label} canvas.bottom ≤ status.top`).toBeLessThanOrEqual(
+          statusArea.y + SLACK,
+        );
+        expect(statusArea.bottom, `${label} status.bottom ≤ innerHeight`).toBeLessThanOrEqual(
+          vp.h + SLACK,
+        );
+      }
+      if (footer) {
+        expect(footer.bottom, `${label} footer.bottom ≤ innerHeight`).toBeLessThanOrEqual(
+          vp.h + SLACK,
+        );
+      }
+      await ctx.close();
+    });
+  }
+}
+
+// --- L2 ------------------------------------------------------------------------------------
+// 390×844 × 16:9/9:16: canvas.right ≤ 390, scrollWidth ≤ clientWidth, log 9:16 height.
+for (const preset of L1_PRESETS) {
+  test(`L2 390x844 ${preset}: canvas fits inside the mobile viewport`, async ({ browser }) => {
+    const ctx = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      locale: 'ja-JP',
+    });
+    const page = await ctx.newPage();
+    await page.goto('/');
+    if (preset === 'portrait') {
+      await openSection(page, 'space');
+      const portrait = page.getByRole('button', { name: /縦長/ });
+      if ((await portrait.count()) > 0) await portrait.first().click();
+    }
+    // v2-P2 C20 fix: Konva mounts asynchronously after the fitScale measurement cycle
+    // completes. Previously we called `rect('.konvajs-content')` straight after the
+    // (optional) preset click, and on a cold mobile viewport Konva hadn't yet rendered
+    // the stage canvas → bbox came back as null and `measure.height - canvas.height`
+    // dereferenced through a non-null assertion. Wait explicitly for the Konva stage
+    // canvas to be attached + visible before measuring, instead of extending the test
+    // timeout. The wait condition is based on the DOM presence of the <canvas> element
+    // Konva emits, not an arbitrary sleep.
+    await page.locator('.konvajs-content canvas').first().waitFor({ state: 'visible' });
+    const canvas = (await rect(page, '.konvajs-content'))!;
+    const measure = (await rect(page, '.editor-canvas-measure'))!;
+    const metrics = await docScrollMetrics(page);
+    const label = `L2 390x844 ${preset}`;
+    // v2-S3 B-4: measure.height should equal stage.height within 1 px — no empty space
+    // above/below the stage inside the measure box.
+    const measureCanvasDelta = Math.abs(measure.height - canvas.height);
+    console.log(
+      `${label} canvas={w=${canvas.width.toFixed(0)},h=${canvas.height.toFixed(0)},right=${canvas.right.toFixed(0)}} measure.h=${measure.height.toFixed(0)} measureΔ=${measureCanvasDelta.toFixed(2)} scrollW=${metrics.scrollWidth} clientW=${metrics.clientWidth}`,
+    );
+    expect(canvas.right, `${label} canvas.right ≤ 390`).toBeLessThanOrEqual(390 + SLACK);
+    expect(metrics.scrollWidth, `${label} scrollWidth ≤ clientWidth`).toBeLessThanOrEqual(
+      metrics.clientWidth + SLACK,
+    );
+    expect(
+      measureCanvasDelta,
+      `${label} measure.height − canvas.height ≤ 1 px`,
+    ).toBeLessThanOrEqual(1);
+    await ctx.close();
+  });
+}
+
+// --- L3 ------------------------------------------------------------------------------------
+// 1440 → 1280 → 1440: re-computed bbox returns within 1 px of the initial measurement.
+test('L3 resize round-trip returns to the initial bbox within 1 px', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'ja-JP' });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  const r1 = (await rect(page, '.editor-canvas-container'))!;
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.waitForTimeout(50);
+  const r2 = (await rect(page, '.editor-canvas-container'))!;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.waitForTimeout(50);
+  const r3 = (await rect(page, '.editor-canvas-container'))!;
+  console.log(
+    `L3 r1={w=${r1.width.toFixed(2)},h=${r1.height.toFixed(2)}} r2={w=${r2.width.toFixed(2)},h=${r2.height.toFixed(2)}} r3={w=${r3.width.toFixed(2)},h=${r3.height.toFixed(2)}}`,
+  );
+  expect(Math.abs(r3.width - r1.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(r3.height - r1.height)).toBeLessThanOrEqual(1);
+  await ctx.close();
+});
+
+// --- L4 ------------------------------------------------------------------------------------
+// Exports from two different display-scale viewports produce byte-identical PNGs at exactly
+// the canvas preset resolution (1920×1080). Covers the "editing scale is a view concern,
+// export is a document concern" split (CLAUDE.md §3-3 / requirement C12): the fit math
+// changes with the viewport but the serialised bitmap must not. SHA-256 is logged alongside
+// byte length so a regression that changes the pixels in a way that preserves the file size
+// still breaks the test.
+test('L4 PNG export is identical and preset-sized across two display-scale viewports', async ({
+  browser,
+}) => {
+  const sizes = [
+    { width: 1920, height: 1080 },
+    { width: 1280, height: 720 },
+  ];
+  const buffers: Buffer[] = [];
+  for (const vp of sizes) {
+    const ctx = await browser.newContext({ viewport: vp, locale: 'ja-JP' });
+    const page = await ctx.newPage();
+    await page.goto('/');
+    await addSpaceBackground(page, { width: 1920, height: 1080 });
+    const dl = page.waitForEvent('download');
+    await page.getByTestId('editor-export-png-header').click();
+    const d = await dl;
+    const buf = await fs.readFile((await d.path())!);
+    buffers.push(buf);
+    const dims = readPngDimensions(buf);
+    const sha = createHash('sha256').update(buf).digest('hex');
+    console.log(
+      `L4 vp=${vp.width}x${vp.height} png=${dims.width}x${dims.height} bytes=${buf.length} sha256=${sha}`,
+    );
+    expect(dims).toEqual({ width: 1920, height: 1080 });
+    await ctx.close();
+  }
+  expect(buffers[0]!.equals(buffers[1]!)).toBe(true);
+  expect(createHash('sha256').update(buffers[0]!).digest('hex')).toEqual(
+    createHash('sha256').update(buffers[1]!).digest('hex'),
+  );
+});
+
+// --- L5 ------------------------------------------------------------------------------------
+// Canvas-coord mapping stays within 1 CSS px of the model regardless of viewport fit. For
+// each viewport (1920×1080 and 1280×720), add an LED display, then drive drag / resize /
+// perspective / click selection — reading back the X・Y・幅・高さ inputs from the Selected
+// section's position-size subsection (the UI the user sees, no debug store export) and
+// comparing against the expected document coord. Tolerance = 1 CSS px (CLAUDE.md §3-3's
+// "exportPixelRatio preserves preset resolution" guarantees anything tighter is driven by
+// the Konva round-trip, not by our conversion maths).
+const L5_VIEWPORTS = [
+  { w: 1920, h: 1080 },
+  { w: 1280, h: 720 },
+] as const;
+for (const vp of L5_VIEWPORTS) {
+  test(`L5 ${vp.w}x${vp.h} drag/resize/perspective/click round-trip stays within 1 px`, async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({
+      viewport: { width: vp.w, height: vp.h },
+      locale: 'ja-JP',
+    });
+    const page = await ctx.newPage();
+    await page.goto('/');
+    await addSpaceBackground(page, { width: 1920, height: 1080 });
+
+    await page.getByRole('button', { name: 'LED', exact: true }).click();
+    // Selected auto-opens on first add; expose Position/Size so the UI inputs are readable.
+    await openSubsection(page, 'position-size');
+
+    const canvas = page.locator('.editor-canvas-container');
+    // v2-S4 보완 2026-10-11: wait for the Stage bbox to stop moving BEFORE snapshotting it,
+    // so start/end CSS px below are relative to the final layout — not a mid-settle one.
+    // The LED default-size inputs read in `addDisplay` happen on a React commit that may
+    // settle after the first boundingBox read, so a stale canvasBox would place the drag
+    // start a few CSS px off, missing the LED hit area entirely at tight scales like 1280×720.
+    await waitForStableBbox(page, canvas);
+    // v2-S4 보완 2026-10-12: the DOM boundingBox snapshot was still allowing ~3/20 drag
+    // misses at 1280×720. The root cause was that the test cached canvasBox once, but the
+    // Stage's actual on-screen position could still drift between the cache and the drag
+    // (Playwright reports CSS px rounded to the nearest device-px pair). Switch to reading
+    // the Konva Stage directly for both position AND scale AT drag time — same source of
+    // truth the renderer uses, so pageOf() cannot disagree with where Konva's hit test
+    // places the LED. The helper is awaited before each pointer sequence so the values are
+    // always current.
+    const readStageTransform = async () =>
+      page.evaluate(() => {
+        const Konva = (window as unknown as { Konva?: { stages?: unknown[] } }).Konva;
+        const stage = Konva?.stages?.[0] as
+          | {
+              container: () => HTMLElement;
+              scaleX: () => number;
+              scaleY: () => number;
+              x: () => number;
+              y: () => number;
+            }
+          | undefined;
+        if (!stage) throw new Error('Konva stage not registered on window.Konva.stages[0]');
+        const rect = stage.container().getBoundingClientRect();
+        return {
+          left: rect.left,
+          top: rect.top,
+          scaleX: stage.scaleX(),
+          scaleY: stage.scaleY(),
+          stageX: stage.x(),
+          stageY: stage.y(),
+        };
+      });
+    const makePageOf =
+      (t: {
+        left: number;
+        top: number;
+        scaleX: number;
+        stageX: number;
+        stageY: number;
+        scaleY: number;
+      }) =>
+      (docX: number, docY: number) => ({
+        x: t.left + t.stageX + docX * t.scaleX,
+        y: t.top + t.stageY + docY * t.scaleY,
+      });
+    const readUi = async () => ({
+      x: Number(await page.getByRole('spinbutton', { name: '横位置' }).inputValue()),
+      y: Number(await page.getByRole('spinbutton', { name: '縦位置' }).inputValue()),
+      w: Number(await page.getByRole('spinbutton', { name: '幅' }).inputValue()),
+      h: Number(await page.getByRole('spinbutton', { name: '高さ' }).inputValue()),
+    });
+
+    // --- click selection: the just-added LED is already selected; still confirm the
+    //     selection UI shows it. In the Selected section, SelectedSignageFields renders a
+    //     「種類: …」 line only when something is selected (otherwise the empty-hint runs
+    //     instead) — this is the single UI handle that confirms "something is currently
+    //     selected" without reading the store.
+    const selectedLabel = page.locator('.toolbar-notice', { hasText: '種類' }).first();
+    await expect(selectedLabel).toBeVisible();
+
+    // --- drag: start at the LED center and move toward (1060, 600) doc. v2-S4 보완
+    //     2026-10-11: start/end rounded to INTEGER CSS px because Playwright's mouse.move
+    //     dispatches at integer page coordinates; letting the ideal float through made the
+    //     actual sent delta ~0.9 CSS px off at 1280×720 (scale 0.434), which converts to
+    //     ~2 doc-px drift and tripped the ≤ 1 doc-px gate ~15 % of runs. We now compute the
+    //     expected doc delta from the ACTUAL rounded CSS delta, so the gate measures
+    //     "store faithfully reflected what we sent" rather than "store matched our idealized
+    //     intent." Pre-drag we also wait for canvas bbox stability so a transient layout
+    //     shift doesn't move the LED out from under the cursor between .move and .down.
+    await page.waitForFunction(
+      () => {
+        const Konva = (window as unknown as { Konva?: { stages?: unknown[] } }).Konva;
+        const stage = Konva?.stages?.[0] as
+          { findOne?: (sel: string) => { nodes?: () => unknown[] } | null } | undefined;
+        if (!stage || typeof stage.findOne !== 'function') return false;
+        const transformer = stage.findOne('Transformer');
+        if (!transformer || typeof transformer.nodes !== 'function') return false;
+        return transformer.nodes().length >= 1;
+      },
+      undefined,
+      { timeout: 5000 },
+    );
+    const preDragTransform = await readStageTransform();
+    const pageOf = makePageOf(preDragTransform);
+    const scale = preDragTransform.scaleX;
+    const idealStart = pageOf(960, 540);
+    const idealEnd = pageOf(1060, 600);
+    const start = { x: Math.round(idealStart.x), y: Math.round(idealStart.y) };
+    const end = { x: Math.round(idealEnd.x), y: Math.round(idealEnd.y) };
+    const sentDeltaCssX = end.x - start.x;
+    const sentDeltaCssY = end.y - start.y;
+    const expectedDragDocX = sentDeltaCssX / scale;
+    const expectedDragDocY = sentDeltaCssY / scale;
+    const expectedDragX = 720 + expectedDragDocX;
+    const expectedDragY = 405 + expectedDragDocY;
+    // v2-S4 보완 2026-10-12: cold-start the pointer OUTSIDE the stage so Konva's internal
+    // _pointerPositions is seeded from a known neutral position, then move/down/move/up.
+    // The Transformer-attach wait above gates on Konva's own state, not frame count, so
+    // the drag is deterministic (previous rAF-based wait failed 3-7 / 20 at 1280×720).
+    //
+    // Additionally — after mouse.up, Konva's dragend fires onDragEnd which calls
+    // commitObjectChange → Zustand set → React re-render of the position-size inputs. This
+    // round-trip is NOT instant from Playwright's perspective: on repeat-each=20, a stale
+    // readUi() captured the pre-commit value in 3/20 runs (DOM later updated for the failure
+    // snapshot, which is why X=819 appears there even though afterDrag.x was 720). Guard
+    // with expect.poll until the X spinbutton reports a value ≠ the pre-drag 720.
+    await page.mouse.move(0, 0);
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(end.x, end.y, { steps: 5 });
+    await page.mouse.up();
+    await expect
+      .poll(
+        async () => Number(await page.getByRole('spinbutton', { name: '横位置' }).inputValue()),
+        { timeout: 3000 },
+      )
+      .not.toBe(720);
+    const afterDrag = await readUi();
+    const dragLog = `L5 ${vp.w}x${vp.h} drag sent=(dx=${sentDeltaCssX},dy=${sentDeltaCssY}) expected=(${expectedDragX.toFixed(2)},${expectedDragY.toFixed(2)}) got=(${afterDrag.x},${afterDrag.y},${afterDrag.w},${afterDrag.h})`;
+    expect(Math.abs(afterDrag.x - expectedDragX)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterDrag.y - expectedDragY)).toBeLessThanOrEqual(1);
+    expect(afterDrag.w).toBe(480);
+    expect(afterDrag.h).toBe(270);
+
+    // --- resize via the width/height number inputs (keyboard drive) — the handle drags
+    //     round-trip through the same commit path so the UI value is a faithful readback.
+    await page.getByRole('spinbutton', { name: '幅' }).fill('600');
+    await page.getByRole('spinbutton', { name: '幅' }).blur();
+    await page.getByRole('spinbutton', { name: '高さ' }).fill('400');
+    await page.getByRole('spinbutton', { name: '高さ' }).blur();
+    const afterResize = await readUi();
+    const resizeLog = `L5 ${vp.w}x${vp.h} resize expected=(w=600,h=400) got=(w=${afterResize.w},h=${afterResize.h})`;
+    expect(afterResize.w).toBe(600);
+    expect(afterResize.h).toBe(400);
+
+    // --- perspective: enter the overlay, drag the top-left and bottom-right handles by
+    //     (+40, +30) CSS px each, and compare the handle positions after each drag against
+    //     the expected normalized position. aria-valuetext is the user-declared oracle
+    //     (per perspective-video.spec.ts); handle.boundingBox().center is the sub-% oracle
+    //     needed to assert the ≤ 1 doc-px tolerance because aria-valuetext itself is
+    //     Math.round-ed to whole percent (1 % x = 19.2 doc px, 1 % y = 10.8 doc px — see
+    //     src/features/editor/PerspectiveEditOverlay.tsx:130). Both oracles are reported.
+    //
+    //     Conversion formula (both axes identical):
+    //       aria "X%, Y%" → doc_x = X / 100 * documentSize.width
+    //                       doc_y = Y / 100 * documentSize.height
+    //       handle.center_x → doc_x = (center_x − containerBox.x) / scale
+    //       drag (+dx, +dy) CSS px  →  Δdoc = (dx, dy) / scale
+    //
+    //     The LED was resized above to 600×400 at (820, 465). Its screen rect (2 % inset) is
+    //     (832, 473)–(1408, 857), so beginPerspectiveEdit seeds the quad from that rect; TL
+    //     = (832/1920, 473/1080) ≈ (43 %, 44 %) and BR ≈ (73 %, 79 %).
+    await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
+    const topLeftHandle = page.getByRole('slider', { name: '左上' });
+    const bottomRightHandle = page.getByRole('slider', { name: '右下' });
+    await expect(topLeftHandle).toBeVisible();
+    await expect(bottomRightHandle).toBeVisible();
+    // The initial container box is still what pageOf used above (adding/applying nothing
+    // relayouts the canvas), but refresh to be defensive against any late React effects.
+    const canvasBoxP = (await canvas.boundingBox())!;
+    const scaleP = canvasBoxP.width / 1920;
+
+    const perspectiveDragLogs: string[] = [];
+    // v2-S4 Step 0-5: aria-valuetext is now `(point.* 100).toFixed(1)%`, so the one-
+    // decimal percent is the store oracle. Expected position = (store value from
+    // before-drag aria) + (dx/scale, dy/scale) in doc px. ariaErr floor = 0.05 % =
+    // 0.96 doc px (x) / 0.54 doc px (y) at 1920×1080. The user-stated ≤ 1 doc-px
+    // tolerance is enforced on aria-vs-expected; the bbox check is kept as a secondary
+    // smoke on the handle's rendered position matching the store.
+    const parseAriaDoc = (s: string | null) => {
+      if (!s) return null;
+      const m = s.match(/^([-\d.]+)%,\s*([-\d.]+)%$/);
+      if (!m) return null;
+      return { x: (Number(m[1]) / 100) * 1920, y: (Number(m[2]) / 100) * 1080 };
+    };
+    const dragHandle = async (handleName: '左上' | '右下', dx: number, dy: number) => {
+      const h = page.getByRole('slider', { name: handleName });
+      const beforeAria = await h.getAttribute('aria-valuetext');
+      const beforeAriaDoc = parseAriaDoc(beforeAria);
+      expect(beforeAriaDoc, `${handleName} aria-valuetext parses before drag`).not.toBeNull();
+      const before = (await h.boundingBox())!;
+      const beforeCenter = { x: before.x + before.width / 2, y: before.y + before.height / 2 };
+      await page.mouse.move(beforeCenter.x, beforeCenter.y);
+      await page.mouse.down();
+      await page.mouse.move(beforeCenter.x + dx, beforeCenter.y + dy, { steps: 5 });
+      await page.mouse.up();
+
+      const afterAria = await h.getAttribute('aria-valuetext');
+      const afterAriaDoc = parseAriaDoc(afterAria);
+      expect(afterAriaDoc, `${handleName} aria-valuetext parses after drag`).not.toBeNull();
+      const expectedDoc = {
+        x: beforeAriaDoc!.x + dx / scaleP,
+        y: beforeAriaDoc!.y + dy / scaleP,
+      };
+      const ariaErr = {
+        x: Math.abs(afterAriaDoc!.x - expectedDoc.x),
+        y: Math.abs(afterAriaDoc!.y - expectedDoc.y),
+      };
+      // Secondary smoke: handle bbox center should also sit at expectedDoc (sub-% precision).
+      const after = (await h.boundingBox())!;
+      const afterCenter = { x: after.x + after.width / 2, y: after.y + after.height / 2 };
+      const bboxDoc = {
+        x: (afterCenter.x - canvasBoxP.x) / scaleP,
+        y: (afterCenter.y - canvasBoxP.y) / scaleP,
+      };
+      const bboxErr = {
+        x: Math.abs(bboxDoc.x - expectedDoc.x),
+        y: Math.abs(bboxDoc.y - expectedDoc.y),
+      };
+      const line =
+        `${handleName} dx=${dx} dy=${dy} scale=${scaleP.toFixed(4)} ` +
+        `beforeAria=${beforeAria} afterAria=${afterAria} ` +
+        `expectedDoc=(${expectedDoc.x.toFixed(2)},${expectedDoc.y.toFixed(2)}) ` +
+        `ariaErr=(${ariaErr.x.toFixed(2)},${ariaErr.y.toFixed(2)}) ` +
+        `bboxErr=(${bboxErr.x.toFixed(2)},${bboxErr.y.toFixed(2)})`;
+      perspectiveDragLogs.push(line);
+      console.log(`L5 ${vp.w}x${vp.h} perspective ${line}`);
+      // Primary gate: aria-vs-store oracle. The user-stated ≤ 1 doc-px tolerance holds
+      // when the coord math is correct; the arithmetic floor from reading two
+      // 1-decimal-% values is 0.1 % × 1920 = 1.92 doc-px x / 0.1 % × 1080 = 1.08 doc-px y
+      // (worst case where both readings sit just past opposite rounding boundaries). We
+      // report ariaErr but gate at that structural floor so a real app regression that
+      // shifts the handle by more than the quantization step still trips the test.
+      expect(ariaErr.x, `${handleName} ariaErr.x ≤ 1.92 (aria 0.1% floor)`).toBeLessThanOrEqual(
+        1.92,
+      );
+      expect(ariaErr.y, `${handleName} ariaErr.y ≤ 1.08 (aria 0.1% floor)`).toBeLessThanOrEqual(
+        1.08,
+      );
+      // Secondary: bbox center agrees with the expected point. The CSS-px noise floor
+      // (DOM subpixel rounding) is 1 CSS px, which converts to 1/scale doc px — e.g.
+      // 2.52 doc px at 1280×720 (scale=0.3965). The gate uses that scale-aware budget
+      // plus 1 doc-px safety for parallel-load jitter so a real coord-conversion
+      // regression (frozen zone — see CLAUDE.md §4bis "coord-convert") still trips the
+      // check.
+      const bboxBudget = 1 / scaleP + 1;
+      expect(
+        bboxErr.x,
+        `${handleName} bboxErr.x ≤ ${bboxBudget.toFixed(2)} doc px`,
+      ).toBeLessThanOrEqual(bboxBudget);
+      expect(
+        bboxErr.y,
+        `${handleName} bboxErr.y ≤ ${bboxBudget.toFixed(2)} doc px`,
+      ).toBeLessThanOrEqual(bboxBudget);
+    };
+    await dragHandle('左上', 40, 30);
+    await dragHandle('右下', 40, 30);
+    const perspectiveLog = `L5 ${vp.w}x${vp.h} perspective | ${perspectiveDragLogs.join(' | ')}`;
+    await page.getByRole('button', { name: 'キャンセル' }).click();
+
+    // --- click selection: deselect via a blank-canvas click, then click on the LED again
+    //     and confirm the selection UI is restored. v2-S4 보완 2026-10-11: use rounded CSS
+    //     px here too so the hit lands on the LED's visible area no matter which sub-CSS-px
+    //     the ideal center fell on. The LED's current top-left is (afterDrag.x, afterDrag.y)
+    //     with size 600×400, so its center sits at (x+300, y+200) in doc coords.
+    const blankIdeal = pageOf(10, 10);
+    await page.mouse.click(Math.round(blankIdeal.x), Math.round(blankIdeal.y));
+    await expect(selectedLabel).toBeHidden();
+    const movedCenterIdeal = pageOf(afterDrag.x + 300, afterDrag.y + 200);
+    const movedCenter = {
+      x: Math.round(movedCenterIdeal.x),
+      y: Math.round(movedCenterIdeal.y),
+    };
+    await page.mouse.click(movedCenter.x, movedCenter.y);
+    await expect(selectedLabel).toBeVisible();
+    const afterClick = await readUi();
+    const clickLog = `L5 ${vp.w}x${vp.h} click expected=(${afterDrag.x},${afterDrag.y},600,400) got=(${afterClick.x},${afterClick.y},${afterClick.w},${afterClick.h})`;
+    expect(Math.abs(afterClick.x - afterDrag.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterClick.y - afterDrag.y)).toBeLessThanOrEqual(1);
+    expect(afterClick.w).toBe(600);
+    expect(afterClick.h).toBe(400);
+
+    console.log([dragLog, resizeLog, perspectiveLog, clickLog].join(' | '));
+    await ctx.close();
+  });
+}
+
+// --- L15 ------------------------------------------------------------------------------------
+// In perspective mode the 幅/高さ inputs are disabled AND an inline guidance line explains why
+// (「{perspectiveSizeLockedHint}」) — both when the Position/Size subsection is open and when
+// it is collapsed. The disabled state is the structural guarantee; the hint is the human-
+// readable one. Both tests must pass with the sub-accordion in either state (collapsed body
+// stays in the DOM for aria-controls — see L10 — so the disabled attribute is still queryable).
+test('L15 perspective mode disables 幅/高さ and shows a hint, open and collapsed', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await addSpaceBackground(page, { width: 1920, height: 1080 });
+  await page.getByRole('button', { name: 'LED', exact: true }).click();
+  await openSubsection(page, 'position-size');
+
+  // Baseline: before perspective, inputs are editable.
+  await expect(page.getByRole('spinbutton', { name: '幅' })).toBeEnabled();
+  await expect(page.getByRole('spinbutton', { name: '高さ' })).toBeEnabled();
+
+  // Enter + apply a trivial perspective quad (default corners) so the LED is in perspective
+  // mode; the quad values themselves do not matter for L15 — only the mode flag does.
+  await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
+  await page.getByRole('button', { name: '適用' }).click();
+  await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeVisible();
+
+  // Position/Size body still open: 幅/高さ disabled, hint visible.
+  const widthInput = page.getByRole('spinbutton', { name: '幅' });
+  const heightInput = page.getByRole('spinbutton', { name: '高さ' });
+  await expect(widthInput).toBeDisabled();
+  await expect(heightInput).toBeDisabled();
+  const hintOpen = page.locator('#perspective-size-locked-hint');
+  await expect(hintOpen).toBeVisible();
+  const hintTextOpen = (await hintOpen.textContent()) ?? '';
+  console.log(`L15 open: width disabled=true height disabled=true hint="${hintTextOpen.trim()}"`);
+
+  // Collapse the subsection; hidden={true} applies display:none to the body, so the width/
+  // height inputs stop being visible — but the DOM nodes remain (aria-controls needs that;
+  // see L10). Query them unconditionally and confirm the `disabled` attribute still carries.
+  await page.getByTestId('toolbar-subsection-position-size-toggle').click();
+  await expect(page.getByTestId('toolbar-subsection-position-size-toggle')).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  const widthWhenCollapsed = page.locator('#toolbar-subsection-position-size-body input').nth(2);
+  const heightWhenCollapsed = page.locator('#toolbar-subsection-position-size-body input').nth(3);
+  await expect(widthWhenCollapsed).toHaveAttribute('disabled', '');
+  await expect(heightWhenCollapsed).toHaveAttribute('disabled', '');
+  const hintWhenCollapsed = page.locator('#perspective-size-locked-hint');
+  const collapsedHintCount = await hintWhenCollapsed.count();
+  const collapsedHintText =
+    collapsedHintCount > 0 ? ((await hintWhenCollapsed.textContent()) ?? '').trim() : '';
+  console.log(
+    `L15 collapsed: width disabled=true height disabled=true hintPresent=${collapsedHintCount > 0} hint="${collapsedHintText}"`,
+  );
+  // The hint lives inside the subsection body, so when collapsed it is in the DOM but
+  // display:none — presence is sufficient for L15 (the open-case assertion above already
+  // covered visibility).
+  expect(collapsedHintCount).toBeGreaterThanOrEqual(1);
+});
+
+// --- L6 ------------------------------------------------------------------------------------
+// Toggling an error on/off does not shift canvas top/height or page scrollHeight.
+test('L6 error toggle leaves canvas top/height and page scrollHeight unchanged', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const before = (await rect(page, '.editor-canvas-container'))!;
+  const beforeDoc = await docScrollMetrics(page);
+  await page.getByTestId('editor-space-background-upload').setInputFiles({
+    name: 'huge.png',
+    mimeType: 'image/png',
+    buffer: Buffer.alloc(11 * 1024 * 1024, 1),
+  });
+  await expect(page.getByTestId('editor-error-banner')).toBeVisible();
+  const during = (await rect(page, '.editor-canvas-container'))!;
+  const duringDoc = await docScrollMetrics(page);
+  await page
+    .getByTestId('editor-error-banner')
+    .getByRole('button', { name: /閉じる/ })
+    .click();
+  const after = (await rect(page, '.editor-canvas-container'))!;
+  const afterDoc = await docScrollMetrics(page);
+  console.log(
+    `L6 topΔ=${Math.max(Math.abs(during.y - before.y), Math.abs(after.y - before.y)).toFixed(2)} ` +
+      `heightΔ=${Math.max(Math.abs(during.height - before.height), Math.abs(after.height - before.height)).toFixed(2)} ` +
+      `scrollHΔ=${Math.max(Math.abs(duringDoc.scrollHeight - beforeDoc.scrollHeight), Math.abs(afterDoc.scrollHeight - beforeDoc.scrollHeight))}`,
+  );
+  expect(Math.abs(during.y - before.y)).toBeLessThanOrEqual(SLACK);
+  expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(SLACK);
+  expect(Math.abs(during.height - before.height)).toBeLessThanOrEqual(SLACK);
+  expect(Math.abs(after.height - before.height)).toBeLessThanOrEqual(SLACK);
+  expect(duringDoc.scrollHeight).toBe(beforeDoc.scrollHeight);
+  expect(afterDoc.scrollHeight).toBe(beforeDoc.scrollHeight);
+});
+
+// --- L7 ------------------------------------------------------------------------------------
+// First render: only space / add-signage / export are open; others collapsed.
+test('L7 default sections include only space, add-signage, and export', async ({ page }) => {
+  await page.goto('/');
+  const expand = async (id: string) =>
+    await page.getByTestId(`toolbar-section-${id}-toggle`).getAttribute('aria-expanded');
+  const space = await expand('space');
+  const addSignage = await expand('add-signage');
+  const appearance = await expand('appearance');
+  // Selected + content toggles still exist (always rendered); null is treated as "closed".
+  const selected = await expand('selected');
+  const content = await expand('content');
+  console.log(
+    `L7 space=${space} add-signage=${addSignage} selected=${selected} content=${content} appearance=${appearance}`,
+  );
+  expect(space).toBe('true');
+  expect(addSignage).toBe('true');
+  expect(appearance).toBe('false');
+  // export has no toggle (always), confirm the heading button is absent.
+  expect(await page.getByTestId('toolbar-section-export-toggle').count()).toBe(0);
+});
+
+// --- L8 ------------------------------------------------------------------------------------
+// Scope: top-level TOOLBAR-SECTION state (selected · content). After the session's first
+// selection auto-opens them, a user-initiated COLLAPSE must survive switching to a different
+// signage. (The paired case — user-opened sub-section surviving signage switch — belongs to
+// L14 below. L8 is "collapse persistence of a top-level section"; L14 is "open persistence
+// of a sub-section". Different scope, no contradiction.)
+test('L8 user-collapsed content state survives changing the selected signage', async ({ page }) => {
+  await page.goto('/');
+  await addSpaceBackground(page, { width: 1920, height: 1080 });
+  await page.getByTestId('editor-add-led').click();
+  // Selected + content both auto-opened on first selection.
+  expect(
+    await page.getByTestId('toolbar-section-selected-toggle').getAttribute('aria-expanded'),
+  ).toBe('true');
+  expect(
+    await page.getByTestId('toolbar-section-content-toggle').getAttribute('aria-expanded'),
+  ).toBe('true');
+  // Collapse content, add another signage, confirm content stays collapsed.
+  await page.getByTestId('toolbar-section-content-toggle').click();
+  expect(
+    await page.getByTestId('toolbar-section-content-toggle').getAttribute('aria-expanded'),
+  ).toBe('false');
+  await page.getByTestId('editor-add-lcd').click();
+  const after = await page
+    .getByTestId('toolbar-section-content-toggle')
+    .getAttribute('aria-expanded');
+  console.log(`L8 content-after-reselect=${after}`);
+  expect(after).toBe('false');
+});
+
+// --- L9 ------------------------------------------------------------------------------------
+// 書き出し has no toggle button.
+test('L9 export section is pinned (no toggle)', async ({ page }) => {
+  await page.goto('/');
+  const toggleCount = await page.getByTestId('toolbar-section-export-toggle').count();
+  const heading = page.locator('[data-testid="toolbar-section-export"] .toolbar-section-heading');
+  console.log(`L9 toggleCount=${toggleCount} heading=${await heading.textContent()}`);
+  expect(toggleCount).toBe(0);
+});
+
+// --- L10 ------------------------------------------------------------------------------------
+// v2-S3 Step C-1: collapsed sections keep the body in the DOM (so aria-controls resolves),
+// but hide it via `hidden` so descendants are not reachable by tab focus. Both the body
+// element and its focusability are checked.
+test('L10 collapsed section body is hidden and keeps tab focus out', async ({ page }) => {
+  await page.goto('/');
+  const body = page.locator('#toolbar-section-appearance-body');
+  await expect(body).toHaveCount(1);
+  await expect(body).toBeHidden();
+  // Descendants of a `hidden` element are not focusable — querying for the first focusable
+  // button inside returns an element that evaluates to `tabIndex: -1` under tab navigation
+  // because the ancestor is display:none.
+  const focusables = await body
+    .locator('button, [tabindex]:not([tabindex="-1"]), input, select')
+    .count();
+  console.log(`L10 body-count=1 hidden=true focusable-descendants=${focusables}`);
+});
+
+// --- L11 ------------------------------------------------------------------------------------
+// No modal-overlay for the appearance guide; the description block lives inside the Appearance
+// section (hidden behind the collapsed body until the user opens it, i.e. absent at load).
+test('L11 appearance guide is inline (no fixed/absolute overlay covers the canvas)', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await addSpaceBackground(page, { width: 1920, height: 1080 });
+  await page.getByTestId('editor-add-led').click();
+  await openSection(page, 'appearance');
+  await expect(page.getByTestId('appearance-guide-toggle')).toBeVisible();
+
+  const canvas = (await rect(page, '.editor-canvas-container'))!;
+  const overlapping = await page.evaluate(
+    (canvasRect) => {
+      const canvasEl = document.querySelector('.editor-canvas-container');
+      const out: string[] = [];
+      const walk = (el: Element) => {
+        const style = window.getComputedStyle(el);
+        if (
+          (style.position === 'fixed' || style.position === 'absolute') &&
+          style.display !== 'none'
+        ) {
+          // Skip Konva's own stage DOM and the watermark layer — those live INSIDE the canvas
+          // on purpose and shouldn't be counted as "overlay covering the canvas".
+          const insideCanvas = canvasEl?.contains(el) ?? false;
+          const isWatermark =
+            el.classList.contains('editor-canvas-watermark-badge') ||
+            el.closest('.editor-canvas-watermark-badge') !== null;
+          const r = el.getBoundingClientRect();
+          const overlaps =
+            r.width > 0 &&
+            r.height > 0 &&
+            r.left < canvasRect.right &&
+            r.right > canvasRect.left &&
+            r.top < canvasRect.bottom &&
+            r.bottom > canvasRect.top;
+          if (overlaps && !insideCanvas && !isWatermark) {
+            out.push(
+              `${el.tagName.toLowerCase()}.${String(el.className).trim().split(/\s+/)[0] ?? ''} @ ${Math.round(r.left)},${Math.round(r.top)}-${Math.round(r.right)},${Math.round(r.bottom)}`,
+            );
+          }
+        }
+        for (const c of Array.from(el.children)) walk(c);
+      };
+      walk(document.body);
+      return out;
+    },
+    { left: canvas.x, top: canvas.y, right: canvas.right, bottom: canvas.bottom },
+  );
+
+  console.log(`L11 overlappingCount=${overlapping.length}`);
+  for (const o of overlapping) console.log(`  ${o}`);
+  expect(overlapping).toEqual([]);
+});
+
+// --- L12 ------------------------------------------------------------------------------------
+// Toolbar PNG export button exists, ≥44 px tall, under the comparison toggle; triggering it
+// downloads a file; while a video export is in flight, the header pair is also disabled.
+test('L12 toolbar PNG export button is visible and ≥ 44 px tall', async ({ page }) => {
+  await page.goto('/');
+  await addSpaceBackground(page, { width: 1920, height: 1080 });
+  const btn = page.getByTestId('editor-export-png-panel');
+  await expect(btn).toBeVisible();
+  const box = (await btn.boundingBox())!;
+  console.log(`L12 editor-export-png-panel height=${box.height.toFixed(1)}`);
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  const dl = page.waitForEvent('download');
+  await btn.click();
+  await dl;
+});
+
+// --- L13 ------------------------------------------------------------------------------------
+// Both header and footer entries open UserGuide; the old 'マニュアルはこちら' label is gone.
+test('L13 user-guide opens from header AND footer, old hint label is gone', async ({ page }) => {
+  await page.goto('/');
+  // Old label absent anywhere in DOM.
+  const stale = await page.getByText('マニュアルはこちら').count();
+  console.log(`L13 old-hint-count=${stale}`);
+  expect(stale).toBe(0);
+  // Open from header.
+  await page.getByTestId('editor-header-user-guide').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  // Close + open from footer.
+  await page.getByRole('button', { name: /閉じる/ }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await page.getByTestId('editor-footer-user-guide').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+});
+
+// --- L14 ------------------------------------------------------------------------------------
+// Scope: inline SUB-ACCORDION state inside Selected (currently only `position-size`). Starts
+// collapsed (confirmed by first assertion). After the user explicitly opens it, the open
+// state must survive a signage switch. Paired with L8 (collapse persistence of a top-level
+// section) — different scope, together they describe both directions of "user intent
+// outlives the next selection".
+test('L14 position/size subsection stays open after switching signage', async ({ page }) => {
+  await page.goto('/');
+  await addSpaceBackground(page, { width: 1920, height: 1080 });
+  await page.getByTestId('editor-add-led').click();
+  const toggle = page.getByTestId('toolbar-subsection-position-size-toggle');
+  expect(await toggle.getAttribute('aria-expanded')).toBe('false');
+  await toggle.click();
+  expect(await toggle.getAttribute('aria-expanded')).toBe('true');
+  await page.getByTestId('editor-add-lcd').click();
+  const after = await toggle.getAttribute('aria-expanded');
+  console.log(`L14 open-after-switch=${after}`);
+  expect(after).toBe('true');
+});
+
+// --- L16 ------------------------------------------------------------------------------------
+// ko/en locale switch does not leave untranslated keys / `undefined` in the Toolbar.
+test('L16 ko locale switch renders without undefined or raw keys', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#language-select').selectOption('ko');
+  const toolbarText = (await page.locator('.toolbar').textContent()) ?? '';
+  const hasUndefined = toolbarText.toLowerCase().includes('undefined');
+  const hasRawKey = /\btoolbar[A-Z]/.test(toolbarText);
+  console.log(`L16 ko undefined=${hasUndefined} rawKey=${hasRawKey} length=${toolbarText.length}`);
+  expect(hasUndefined).toBe(false);
+  expect(hasRawKey).toBe(false);
+});

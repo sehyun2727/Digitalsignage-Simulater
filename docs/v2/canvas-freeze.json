@@ -1,0 +1,190 @@
+{
+  "changeLog": [
+    {
+      "commit": "3e30038",
+      "date": "2026-10-11",
+      "zone": "status-area",
+      "change": ".editor-status-area height 5.5rem (88px) -> 3rem (48px) -- canvas reclaims +40 CSS px vertical.",
+      "approvedBy": "user 2026-10-11 prompt (3-option enlarge-canvas; option S1 selected)",
+      "canvasHeightDelta": {
+        "1920x1080": "+40.00",
+        "1440x900": "0 (width-limited)",
+        "1280x720": "+40.00",
+        "1024x640": "+37.16",
+        "390x844": "0 (mobile 0.7xinnerHeight path)"
+      },
+      "note": "Baseline for all subsequent canvas-freeze measurements. Earlier baseline (18d9fe4 / v2-S3-ok) is kept for reference only."
+    },
+    {
+      "commit": "<v2-release D11>",
+      "date": "2026-10-17",
+      "zone": "stage.scenarios (test baseline, not a source zone)",
+      "change": "Split baseline into win32 default + optional linuxOverride per scenario. Only 4 small-viewport scenarios (1024x640 landscape+portrait, 390x844 landscape+portrait) get Linux overrides measured from PR #2 CI run 38943078815; the other 6 scenarios' values are identical on both platforms.",
+      "approvedBy": "user 2026-10-17 (RELEASE D11)",
+      "linuxDelta": {
+        "1024x640 landscape": "y 193.89 -> 193.09 (-0.80)",
+        "1024x640 portrait": "x 227.22 -> 226.77 (-0.45), y 192.47 -> 190.88 (-1.59), w 201.56 -> 202.45 (+0.89), h 358.34 -> 359.94 (+1.60)",
+        "390x844 landscape": "y 269.66 -> 264.06 (-5.60)",
+        "390x844 portrait": "y 269.66 -> 264.06 (-5.60)"
+      },
+      "note": "App code and CSS unchanged (no frozen source zone touched; zones[].sha256 unchanged, src/ frozen-zone diff = 0 lines). Linux-vs-Win32 drift comes from Chromium shell font metrics / mobile-breakpoint layout. Tolerance remains 0.5 px for both platforms. Determinism requires 2 consecutive PR CI runs to measure within ±0.5 of these linuxOverride values; see release-notes D11."
+    }
+  ],
+  "cssSelectorGuard": {
+    "comment": "The freeze-selector guard scans src/**/*.css and flags any rule whose selector targets `.editor-workspace`, `.editor-canvas-(column|wrapper|measure|container)`, or `.editor-status-area` — classes whose layout contract is pinned by CLAUDE.md §4bis. Matches outside freeze zones (`CANVAS-FREEZE:BEGIN/END` markers) are errors unless listed below with the exact file+line where the pre-existing rule lives. New additions require [canvas-approved] + updating this allowlist (not silently extending it). Line numbers are 1-indexed and must point at the exact line containing the first character of the matched selector.",
+    "classes": [
+      "editor-workspace",
+      "editor-canvas-column",
+      "editor-canvas-wrapper",
+      "editor-canvas-measure",
+      "editor-canvas-container",
+      "editor-status-area"
+    ],
+    "allowlist": [
+      { "file": "src/styles/global.css", "line": 304, "selector": ".editor-canvas-container" },
+      { "file": "src/styles/global.css", "line": 1298, "selector": ".editor-workspace" },
+      { "file": "src/styles/global.css", "line": 1314, "selector": ".editor-canvas-measure" },
+      { "file": "src/styles/global.css", "line": 1320, "selector": ".editor-canvas-wrapper" },
+      { "file": "src/styles/global.css", "line": 1429, "selector": ".editor-workspace" },
+      { "file": "src/styles/global.css", "line": 1438, "selector": ".editor-canvas-wrapper" }
+    ]
+  },
+  "zones": {
+    "fit-scale": {
+      "file": "src/features/editor/EditorCanvas.tsx",
+      "sha256": "9de6225a513f3a111cc2be906b5f4c8c908f2a0064fe6ed337c87fdca81374a3",
+      "length": 1264
+    },
+    "coord-convert": {
+      "file": "src/features/editor/EditorCanvas.tsx",
+      "sha256": "b743b282244ba43afd3fae5d0a1f52a7d6e1ba922abf5289a92760d4afdefb07",
+      "length": 336
+    },
+    "measure-container-jsx": {
+      "file": "src/features/editor/EditorCanvas.tsx",
+      "sha256": "70d95de734f96826b2ced3572ee17e9ed1cbeb8cc180c9796b9c22c9e30ceeb0",
+      "length": 992
+    },
+    "root-overflow": {
+      "file": "src/styles/global.css",
+      "sha256": "87525590b402d7ce4ccd4fa04a249c43f546efb72baa8b3e6e2c7a01f972f80a",
+      "length": 788
+    },
+    "workspace-grid": {
+      "file": "src/styles/global.css",
+      "sha256": "bc8d64f7bd4b471ce8b1834218ca9ebaff467d7d6f3e7a6feff783a2ace9c9f1",
+      "length": 3857
+    },
+    "status-area": {
+      "file": "src/styles/global.css",
+      "sha256": "f43e06f22f2cdbbc71c81ffe46ad5f89edfec138181376e26e078964d5f4b4f2",
+      "length": 901
+    },
+    "media-breakpoint-72": {
+      "file": "src/styles/global.css",
+      "sha256": "516f95894e012a5986d9511d18d7aaa4165341e7bafc8ccbd6f50ec8ff927100",
+      "length": 213
+    },
+    "media-breakpoint-48": {
+      "file": "src/styles/global.css",
+      "sha256": "764fbd0f07791b12168274b1e7fed0f4cd4e6064c47ab04c5a4cbb5d31f091ef",
+      "length": 28
+    },
+    "preset-sizes": {
+      "file": "src/types/editor.ts",
+      "sha256": "423f2efc88008d1c056f3c2cf55e46bd74be8aee870e8add7dc7192b536c55d0",
+      "length": 436
+    }
+  },
+  "stage": {
+    "comment": "Fixed Stage frame (.editor-canvas-container border-box) bounding boxes re-measured at v2-S4 [canvas-approved] 2026-10-11 after shrinking status-area 5.5rem → 3rem (ja-JP shell, space photo loaded). The 40-CSS-px vertical reclaim lifts fitScale on every height-limited viewport: at 1920×1080 landscape the canvas grows from 1438×809 to 1509×849 (56% → 61.8% viewport share). 1440×900 landscape is width-limited at this VP so its scenario is unchanged. 390×844 (mobile) uses a separate fit path (0.7 × window.innerHeight) and is also unchanged. Any drift beyond ±0.5 px fails e2e/canvas-freeze.spec.ts. --- v2-release D11 (approved-by-user 2026-10-17): small viewports (1024×640 landscape+portrait, 390×844 landscape+portrait) have a separate `linuxOverride` block measured from PR CI run 38943078815 — Chromium shell font metrics + mobile breakpoint drift between Linux and Windows is 0.8-5.6 px on these sizes. The spec picks `linuxOverride` on `process.platform === 'linux'` (ubuntu CI), the top-level `x/y/width/height` on other platforms (win32 dev). Tolerance 0.5 px is unchanged.",
+    "selector": ".editor-canvas-container",
+    "tolerance_px": 0.5,
+    "scenarios": [
+      {
+        "viewport": { "w": 1920, "h": 1080 },
+        "preset": "landscape",
+        "x": 21.22,
+        "y": 141.69,
+        "width": 1509.55,
+        "height": 849.13
+      },
+      {
+        "viewport": { "w": 1920, "h": 1080 },
+        "preset": "portrait",
+        "x": 537.19,
+        "y": 141.69,
+        "width": 477.63,
+        "height": 849.13
+      },
+      {
+        "viewport": { "w": 1440, "h": 900 },
+        "preset": "landscape",
+        "x": 12,
+        "y": 181.5,
+        "width": 1048,
+        "height": 589.5
+      },
+      {
+        "viewport": { "w": 1440, "h": 900 },
+        "preset": "portrait",
+        "x": 347.81,
+        "y": 141.69,
+        "width": 376.38,
+        "height": 669.13
+      },
+      {
+        "viewport": { "w": 1280, "h": 720 },
+        "preset": "landscape",
+        "x": 39.78,
+        "y": 162.56,
+        "width": 832.44,
+        "height": 468.25
+      },
+      {
+        "viewport": { "w": 1280, "h": 720 },
+        "preset": "portrait",
+        "x": 324.3,
+        "y": 162.56,
+        "width": 263.39,
+        "height": 468.25
+      },
+      {
+        "viewport": { "w": 1024, "h": 640 },
+        "preset": "landscape",
+        "x": 12,
+        "y": 193.89,
+        "width": 632,
+        "height": 355.5,
+        "linuxOverride": { "x": 12.0, "y": 193.09, "width": 632.0, "height": 355.5 }
+      },
+      {
+        "viewport": { "w": 1024, "h": 640 },
+        "preset": "portrait",
+        "x": 227.22,
+        "y": 192.47,
+        "width": 201.56,
+        "height": 358.34,
+        "linuxOverride": { "x": 226.77, "y": 190.88, "width": 202.45, "height": 359.94 }
+      },
+      {
+        "viewport": { "w": 390, "h": 844 },
+        "preset": "landscape",
+        "x": 12,
+        "y": 269.66,
+        "width": 366,
+        "height": 205.88,
+        "linuxOverride": { "x": 12.0, "y": 264.06, "width": 366.0, "height": 205.88 }
+      },
+      {
+        "viewport": { "w": 390, "h": 844 },
+        "preset": "portrait",
+        "x": 12,
+        "y": 269.66,
+        "width": 332.31,
+        "height": 590.77,
+        "linuxOverride": { "x": 12.0, "y": 264.06, "width": 332.31, "height": 590.77 }
+      }
+    ]
+  }
+}

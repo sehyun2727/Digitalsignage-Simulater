@@ -25,6 +25,14 @@ export function rectContainsPoint(rect: Rect, point: Point): boolean {
  * — the narrower drop target used for drag-and-drop content assignment, distinct from the
  * whole-object-bounds hit area ADR 0005 added for click-to-select. Other object kinds have no
  * screen region to drop content onto.
+ *
+ * This is also the **logical screen** of invariants A/B (v2-S1): the one surface the renderer
+ * composes content against, decoupled from any active perspective quad. Derived purely from
+ * (width, height, material/frameId/templateView/screenQuad) — never from perspective state or
+ * from a cached historical size — so `computeContentLayout` fed with this rect produces
+ * order-independent output. If you need the "where the content ends up on the canvas", apply
+ * the object's own transform (rect mode) or project through `perspectiveQuad` (perspective
+ * mode) to this rect's corners *after* layout — don't bake the perspective into the input.
  */
 export function getObjectScreenRect(object: SignageObject): Rect | null {
   if (object.kind === 'display') {

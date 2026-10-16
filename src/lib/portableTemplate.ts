@@ -67,13 +67,16 @@ export const PORTABLE_PRESET_SCREEN_QUADS: Record<PortableTemplateView, Normaliz
     bottomLeft: { x: 0.42077, y: 0.75368 },
   },
   'angled-right': {
-    // Exact horizontal mirror (x → 1−x) of angled-left. Corner labels swap because a
-    // horizontal flip trades left and right: angled-left's topRight becomes angled-right's
-    // topLeft (and analogously for the bottom pair).
-    topLeft: { x: 1 - 0.63538, y: 0.14789 }, // ↔ angled-left.topRight
-    topRight: { x: 1 - 0.27231, y: 0.09 }, // ↔ angled-left.topLeft
-    bottomRight: { x: 1 - 0.42077, y: 0.75368 }, // ↔ angled-left.bottomLeft
-    bottomLeft: { x: 1 - 0.78308, y: 0.71474 }, // ↔ angled-left.bottomRight
+    // v2-release R1 (D10): switched from the "mirror of angled-left" shorthand to the
+    // directly-measured quad for the actual `angled-right` reference image. The mirror
+    // was off by ~1 px per corner against the measured docodemo-right asset (fixture:
+    // `e2e/fixtures/portable-screen-quads.json`), landing content ~1 px outside where
+    // K1 expected it. Measured source: 1300×1900 webp → normalized below. Rendering now
+    // aligns with K1's measurement coordinates.
+    topLeft: { x: 475 / 1300, y: 280 / 1900 },
+    topRight: { x: 946 / 1300, y: 170 / 1900 },
+    bottomRight: { x: 754 / 1300, y: 1431 / 1900 },
+    bottomLeft: { x: 281 / 1300, y: 1358 / 1900 },
   },
 };
 

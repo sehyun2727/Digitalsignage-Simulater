@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { openSection } from './support/accordion.js';
 import { samplePngPixels } from './support/pixels.js';
 import { addSpaceBackground } from './support/spaceBackground.js';
 import { addVideoContent } from './support/video.js';
@@ -32,19 +33,30 @@ async function documentPointToPagePoint(
   return { x: box.x + docPoint.x * scale, y: box.y + docPoint.y * scale };
 }
 
+// The pre-v2 overlay replaced the per-corner "X座標 / Y座標" number inputs (which the
+// old fieldset-based helper filled) with a draggable `role="slider"` handle per corner —
+// numeric nudging via ArrowKey still works but can't jump directly to an absolute fraction.
+// This helper pointer-drags the handle to the target normalized point inside the canvas
+// container, mirroring how a user would set the corner by eye. S1 Step 5 reuses it.
+const CORNER_TESTID_KEY: Record<'左上' | '右上' | '右下' | '左下', string> = {
+  左上: 'editor-perspective-handle-topLeft',
+  右上: 'editor-perspective-handle-topRight',
+  右下: 'editor-perspective-handle-bottomRight',
+  左下: 'editor-perspective-handle-bottomLeft',
+};
+
 async function setPerspectiveCorner(
   page: Page,
   cornerLabel: '左上' | '右上' | '右下' | '左下',
   xFraction: number,
   yFraction: number,
 ): Promise<void> {
-  const fieldset = page.locator('fieldset').filter({ hasText: cornerLabel });
-  const xInput = fieldset.getByRole('spinbutton', { name: 'X座標' });
-  const yInput = fieldset.getByRole('spinbutton', { name: 'Y座標' });
-  await xInput.fill(String(xFraction));
-  await xInput.blur();
-  await yInput.fill(String(yFraction));
-  await yInput.blur();
+  const handle = page.getByTestId(CORNER_TESTID_KEY[cornerLabel]);
+  const canvas = page.locator('.editor-canvas-container');
+  const box = (await canvas.boundingBox())!;
+  await handle.dragTo(canvas, {
+    targetPosition: { x: xFraction * box.width, y: yFraction * box.height },
+  });
 }
 
 // A valid, convex quad occupying the document's top-left quadrant — far from the default
@@ -90,6 +102,12 @@ test.describe('four-point perspective placement', () => {
   test('edit/cancel discards draft changes, reset restores the original quad, and undo/redo toggle placement mode', async ({
     page,
   }) => {
+    // v2-S2 rewrite: the pre-S0 fieldset-based "X座標"/"Y座標" numeric inputs were
+    // replaced with per-corner draggable slider handles whose current value is exposed as
+    // `aria-valuetext="X%, Y%"`. We assert that string instead of the removed spinbutton
+    // value. Re-selection after Undo/Redo uses the current hit-area rule: in perspective
+    // mode the warped quad is the selection area (see the hit-testing spec below), so
+    // Redo (which restores perspective mode) must be followed by a click INSIDE the quad.
     await setup(page);
     await page.getByRole('button', { name: 'LED', exact: true }).click();
     await applyTopLeftPerspectiveQuad(page);
@@ -102,64 +120,99 @@ test.describe('four-point perspective placement', () => {
     await expect(page.getByRole('slider', { name: '左上' })).toBeHidden();
 
     await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
-    let topLeftFieldset = page.locator('fieldset').filter({ hasText: '左上' });
-    await expect(topLeftFieldset.getByRole('spinbutton', { name: 'X座標' })).toHaveValue('0.05');
+    // The handle's aria-valuetext is "5.0%, 5.0%" for (0.05, 0.05) — the applied
+    // TOP_LEFT_QUAD value — confirming Cancel discarded the (0.2, 0.2) draft without
+    // touching the stored quad. v2-S4 Step 0-5: precision tightened to 1 decimal so the
+    // L5 oracle can verify ≤ 1 doc px drift from the store value.
+    await expect(page.getByRole('slider', { name: '左上' })).toHaveAttribute(
+      'aria-valuetext',
+      '5.0%, 5.0%',
+    );
 
     // Change the same corner again, then Reset — the draft must revert without leaving edit mode.
     await setPerspectiveCorner(page, '左上', 0.2, 0.2);
     await page.getByRole('button', { name: 'リセット', exact: true }).click();
-    topLeftFieldset = page.locator('fieldset').filter({ hasText: '左上' });
-    await expect(topLeftFieldset.getByRole('spinbutton', { name: 'X座標' })).toHaveValue('0.05');
+    await expect(page.getByRole('slider', { name: '左上' })).toHaveAttribute(
+      'aria-valuetext',
+      '5.0%, 5.0%',
+    );
     await expect(page.getByRole('button', { name: '適用' })).toBeVisible();
     await page.getByRole('button', { name: '適用' }).click();
 
-    // Undo reverts the perspective apply back to normal (rect) placement; the object is
-    // deselected by the undo itself, so it must be reselected via canvas click to check its
-    // properties panel, matching the established reselection-after-undo pattern.
+    // Undo reverts the perspective apply back to normal rect placement; the display's hit
+    // area is then the centered flat rect (720,405)-(1200,675). Click the rect's center to
+    // reselect, matching the established reselection-after-undo pattern.
     await page.getByRole('button', { name: '元に戻す' }).click();
     await expect(deleteButton(page)).toBeDisabled();
-    const center = await documentPointToPagePoint(page, { x: 960, y: 540 });
-    await page.mouse.click(center.x, center.y);
+    const rectCenter = await documentPointToPagePoint(page, { x: 960, y: 540 });
+    await page.mouse.click(rectCenter.x, rectCenter.y);
     await expect(deleteButton(page)).toBeEnabled();
     await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeHidden();
 
+    // Redo re-applies the TOP_LEFT_QUAD perspective; the hit area is now the warped quad
+    // itself, centered at document-space (~432, 243) [midpoint of the (0.05-0.4) × (0.05-0.4)
+    // quad in document coords]. The old flat-rect center (960, 540) is OUTSIDE this quad
+    // and must not reselect; the quad interior does.
     await page.getByRole('button', { name: 'やり直す' }).click();
     await expect(deleteButton(page)).toBeDisabled();
-    await page.mouse.click(center.x, center.y);
+    await page.mouse.click(rectCenter.x, rectCenter.y);
+    await expect(deleteButton(page)).toBeDisabled();
+    const quadCenter = await documentPointToPagePoint(page, { x: 432, y: 243 });
+    await page.mouse.click(quadCenter.x, quadCenter.y);
     await expect(deleteButton(page)).toBeEnabled();
     await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeVisible();
   });
 
-  test('hit-testing follows the perspective object’s flat rect, not its warped visual body, and yields to an overlapping topmost object there', async ({
+  test('hit-testing follows the perspective object’s warped quad, overlapping topmost wins, and clicking inside the original flat rect but outside the quad does nothing', async ({
     page,
   }) => {
+    // v2-S2 decision: in perspective mode the warped quad IS the selection area. The pre-v2
+    // "flat rect stays as hit area" assertion is intentionally replaced here. We also keep
+    // the original overlapping-topmost semantic and add an explicit negative assertion for
+    // the "inside flat rect, outside quad" region that no longer selects anything.
     await setup(page);
     await page.getByRole('button', { name: 'LED', exact: true }).click();
     await applyTopLeftPerspectiveQuad(page);
+    // Fill the LED's content via the add-text-content fast path so this test still exercises
+    // "select → edit text content" — the original A3 intent carried over to the current UI.
+    await page.getByTestId('editor-add-text-content').click();
+    await expect(page.getByLabel('テキスト内容')).toBeVisible();
+    await page.locator('.editor-canvas-container').click({ position: { x: 5, y: 5 } });
+    await expect(deleteButton(page)).toBeDisabled();
 
-    // A second, default-centered object added afterward overlaps the LED display's flat
-    // hit-area rect exactly (both center on the document) and renders on top of it.
-    await page.getByRole('button', { name: 'テキストを追加' }).click();
-    await expect(deleteButton(page)).toBeEnabled();
-
+    // (A) Negative — flat-rect center (720-1200, 405-675) is OUTSIDE the top-left quad; a
+    // click there must not select the LED under the new quad-based hit rule.
     const flatRectCenter = await documentPointToPagePoint(page, { x: 960, y: 540 });
     await page.mouse.click(flatRectCenter.x, flatRectCenter.y);
-    await expect(page.getByLabel('テキスト内容')).toBeVisible();
-
-    await deleteButton(page).click();
     await expect(deleteButton(page)).toBeDisabled();
 
-    // With the text gone, the same center point now hits the LED display's flat rect, even
-    // though that display's visible body has been warped away to the top-left quadrant.
-    await page.mouse.click(flatRectCenter.x, flatRectCenter.y);
+    // (B) Positive — the quad's own center is inside the warped quad; the LED selects.
+    const quadCenter = await documentPointToPagePoint(page, { x: 432, y: 243 });
+    await page.mouse.click(quadCenter.x, quadCenter.y);
     await expect(deleteButton(page)).toBeEnabled();
     await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeVisible();
+    // Confirms "select → edit text" works post-selection: the テキスト内容 field is reachable.
+    await expect(page.getByLabel('テキスト内容')).toBeVisible();
 
-    // The warped visual body sits at the quad's own center (~0.225, 0.225 normalized); nothing
-    // is listening there, so clicking it must deselect rather than select the display.
-    const warpedVisualCenter = await documentPointToPagePoint(page, { x: 432, y: 243 });
-    await page.mouse.click(warpedVisualCenter.x, warpedVisualCenter.y);
+    // (C) Topmost-overlapping precedence — add an LCD, which spawns as a centered rect
+    // (720-1200, 405-675) that overlaps the LED's warped quad on the strip (720-768, 405-432).
+    // A click inside that strip must select the LCD (added-later, topmost in Konva stacking).
+    await page.getByTestId('editor-add-lcd').click();
+    // v2-S3: material combobox lives in the Appearance accordion, collapsed by default.
+    await openSection(page, 'appearance');
+    await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
+    const overlapStrip = await documentPointToPagePoint(page, { x: 740, y: 420 });
+    await page.locator('.editor-canvas-container').click({ position: { x: 5, y: 5 } });
+    await page.mouse.click(overlapStrip.x, overlapStrip.y);
+    await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
+
+    // (D) Delete the top LCD; the same overlap point then hits the LED's warped quad, so
+    // delete is still enabled and 「通常配置に戻す」 (perspective mode marker) reappears.
+    await deleteButton(page).click();
     await expect(deleteButton(page)).toBeDisabled();
+    await page.mouse.click(overlapStrip.x, overlapStrip.y);
+    await expect(deleteButton(page)).toBeEnabled();
+    await expect(page.getByRole('button', { name: '通常配置に戻す' })).toBeVisible();
   });
 });
 
@@ -171,7 +224,9 @@ test.describe('transparent LED window blending', () => {
     // A saturated, unambiguous background color makes the directional pixel comparison below
     // (more transparency -> more background showing through -> higher red channel) robust.
     await addSpaceBackground(page, { ...DOCUMENT_SIZE, color: '#ff0000' });
-    await page.getByRole('button', { name: '透過LED' }).click();
+    await page.getByTestId('editor-add-transparent-led').click();
+    // v2-S3: material + sliders + 詳細設定 all live inside the Appearance accordion.
+    await openSection(page, 'appearance');
     await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue(
       'transparent-led',
     );
@@ -187,7 +242,7 @@ test.describe('transparent LED window blending', () => {
 
     async function exportAndSampleScreenCenter() {
       const downloadPromise = page.waitForEvent('download');
-      await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+      await page.getByTestId('editor-export-png-header').click();
       const download = await downloadPromise;
       const path = await download.path();
       const buffer = await fs.readFile(path!);
@@ -199,14 +254,12 @@ test.describe('transparent LED window blending', () => {
     await transparencySlider.focus();
     await transparencySlider.press('Home');
     await transparencySlider.press('Tab');
-    await page.getByRole('button', { name: '閉じる' }).click();
     const lowTransparencyPixel = await exportAndSampleScreenCenter();
 
-    await page.getByRole('button', { name: '詳細設定', exact: true }).click();
+    // v2-S5 U4: section stays open — no re-click needed.
     await transparencySlider.focus();
     await transparencySlider.press('End');
     await transparencySlider.press('Tab');
-    await page.getByRole('button', { name: '閉じる' }).click();
     const highTransparencyPixel = await exportAndSampleScreenCenter();
 
     // The space background is bright red (#334455 default is not red — see below); the backing
@@ -224,12 +277,12 @@ test.describe('video content preview and export', () => {
     await page.getByRole('button', { name: 'LED', exact: true }).click();
 
     await addVideoContent(page);
-    await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+    await expect(page.getByTestId('editor-content-replace')).toBeVisible();
     await expect(
       page.getByText('動画は自動再生・ループ再生・ミュートで表示されます。'),
     ).toBeVisible();
 
-    const exportButton = page.getByRole('button', { name: '動画で書き出す' });
+    const exportButton = page.getByTestId('editor-export-video-header');
     await expect(exportButton).toBeVisible();
 
     const downloadPromise = page.waitForEvent('download');
@@ -262,10 +315,16 @@ test.describe('video export unsupported fallback', () => {
 
     await setup(page);
 
-    await expect(page.getByRole('button', { name: '動画で書き出す' })).toHaveCount(0);
+    // Both export surfaces (header + toolbar panel) must drop the video button together — a
+    // header-only check would pass even if the panel kept a dead button under an inoperable
+    // MediaRecorder. v2-S4 Step 6 sed audit added the explicit panel assertion.
+    await expect(page.getByTestId('editor-export-video-header')).toHaveCount(0);
+    await expect(page.getByTestId('editor-export-video-panel')).toHaveCount(0);
     await expect(page.getByText('このブラウザは動画の書き出しに対応していません。')).toBeVisible();
 
     // The rest of the app must still work — PNG export is unaffected by video-export support.
-    await expect(page.getByRole('button', { name: 'PNGで書き出す' })).toBeEnabled();
+    // Both PNG buttons stay enabled.
+    await expect(page.getByTestId('editor-export-png-header')).toBeEnabled();
+    await expect(page.getByTestId('editor-export-png-panel')).toBeEnabled();
   });
 });

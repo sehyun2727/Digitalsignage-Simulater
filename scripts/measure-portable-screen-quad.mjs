@@ -28,29 +28,53 @@
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, extname, resolve } from 'node:path';
 import pngjs from 'pngjs';
+import sharp from 'sharp';
 
 const { PNG } = pngjs;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 
+// v2-S4 A안 (2026-10-11): single-source assets. `front` keeps front.png (AI-generated,
+// opaque white background → flood-fill in-browser via maskWhiteBackground). `angled-left`
+// is the raw docodemo.webp (real product shot, native alpha). `angled-right` is derived at
+// render time via scaleX={-1} mirror of `angled-left`, so there is no separate asset or
+// quad to measure here. If docodemo-right.webp / docodemo-front.webp are later added, this
+// list is where to wire them in.
 const IMAGES = [
   { name: 'front', path: resolve(REPO_ROOT, 'src/assets/portable/front.png') },
-  { name: 'angled-left', path: resolve(REPO_ROOT, 'src/assets/portable/angled.png') },
+  { name: 'angled-left', path: resolve(REPO_ROOT, 'src/assets/portable/docodemo.webp') },
 ];
 
-/** Pure-white background pixel (PNG canvas) AND the product's white bezel share
- *  the same "very bright + no chroma" fingerprint. That's fine — we distinguish
- *  them by connectivity, not appearance. */
-function isBezelOrBackground(r, g, b) {
+/** v2-S4 A안: dual-mode body-ish classifier that handles both the AI-generated front.png
+ *  (bright-white background + white bezel) and the docodemo.webp (native alpha + dark-gray
+ *  body). Returns true for pixels that are NOT part of the colorful screen opening — i.e.
+ *  background or bezel/body — so the screen mask then flips to the inverse. */
+function isBezelOrBackground(r, g, b, a) {
+  // Transparent pixel in native-alpha image → outside the product entirely.
+  if (a !== undefined && a < 128) return true;
   const brightness = (r + g + b) / 3;
   const chroma = Math.max(r, g, b) - Math.min(r, g, b);
-  return brightness > 235 && chroma < 18;
+  // Very bright + no chroma = white (front.png background OR bezel).
+  if (brightness > 235 && chroma < 18) return true;
+  // Low chroma + mid/dark brightness = device body (docodemo gray stand/frame). Screen area
+  // is a colorful food photo (chroma well above 25), so this clean threshold separates them.
+  if (chroma < 20) return true;
+  return false;
 }
 
-function decode(path) {
+// v2-S4 A안: PNG goes through pngjs synchronously; WebP (docodemo) is routed through sharp
+// which decodes to raw RGBA so the downstream pixel-sweeping code (floodFillOutside,
+// buildScreenMask, …) can run against the same uniform (R,G,B,A) layout.
+async function decode(path) {
   const buf = readFileSync(path);
+  if (extname(path).toLowerCase() === '.webp') {
+    const image = sharp(buf).ensureAlpha();
+    const metadata = await image.metadata();
+    const { data } = await image.raw().toBuffer({ resolveWithObject: true });
+    return { width: metadata.width, height: metadata.height, data };
+  }
   const png = PNG.sync.read(buf);
   return { width: png.width, height: png.height, data: png.data };
 }
@@ -68,7 +92,7 @@ function floodFillOutside(img) {
     const flat = y * width + x;
     if (outside[flat]) continue;
     const i = flat * 4;
-    if (!isBezelOrBackground(data[i], data[i + 1], data[i + 2])) continue;
+    if (!isBezelOrBackground(data[i], data[i + 1], data[i + 2], data[i + 3])) continue;
     outside[flat] = 1;
     stack.push(x - 1, y, x + 1, y, x, y - 1, x, y + 1);
   }
@@ -87,7 +111,7 @@ function buildScreenMask(img, outside) {
       const flat = y * width + x;
       if (outside[flat]) continue;
       const i = flat * 4;
-      if (isBezelOrBackground(data[i], data[i + 1], data[i + 2])) continue;
+      if (isBezelOrBackground(data[i], data[i + 1], data[i + 2], data[i + 3])) continue;
       mask[flat] = 1;
     }
   }
@@ -421,8 +445,8 @@ function findCornersByDiagonals(mask, width, height) {
   return { topLeft: tl, topRight: tr, bottomRight: br, bottomLeft: bl };
 }
 
-function measure(name, path) {
-  const img = decode(path);
+async function measure(name, path) {
+  const img = await decode(path);
   const outside = floodFillOutside(img);
   const raw = buildScreenMask(img, outside);
   const { mask: seedMask } = largestComponent(raw, img.width, img.height);
@@ -445,8 +469,18 @@ function fmtNorm(pt, w, h) {
   return `{ x: ${(pt.x / w).toFixed(4)}, y: ${(pt.y / h).toFixed(4)} }`;
 }
 
+// v2-S5 K1: also emit a machine-readable JSON file so e2e tests can consume the measured
+// quads directly, without round-tripping through PORTABLE_PRESET_SCREEN_QUADS (circular).
+const jsonOut = {
+  _comment:
+    'v2-S5 K1. Measured by scripts/measure-portable-screen-quad.mjs. Consumers (e2e tests) should NOT read PORTABLE_PRESET_SCREEN_QUADS — read THIS file so the pixel verification is independent.',
+  generatedAt: new Date().toISOString(),
+  views:
+    /** @type {Record<string, { source: { width:number, height:number }, pixel: Record<string, {x:number,y:number}>, normalized: Record<string, {x:number,y:number}> }>} */ ({}),
+};
+
 for (const { name, path } of IMAGES) {
-  const { img, count, corners } = measure(name, path);
+  const { img, count, corners } = await measure(name, path);
   console.log(`\n=== ${name} (${img.width} x ${img.height}, ${count}px screen region) ===`);
   console.log('Pixel:');
   console.log('  topLeft:    ', fmtPx(corners.topLeft));
@@ -458,4 +492,46 @@ for (const { name, path } of IMAGES) {
   console.log('  topRight:   ', fmtNorm(corners.topRight, img.width, img.height));
   console.log('  bottomRight:', fmtNorm(corners.bottomRight, img.width, img.height));
   console.log('  bottomLeft: ', fmtNorm(corners.bottomLeft, img.width, img.height));
+  jsonOut.views[name] = {
+    source: { width: img.width, height: img.height },
+    pixel: {
+      topLeft: { x: corners.topLeft.x, y: corners.topLeft.y },
+      topRight: { x: corners.topRight.x, y: corners.topRight.y },
+      bottomRight: { x: corners.bottomRight.x, y: corners.bottomRight.y },
+      bottomLeft: { x: corners.bottomLeft.x, y: corners.bottomLeft.y },
+    },
+    normalized: {
+      topLeft: { x: corners.topLeft.x / img.width, y: corners.topLeft.y / img.height },
+      topRight: { x: corners.topRight.x / img.width, y: corners.topRight.y / img.height },
+      bottomRight: { x: corners.bottomRight.x / img.width, y: corners.bottomRight.y / img.height },
+      bottomLeft: { x: corners.bottomLeft.x / img.width, y: corners.bottomLeft.y / img.height },
+    },
+  };
 }
+
+// angled-right is the horizontal mirror of angled-left (per portableTemplate.ts). Derive
+// it so the test can look up all three views from one file.
+if (jsonOut.views['angled-left']) {
+  const al = jsonOut.views['angled-left'];
+  const mirrorPx = (p) => ({ x: al.source.width - p.x, y: p.y });
+  const mirrorNm = (p) => ({ x: 1 - p.x, y: p.y });
+  jsonOut.views['angled-right'] = {
+    source: { ...al.source },
+    pixel: {
+      topLeft: mirrorPx(al.pixel.topRight),
+      topRight: mirrorPx(al.pixel.topLeft),
+      bottomRight: mirrorPx(al.pixel.bottomLeft),
+      bottomLeft: mirrorPx(al.pixel.bottomRight),
+    },
+    normalized: {
+      topLeft: mirrorNm(al.normalized.topRight),
+      topRight: mirrorNm(al.normalized.topLeft),
+      bottomRight: mirrorNm(al.normalized.bottomLeft),
+      bottomLeft: mirrorNm(al.normalized.bottomRight),
+    },
+  };
+}
+
+const jsonPath = resolve(REPO_ROOT, 'tmp/quad-debug/portable-screen-quads.json');
+writeFileSync(jsonPath, JSON.stringify(jsonOut, null, 2));
+console.log(`\n  JSON output: ${jsonPath}`);

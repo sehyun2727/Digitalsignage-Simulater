@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { openSection } from './support/accordion.js';
 import { readPngDimensions } from './support/png.js';
 import { samplePngPixels } from './support/pixels.js';
 import { addSpaceBackground, solidColorPng } from './support/spaceBackground.js';
@@ -12,11 +13,11 @@ test('adds a space background photo and can remove it again', async ({ page }) =
 
   await addSpaceBackground(page);
 
-  const removeButton = page.getByRole('button', { name: '空間写真を削除' });
+  const removeButton = page.getByRole('button', { name: '写真を削除' });
   await expect(removeButton).toBeVisible();
 
   await removeButton.click();
-  await expect(page.getByRole('button', { name: '空間写真を削除' })).toBeHidden();
+  await expect(page.getByRole('button', { name: '写真を削除' })).toBeHidden();
 });
 
 test('adds an LED display defaulting to led material', async ({ page }) => {
@@ -28,6 +29,8 @@ test('adds an LED display defaulting to led material', async ({ page }) => {
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
   ).toBeVisible();
+  // v2-S3 3-1: material combobox lives in the Appearance accordion, closed by default.
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('led');
 });
 
@@ -37,6 +40,7 @@ test('adds an LCD display defaulting to LCD material', async ({ page }) => {
 
   await page.getByRole('button', { name: 'LCD' }).click();
 
+  await openSection(page, 'appearance');
   await expect(page.getByRole('combobox', { name: 'ディスプレイ素材' })).toHaveValue('lcd');
 });
 
@@ -49,10 +53,10 @@ test('uploads content into a display, edits fit/offset/scale, and resets placeme
 
   const content = await solidColorPng(page, '#00ff00');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
 
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   const fitSelect = page.getByRole('combobox', { name: '表示方法' });
   await expect(fitSelect).toHaveValue('contain');
@@ -61,7 +65,7 @@ test('uploads content into a display, edits fit/offset/scale, and resets placeme
 
   await page.getByRole('button', { name: 'コンテンツの詳細設定' }).click();
 
-  const offsetX = page.getByRole('spinbutton', { name: 'コンテンツ位置X' });
+  const offsetX = page.getByRole('spinbutton', { name: 'コンテンツの横位置' });
   await offsetX.fill('0.4');
   await offsetX.blur();
   await expect(offsetX).toHaveValue('0.4');
@@ -77,11 +81,11 @@ test('removes uploaded content from a display', async ({ page }) => {
 
   const content = await solidColorPng(page, '#00ff00');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを削除' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-remove')).toBeVisible();
 
-  await page.getByRole('button', { name: 'コンテンツを削除' }).click();
+  await page.getByTestId('editor-content-remove').click();
 
   await expect(
     page.getByText('まだコンテンツがありません。画像を追加してください。'),
@@ -97,7 +101,7 @@ test('uploads a generated video clip into a display and shows the autoplay/loop/
 
   await addVideoContent(page);
 
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
   await expect(
     page.getByText('動画は自動再生・ループ再生・ミュートで表示されます。'),
   ).toBeVisible();
@@ -111,7 +115,7 @@ test('exported PNG stays at the exact space photo resolution with a display pres
   await page.getByRole('button', { name: 'LED', exact: true }).click();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
 
   const path = await download.path();
@@ -132,22 +136,24 @@ test('cover-fit display content is clipped to the screen region and never spills
   // any point strictly inside the bezel must not.
   const content = await solidColorPng(page, '#ff0000');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
-  await expect(page.getByRole('button', { name: 'コンテンツを差し替える' })).toBeVisible();
+  await expect(page.getByTestId('editor-content-replace')).toBeVisible();
 
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 
   // Drive the LED-pattern-grid intensity to zero so the grid overlay doesn't perturb the
   // sampled screen-center pixel; Home sends the range input to its min and fires a native
   // input event, then Tab blurs it to commit the final value.
+  // v2-S3: 質感の強さ slider is inside the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   const intensitySlider = page.getByRole('slider', { name: '質感の強さ' });
   await intensitySlider.focus();
   await intensitySlider.press('Home');
   await intensitySlider.press('Tab');
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
 
   const path = await download.path();
@@ -177,12 +183,14 @@ test('a newly added LED display has its contact shadow enabled by default and it
 
   // Regression check for the "shadow disabled by default" defect: a freshly added display must
   // already have a contact shadow, not require the user to opt in.
+  // v2-S3: 詳細設定 button is inside the Appearance accordion (collapsed by default).
+  await openSection(page, 'appearance');
   await page.getByRole('button', { name: '詳細設定', exact: true }).click();
   await expect(page.getByRole('checkbox', { name: '接地シャドウを有効にする' })).toBeChecked();
-  await page.getByRole('button', { name: '閉じる' }).click();
+  // v2-S5 U4: inline accordion — no 「閉じる」 modal button.
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const download = await downloadPromise;
   const buffer = await fs.readFile((await download.path())!);
 
@@ -208,7 +216,11 @@ test('rendering presets update the material sliders and the export brightness to
   await addSpaceBackground(page);
   await page.getByRole('button', { name: 'LED', exact: true }).click();
 
-  const brightnessSlider = page.getByRole('slider', { name: '明るさ' });
+  // v2-S3: brightness slider + rendering preset buttons live inside the Appearance accordion.
+  await openSection(page, 'appearance');
+  // v2-P1 D2: the material brightness slider label was renamed 明るさ → 画面の明るさ to
+  // disambiguate from the preset-group label 「明るさ」 (formerly 「明るさ・時間帯」).
+  const brightnessSlider = page.getByRole('slider', { name: '画面の明るさ' });
   const naturalBrightness = await brightnessSlider.inputValue();
 
   const nightButton = page.getByRole('button', { name: '夜間' });
@@ -227,12 +239,12 @@ test('rendering presets update the material sliders and the export brightness to
 
   const content = await solidColorPng(page, '#ffffff');
   await page
-    .getByLabel('コンテンツを追加')
+    .getByTestId('editor-content-upload')
     .setInputFiles({ name: 'content.png', mimeType: 'image/png', buffer: content });
   await page.getByRole('combobox', { name: '表示方法' }).selectOption('cover');
 
   const nightDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const nightBuffer = await fs.readFile((await (await nightDownload).path())!);
 
   const brightButton = page.getByRole('button', { name: '明るい屋外' });
@@ -240,7 +252,7 @@ test('rendering presets update the material sliders and the export brightness to
   await expect(brightButton).toHaveAttribute('aria-pressed', 'true');
 
   const brightDownload = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'PNGで書き出す' }).click();
+  await page.getByTestId('editor-export-png-header').click();
   const brightBuffer = await fs.readFile((await (await brightDownload).path())!);
 
   // Screen center (960, 540) per the cover-fit test above.

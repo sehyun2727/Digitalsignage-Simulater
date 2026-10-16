@@ -175,8 +175,29 @@ describe('App', () => {
     mockBrowserLocale(['fr-FR']);
     // useUiStore is a module-level singleton; reset it so state never leaks between tests.
     // onboardingDismissed is forced true here since these tests exercise the toolbar itself,
-    // not the onboarding card (see OnboardingOverlay.test.tsx).
-    useUiStore.setState({ comparisonMode: false, onboardingDismissed: true });
+    // not the onboarding card (see OnboardingOverlay.test.tsx). v2-S2 added the per-source
+    // `errors` slot and `requestSequence`; both must be reset too or a prior upload-failure
+    // test leaves an error banner mounted that steals the 「閉じる」 aria-label from the next
+    // test's onboarding dismiss button.
+    useUiStore.setState({
+      comparisonMode: false,
+      onboardingDismissed: true,
+      errors: {},
+      requestSequence: { 'space-photo': 0, content: 0, export: 0 },
+      // v2-S3 2-6: user-guide open state is session-only in uiStore; reset to false so a
+      // previous test that opened the guide can't leak the <dialog> into the next test.
+      userGuideOpen: false,
+      // v2-S3 2-2: accordion state is session-only; reset per test so a close/open from one
+      // test never leaks the hidden-body (and therefore invisible controls) into the next.
+      accordionOpen: {
+        space: true,
+        'add-signage': true,
+        selected: null,
+        content: null,
+        appearance: true,
+      },
+      subAccordionOpen: { 'selected-position-size': true },
+    });
     // useEditorStore is also a module-level singleton; reset it so the space background,
     // objects, and history from one test never leak into the next.
     useEditorStore.setState({
@@ -218,9 +239,12 @@ describe('App', () => {
     render(<App />);
 
     expect(document.documentElement.lang).toBe('ja');
-    // The footer previously exposed a JA-specific disclaimer line; that text now lives inside
-    // the user guide modal, so the JA-only footer link stands in as a language-visible marker.
-    expect(screen.getByRole('button', { name: ja.userGuideOpenButton })).toBeInTheDocument();
+    // v2-S3 2-6: the user-guide entry now exists in both the header (text button) and the
+    // footer (📖 icon). Both share the same accessible name, so disambiguate via the
+    // header testid for this "ja is wired up" check.
+    expect(screen.getByTestId('editor-header-user-guide')).toHaveTextContent(
+      ja.userGuideOpenButton,
+    );
   });
 
   it('opens the user guide modal from the footer link and shows the service description', async () => {
@@ -233,7 +257,8 @@ describe('App', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText(ja.userGuideAboutBody)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: ja.userGuideOpenButton }));
+    // Open from the footer entry (📖 icon) — testid disambiguates from the new header entry.
+    await user.click(screen.getByTestId('editor-footer-user-guide'));
 
     // Once opened, the About section and its short service description are reachable.
     expect(
@@ -299,9 +324,14 @@ describe('App', () => {
     render(<App />);
     await addSpaceBackground(user);
 
-    await user.click(screen.getByRole('button', { name: ja.editorExportButton }));
+    // v2-S3 2-4: the Export button now also lives in the Toolbar's Export section as a
+    // full-width primary button. Both call the same handler; targeting the header testid
+    // keeps this test focused on the header path. The toolbar duplicate is covered by the
+    // e2e v2-layout spec.
+    await user.click(screen.getByTestId('editor-export-png-header'));
 
-    expect(await screen.findByText(ja.editorExportErrorAnnouncement)).toBeInTheDocument();
+    const banner = await screen.findByTestId('editor-error-banner');
+    expect(banner).toHaveTextContent(ja.errorExportPngFailedCause);
   });
 
   it('hides the video export button and shows the unsupported hint when the browser cannot record', async () => {
@@ -327,17 +357,18 @@ describe('App', () => {
     await addSpaceBackground(user);
     expect(screen.queryByText(ja.editorExportVideoUnsupportedHint)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: ja.editorExportVideoButton }));
-
-    const inProgressButton = await screen.findByRole('button', {
-      name: ja.editorExportVideoInProgressButton,
-    });
-    expect(inProgressButton).toBeDisabled();
+    // v2-S3 2-4: header + toolbar both expose the video export button; target the header
+    // testid for the click, then verify the in-progress label on the header button only
+    // (the toolbar duplicate is covered in e2e).
+    const headerVideo = screen.getByTestId('editor-export-video-header');
+    await user.click(headerVideo);
+    expect(headerVideo).toHaveTextContent(ja.editorExportVideoInProgressButton);
+    expect(headerVideo).toBeDisabled();
 
     resolveRecording(new Blob(['clip'], { type: 'video/webm' }));
 
     expect(await screen.findByText(ja.editorExportedVideoAnnouncement)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: ja.editorExportVideoButton })).not.toBeDisabled();
+    expect(screen.getByTestId('editor-export-video-header')).not.toBeDisabled();
   });
 
   it('shows an accessible error and does not download when video export fails', async () => {
@@ -346,10 +377,10 @@ describe('App', () => {
     render(<App />);
     await addSpaceBackground(user);
 
-    await user.click(screen.getByRole('button', { name: ja.editorExportVideoButton }));
+    await user.click(screen.getByTestId('editor-export-video-header'));
 
     expect(await screen.findByText(ja.editorExportVideoErrorAnnouncement)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: ja.editorExportVideoButton })).not.toBeDisabled();
+    expect(screen.getByTestId('editor-export-video-header')).not.toBeDisabled();
   });
 
   it('shows an accessible error and revokes the object URL when an uploaded image fails to decode', async () => {
@@ -376,7 +407,8 @@ describe('App', () => {
     const file = new File([new Uint8Array([1, 2, 3])], 'corrupt.png', { type: 'image/png' });
     await user.upload(screen.getByLabelText(ja.editorContentUploadButton), file);
 
-    expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
+    const banner = await screen.findByTestId('editor-error-banner');
+    expect(banner).toHaveTextContent(ja.errorImageDecodeErrorCause);
     expect(revokeSpy).toHaveBeenCalledWith('blob:mock-url');
   });
 
@@ -403,10 +435,13 @@ describe('App', () => {
     const file = new File([new Uint8Array([1, 2, 3])], 'huge.png', { type: 'image/png' });
     await user.upload(screen.getByLabelText(ja.editorContentUploadButton), file);
 
-    const message = await screen.findByText(ja.editorImageUploadErrorDimensionsTooLarge);
-    // The status/announcement region moved into the canvas wrapper as a bottom overlay so it
-    // no longer wastes a fixed slice of below-canvas height; class names updated to match.
-    expect(message).toHaveClass('editor-canvas-status-announcement--error');
+    // v2-S2: errors render as `.error-banner` with role=alert in the dedicated status area
+    // below the canvas, so the oversized-image failure shows up as a banner. The cause-key
+    // template interpolates numeric limits (6000 px long edge, 24M total pixels) in — pick a
+    // stable keyword from the ja template that doesn't depend on which limit tripped.
+    const banner = await screen.findByTestId('editor-error-banner');
+    expect(banner).toHaveTextContent('画像の解像度');
+    expect(banner.getAttribute('role')).toBe('alert');
     expect(revokeSpy).toHaveBeenCalledWith('blob:mock-oversized');
   });
 
@@ -415,11 +450,14 @@ describe('App', () => {
     render(<App />);
     await addSpaceBackground(user);
 
-    await user.click(screen.getByRole('button', { name: ja.editorExportButton }));
+    await user.click(screen.getByTestId('editor-export-png-header'));
 
-    const message = await screen.findByText(ja.editorExportedAnnouncement);
-    expect(message).toHaveClass('editor-canvas-status-announcement');
-    expect(message).not.toHaveClass('editor-canvas-status-announcement--error');
+    // v2-S2 (requirement C7): success hints go to the polite status element, not the error
+    // banner. If a `.error-banner` ever appeared on a successful export path, that would mean
+    // the hint/error channels got re-crossed and this test should fail.
+    const hint = await screen.findByTestId('editor-status-area-hint');
+    expect(hint).toHaveTextContent(ja.editorExportedAnnouncement);
+    expect(screen.queryByTestId('editor-error-banner')).toBeNull();
   });
 
   describe('Sprint 2: space background and display content/material', () => {
@@ -454,7 +492,8 @@ describe('App', () => {
         createImageFile('space.png'),
       );
 
-      expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
+      const banner = await screen.findByTestId('editor-error-banner');
+      expect(banner).toHaveTextContent(ja.errorImageDecodeErrorCause);
     });
 
     it('adds an LED display and shows its empty-content and material properties', async () => {
@@ -480,40 +519,50 @@ describe('App', () => {
       expect(screen.getByRole('combobox', { name: ja.editorMaterialLabel })).toHaveValue('lcd');
     });
 
-    it('uploads content into a display, edits fit/offset/scale, and resets placement', async () => {
-      const user = userEvent.setup();
-      render(<App />);
-      await addSpaceBackground(user);
+    // v2-S2 보완: this test chains render() + addSpaceBackground + addLed + upload + three
+    // interleaved pointer interactions under one jsdom instance. On a cold or heavily loaded
+    // run this crossed vitest's 5s per-test default once in three repetitions; the individual
+    // assertions themselves stay fast when the test runs in isolation. Bumping the per-test
+    // budget to 15s (not the whole suite) absorbs that cold-start variance without masking a
+    // real regression — the body's assertions are unchanged.
+    it(
+      'uploads content into a display, edits fit/offset/scale, and resets placement',
+      { timeout: 15000 },
+      async () => {
+        const user = userEvent.setup();
+        render(<App />);
+        await addSpaceBackground(user);
 
-      await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
+        await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
 
-      await user.upload(
-        screen.getByLabelText(ja.editorContentUploadButton),
-        createImageFile('content.png'),
-      );
+        await user.upload(
+          screen.getByLabelText(ja.editorContentUploadButton),
+          createImageFile('content.png'),
+        );
 
-      expect(
-        await screen.findByRole('button', { name: ja.editorContentReplaceButton }),
-      ).toBeInTheDocument();
+        expect(
+          await screen.findByRole('button', { name: ja.editorContentReplaceButton }),
+        ).toBeInTheDocument();
 
-      const fitSelect = screen.getByRole('combobox', { name: ja.editorContentFitLabel });
-      expect(fitSelect).toHaveValue('contain');
-      await user.selectOptions(fitSelect, 'cover');
-      expect(fitSelect).toHaveValue('cover');
+        const fitSelect = screen.getByRole('combobox', { name: ja.editorContentFitLabel });
+        expect(fitSelect).toHaveValue('contain');
+        await user.selectOptions(fitSelect, 'cover');
+        expect(fitSelect).toHaveValue('cover');
 
-      await user.click(
-        screen.getByRole('button', { name: ja.editorContentAdvancedSettingsOpenButton }),
-      );
+        await user.click(
+          screen.getByRole('button', { name: ja.editorContentAdvancedSettingsOpenButton }),
+        );
 
-      const offsetXInput = screen.getByRole('spinbutton', { name: ja.editorContentOffsetXLabel });
-      await user.clear(offsetXInput);
-      await user.type(offsetXInput, '0.4');
-      await user.tab();
-      expect(offsetXInput).toHaveValue(0.4);
+        const offsetXInput = screen.getByRole('spinbutton', { name: ja.editorContentOffsetXLabel });
+        await user.clear(offsetXInput);
+        await user.type(offsetXInput, '0.4');
+        await user.tab();
+        expect(offsetXInput).toHaveValue(0.4);
 
-      await user.click(screen.getByRole('button', { name: ja.editorContentResetButton }));
-      expect(offsetXInput).toHaveValue(0);
-    });
+        await user.click(screen.getByRole('button', { name: ja.editorContentResetButton }));
+        expect(offsetXInput).toHaveValue(0);
+      },
+    );
 
     it('removes uploaded content from a display', async () => {
       const user = userEvent.setup();
@@ -544,7 +593,8 @@ describe('App', () => {
         createImageFile('content.png'),
       );
 
-      expect(await screen.findByText(ja.editorImageUploadErrorDecodeFailed)).toBeInTheDocument();
+      const banner = await screen.findByTestId('editor-error-banner');
+      expect(banner).toHaveTextContent(ja.errorImageDecodeErrorCause);
     });
 
     it('uploads a video into a display and shows the autoplay/loop/mute hint', async () => {
@@ -572,9 +622,9 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
       await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createVideoFile());
 
-      expect(
-        await screen.findByText(ja.editorVideoUploadErrorUnsupportedCodec),
-      ).toBeInTheDocument();
+      // v2-S2: switched from the old single-string announcement to the cause/remedy banner.
+      const banner = await screen.findByTestId('editor-error-banner');
+      expect(banner).toHaveTextContent(ja.errorVideoUnsupportedCodecCause);
       expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
     });
 
@@ -588,9 +638,9 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
       await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createVideoFile());
 
-      expect(
-        await screen.findByText(ja.editorVideoUploadErrorDimensionsTooLarge),
-      ).toBeInTheDocument();
+      // Cause template interpolates maxLongEdge / maxShortEdge; match by the first stable word.
+      const banner = await screen.findByTestId('editor-error-banner');
+      expect(banner).toHaveTextContent('動画の解像度');
       expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
     });
 
@@ -603,7 +653,9 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: ja.editorAddLedButton }));
       await user.upload(screen.getByLabelText(ja.editorContentUploadButton), createVideoFile());
 
-      expect(await screen.findByText(ja.editorVideoUploadErrorDurationTooLong)).toBeInTheDocument();
+      // Cause interpolates `{maxSeconds}` (30), so matching the surrounding stable word is enough.
+      const banner = await screen.findByTestId('editor-error-banner');
+      expect(banner).toHaveTextContent('動画の長さ');
       expect(screen.getByText(ja.editorContentNoneHint)).toBeInTheDocument();
     });
 
