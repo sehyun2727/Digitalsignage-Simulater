@@ -50,12 +50,25 @@ for (const vp of VIEWPORTS) {
           expect(box.y + box.height).toBeLessThanOrEqual(vp.height + 1);
           expect(scrollY).toBeLessThanOrEqual(1);
         } else {
-          // Mobile (390×844): CLAUDE.md 4bis defines `fitScale = min(viewportInnerW −
-          // 24, 0.7 × viewportInnerH)` and the shell switches to a vertically-stacked
-          // layout where the toolbar scrolls below the canvas. We assert canvas.right ≤
-          // viewport width (L2's horizontal invariant) and that scroll is a valid access
-          // mechanism (no horizontal overflow), without the desktop no-scroll rule.
+          // v2-P3 A6: mobile strict reading. CLAUDE.md 4bis defines mobile fitScale
+          // as `min(viewportInnerW − 24, 0.7 × viewportInnerH)` → canvas height is
+          // ≤ 0.7 × viewport height which is **strictly** ≤ viewport height. The
+          // canvas's **own box** fits a single screen. The toolbar sits below in a
+          // vertically-stacked shell; scrolling reveals both canvas and toolbar.
+          // Rule (P3 A6): canvas.height ≤ viewport.height AND canvas is reachable
+          // in one scroll step (bbox after scroll fits viewport).
+          expect(box.height).toBeLessThanOrEqual(vp.height + 1);
           expect(box.x + box.width).toBeLessThanOrEqual(vp.width + 1);
+          // Scroll to the canvas's y and verify the box fully fits within viewport.
+          await page.evaluate((y) => window.scrollTo(0, Math.max(0, y)), box.y);
+          const afterScroll = await page.locator('.editor-canvas-container').first().boundingBox();
+          console.log(
+            `[2-1-a ${vp.label} ${preset}] after scroll to y=${box.y.toFixed(1)}: bbox=${JSON.stringify(afterScroll)}`,
+          );
+          if (afterScroll) {
+            expect(afterScroll.y).toBeGreaterThanOrEqual(-1);
+            expect(afterScroll.y + afterScroll.height).toBeLessThanOrEqual(vp.height + 1);
+          }
         }
       }
     });

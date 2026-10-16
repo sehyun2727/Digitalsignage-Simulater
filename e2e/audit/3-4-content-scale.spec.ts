@@ -74,23 +74,18 @@ test('[3-4-a] input shows integer % with suffix', async ({ page }) => {
   expect(suffix).toBe('%');
 });
 
-test('[3-4-b] 150% content width is 1.5× ±1% of 100% (scale range clamped to 100–300%)', async ({
+test('[3-4-b] 50/100/150% content width scales linearly within ±1% (D9 range 50-300%)', async ({
   page,
 }) => {
   await openAppJa(page);
   await addSpaceBg(page);
   await page.getByRole('button', { name: 'LED', exact: true }).click();
   await expandSection(page, /画面コンテンツ/);
-  // 100×100 square magenta: ratio 1:1 ⇒ Fit=contain on an ~460×258 LED screen fills the
-  // screen height, so the base rendered content is 258×258 and scales linearly without
-  // clipping horizontally until S ≈ 460/258 ≈ 1.78. At S=1.0/1.5 the magenta width is
-  // 258/387 px (and @2.0 ≈ 460 — reaches horizontal clip; we don't measure past 1.5).
-  //
-  // Note: `MIN_CONTENT_SCALE = 1.0` in src/types/editor.ts, so **50% is not reachable**
-  // — the input `min` attribute clamps and the store rounds to 1.0. The PDF requirement
-  // "50% / 100% / 150%" wording predates this clamp (introduced in v2-S2). Our strict
-  // 1.5× ±1% check is on the 100%→150% jump, which is what the clamp allows the user to
-  // actually dial in.
+  // v2-P3 D9: content scale min lowered to 0.5. We now exercise the full 50/100/150 %
+  // row from the PDF. Content fixture: 100×100 square magenta → base contain-fit on
+  // 480×270 LED screen fills the screen height (~258 px) so the base rendered content
+  // is 258×258 and scales linearly without clipping horizontally until S ≈ 1.78.
+  // At S=0.5/1.0/1.5 the magenta width is ~129/258/387 px (ratio preserved).
   const content = await solidColorPng(page, '#ff00ff', 100, 100);
   await page.getByLabel(/画像 \/ 動画を追加/).setInputFiles({
     name: 'magenta.png',
@@ -105,24 +100,26 @@ test('[3-4-b] 150% content width is 1.5× ±1% of 100% (scale range clamped to 1
   async function measureAt(scalePct: number): Promise<number> {
     await scaleInput.fill(String(scalePct));
     await scaleInput.blur();
-    // The editor commits scale on blur; a brief settle wait before export avoids the
-    // in-flight Konva redraw.
     await page.waitForTimeout(200);
     const png = await exportPng(page);
     const y = Math.floor(png.height / 2);
     return longestMagentaRunHorizontal(png, y);
   }
 
+  const w50 = await measureAt(50);
   const w100 = await measureAt(100);
   const w150 = await measureAt(150);
   const ratio150_100 = w150 / w100;
+  const ratio50_100 = w50 / w100;
   console.log(
-    `[3-4-b] magenta run @100=${w100} @150=${w150}; ratio150/100=${ratio150_100.toFixed(5)}`,
+    `[3-4-b] magenta run @50=${w50} @100=${w100} @150=${w150}; ratio150/100=${ratio150_100.toFixed(5)} ratio50/100=${ratio50_100.toFixed(5)}`,
   );
 
-  // Strict: 150/100 ratio within 1 % of 1.5.
+  // Strict: 150/100 ratio within 1 % of 1.5, and 50/100 within 1 % of 0.5.
   expect(ratio150_100).toBeGreaterThanOrEqual(1.5 - 0.015);
   expect(ratio150_100).toBeLessThanOrEqual(1.5 + 0.015);
+  expect(ratio50_100).toBeGreaterThanOrEqual(0.5 - 0.005);
+  expect(ratio50_100).toBeLessThanOrEqual(0.5 + 0.005);
 });
 
 test('[3-4-c] UI never shows the raw multiplier (0.5 / 1.5 etc.)', async ({ page }) => {

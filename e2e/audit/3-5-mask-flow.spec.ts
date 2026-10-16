@@ -115,19 +115,30 @@ test('[3-5-c] step indicator present and switches ① ↔ ② with point count',
 // v2-P2 extensions: 3-5-e (ΔE), 3-5-f (cancel → 0 masks), 3-5-g (Undo/Redo per op).
 // --------------------------------------------------------------------------------------
 
-test('[3-5-e] applied mask covers signage pixels with the space photo (CIE Lab ΔE ≤ 10)', async ({
+test('[3-5-e] applied mask: 3-way ΔE verification (mask vs bg, vs content, outside stays content)', async ({
   page,
 }) => {
   await openAppJa(page);
-  // Load a distinct magenta space photo so the "space colour" is unambiguously identifiable.
-  const magentaBg = await solidColorPng(page, '#ff00ff', 1920, 1080);
-  await addSpaceBg(page, { file: magentaBg });
-  // Add LED with no content so the signage body renders as grey material.
+  // v2-P3 A3: distinguish the three semantic colours.
+  //   bg (space photo) = cyan #00FFFF   → clearly non-magenta so the gate can tell them apart
+  //   content image    = magenta #FF00FF → fills the signage screen
+  //   mask region      = after Apply, should read as the bg colour (space photo on top)
+  const CYAN_BG = { r: 0, g: 255, b: 255 };
+  const MAGENTA_CONTENT = { r: 255, g: 0, b: 255 };
+  const cyanBg = await solidColorPng(page, '#00ffff', 1920, 1080);
+  await addSpaceBg(page, { file: cyanBg });
   await page.getByRole('button', { name: 'LED', exact: true }).click();
+  await expandSection(page, /画面コンテンツ/);
+  const magentaContent = await solidColorPng(page, '#ff00ff', 400, 400);
+  await page.getByLabel(/画像 \/ 動画を追加/).setInputFiles({
+    name: 'magenta.png',
+    mimeType: 'image/png',
+    buffer: magentaContent,
+  });
   await expandSection(page, /サイネージ外観の調整/);
 
-  // Sample a pixel at the LED's screen centre BEFORE the mask: should be grey/dark (not
-  // magenta) since no content yet.
+  // Baseline: with content set, the LED screen area shows magenta content. Export and
+  // sample the LED's screen centre.
   const pngBefore = await exportPng(page);
   const docW = pngBefore.width;
   const docH = pngBefore.height;
@@ -139,32 +150,59 @@ test('[3-5-e] applied mask covers signage pixels with the space photo (CIE Lab �
     g: pngBefore.data[i + 1]!,
     b: pngBefore.data[i + 2]!,
   };
-  const spaceColor = { r: 255, g: 0, b: 255 };
-  const deBefore = deltaE76(beforePix, spaceColor);
+  const deBeforeContent = deltaE76(beforePix, MAGENTA_CONTENT);
+  const deBeforeBg = deltaE76(beforePix, CYAN_BG);
   console.log(
-    `[3-5-e] before mask: pixel at centre = rgb(${beforePix.r},${beforePix.g},${beforePix.b}) ΔE to space(#FF00FF) = ${deBefore.toFixed(2)}`,
+    `[3-5-e] before mask: screen-centre rgb(${beforePix.r},${beforePix.g},${beforePix.b})` +
+      ` ΔE→content=${deBeforeContent.toFixed(2)} ΔE→bg=${deBeforeBg.toFixed(2)}`,
   );
-  expect(deBefore).toBeGreaterThan(20); // LED signage body != magenta
+  // Content should dominate the screen centre: close to magenta, far from cyan.
+  expect(deBeforeContent).toBeLessThanOrEqual(15);
+  expect(deBeforeBg).toBeGreaterThan(50);
 
-  // Draw a mask covering the signage centre and apply.
+  // Draw a mask covering ~1/4 of the screen centre and apply.
   await page.getByTestId('editor-occlusion-add').click();
   await placeFourMaskPoints(page);
-  const applyBtn = page.getByTestId('editor-occlusion-apply');
-  await applyBtn.click();
-  // Export again and sample the same centre pixel: should now read as the space photo
-  // (magenta) because the mask "hides" the signage behind the space photo.
+  await page.getByTestId('editor-occlusion-apply').click();
   const pngAfter = await exportPng(page);
+
+  // (1) Mask region (centre of masked quad) should now read as space photo (cyan), not content.
   const j = (cy * docW + cx) * 4;
-  const afterPix = {
+  const insideMaskPix = {
     r: pngAfter.data[j]!,
     g: pngAfter.data[j + 1]!,
     b: pngAfter.data[j + 2]!,
   };
-  const deAfter = deltaE76(afterPix, spaceColor);
+  const deMaskVsBg = deltaE76(insideMaskPix, CYAN_BG);
+  const deMaskVsContent = deltaE76(insideMaskPix, MAGENTA_CONTENT);
   console.log(
-    `[3-5-e] after mask: pixel at centre = rgb(${afterPix.r},${afterPix.g},${afterPix.b}) ΔE to space(#FF00FF) = ${deAfter.toFixed(2)}`,
+    `[3-5-e] inside mask: rgb(${insideMaskPix.r},${insideMaskPix.g},${insideMaskPix.b})` +
+      ` ΔE→bg=${deMaskVsBg.toFixed(2)} ΔE→content=${deMaskVsContent.toFixed(2)}`,
   );
-  expect(deAfter).toBeLessThanOrEqual(10);
+  expect(deMaskVsBg).toBeLessThanOrEqual(10); // ← inside mask ≈ bg (cyan)
+  expect(deMaskVsContent).toBeGreaterThanOrEqual(50); // ← inside mask ≠ content (magenta)
+
+  // (2) Outside the mask but inside the LED screen should still be content (magenta).
+  //     LED default is 480×270 at (720, 405). Screen rect ≈ (729.6, 410.4)-(1190.4, 669.6)
+  //     after the 2% bezel inset. The mask quad is 0.4-0.6 of canvas = (768, 432)-(1152, 648).
+  //     Sample (960, 420) — inside the screen top band (≥ 410 ∧ ≤ 432) → outside mask ∧
+  //     inside screen rect → should read as content magenta.
+  const outsideMaskX = 960;
+  const outsideMaskY = 420;
+  const k = (outsideMaskY * docW + outsideMaskX) * 4;
+  const outsideMaskPix = {
+    r: pngAfter.data[k]!,
+    g: pngAfter.data[k + 1]!,
+    b: pngAfter.data[k + 2]!,
+  };
+  const deOutsideVsContent = deltaE76(outsideMaskPix, MAGENTA_CONTENT);
+  const deOutsideVsBg = deltaE76(outsideMaskPix, CYAN_BG);
+  console.log(
+    `[3-5-e] outside mask (same signage): rgb(${outsideMaskPix.r},${outsideMaskPix.g},${outsideMaskPix.b})` +
+      ` ΔE→content=${deOutsideVsContent.toFixed(2)} ΔE→bg=${deOutsideVsBg.toFixed(2)}`,
+  );
+  expect(deOutsideVsContent).toBeLessThanOrEqual(15); // ← outside mask ≈ content
+  expect(deOutsideVsBg).toBeGreaterThan(50); // ← outside mask ≠ bg
 });
 
 test('[3-5-f] cancel after drawing points → 0 masks on the object', async ({ page }) => {
