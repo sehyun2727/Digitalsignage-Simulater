@@ -32,11 +32,39 @@ interface Scenario {
   y: number;
   width: number;
   height: number;
+  /** v2-release D11 (approved-by-user 2026-10-17): per-platform override. If the current
+   *  platform matches a key here, those x/y/width/height values replace the top-level ones
+   *  for the drift comparison. Tolerance stays at `freeze.stage.tolerance_px` (0.5 px). */
+  linuxOverride?: Partial<Pick<Scenario, 'x' | 'y' | 'width' | 'height'>>;
+}
+
+// `process.platform` on the test runner process picks the baseline set. Ubuntu CI
+// reports 'linux'; Windows dev reports 'win32'; macOS 'darwin'. The current baseline
+// supports two platforms (linuxOverride defined on 4 small-viewport scenarios); every
+// other platform falls back to the top-level win32 values.
+const PLATFORM_IS_LINUX = process.platform === 'linux';
+
+function pickExpected(scenario: Scenario): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} {
+  if (PLATFORM_IS_LINUX && scenario.linuxOverride) {
+    return {
+      x: scenario.linuxOverride.x ?? scenario.x,
+      y: scenario.linuxOverride.y ?? scenario.y,
+      width: scenario.linuxOverride.width ?? scenario.width,
+      height: scenario.linuxOverride.height ?? scenario.height,
+    };
+  }
+  return { x: scenario.x, y: scenario.y, width: scenario.width, height: scenario.height };
 }
 
 // nextFrame + waitForStableBbox are shared with v2-layout.spec.ts in support/waitForStableBbox.ts
 
 for (const scenario of freeze.stage.scenarios as Scenario[]) {
+  const expected = pickExpected(scenario);
   const label = `canvas-freeze ${scenario.viewport.w}x${scenario.viewport.h} ${scenario.preset}`;
   test(label, async ({ browser }) => {
     const ctx = await browser.newContext({
@@ -76,20 +104,20 @@ for (const scenario of freeze.stage.scenarios as Scenario[]) {
     const stage = page.locator(SELECTOR);
     await stage.waitFor();
     const actual = await waitForStableBbox(page, stage);
-    const log = `${label} actual={x=${actual.x.toFixed(2)},y=${actual.y.toFixed(2)},w=${actual.width.toFixed(2)},h=${actual.height.toFixed(2)}} expected={x=${scenario.x},y=${scenario.y},w=${scenario.width},h=${scenario.height}}`;
+    const log = `${label} [${PLATFORM_IS_LINUX ? 'linux' : process.platform}] actual={x=${actual.x.toFixed(2)},y=${actual.y.toFixed(2)},w=${actual.width.toFixed(2)},h=${actual.height.toFixed(2)}} expected={x=${expected.x},y=${expected.y},w=${expected.width},h=${expected.height}}`;
     console.log(log);
-    expect(Math.abs(actual.x - scenario.x), `${label} Stage.x drift`).toBeLessThanOrEqual(
+    expect(Math.abs(actual.x - expected.x), `${label} Stage.x drift`).toBeLessThanOrEqual(
       TOLERANCE,
     );
-    expect(Math.abs(actual.y - scenario.y), `${label} Stage.y drift`).toBeLessThanOrEqual(
+    expect(Math.abs(actual.y - expected.y), `${label} Stage.y drift`).toBeLessThanOrEqual(
       TOLERANCE,
     );
     expect(
-      Math.abs(actual.width - scenario.width),
+      Math.abs(actual.width - expected.width),
       `${label} Stage.width drift`,
     ).toBeLessThanOrEqual(TOLERANCE);
     expect(
-      Math.abs(actual.height - scenario.height),
+      Math.abs(actual.height - expected.height),
       `${label} Stage.height drift`,
     ).toBeLessThanOrEqual(TOLERANCE);
     await ctx.close();

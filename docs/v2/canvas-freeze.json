@@ -14,6 +14,20 @@
         "390x844": "0 (mobile 0.7xinnerHeight path)"
       },
       "note": "Baseline for all subsequent canvas-freeze measurements. Earlier baseline (18d9fe4 / v2-S3-ok) is kept for reference only."
+    },
+    {
+      "commit": "<v2-release D11>",
+      "date": "2026-10-17",
+      "zone": "stage.scenarios (test baseline, not a source zone)",
+      "change": "Split baseline into win32 default + optional linuxOverride per scenario. Only 4 small-viewport scenarios (1024x640 landscape+portrait, 390x844 landscape+portrait) get Linux overrides measured from PR #2 CI run 38943078815; the other 6 scenarios' values are identical on both platforms.",
+      "approvedBy": "user 2026-10-17 (RELEASE D11)",
+      "linuxDelta": {
+        "1024x640 landscape": "y 193.89 -> 193.09 (-0.80)",
+        "1024x640 portrait":  "x 227.22 -> 226.77 (-0.45), y 192.47 -> 190.88 (-1.59), w 201.56 -> 202.45 (+0.89), h 358.34 -> 359.94 (+1.60)",
+        "390x844 landscape":  "y 269.66 -> 264.06 (-5.60)",
+        "390x844 portrait":   "y 269.66 -> 264.06 (-5.60)"
+      },
+      "note": "App code and CSS unchanged (no frozen source zone touched; zones[].sha256 unchanged, src/ frozen-zone diff = 0 lines). Linux-vs-Win32 drift comes from Chromium shell font metrics / mobile-breakpoint layout. Tolerance remains 0.5 px for both platforms. Determinism requires 2 consecutive PR CI runs to measure within ±0.5 of these linuxOverride values; see release-notes D11."
     }
   ],
   "cssSelectorGuard": {
@@ -83,7 +97,7 @@
     }
   },
   "stage": {
-    "comment": "Fixed Stage frame (.editor-canvas-container border-box) bounding boxes re-measured at v2-S4 [canvas-approved] 2026-10-11 after shrinking status-area 5.5rem → 3rem (ja-JP shell, space photo loaded). The 40-CSS-px vertical reclaim lifts fitScale on every height-limited viewport: at 1920×1080 landscape the canvas grows from 1438×809 to 1509×849 (56% → 61.8% viewport share). 1440×900 landscape is width-limited at this VP so its scenario is unchanged. 390×844 (mobile) uses a separate fit path (0.7 × window.innerHeight) and is also unchanged. Any drift beyond ±0.5 px fails e2e/canvas-freeze.spec.ts.",
+    "comment": "Fixed Stage frame (.editor-canvas-container border-box) bounding boxes re-measured at v2-S4 [canvas-approved] 2026-10-11 after shrinking status-area 5.5rem → 3rem (ja-JP shell, space photo loaded). The 40-CSS-px vertical reclaim lifts fitScale on every height-limited viewport: at 1920×1080 landscape the canvas grows from 1438×809 to 1509×849 (56% → 61.8% viewport share). 1440×900 landscape is width-limited at this VP so its scenario is unchanged. 390×844 (mobile) uses a separate fit path (0.7 × window.innerHeight) and is also unchanged. Any drift beyond ±0.5 px fails e2e/canvas-freeze.spec.ts. --- v2-release D11 (approved-by-user 2026-10-17): small viewports (1024×640 landscape+portrait, 390×844 landscape+portrait) have a separate `linuxOverride` block measured from PR CI run 38943078815 — Chromium shell font metrics + mobile breakpoint drift between Linux and Windows is 0.8-5.6 px on these sizes. The spec picks `linuxOverride` on `process.platform === 'linux'` (ubuntu CI), the top-level `x/y/width/height` on other platforms (win32 dev). Tolerance 0.5 px is unchanged.",
     "selector": ".editor-canvas-container",
     "tolerance_px": 0.5,
     "scenarios": [
@@ -141,7 +155,8 @@
         "x": 12,
         "y": 193.89,
         "width": 632,
-        "height": 355.5
+        "height": 355.5,
+        "linuxOverride": { "x": 12.0, "y": 193.09, "width": 632.0, "height": 355.5 }
       },
       {
         "viewport": { "w": 1024, "h": 640 },
@@ -149,7 +164,8 @@
         "x": 227.22,
         "y": 192.47,
         "width": 201.56,
-        "height": 358.34
+        "height": 358.34,
+        "linuxOverride": { "x": 226.77, "y": 190.88, "width": 202.45, "height": 359.94 }
       },
       {
         "viewport": { "w": 390, "h": 844 },
@@ -157,7 +173,8 @@
         "x": 12,
         "y": 269.66,
         "width": 366,
-        "height": 205.88
+        "height": 205.88,
+        "linuxOverride": { "x": 12.0, "y": 264.06, "width": 366.0, "height": 205.88 }
       },
       {
         "viewport": { "w": 390, "h": 844 },
@@ -165,7 +182,8 @@
         "x": 12,
         "y": 269.66,
         "width": 332.31,
-        "height": 590.77
+        "height": 590.77,
+        "linuxOverride": { "x": 12.0, "y": 264.06, "width": 332.31, "height": 590.77 }
       }
     ]
   }
