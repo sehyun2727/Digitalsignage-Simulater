@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { openSection } from './support/accordion.js';
 import { readPngDimensions } from './support/png.js';
 import {
   addScenePhotoBackground,
@@ -34,8 +35,13 @@ async function deselect(page: Page): Promise<void> {
 }
 
 /** Zeroes the LED grid / LCD highlight overlay so its animated-looking gradient doesn't perturb
- *  the golden image, matching the pattern already used by the pixel-verification e2e specs. */
+ *  the golden image, matching the pattern already used by the pixel-verification e2e specs.
+ *  v2-release follow-up: v2-S3 moved the material sliders inside the "appearance" accordion, so
+ *  the slider isn't in the DOM until that section is open. First-time PR CI exposure (v2-S3
+ *  push CI skips e2e per ci.yml:75) revealed the missing openSection — locally this often
+ *  passed because another spec's localStorage/accordion state leaked across tests. */
 async function zeroMaterialIntensity(page: Page): Promise<void> {
+  await openSection(page, 'appearance');
   const intensitySlider = page.getByRole('slider', { name: '質感の強さ' });
   await intensitySlider.focus();
   await intensitySlider.press('Home');
@@ -82,25 +88,12 @@ test.describe('golden-image visual QA', () => {
     await page.goto('/');
     await addSpaceBackground(page, { ...DOCUMENT_SIZE, color: '#556677' });
 
-    await page.getByRole('button', { name: 'ポータブル' }).click();
-    const dialog = page.getByRole('dialog');
-    const photo = await solidColorPng(page, '#1155ff');
-    await dialog
-      .locator('input[type="file"]')
-      .setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: photo });
-    await dialog.getByRole('button', { name: '次へ' }).click();
-    await dialog.getByRole('button', { name: '追加', exact: true }).click();
-    await expect(dialog).toBeHidden();
-
-    // 設置面 (installation mode) lives inside the Appearance section's AdvancedSettingsModal —
-    // it must be opened first (see docs/quality-runbook.md's now-resolved "Known issue" entry for
-    // why this scenario previously timed out here).
-    await page.getByRole('button', { name: '詳細設定', exact: true }).click();
-    const settingsDialog = page.getByRole('dialog');
-    await expect(settingsDialog).toBeVisible();
-    await settingsDialog.getByRole('combobox', { name: '設置面' }).selectOption('freestanding');
-    await settingsDialog.getByRole('button', { name: '閉じる', exact: true }).click();
-    await expect(settingsDialog).toBeHidden();
+    // v2-S5 compound-model refactor: the portable button no longer opens a product-photo
+    // upload wizard — a fixed template (docodemo photo + wheels/stand silhouette) is
+    // spawned on click, and the screen receives content via the same Add Image flow
+    // every other signage uses. Portable is intrinsically freestanding (has wheels),
+    // so the 設置面 selector doesn't apply and isn't rendered for this signage type.
+    await page.getByTestId('editor-add-portable').click();
 
     await addContent(page, '#ffcc00');
     await zeroMaterialIntensity(page);
@@ -119,6 +112,7 @@ test.describe('golden-image visual QA', () => {
     await addContent(page, '#2dd4bf');
     await zeroMaterialIntensity(page);
 
+    await openSection(page, 'selected');
     await page.getByRole('button', { name: '空間に合わせて配置（パース）' }).click();
     await setPerspectiveCorner(page, '左上', 0.1, 0.15);
     await setPerspectiveCorner(page, '右上', 0.55, 0.1);
@@ -155,6 +149,11 @@ test.describe('golden-image visual QA', () => {
     await page.goto('/');
     await addScenePhotoBackground(page, 'dark-interior', DOCUMENT_SIZE.width, DOCUMENT_SIZE.height);
     await page.getByRole('button', { name: 'LED', exact: true }).click();
+    // v2-release follow-up: rendering-preset buttons live inside the 'appearance'
+    // accordion (closed by default per v2-S3). Open it before the click or Playwright
+    // waits forever on an unmounted element — same root cause as the setup fix in
+    // `zeroMaterialIntensity`.
+    await openSection(page, 'appearance');
     await page.getByRole('button', { name: '夜間', exact: true }).click();
 
     await addContent(page, '#f97316');
@@ -175,6 +174,7 @@ test.describe('golden-image visual QA', () => {
       DOCUMENT_SIZE.height,
     );
     await page.getByRole('button', { name: 'LED', exact: true }).click();
+    await openSection(page, 'appearance');
     await page.getByRole('button', { name: '明るい屋外', exact: true }).click();
 
     await addContent(page, '#22c55e');
