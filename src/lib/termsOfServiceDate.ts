@@ -15,7 +15,7 @@
  * both effective and revised; if a given string substitutes to empty, that <span>
  * is omitted). This avoids the "2026年月日" broken appearance the old locale had.
  */
-export const TOS_EFFECTIVE_DATE = '' as const;
+export const TOS_EFFECTIVE_DATE = '2026/9/28' as const;
 export const TOS_REVISED_DATE = '' as const;
 
 /** Fill a `{date}` placeholder in a template; return `null` if the date is empty so

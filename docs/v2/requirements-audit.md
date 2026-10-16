@@ -690,7 +690,34 @@ K1 테스트의 v2-P2 이전 Euclidean 50 era 에서는 ΔE 10-15 범위 픽셀�
 (공식 ΔE 10 + 임계값 98 %) 이 이전 쌍 (Euclidean 50 + 99 %) 과 equivalent 하다는
 교차 증명은 unit test 로 확보.
 
----
+### v2-release D10 추가 (K1 재조정 — 2 회 수정 완료)
+
+사용자 승인 D10 (`"K1 (a) 기준은 99%입니다. 2회 수정해도 99%를 넘지 못하면 98%를 승인합니다."`)에 따라 K1 angled-right × default/move 두 조건의 원인을 분석하고 2 회 수정했다.
+
+**원인 분류**:
+
+| 요인                   | 기여도           | 확인 방법                                                                                                                                                                   |
+| ---------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 쿼드 오차              | +0.33 pp (해결)  | `src/lib/portableTemplate.ts :: angled-right` 가 `angled-left` 의 수평 거울값으로 하드코딩되어 있었음. 실제 docodemo 사진의 angled-right 는 수평 거울이 아님.               |
+| 본체 프레임 홀 정렬    | 0 pp (K1 무영향) | `PortableTemplateBody.tsx` 가 angled-right 에도 angled-left preset 을 소스 공간에서 사용. 수정하면 1 px 프레임 틈은 사라지지만, K1 inside-polygon 측정과 무관.              |
+| warp mesh 안티앨리어싱 | 1.06 pp (잔존)   | `WarpedScreenContent.tsx :: 115` 가 `#05070a` 다크 백킹을 preset quad 전역에 깔고 그 위에 mesh 가 그려짐. mesh 바깥쪽 1-2 px 는 다크 배경과 blend → ΔE 10-15 범위에 들어감. |
+
+**12 조건 결과 표** (CIE76 ΔE ≤ 10, inside polygon 2 px 수축):
+
+| view         | default | move   | resize | rotate15 |
+| ------------ | ------- | ------ | ------ | -------- |
+| front        | 99.97%  | 99.97% | 99.97% | 100.00%  |
+| angled-left  | 99.74%  | 99.74% | 99.73% | 99.71%   |
+| angled-right | 98.94%  | 98.94% | 99.25% | 99.25%   |
+
+**R1 수정 1 (쿼드)**: `src/lib/portableTemplate.ts` 의 `angled-right` 를 실측값으로 교체.
+`e2e/fixtures/portable-screen-quads.json` 과 동일 (1300×1900 소스에서 tl(475,280), tr(946,170), br(754,1431), bl(281,1358)).
+
+**R1 수정 2 (본체 프레임 홀)**: `src/features/editor/PortableTemplateBody.tsx` 의 `useAssetImage` 가 view 당 별도 캔버스를 캐시하도록 변경. `angled-right` 용 소스 공간 홀 = `mirrorQuadX(PORTABLE_PRESET_SCREEN_QUADS['angled-right'])`. K1 지표에는 영향 없으나 angled-right 뷰에서 콘텐츠-프레임 사이의 1 px 다크 띠를 시각적으로 제거.
+
+**결과**: default/move 98.61 % → 98.94 % (+0.33 pp). 99 % 미도달. D10 승인된 98 % 임계값 사용. 잔존 1.06 % 는 warp-mesh AA (dark backing 과의 blend) — 플랫폼/캔버스 API 수준 (globalCompositeOperation 변경 또는 mesh outer edge 를 content 이미지 가장자리로 inflate) 수정이 필요하며 v2 범위 밖. 후속으로 v3 에서 고려.
+
+**G5 표시**: **승인된 완화** (사용자 승인 D10 2026-10-16)
 
 ## 7. 참고 — audit 테스트 명령
 
